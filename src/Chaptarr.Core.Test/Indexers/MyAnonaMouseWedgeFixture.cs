@@ -237,15 +237,18 @@ namespace Chaptarr.Core.Test.Indexers
             Assert.That(clientState.Requests, Has.Count.EqualTo(1));
         }
 
-        [Test]
-        public async Task account_status_should_use_mam_unsatisfied_count_limit_and_snapshot()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task account_status_should_use_mam_unsatisfied_count_limit_and_snapshot(bool nested)
         {
             var client = DispatchProxy.Create<IIndexerHttpClient, IndexerHttpClientProxy>();
             var clientState = (IndexerHttpClientProxy)(object)client;
             clientState.Responses.Enqueue(request => new HttpResponse(
                 request,
                 new HttpHeader { ContentType = "application/json" },
-                "{\"classname\":\"Elite VIP\",\"created\":1785171600,\"unsat\":{\"count\":196,\"limit\":200}}",
+                nested
+                    ? "{\"classname\":\"Elite VIP\",\"snatch_summary\":{\"created\":1785171600,\"unsat\":{\"count\":196,\"limit\":200}}}"
+                    : "{\"classname\":\"Elite VIP\",\"created\":1785171600,\"unsat\":{\"count\":196,\"limit\":200}}",
                 HttpStatusCode.OK));
 
             var settings = new MyAnonaMouseSettings { MamId = "secret" };

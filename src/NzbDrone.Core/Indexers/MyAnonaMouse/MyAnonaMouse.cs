@@ -258,6 +258,8 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 throw new InvalidOperationException("MAM user data response did not include a user class");
             }
 
+            userData = userData.SnatchSummary ?? userData;
+
             if (userData.Unsatisfied == null || userData.Unsatisfied.Count < 0 || userData.Unsatisfied.Limit <= 0 || userData.Created <= 0)
             {
                 throw new InvalidOperationException("MAM user data response did not include a valid unsatisfied-torrent summary");
@@ -390,6 +392,9 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
     public class MyAnonaMouseUserDataResponse
     {
+        [JsonProperty("snatch_summary")]
+        public MyAnonaMouseUserDataResponse SnatchSummary { get; set; }
+
         [JsonProperty("classname")]
         public string ClassName { get; set; }
 
