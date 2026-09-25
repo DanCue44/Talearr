@@ -186,14 +186,27 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
                 _logger.Trace("MAM_TEST_SUCCESS: JSON API test successful, found {0} results", releases.Count);
 
-                // After successful connection, refresh the user's account status.
+                // The test result must not present cached counts as if this refresh verified them.
                 try
                 {
                     await RefreshAccountStatus();
+                    if (!MamUnsatisfiedSlotGuard.HasFreshStatus(Settings, DateTime.UtcNow))
+                    {
+                        throw new InvalidOperationException("MAM account status is stale");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "Failed to check MAM account status, continuing without it");
+                    _logger.Warn("MAM account status is unavailable or stale during test for indexer '{0}' ({1})", Definition.Name, ex.GetType().Name);
+                    if (Settings.ProtectUnsatisfiedSlots)
+                    {
+                        return new ValidationFailure(string.Empty, "MAM account status is unavailable or stale. Cannot verify unsatisfied-slot protection.");
+                    }
+
+                    Definition.Message = new ProviderMessage(
+                        "Connection succeeded, but MAM account status is unavailable or stale. Cached counts are not shown.",
+                        ProviderMessageType.Warning);
+                    return null;
                 }
 
                 // Provide a non-fatal, informational success message for the test modal
@@ -407,7 +420,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
     public class MyAnonaMouseUnsatisfiedSummary
     {
-        [JsonProperty("count")]
+        [JsonProperty("count", Required = Required.Always)]
         public int Count { get; set; }
 
         [JsonProperty("limit")]
