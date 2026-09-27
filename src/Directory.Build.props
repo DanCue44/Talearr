@@ -101,12 +101,8 @@
     <RootNamespace Condition="'$(ChaptarrProject)'=='true'">$(MSBuildProjectName.Replace('Chaptarr','NzbDrone'))</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TestProject)'!='true'">
-    <!-- Annotates .NET assemblies with repository information including SHA -->
-    <!-- Sentry uses this to link directly to GitHub at the exact version/file/line -->
-    <!-- This is built-in on .NET 8 and can be removed once the project is updated -->
-    <PackageReference Include="Microsoft.SourceLink.GitHub" />
-  </ItemGroup>
+  <!-- Use the SDK's built-in Source Link; an explicit package overrides its serviced
+       Git tasks and can reintroduce vulnerable build tooling. -->
 
   <!-- Sentry specific configuration: Only in Release mode -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
