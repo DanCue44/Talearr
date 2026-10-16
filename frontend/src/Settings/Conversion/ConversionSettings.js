@@ -12,6 +12,7 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
 import translate from 'Utilities/String/translate';
+import TalearrM4bConnector from './TalearrM4bConnector';
 
 const bitrateOptions = [
   { key: 32, value: '32 kbps' },
@@ -50,6 +51,8 @@ class ConversionSettings extends Component {
       advancedSettings,
       onInputChange,
       onSavePress,
+      onTalearrChildMounted,
+      onTalearrChildStateChange,
       ...otherProps
     } = this.props;
 
@@ -187,6 +190,11 @@ class ConversionSettings extends Component {
 
               </Form>
           }
+
+          <TalearrM4bConnector
+            onChildMounted={onTalearrChildMounted}
+            onChildStateChange={onTalearrChildStateChange}
+          />
         </PageContentBody>
       </PageContent>
     );
@@ -200,7 +208,9 @@ ConversionSettings.propTypes = {
   hasSettings: PropTypes.bool.isRequired,
   advancedSettings: PropTypes.bool.isRequired,
   onInputChange: PropTypes.func.isRequired,
-  onSavePress: PropTypes.func.isRequired
+  onSavePress: PropTypes.func.isRequired,
+  onTalearrChildMounted: PropTypes.func.isRequired,
+  onTalearrChildStateChange: PropTypes.func.isRequired
 };
 
 export default ConversionSettings;

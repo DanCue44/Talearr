@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using NzbDrone.Common;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.Audiobook;
 
 namespace NzbDrone.Core.MediaFiles
 {
@@ -23,6 +23,7 @@ namespace NzbDrone.Core.MediaFiles
                     editionGroup.ToList(),
                     file => IsAudiobookFile(file.Path, file.MediaType, file.Quality),
                     file => file.Path ?? string.Empty,
+                    file => file.AllTags,
                     file => file.Part,
                     (file, value) => file.Part = value,
                     (file, value) => file.PartCount = value);
@@ -42,6 +43,7 @@ namespace NzbDrone.Core.MediaFiles
                     editionGroup.ToList(),
                     file => IsAudiobookFile(file.Path, null, file.Quality),
                     file => file.Path ?? string.Empty,
+                    file => file.RawTags?.AllTags,
                     file => file.Part,
                     (file, value) => file.Part = value,
                     (file, value) => file.PartCount = value);
@@ -61,10 +63,10 @@ namespace NzbDrone.Core.MediaFiles
             foreach (var editionGroup in files.GroupBy(file => file.EditionId.GetValueOrDefault(defaultEditionId)))
             {
                 var groupFiles = editionGroup.ToList();
-                var audioFiles = groupFiles
-                    .Where(file => IsAudiobookFile(file.Path))
-                    .OrderBy(file => file.Path ?? string.Empty, NaturalSortComparer.Instance)
-                    .ToList();
+                // TaleArr: disc-folder aware order (CD1/Disc 2/Part 03, word and roman numbers).
+                var audioFiles = AudiobookTrackOrder.Order(
+                    groupFiles.Where(file => IsAudiobookFile(file.Path)),
+                    file => file.Path ?? string.Empty);
 
                 if (audioFiles.Count > 1)
                 {
@@ -125,14 +127,14 @@ namespace NzbDrone.Core.MediaFiles
             List<T> groupFiles,
             Func<T, bool> isAudiobook,
             Func<T, string> getSortKey,
+            Func<T, IDictionary<string, List<string>>> getTags,
             Func<T, int> getPart,
             Action<T, int> setPart,
             Action<T, int> setPartCount)
         {
-            var audioFiles = groupFiles
-                .Where(isAudiobook)
-                .OrderBy(getSortKey, NaturalSortComparer.Instance)
-                .ToList();
+            // TaleArr: track order from disc/track tags when they are complete, otherwise from
+            // the path with disc folders (CD1, Disc 2, Part 03) ordered by their number.
+            var audioFiles = AudiobookTrackOrder.Order(groupFiles.Where(isAudiobook), getSortKey, getTags);
 
             if (audioFiles.Count > 1)
             {

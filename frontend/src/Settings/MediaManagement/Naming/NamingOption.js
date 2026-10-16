@@ -16,10 +16,17 @@ class NamingOption extends Component {
       tokenSeparator,
       tokenCase,
       isFullFilename,
+      isLiteral,
       onPress
     } = this.props;
 
     let tokenValue = token;
+
+    // TaleArr: literal presets (the Audiobookshelf layout) are inserted exactly as shown.
+    if (isLiteral) {
+      onPress({ isFullFilename, tokenValue });
+      return;
+    }
 
     tokenValue = tokenValue.replace(/ /g, tokenSeparator);
 
@@ -41,8 +48,11 @@ class NamingOption extends Component {
       example,
       tokenCase,
       isFullFilename,
+      isLiteral,
       size
     } = this.props;
+
+    const separator = isLiteral ? ' ' : tokenSeparator;
 
     return (
       <Link
@@ -55,11 +65,11 @@ class NamingOption extends Component {
         onPress={this.onPress}
       >
         <div className={styles.token}>
-          {token.replace(/ /g, tokenSeparator)}
+          {token.replace(/ /g, separator)}
         </div>
 
         <div className={styles.example}>
-          {example.replace(/ /g, tokenSeparator)}
+          {example.replace(/ /g, separator)}
         </div>
       </Link>
     );
@@ -72,13 +82,15 @@ NamingOption.propTypes = {
   tokenSeparator: PropTypes.string.isRequired,
   tokenCase: PropTypes.string.isRequired,
   isFullFilename: PropTypes.bool.isRequired,
+  isLiteral: PropTypes.bool,
   size: PropTypes.oneOf([sizes.SMALL, sizes.LARGE]),
   onPress: PropTypes.func.isRequired
 };
 
 NamingOption.defaultProps = {
   size: sizes.SMALL,
-  isFullFilename: false
+  isFullFilename: false,
+  isLiteral: false
 };
 
 export default NamingOption;

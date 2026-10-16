@@ -117,10 +117,18 @@ class BookDetails extends Component {
       nextBook,
       hasBookNavigation,
       isSearching,
+      isConvertingToM4b,
       onRefreshPress,
       onSearchPress,
+      onConvertToM4bPress,
       statistics = {}
     } = this.props;
+
+    // TaleArr: merging only makes sense for an audiobook made of several audio files.
+    const mergeableExtension = /\.(mp3|m4a|m4b)$/i;
+    const audioFileCount = (bookFiles || []).filter((file) => (file.mediaType || 'audiobook') === 'audiobook' &&
+      mergeableExtension.test(file.path || '')).length;
+    const canConvertToM4b = mediaType !== 'ebook' && audioFileCount > 1;
 
     const {
       bookFileCount = 0
@@ -169,6 +177,20 @@ class BookDetails extends Component {
               isDisabled={!hasBookFiles}
               onPress={this.onRetagPress}
             />
+
+            {
+              mediaType !== 'ebook' &&
+                <PageToolbarButton
+                  label="Convert to M4B"
+                  title={canConvertToM4b ?
+                    'Merge the audio files into one chaptered M4B. The originals are removed only after the M4B is verified.' :
+                    'Only audiobooks with several mp3, m4a or m4b files can be merged'}
+                  iconName={icons.TRACK_FILE}
+                  isSpinning={isConvertingToM4b}
+                  isDisabled={!canConvertToM4b || isConvertingToM4b}
+                  onPress={onConvertToM4bPress}
+                />
+            }
 
             <PageToolbarSeparator />
 
@@ -400,6 +422,7 @@ BookDetails.propTypes = {
   isSaving: PropTypes.bool.isRequired,
   isRefreshing: PropTypes.bool,
   isSearching: PropTypes.bool,
+  isConvertingToM4b: PropTypes.bool,
   isFetching: PropTypes.bool,
   isPopulated: PropTypes.bool,
   bookFilesError: PropTypes.object,
@@ -413,7 +436,8 @@ BookDetails.propTypes = {
   isSmallScreen: PropTypes.bool.isRequired,
   onMonitorTogglePress: PropTypes.func.isRequired,
   onRefreshPress: PropTypes.func,
-  onSearchPress: PropTypes.func.isRequired
+  onSearchPress: PropTypes.func.isRequired,
+  onConvertToM4bPress: PropTypes.func.isRequired
 };
 
 BookDetails.defaultProps = {

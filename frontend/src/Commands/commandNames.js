@@ -30,3 +30,5 @@ export const RSS_SYNC = 'RssSync';
 export const SEASON_SEARCH = 'BookSearch';
 export const AUTHOR_SEARCH = 'AuthorSearch';
 export const SEND_MATCHING_LOGS = 'SendMatchingLogs';
+// TaleArr
+export const TALEARR_CONVERT_TO_M4B = 'TalearrConvertToM4b';

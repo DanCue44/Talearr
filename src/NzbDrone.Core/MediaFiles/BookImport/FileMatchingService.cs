@@ -712,6 +712,10 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                     directAuthorIdentitySupport = BookImportUnitGroupingService.BuildIdentityPairSupport(filesWithMetadata, directAuthorExcludedIdentityValues);
                 }
 
+                // TaleArr: a folder that holds more than one book (by album tags) is split per book
+                // instead of being matched as one unit. See SharedFolderBookSplitter.
+                var talearrSharedFolderBookKeys = BuildTalearrSharedFolderBookKeys(filesWithMetadata);
+
                 // Group by unit key plus any extra author-root split key.
                 // A "book unit" is usually folder + extension, except standalone book
                 // containers which are always one file per unit.
@@ -755,6 +759,12 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                                 var identityKey = BookImportUnitGroupingService.BuildIdentityKey(f?.AllTags, directAuthorIdentitySupport, directAuthorExcludedIdentityValues);
                                 subKey = !string.IsNullOrWhiteSpace(identityKey) ? identityKey : f.Path; // cluster when tags agree; else unique per file
                             }
+                        }
+
+                        if (string.IsNullOrEmpty(subKey) &&
+                            talearrSharedFolderBookKeys.TryGetValue(f.Path ?? string.Empty, out var talearrBookKey))
+                        {
+                            subKey = "talearr-book|" + talearrBookKey;
                         }
 
                         return new { UnitKey = unitKey, Folder = folder, Ext = ext, SubKey = subKey };
@@ -13481,6 +13491,24 @@ namespace NzbDrone.Core.MediaFiles.BookImport
             }
 
             return tags;
+        }
+
+        // TaleArr: book keys for files in folders that hold more than one book.
+        private static IReadOnlyDictionary<string, string> BuildTalearrSharedFolderBookKeys(IEnumerable<DiscoveredFileWithMetadata> files)
+        {
+            var keys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var unit in (files ?? Enumerable.Empty<DiscoveredFileWithMetadata>())
+                         .Where(f => f?.Path != null && MediaFileExtensions.AudioExtensions.Contains(Path.GetExtension(f.Path)))
+                         .GroupBy(f => BookCoalescingHelper.BuildGroupingUnitKey(f.Path) ?? f.Path, StringComparer.OrdinalIgnoreCase))
+            {
+                foreach (var pair in NzbDrone.Core.Talearr.Audiobook.SharedFolderBookSplitter.GetBookKeys(unit, f => f.Path, f => f.AllTags))
+                {
+                    keys[pair.Key] = pair.Value;
+                }
+            }
+
+            return keys;
         }
     }
 }

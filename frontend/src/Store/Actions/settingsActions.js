@@ -30,6 +30,7 @@ import releaseProfiles from './Settings/releaseProfiles';
 import remotePathMappings from './Settings/remotePathMappings';
 import rootFolders from './Settings/rootFolders';
 import talearrGrabPolicy from './Settings/talearrGrabPolicy';
+import talearrM4b from './Settings/talearrM4b';
 import ui from './Settings/ui';
 
 export * from './Settings/customFormatSpecifications.js';
@@ -62,6 +63,7 @@ export * from './Settings/rootFolders';
 export * from './Settings/development';
 export * from './Settings/ui';
 export * from './Settings/talearrGrabPolicy';
+export * from './Settings/talearrM4b';
 
 //
 // Variables
@@ -103,7 +105,8 @@ export const defaultState = {
   rootFolders: rootFolders.defaultState,
   development: development.defaultState,
   ui: ui.defaultState,
-  talearrGrabPolicy: talearrGrabPolicy.defaultState
+  talearrGrabPolicy: talearrGrabPolicy.defaultState,
+  talearrM4b: talearrM4b.defaultState
 };
 
 export const persistState = [
@@ -153,7 +156,8 @@ export const actionHandlers = handleThunks({
   ...rootFolders.actionHandlers,
   ...development.actionHandlers,
   ...ui.actionHandlers,
-  ...talearrGrabPolicy.actionHandlers
+  ...talearrGrabPolicy.actionHandlers,
+  ...talearrM4b.actionHandlers
 });
 
 //
@@ -194,6 +198,7 @@ export const reducers = createHandleActions({
   ...rootFolders.reducers,
   ...development.reducers,
   ...ui.reducers,
-  ...talearrGrabPolicy.reducers
+  ...talearrGrabPolicy.reducers,
+  ...talearrM4b.reducers
 
 }, defaultState, section);

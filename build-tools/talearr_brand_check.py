@@ -61,6 +61,14 @@ MUST_KEEP_TALEARR_HOOKS = [
     ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionPriorizationService.cs", r"TalearrGrabPolicyService\.Resolve", "grab policy: ranking uses the policy"),
     ("src/NzbDrone.Core/Download/RedownloadFailedDownloadService.cs", r"_talearrRetryService", "grab policy: retry cap and history notes"),
     ("frontend/src/Settings/Indexers/IndexerSettings.js", r"TalearrGrabPolicyConnector", "grab policy: settings section"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"TalearrNamingTokens\.Add\(", "audiobooks: {Book Year} and abridged tokens"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"TalearrNamingTokens\.FormatSeriesPosition", "audiobooks: zero-padded series position"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"TalearrNamingTokens\.GetOriginalFileName", "audiobooks: multi-disc file names kept apart"),
+    ("src/NzbDrone.Core/MediaFiles/PartAssignmentHelper.cs", r"AudiobookTrackOrder\.Order", "audiobooks: disc and track order on import"),
+    ("src/NzbDrone.Core/MediaFiles/BookImport/FileMatchingService.cs", r"BuildTalearrSharedFolderBookKeys", "audiobooks: two books in one folder are not merged"),
+    ("frontend/src/Settings/Conversion/ConversionSettings.js", r"TalearrM4bConnector", "audiobooks: merge to M4B setting"),
+    ("frontend/src/Book/Details/BookDetails.js", r"onConvertToM4bPress", "audiobooks: Convert to M4B action"),
+    ("frontend/src/Settings/MediaManagement/Naming/NamingModal.js", r"audiobookLayouts", "audiobooks: naming tokens and layouts"),
 ]
 
 # Visible strings that should not come back in UI shells after a merge.
