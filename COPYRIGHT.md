@@ -1,5 +1,17 @@
 # Copyright & Attribution
 
+## TaleArr
+
+TaleArr is a fork of Chaptarr and is distributed under the same GNU General Public
+License, version 3. TaleArr credits [Chaptarr](https://github.com/Chaptarr/chaptarr)
+and the Chaptarr contributors as its upstream, and the Servarr team and the Readarr,
+Sonarr, Radarr, Lidarr and Prowlarr contributors whose work Chaptarr builds on. The
+upstream notices below are kept unchanged apart from punctuation.
+
+- Copyright 2026 TaleArr contributors.
+
+## Upstream: Chaptarr
+
 Chaptarr is free software, licensed under the **GNU General Public License, version 3**.
 See the [LICENSE](LICENSE) file for the full license text. If you found and ran Chaptarr
 from Docker Hub and would like a copy of the source code as required by this license,
@@ -31,7 +43,7 @@ contributors put into those projects. We are grateful for it.
 Chaptarr is an independent, community-run project. It is **not affiliated with,
 endorsed by, or supported by** the Servarr team or the Readarr, Sonarr, Radarr,
 Lidarr, or Prowlarr projects. Please direct Chaptarr questions and support requests
-to the Chaptarr project — not to them.
+to the Chaptarr project - not to them.
 
 ## AI Development Disclosure
 
@@ -40,7 +52,7 @@ Chaptarr is developed and maintained with the assistance of AI tools.
 ## Third-Party Components
 
 Chaptarr's optional audiobook conversion shells out to external tools that are
-bundled in the **official Chaptarr Docker image** — they are not part of this
+bundled in the **official Chaptarr Docker image** - they are not part of this
 source tree. Each remains under its own license:
 
 | Component | License | Source |
