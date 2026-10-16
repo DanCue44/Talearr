@@ -66,5 +66,13 @@ jobs:
       - name: Backend - build
         run: dotnet build src/Chaptarr.NoTests.sln -c Release --no-restore
 
+      # The M4B merge tests run the real ffmpeg on generated audio (they skip without it).
+      - name: Backend - install ffmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
+          fi
+          ffmpeg -version | head -1
+
       - name: Backend - unit tests
         run: dotnet test src/Chaptarr.Core.Test/Chaptarr.Core.Test.csproj -c Release --no-restore --logger "console;verbosity=minimal"

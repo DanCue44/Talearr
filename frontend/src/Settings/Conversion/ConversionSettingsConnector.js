@@ -36,6 +36,18 @@ const mapDispatchToProps = {
 
 class ConversionSettingsConnector extends Component {
 
+  constructor(props, context) {
+    super(props, context);
+
+    // TaleArr: the M4B merge section saves with the same toolbar button.
+    this._talearrSaveCallback = null;
+
+    this.state = {
+      talearrIsSaving: false,
+      talearrHasPendingChanges: false
+    };
+  }
+
   componentDidMount() {
     this.props.fetchConversionSettings();
   }
@@ -48,22 +60,50 @@ class ConversionSettingsConnector extends Component {
     this.props.setConversionSettingsValue({ name, value });
   };
 
+  onTalearrChildMounted = (saveCallback) => {
+    this._talearrSaveCallback = saveCallback;
+  };
+
+  onTalearrChildStateChange = ({ isSaving, hasPendingChanges }) => {
+    this.setState({
+      talearrIsSaving: isSaving,
+      talearrHasPendingChanges: hasPendingChanges
+    });
+  };
+
   onSavePress = () => {
-    this.props.saveConversionSettings();
+    if (this.props.hasPendingChanges) {
+      this.props.saveConversionSettings();
+    }
+
+    if (this._talearrSaveCallback && this.state.talearrHasPendingChanges) {
+      this._talearrSaveCallback();
+    }
   };
 
   render() {
+    const {
+      talearrIsSaving,
+      talearrHasPendingChanges
+    } = this.state;
+
     return (
       <ConversionSettings
         onInputChange={this.onInputChange}
-        onSavePress={this.onSavePress}
         {...this.props}
+        isSaving={this.props.isSaving || talearrIsSaving}
+        hasPendingChanges={this.props.hasPendingChanges || talearrHasPendingChanges}
+        onSavePress={this.onSavePress}
+        onTalearrChildMounted={this.onTalearrChildMounted}
+        onTalearrChildStateChange={this.onTalearrChildStateChange}
       />
     );
   }
 }
 
 ConversionSettingsConnector.propTypes = {
+  isSaving: PropTypes.bool,
+  hasPendingChanges: PropTypes.bool,
   fetchConversionSettings: PropTypes.func.isRequired,
   setConversionSettingsValue: PropTypes.func.isRequired,
   saveConversionSettings: PropTypes.func.isRequired,

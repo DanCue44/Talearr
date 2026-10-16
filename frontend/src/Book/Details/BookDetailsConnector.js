@@ -116,6 +116,10 @@ function createMapStateToProps() {
         isRenamingAuthorCommand.body.authorIds.indexOf(author.id) > -1
         );
 
+        // TaleArr: Convert to M4B for this book.
+        const isConvertingToM4bCommand = findCommand(commands, { name: commandNames.TALEARR_CONVERT_TO_M4B, bookId: book.id });
+        const isConvertingToM4b = isCommandExecuting(isConvertingToM4bCommand);
+
         const isFetching = isBookFilesFetching || editions.isFetching;
         const isPopulated = isBookFilesPopulated && editions.isPopulated;
         const selectedEdition = editions.items
@@ -142,6 +146,7 @@ function createMapStateToProps() {
           isSearching,
           isRenamingFiles,
           isRenamingAuthor,
+          isConvertingToM4b,
           isFetching,
           isPopulated,
           bookFilesError,
@@ -191,10 +196,12 @@ class BookDetailsConnector extends Component {
       anyReleaseOk,
       isRefreshing,
       isRenamingFiles,
-      isRenamingAuthor
+      isRenamingAuthor,
+      isConvertingToM4b
     } = this.props;
 
     if (
+      (prevProps.isConvertingToM4b && !isConvertingToM4b) ||
       (prevProps.isRefreshing && !isRefreshing) ||
       (prevProps.isRenamingFiles && !isRenamingFiles) ||
       (prevProps.isRenamingAuthor && !isRenamingAuthor) ||
@@ -262,6 +269,13 @@ class BookDetailsConnector extends Component {
     });
   };
 
+  onConvertToM4bPress = () => {
+    this.props.executeCommand({
+      name: commandNames.TALEARR_CONVERT_TO_M4B,
+      bookId: this.props.id
+    });
+  };
+
   //
   // Render
 
@@ -272,6 +286,7 @@ class BookDetailsConnector extends Component {
         onMonitorTogglePress={this.onMonitorTogglePress}
         onRefreshPress={this.onRefreshPress}
         onSearchPress={this.onSearchPress}
+        onConvertToM4bPress={this.onConvertToM4bPress}
       />
     );
   }
@@ -283,6 +298,7 @@ BookDetailsConnector.propTypes = {
   isRefreshing: PropTypes.bool.isRequired,
   isRenamingFiles: PropTypes.bool.isRequired,
   isRenamingAuthor: PropTypes.bool.isRequired,
+  isConvertingToM4b: PropTypes.bool,
   isBookFetching: PropTypes.bool,
   isBookPopulated: PropTypes.bool,
   bookId: PropTypes.number.isRequired,
