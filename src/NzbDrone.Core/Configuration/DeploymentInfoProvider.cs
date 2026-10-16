@@ -27,7 +27,7 @@ namespace NzbDrone.Core.Configuration
 
     public class DeploymentInfoProvider : IDeploymentInfoProvider
     {
-        public DeploymentInfoProvider(IAppFolderInfo appFolderInfo, IDiskProvider diskProvider, IOsInfo osInfo)
+        public DeploymentInfoProvider(IAppFolderInfo appFolderInfo, IDiskProvider diskProvider)
         {
             var bin = appFolderInfo.StartUpFolder;
             var packageInfoPath = Path.Combine(bin, "..", "package_info");
@@ -68,13 +68,6 @@ namespace NzbDrone.Core.Configuration
                 {
                     DefaultBranch = ReleaseBranch;
                 }
-            }
-
-            // TaleArr: inside Docker the app is only updated by pulling a new image, so the
-            // built-in updater can never install an upstream Chaptarr build over TaleArr.
-            if (PackageUpdateMechanism == UpdateMechanism.BuiltIn && osInfo.IsDocker)
-            {
-                PackageUpdateMechanism = UpdateMechanism.Docker;
             }
 
             DefaultUpdateMechanism = PackageUpdateMechanism;

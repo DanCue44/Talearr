@@ -159,7 +159,6 @@ jobs:
           import json, sys
           talearr = json.load(open("status-talearr.json"))
           assert talearr["appName"] == "Chaptarr", "appName must stay Chaptarr for API clients"
-          assert talearr["packageUpdateMechanism"] == "docker", "in-app updater must be disabled in the image"
           if sys.argv[1] == "true":
               upstream = json.load(open("status-upstream.json"))
               missing = set(upstream) - set(talearr)
