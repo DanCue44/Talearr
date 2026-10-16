@@ -148,6 +148,11 @@ See [docs/TALEARR_AUDIOBOOKSHELF.md](docs/TALEARR_AUDIOBOOKSHELF.md).
 - **Book page badge.** "In Audiobookshelf", linking to the item (Link URL sets the address
   your browser uses).
 - **Scan after import** stays the connection's own On Release Import trigger.
+- **Sidecar files.** When a root folder writes Audiobookshelf's `metadata.json` and `cover.jpg`,
+  the title is the book's own without format noise, names have stray spaces removed, and
+  `cover.jpg` is the largest available image (full-size Goodreads and Amazon images, Audible
+  covers of 500 px preferred), never a thumbnail and never smaller than the cover already there.
+  Files Audiobookshelf or you put there are never overwritten.
 - **API**: `GET /api/v1/talearr/audiobookshelf/book/{bookId}`, `GET .../status`,
   `POST .../sync`.
 

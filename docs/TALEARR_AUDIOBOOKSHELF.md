@@ -78,6 +78,80 @@ grab) when every book it is for is in ABS and:
     to the primary recording when the narrator is unknown. With one recording, any narrator
     counts.
 
+## Sidecar files
+
+Chaptarr can write Audiobookshelf's `metadata.json` and `cover.jpg` next to each book. Both are
+off by default and set per root folder, separately for audiobooks and ebooks: Settings > Media
+Management > Root Folders > edit a folder > **Write AudioBookShelf metadata.json** and **Write
+AudioBookShelf cover file**. They are written after an import and after an author refresh or
+rescan, once per book folder (from the first file of a multi-file audiobook). TaleArr changes what
+goes into them, not when they are written.
+
+### metadata.json
+
+- **Title.** The book's own title without format noise, the same one the folder is named after
+  (see [TALEARR_AUDIOBOOKS.md](TALEARR_AUDIOBOOKS.md#book-title-not-the-edition-title)). Chaptarr
+  used the matched edition's title: the 1984 import on 2026-10-16 wrote
+  `"title": "Nineteen Eighty-Four (MP3 Book)"`; it is now `"1984"`.
+- **Subtitle.** The edition's subtitle, else the book's, kept only when it is a real subtitle. A
+  subtitle that is only format noise (`Unabridged`, `MP3 Book`), only a genre (`A Novel`,
+  `A Thriller`) or the title again is left out.
+- **Names.** Authors, narrators, series and genres have runs of spaces (including no-break
+  spaces) collapsed and are trimmed, and duplicates that differ only in spacing or case are
+  dropped: `"Samuel  West"` is written as `"Samuel West"`.
+- Everything else (description, ISBN, ASIN, dates, chapters) is unchanged. The same name cleanup
+  applies to the author and narrator tags of a merged M4B. Chaptarr's own audio tag writing
+  (Settings > Metadata > Tag Audio Files with Metadata) is upstream behaviour and unchanged.
+
+### cover.jpg
+
+Chaptarr wrote the matched edition's first cover URL, whatever its size. For the 1984 import that
+was a Goodreads thumbnail (`9834606._SX50_.jpg`, 50x67 pixels, 1.5 KB), and Audiobookshelf used it
+as the book's cover. TaleArr now:
+
+1. **Collects candidates**, in this order: the edition's covers, the book's covers, then the covers
+   of other editions of the same recording (audiobooks: an edition with the same narrator, Audible
+   editions first; ebooks: the same ISBN-13). A Goodreads or Amazon URL with a size token
+   (`._SX50_`, `._SY75_`, `._SL500_`, `._AC_SY400_`) is also tried without it, first, because the
+   CDN then returns the stored original (the 1984 thumbnail becomes 318x424).
+2. **Downloads** up to 6 of them and reads each image's size. Failed downloads, non-images and
+   known placeholder images are skipped; a listed thumbnail is skipped when its full-size form
+   worked.
+3. **Picks** the first Audible image, or image of the edition itself, that is at least 500 px on
+   the short side (it stops downloading there). Otherwise it picks the largest image found, so an
+   image under 300 px is never written while a larger one is available.
+4. **Never writes a thumbnail.** When the largest image is under 150 px on the short side, nothing
+   is written, so Audiobookshelf keeps the embedded cover or its own match instead of a postage
+   stamp. A book in that state is not downloaded again for 12 hours.
+5. **Never downgrades.** When the folder already has a cover that TaleArr may replace (see below),
+   it is replaced only by an image at least as large (short side, then area). A PNG or WebP chosen
+   for `cover.jpg` is re-encoded as JPEG. The file is written to `cover.jpg.partial~` first and
+   then moved into place.
+
+When the candidate list changes (an edition gains a cover, or TaleArr's rules change), the cover
+is looked at once more under these rules. A cover written by an older TaleArr or Chaptarr is
+therefore re-checked once after the update and replaced only when a larger image is found.
+
+### What is never overwritten
+
+Upstream's rules decide whether a sidecar may be replaced at all, and TaleArr keeps them:
+
+- A `metadata.json` or `cover.jpg` that this provider did not write (from Audiobookshelf with
+  "Store metadata with item" on, from the download, or put there by you) is never touched, not even
+  when it is smaller.
+- A file this provider wrote and that was changed since (Audiobookshelf saved its own cover or
+  metadata over it, or you edited it) is released: Chaptarr stops tracking its content and never
+  writes it again.
+- After an import into a folder that already holds either file, the file is left alone.
+- To have TaleArr write a file again, delete it and refresh the author.
+
+Code: `src/NzbDrone.Core/Talearr/Metadata/` (`TalearrSidecarText`, `TalearrSidecarCover`,
+`TalearrSidecarCoverWriter`, `TalearrSidecarImage`), hooked from `AudioBookShelfMetadata`
+(`BuildMetadata`, `AddStringArray`, `BookImages`) and `MetadataService.ProcessBookImages`. No
+setting, no schema change; the tracked hash in the existing `MetadataFiles` table now covers the
+candidate list. After a rollback Chaptarr writes its own title and first cover URL again, under
+the same never-overwrite rules.
+
 ## API
 
 Additive routes; nothing upstream changes.
