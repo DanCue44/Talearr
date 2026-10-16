@@ -38,6 +38,8 @@ using NzbDrone.Core.Messaging.Events;
     using NzbDrone.Core.Qualities;
 
 
+using NzbDrone.Core.Talearr.Recordings;
+
 namespace NzbDrone.Core.MediaFiles.BookImport
 {
     /// <summary>
@@ -90,6 +92,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
             private readonly IContainmentValidator _containmentValidator;
             private readonly IMapCoversToLocal _coverMapper;
             private readonly ICustomFormatCalculationService _customFormatCalculationService;
+            private readonly ITalearrRecordingFolders _talearrRecordingFolders; // TaleArr
             private readonly Logger _logger;
 
         public ImportApprovedBooks(
@@ -117,8 +120,10 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                 IContainmentValidator containmentValidator = null,
                 IMapCoversToLocal coverMapper = null,
                 ICustomFormatCalculationService customFormatCalculationService = null,
-                IConversionJobService conversionJobService = null)
+                IConversionJobService conversionJobService = null,
+                ITalearrRecordingFolders talearrRecordingFolders = null)
             {
+                _talearrRecordingFolders = talearrRecordingFolders; // TaleArr
             _mediaFileService = mediaFileService;
             _metadataTagService = metadataTagService;
             _mediaInfoExtractor = mediaInfoExtractor;
@@ -490,6 +495,23 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                         }
                     }
                 }
+
+                    // TaleArr: an additional recording never imports into a folder that already holds
+                    // another recording's files (the copy folder rule in FileNameBuilder keeps them apart).
+                    var talearrFolderConflict = TalearrRecordingFolders.FindImportConflict(_talearrRecordingFolders, _bookFileMover, newBookInstance ?? book, newEdition, author, bookDecisions.Select(d => d.Item), _logger);
+                    if (!string.IsNullOrWhiteSpace(talearrFolderConflict))
+                    {
+                        _logger.Warn(talearrFolderConflict);
+                        CleanupNewBookInstanceIfEmpty(createdNewBookInstance, newBookInstance, newEdition, new List<BookFile>());
+                        _conversionTrackingService?.Fail(conversionDownloadId, talearrFolderConflict);
+                        CleanupOrRetainConversionWorkFolder(conversionWorkFolder, bookDecisions, talearrFolderConflict);
+                        foreach (var decision in bookDecisions)
+                        {
+                            importResults.Add(new ImportResult(decision, talearrFolderConflict));
+                        }
+
+                        continue;
+                    }
 
                     if (conversionDownloadId.IsNotNullOrWhiteSpace())
                     {

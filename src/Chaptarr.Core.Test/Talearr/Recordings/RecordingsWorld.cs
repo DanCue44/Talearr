@@ -57,6 +57,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
                 .ToList());
 
             var (editions, editionFake) = InterfaceFake<IEditionService>.Create();
+            EditionService = editions;
             editionFake.On(nameof(IEditionService.GetEditionsByBook), args => args[0] is int id
                 ? Editions.Where(e => e.BookId == id).OrderBy(e => e.Id).ToList()
                 : Editions.Where(e => ((IEnumerable<int>)args[0]).Contains(e.BookId)).OrderBy(e => e.Id).ToList());
@@ -140,6 +141,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
         public List<Command> Commands { get; } = new List<Command>();
         public List<int> Deleted { get; } = new List<int>();
         public IMediaFileService MediaFiles { get; }
+        public IEditionService EditionService { get; }
         public BookService BookService { get; }
         public IManageCommandQueue CommandQueue { get; }
         public TalearrRecordingGroupService Groups { get; }

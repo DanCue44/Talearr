@@ -88,6 +88,10 @@ MUST_KEEP_RECORDINGS = [
     ("src/Chaptarr.Api.V1/Talearr/TalearrRecordingsController.cs", r'V1ApiController\("talearr/recordings"\)', "recordings: API route for AllSeerr and NoBookEnds"),
     ("src/NzbDrone.Core/Talearr/Recordings/TalearrRecordingsService.cs", r"_bookService\.AddWantedEdition\(", "recordings: new recordings are upstream wanted copies"),
     ("src/NzbDrone.Core/Talearr/Recordings/TalearrEditionKey.cs", r"GetTrustedForeignEditionId", "recordings: facts keyed the way upstream keys cloned editions"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"public partial class FileNameBuilder", "recordings: FileNameBuilder stays partial for the TaleArr half"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"components = TalearrDisambiguateRecordingFolder\(", "recordings: copy folders are disambiguated"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"Lazy<ITalearrRecordingFolders> recordingFolders = null", "recordings: folder rule is optional and lazy (no container cycle)"),
+    ("src/NzbDrone.Core/MediaFiles/BookImport/ImportApprovedBooks.cs", r"TalearrRecordingFolders\.FindImportConflict\(", "recordings: import refuses a folder holding another recording's files"),
 ]
 
 # (folder, file glob, regex, why). No file under the folder may match.
