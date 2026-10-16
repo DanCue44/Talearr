@@ -1,7 +1,21 @@
 # TaleArr Phase 2: audiobook recordings (design)
 
-Status: design only, nothing here is built yet. Written 2026-10-16 against TaleArr 0.11.0
+Status: built in TaleArr 0.12.0 (PRs 2 to 9 below); user documentation is in
+[TALEARR_RECORDINGS.md](TALEARR_RECORDINGS.md). Written 2026-10-16 against TaleArr 0.11.0
 (based on Chaptarr 0.9.965, main database migration 107).
+
+Where the build differs from this design:
+
+- The upgrade guard and the keep both reroute live in `ImportApprovedBooks.Import` (download
+  imports, before any old file is staged), not in an `IImportDecisionEngineSpecification` or
+  next to `BookUnitDestinationService`: Chaptarr's import pipeline has no such specification
+  interface any more, and library scans (the unit destination path) are not replacements.
+- No `DownloadDecisionComparer` bitrate tie break and no release-title custom format presets
+  yet; the "same codec only" rule is applied to measured bitrates at import.
+- All recordings and upgrade settings are one Recordings block on Settings > Metadata.
+- The upgrade settings are nullable on `PUT /api/v1/config/talearrrecordings`, so an older
+  client keeps them.
+- The "2 recordings" badge in book lists is not built yet.
 
 ## Goal
 
