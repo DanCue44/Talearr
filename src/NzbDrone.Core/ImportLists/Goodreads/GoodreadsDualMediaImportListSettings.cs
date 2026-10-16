@@ -175,7 +175,7 @@ namespace NzbDrone.Core.ImportLists.Goodreads
             var rootFolder = rootFolderService.GetBestRootFolder(rootFolderPath);
             if (rootFolder == null)
             {
-                return new ValidationFailure(fieldName, $"Root folder '{rootFolderPath}' is not configured in Chaptarr");
+                return new ValidationFailure(fieldName, $"Root folder '{rootFolderPath}' is not configured in TaleArr");
             }
 
             if (mediaType == BookMediaType.Audiobook && rootFolder.FolderType == FolderType.Ebook)

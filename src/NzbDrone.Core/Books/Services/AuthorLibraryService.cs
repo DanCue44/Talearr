@@ -1364,7 +1364,7 @@ namespace NzbDrone.Core.Books.Services
             var rootFolder = _rootFolderService.GetBestRootFolder(rootFolderPath);
             if (rootFolder == null || !rootFolder.Path.PathEquals(rootFolderPath))
             {
-                throw BuildMonitoringConfigValidationException(mediaType, RootFolderPropertyName(mediaType), $"Selected root folder '{rootFolderPath}' is not configured in Chaptarr");
+                throw BuildMonitoringConfigValidationException(mediaType, RootFolderPropertyName(mediaType), $"Selected root folder '{rootFolderPath}' is not configured in TaleArr");
             }
 
             if (!IsCompatibleRootFolder(rootFolder, mediaType))
