@@ -13,6 +13,7 @@ using NzbDrone.Core.Extras.Files;
 using NzbDrone.Core.Extras.Metadata.Files;
 using NzbDrone.Core.Extras.Others;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Talearr.Metadata;
 
 namespace NzbDrone.Core.Extras.Metadata
 {
@@ -28,6 +29,7 @@ namespace NzbDrone.Core.Extras.Metadata
         private readonly IMediaFileAttributeService _mediaFileAttributeService;
         private readonly IMetadataFileService _metadataFileService;
         private readonly IBookService _bookService;
+        private readonly ITalearrSidecarCoverWriter _talearrCoverWriter; // TaleArr
         private readonly Logger _logger;
 
         public MetadataService(IConfigService configService,
@@ -41,7 +43,8 @@ namespace NzbDrone.Core.Extras.Metadata
                                IMediaFileAttributeService mediaFileAttributeService,
                                IMetadataFileService metadataFileService,
                                IBookService bookService,
-                               Logger logger)
+                               Logger logger,
+                               ITalearrSidecarCoverWriter talearrCoverWriter = null)
             : base(configService, diskProvider, diskTransferService, logger)
         {
             _metadataFactory = metadataFactory;
@@ -54,6 +57,7 @@ namespace NzbDrone.Core.Extras.Metadata
             _mediaFileAttributeService = mediaFileAttributeService;
             _metadataFileService = metadataFileService;
             _bookService = bookService;
+            _talearrCoverWriter = talearrCoverWriter; // TaleArr
             _logger = logger;
         }
 
@@ -415,7 +419,7 @@ namespace NzbDrone.Core.Extras.Metadata
             foreach (var image in consumer.BookImages(author, bookFile))
             {
                 var fullPath = Path.Combine(basePath, image.RelativePath);
-                var sourceHash = image.Url.SHA256Hash();
+                var sourceHash = TalearrSidecarImage.SourceKeyOf(image).SHA256Hash(); // TaleArr: all candidates, not one URL
                 var existingMetadata = existingMetadataFiles.FirstOrDefault(c => c.Type == MetadataType.BookImage &&
                                                                                  c.BookId == bookFile.Edition.BookId &&
                                                                                  c.RelativePath == image.RelativePath);
@@ -447,6 +451,25 @@ namespace NzbDrone.Core.Extras.Metadata
                     }
                 }
 
+                // TaleArr: a cover sidecar is chosen by size from every candidate and never replaces a
+                // larger cover (docs/TALEARR_AUDIOBOOKSHELF.md#sidecar-files).
+                TalearrCoverDecision talearrCover = null;
+                if (image is TalearrSidecarImage talearrImage && _talearrCoverWriter != null)
+                {
+                    talearrCover = _talearrCoverWriter.Decide(talearrImage, fullPath);
+                    if (talearrCover.Verdict != TalearrCoverVerdict.Write)
+                    {
+                        if (talearrCover.Verdict == TalearrCoverVerdict.KeepExisting && HasTrackedHash(existingMetadata) && _diskProvider.FileExists(fullPath))
+                        {
+                            // Remember these candidates were looked at, so the next scan does not download them again.
+                            existingMetadata.Hash = BuildTrackedHash(GetBinaryFileHash(fullPath), sourceHash);
+                            result.Add(existingMetadata);
+                        }
+
+                        continue;
+                    }
+                }
+
                 _otherExtraFileRenamer.RenameOtherExtraFile(author, fullPath);
 
                 var metadata = GetMetadataFile(author, existingMetadataFiles, c => c.Type == MetadataType.BookImage &&
@@ -462,7 +485,11 @@ namespace NzbDrone.Core.Extras.Metadata
                                    Extension = Path.GetExtension(fullPath)
                                };
 
-                if (!DownloadImage(author, image, basePath, image.OverwriteExisting) || !_diskProvider.FileExists(fullPath))
+                var written = talearrCover != null
+                    ? _talearrCoverWriter.Save(talearrCover, fullPath) // TaleArr
+                    : DownloadImage(author, image, basePath, image.OverwriteExisting);
+
+                if (!written || !_diskProvider.FileExists(fullPath))
                 {
                     continue;
                 }

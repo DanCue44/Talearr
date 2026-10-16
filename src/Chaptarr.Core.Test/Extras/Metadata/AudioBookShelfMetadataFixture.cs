@@ -194,8 +194,9 @@ namespace Chaptarr.Core.Test.Extras.Metadata
             });
         }
 
+        // TaleArr: the book's cover is a candidate when the matched edition has none (upstream wrote nothing).
         [Test]
-        public void should_not_write_cover_sidecar_from_book_cover_without_matched_edition_cover()
+        public void should_write_cover_sidecar_from_book_cover_without_matched_edition_cover()
         {
             var subject = CreateSubject(new List<RootFolder>
             {
@@ -208,7 +209,53 @@ namespace Chaptarr.Core.Test.Extras.Metadata
 
             var result = subject.BookImages(author, bookFile);
 
-            Assert.That(result, Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Has.Count.EqualTo(1));
+                Assert.That(result[0].RelativePath, Is.EqualTo("A Parade of Horribles/cover.jpg"));
+                Assert.That(result[0].Url, Is.EqualTo("https://images.example.test/book.jpg"));
+            });
+        }
+
+        // TaleArr: the 1984 import of 2026-10-16 (book 5002, edition 39500).
+        [Test]
+        public void should_write_book_title_and_clean_narrator_for_store_listing_edition()
+        {
+            var subject = CreateSubject(new List<RootFolder>
+            {
+                BuildRoot(audiobookMetadata: true, audiobookCover: true)
+            });
+
+            var author = new Author { Id = 10, Name = "George  Orwell", Path = "/library/George Orwell", AudiobookPath = "/library/George Orwell" };
+            var bookFile = BuildBookFile("audiobook", "/library/George Orwell/1984 - Samuel West/1984.m4b");
+            var book = bookFile.Edition.Book;
+            var edition = bookFile.Edition;
+            book.Title = "1984";
+            book.SeriesName = null;
+            edition.Title = "Nineteen Eighty-Four (MP3 Book)";
+            edition.Subtitle = "Unabridged";
+            edition.Narrator = "Samuel  West";
+            edition.NarratorNames = new List<string> { "Samuel  West" };
+            edition.Images.Add(new NzbDrone.Core.MediaCover.MediaCover(MediaCoverTypes.Cover, "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1291569931l/9834606._SX50_.jpg"));
+
+            var json = JObject.Parse(subject.BookMetadata(author, bookFile).Contents);
+            var images = subject.BookImages(author, bookFile);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That((string)json["title"], Is.EqualTo("1984"));
+                Assert.That(json["subtitle"], Is.Null);
+                Assert.That(json["narrators"].Select(n => (string)n), Is.EqualTo(new[] { "Samuel West" }));
+                Assert.That(json["authors"].Select(a => (string)a), Is.EqualTo(new[] { "George Orwell" }));
+                Assert.That(images, Has.Count.EqualTo(1));
+                Assert.That(images[0].RelativePath, Is.EqualTo("1984 - Samuel West/cover.jpg"));
+                Assert.That(images[0], Is.InstanceOf<NzbDrone.Core.Talearr.Metadata.TalearrSidecarImage>());
+                Assert.That(((NzbDrone.Core.Talearr.Metadata.TalearrSidecarImage)images[0]).Candidates.Select(c => c.Url), Is.EqualTo(new[]
+                {
+                    "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1291569931l/9834606.jpg",
+                    "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1291569931l/9834606._SX50_.jpg"
+                }));
+            });
         }
 
         [Test]

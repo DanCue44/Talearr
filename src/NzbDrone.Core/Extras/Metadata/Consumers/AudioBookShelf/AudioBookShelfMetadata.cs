@@ -118,28 +118,26 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
                 return new List<ImageFileResult>();
             }
 
-            var cover = SelectCover(edition);
-            if (cover?.Url.IsNullOrWhiteSpace() != false)
+            // TaleArr: every candidate image (edition, book, other editions of the same recording, and
+            // their full-size forms); MetadataService picks the largest through TalearrSidecarCover.
+            var candidates = TalearrSidecarCover.BuildCandidates(book, edition, GetOtherEditions(book, edition), IsEbook(bookFile));
+            var first = candidates.FirstOrDefault();
+            if (first == null)
             {
                 return new List<ImageFileResult>();
             }
 
-            var extension = NormalizeCoverExtension(cover.Extension, cover.Url);
+            var listedCover = SelectCover(edition);
+            var extension = NormalizeCoverExtension(first.Source == TalearrCoverSource.Edition ? listedCover?.Extension : null, first.ListedUrl);
             var relativePath = GetSidecarRelativePath(author, bookFile, "cover" + extension);
             if (relativePath.IsNullOrWhiteSpace())
             {
                 return new List<ImageFileResult>();
             }
 
-            var source = GetCoverSource(cover);
-            if (source.IsNullOrWhiteSpace())
-            {
-                return new List<ImageFileResult>();
-            }
-
             return new List<ImageFileResult>
             {
-                new ImageFileResult(relativePath, source, overwriteExisting: true)
+                new TalearrSidecarImage(relativePath, candidates, TalearrSidecarText.Title(book, edition), overwriteExisting: true)
             };
         }
 
@@ -303,9 +301,21 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
             return edition.Images?.FirstOrDefault(c => c.CoverType == MediaCoverTypes.Cover);
         }
 
-        private static string GetCoverSource(MediaCoverModel cover)
+        private List<Edition> GetOtherEditions(Book book, Edition edition)
         {
-            return cover.Url.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? cover.Url : null;
+            if (_editionService == null || book == null || book.Id <= 0)
+            {
+                return new List<Edition>();
+            }
+
+            try
+            {
+                return _editionService.GetEditionsByBook(book.Id)?.Where(e => e.Id != edition.Id).ToList() ?? new List<Edition>();
+            }
+            catch (Exception)
+            {
+                return new List<Edition>();
+            }
         }
 
         private string GetSidecarRelativePath(Author author, BookFile bookFile, string fileName)
