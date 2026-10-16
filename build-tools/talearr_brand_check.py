@@ -71,6 +71,21 @@ MUST_KEEP_TALEARR_HOOKS = [
     ("frontend/src/Settings/MediaManagement/Naming/NamingModal.js", r"audiobookLayouts", "audiobooks: naming tokens and layouts"),
 ]
 
+# Phase 2 recordings wiring (docs/TALEARR_RECORDINGS_DESIGN.md). TaleArr-only files, but the
+# drop-in promise depends on what they contain, so pin the parts that matter.
+MUST_KEEP_RECORDINGS = [
+    ("src/NzbDrone.Core/Talearr/Recordings/TalearrDatabase.cs", r'FileName = "talearr\.db"', "recordings: cache lives in its own talearr.db"),
+    ("src/NzbDrone.Core/Talearr/Recordings/TalearrDatabase.cs", r"PRAGMA user_version", "recordings: talearr.db versions itself, not through FluentMigrator"),
+    ("src/NzbDrone.Core/Talearr/Recordings/TalearrRecordingsSettings.cs", r'"talearr\.recordings\.marketplace"', "recordings: settings are talearr.* Config rows"),
+    ("src/Chaptarr.Api.V1/Config/TalearrRecordingsConfigController.cs", r'V1ApiController\("config/talearrrecordings"\)', "recordings: settings route used by AllSeerr detection"),
+]
+
+# (folder, file glob, regex, why). No file under the folder may match.
+MUST_NOT_HAVE_IN_TREE = [
+    ("src/NzbDrone.Core/Datastore/Migration", "*.cs", r"(?i)talearr", "TaleArr adds no chaptarr.db migrations"),
+    ("src/NzbDrone.Core/Talearr", "*.cs", r"IMainDatabase|\[Migration\(", "TaleArr code keeps its data out of the chaptarr.db schema"),
+]
+
 # Visible strings that should not come back in UI shells after a merge.
 MUST_NOT_HAVE = [
     ("frontend/src/index.ejs", r"<title>Chaptarr</title>", "upstream tab title"),
@@ -89,7 +104,7 @@ def read(rel: str) -> str | None:
 def main() -> int:
     failures: list[str] = []
 
-    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS:
+    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS + MUST_KEEP_RECORDINGS:
         text = read(rel)
         if text is None:
             failures.append(f"missing file {rel} ({why})")
@@ -101,6 +116,15 @@ def main() -> int:
         if text is not None and re.search(pattern, text):
             failures.append(f"{rel}: found /{pattern}/ ({why})")
 
+    for folder, glob, pattern, why in MUST_NOT_HAVE_IN_TREE:
+        base = ROOT / folder
+        if not base.exists():
+            failures.append(f"missing folder {folder} ({why})")
+            continue
+        for path in sorted(base.rglob(glob)):
+            if re.search(pattern, path.read_text(encoding="utf-8", errors="replace")):
+                failures.append(f"{path.relative_to(ROOT)}: found /{pattern}/ ({why})")
+
     if failures:
         print("TaleArr brand check failed:")
         for failure in failures:
@@ -108,7 +132,9 @@ def main() -> int:
         print("Re-apply the TaleArr change (see docs/TALEARR_UPSTREAM_SYNC.md).")
         return 1
 
-    print(f"TaleArr brand check passed ({len(MUST_HAVE_BRAND) + len(MUST_KEEP_UPSTREAM) + len(MUST_KEEP_TALEARR_HOOKS) + len(MUST_NOT_HAVE)} checks).")
+    total = (len(MUST_HAVE_BRAND) + len(MUST_KEEP_UPSTREAM) + len(MUST_KEEP_TALEARR_HOOKS) +
+             len(MUST_KEEP_RECORDINGS) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE))
+    print(f"TaleArr brand check passed ({total} checks).")
     return 0
 
 
