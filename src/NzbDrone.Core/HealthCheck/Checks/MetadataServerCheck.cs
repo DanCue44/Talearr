@@ -8,14 +8,17 @@ namespace NzbDrone.Core.HealthCheck.Checks
     {
         private readonly IMetadataServerHealthService _metadataServerHealthService;
         private readonly IMetadataServerHealthGate _metadataServerHealthGate;
+        private readonly ITalearrMetadataServerProbe _talearrProbe;
 
         public MetadataServerCheck(IMetadataServerHealthService metadataServerHealthService,
                                    IMetadataServerHealthGate metadataServerHealthGate,
-                                   ILocalizationService localizationService)
+                                   ILocalizationService localizationService,
+                                   ITalearrMetadataServerProbe talearrProbe)
             : base(localizationService)
         {
             _metadataServerHealthService = metadataServerHealthService;
             _metadataServerHealthGate = metadataServerHealthGate;
+            _talearrProbe = talearrProbe;
         }
 
         public override HealthCheck Check()
@@ -24,6 +27,12 @@ namespace NzbDrone.Core.HealthCheck.Checks
             var status = _metadataServerHealthService.GetStatus(sourceName);
 
             if (status.IsHealthy && !status.IsRateLimited)
+            {
+                return new HealthCheck(GetType());
+            }
+
+            // TaleArr: when the probe already reports the outage, show one warning, not two.
+            if (_talearrProbe?.LastResult?.State == MetadataServerProbeState.Down)
             {
                 return new HealthCheck(GetType());
             }

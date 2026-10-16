@@ -227,7 +227,15 @@ namespace NzbDrone.Core.Books
                     }
                     else if (refreshResult.Reason == RefreshReason.Error)
                     {
-                        _logger.Error($"Failed to refresh author info for {author.Name}: {refreshResult.Message}");
+                        // TaleArr: outage failures were already logged once by TalearrMetadataOutageLog.
+                        if (refreshResult.MetadataServerUnavailable)
+                        {
+                            _logger.Debug("Skipping refresh of {0} while the metadata server is unavailable; keeping existing data", author.Name);
+                        }
+                        else
+                        {
+                            _logger.Error($"Failed to refresh author info for {author.Name}: {refreshResult.Message}");
+                        }
 
                         // Record the failure in sync metadata
                         _syncMetadataService.UpdateSyncResult(

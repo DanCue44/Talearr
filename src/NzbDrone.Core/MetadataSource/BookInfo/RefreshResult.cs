@@ -12,6 +12,10 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         public HttpStatusCode? HttpStatus { get; set; }
         public string Message { get; set; }
 
+        // TaleArr: the error came from a metadata server outage (circuit open or rate
+        // limited), already logged once by TalearrMetadataOutageLog.
+        public bool MetadataServerUnavailable { get; set; }
+
         // Factory methods for clarity
         public static RefreshResult NoChanges(string etag = null) => new RefreshResult
         {
@@ -33,6 +37,14 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             Reason = RefreshReason.Error,
             Message = message,
             HttpStatus = status
+        };
+
+        public static RefreshResult Unavailable(string message, HttpStatusCode? status = null) => new RefreshResult
+        {
+            Reason = RefreshReason.Error,
+            Message = message,
+            HttpStatus = status,
+            MetadataServerUnavailable = true
         };
 
         public static RefreshResult NotFound() => new RefreshResult

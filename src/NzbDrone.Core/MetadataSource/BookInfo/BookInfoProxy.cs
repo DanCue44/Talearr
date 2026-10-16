@@ -616,6 +616,13 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 if (httpResponse.HasHttpError)
                 {
                     var errorMsg = $"Refresh API error for author {authorId}: {httpResponse.StatusCode}";
+
+                    // TaleArr: a server outage is logged once, not once per author.
+                    if (TalearrMetadataOutageLog.TryLog(_metadataServerHealthGate, _logger, $"refresh of author {authorId}", $"HTTP {(int)httpResponse.StatusCode}"))
+                    {
+                        return RefreshResult.Unavailable(errorMsg, httpResponse.StatusCode);
+                    }
+
                     _logger.Error(errorMsg + ", Content: {0}", 
                         httpResponse.Content?.Substring(0, Math.Min(500, httpResponse.Content?.Length ?? 0)));
                     return RefreshResult.Error(errorMsg, httpResponse.StatusCode);
@@ -642,6 +649,12 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             }
             catch (Exception ex)
             {
+                // TaleArr: a server outage is logged once, not once per author.
+                if (TalearrMetadataOutageLog.TryLog(_metadataServerHealthGate, _logger, $"refresh of author {authorId}", ex.Message))
+                {
+                    return RefreshResult.Unavailable($"Refresh failed: {ex.Message}");
+                }
+
                 _logger.Error(ex, "Error refreshing author info for {0}", authorId);
                 return RefreshResult.Error($"Refresh failed: {ex.Message}");
             }
