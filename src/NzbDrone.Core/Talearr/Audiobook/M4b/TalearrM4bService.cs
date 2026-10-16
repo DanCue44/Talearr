@@ -14,6 +14,7 @@ using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.Metadata;
 using NzbDrone.Core.Talearr.Naming;
 
 namespace NzbDrone.Core.Talearr.Audiobook.M4b
@@ -190,8 +191,8 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                 Metadata = new M4bMetadata
                 {
                     Title = title,
-                    Author = author?.Name,
-                    Narrator = narrator,
+                    Author = TalearrSidecarText.Name(author?.Name),
+                    Narrator = TalearrSidecarText.Name(narrator),
                     Year = year?.ToString(CultureInfo.InvariantCulture),
                     Description = StripHtml(string.IsNullOrWhiteSpace(edition?.Overview) ? book.Overview : edition.Overview),
                     Publisher = edition?.Publisher,

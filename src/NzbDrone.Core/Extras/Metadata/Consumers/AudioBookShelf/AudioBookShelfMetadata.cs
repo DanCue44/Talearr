@@ -9,6 +9,7 @@ using NzbDrone.Core.Extras.Metadata.Files;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.Metadata;
 using MediaCoverModel = NzbDrone.Core.MediaCover.MediaCover;
 
 namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
@@ -222,15 +223,18 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
             var metadata = new Dictionary<string, object>();
             var releaseDate = edition.ReleaseDate ?? book.ReleaseDate;
 
-            AddString(metadata, "title", FirstNotEmpty(edition.Title, book.Title));
-            AddString(metadata, "subtitle", FirstNotEmpty(edition.Subtitle, book.Subtitle));
+            // TaleArr: the book's title without format noise (like the folder), a subtitle only when it
+            // is a real one, names with their whitespace collapsed.
+            var title = TalearrSidecarText.Title(book, edition);
+            AddString(metadata, "title", title);
+            AddString(metadata, "subtitle", TalearrSidecarText.Subtitle(book, edition, title));
             AddStringArray(metadata, "authors", new[] { author?.Name, book.Author?.Name });
             AddStringArray(metadata, "narrators", GetNarrators(book, edition, bookFile));
             AddStringArray(metadata, "series", GetSeries(book));
             AddStringArray(metadata, "genres", book.Genres);
             AddString(metadata, "publishedYear", releaseDate?.Year.ToString() ?? book.PublicationYear?.ToString());
             AddString(metadata, "publishedDate", releaseDate?.ToString("yyyy-MM-dd"));
-            AddString(metadata, "publisher", FirstNotEmpty(edition.Publisher, book.Publisher));
+            AddString(metadata, "publisher", TalearrSidecarText.Clean(FirstNotEmpty(edition.Publisher, book.Publisher)));
             AddString(metadata, "description", FirstNotEmpty(edition.Overview, book.Overview));
             AddString(metadata, "isbn", FirstNotEmpty(edition.Isbn13, edition.Isbn10, book.ISBN13, book.ISBN10));
             AddString(metadata, "asin", FirstNotEmpty(edition.AudibleASIN, edition.Asin, book.AudibleASIN, book.ASIN));
@@ -362,11 +366,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
 
         private static void AddStringArray(Dictionary<string, object> metadata, string key, IEnumerable<string> values)
         {
-            var cleaned = values?
-                .Where(v => v.IsNotNullOrWhiteSpace())
-                .Select(v => v.Trim())
-                .Distinct(StringComparer.InvariantCultureIgnoreCase)
-                .ToList();
+            var cleaned = values == null ? null : TalearrSidecarText.Names(values); // TaleArr: "Samuel  West" -> "Samuel West"
 
             if (cleaned?.Count > 0)
             {

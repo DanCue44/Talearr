@@ -104,7 +104,8 @@ namespace Chaptarr.Core.Test.Extras.Metadata
 
             Assert.Multiple(() =>
             {
-                Assert.That((string)json["title"], Is.EqualTo("Matched Edition Title"));
+                // TaleArr: the title is the book's own (like the folder), not the edition's store listing.
+                Assert.That((string)json["title"], Is.EqualTo("Canonical Work Title"));
                 Assert.That((string)json["subtitle"], Is.EqualTo("Matched Edition Subtitle"));
                 Assert.That((string)json["publisher"], Is.EqualTo("Edition Publisher"));
                 Assert.That((string)json["description"], Is.EqualTo("Edition overview"));
