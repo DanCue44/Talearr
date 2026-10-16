@@ -509,7 +509,7 @@ namespace NzbDrone.Core.Books
 
             // Detect upstream splits: a provider ID that BOTH sides have now points to
             // different entities.  A null/empty remote ID means "data not available from
-            // the API" — NOT "different book".  Only compare when both sides are populated.
+            // the API" - NOT "different book".  Only compare when both sides are populated.
             return (!string.IsNullOrEmpty(local.HardcoverBookId) && !string.IsNullOrEmpty(remote.HardcoverBookId) && local.HardcoverBookId != remote.HardcoverBookId) ||
                    (!string.IsNullOrEmpty(local.GoodreadsWorkId) && !string.IsNullOrEmpty(remote.GoodreadsWorkId) && local.GoodreadsWorkId != remote.GoodreadsWorkId) ||
                    (!string.IsNullOrEmpty(local.OpenLibraryWorkId) && !string.IsNullOrEmpty(remote.OpenLibraryWorkId) && local.OpenLibraryWorkId != remote.OpenLibraryWorkId) ||
@@ -1116,6 +1116,17 @@ namespace NzbDrone.Core.Books
             var mediaType = all
                 .Select(e => e.Book?.MediaType)
                 .FirstOrDefault(mt => mt.HasValue);
+
+            // TaleArr: re-pick an automatically selected foreign edition when the book accepts any
+            // edition and a preferred-language edition exists (explicit picks set AnyEditionOk=false).
+            var parentBook = all
+                .Where(e => e.LazyBook?.IsLoaded == true)
+                .Select(e => e.LazyBook.Value)
+                .FirstOrDefault(b => b != null);
+            if (parentBook?.AnyEditionOk == true)
+            {
+                _editionSelector.ReleaseForeignAutoSelectedEdition(all, fileCountsByEditionId, mediaType);
+            }
 
             _editionSelector.EnsureSingleMonitoredEdition(all, fileCountsByEditionId, mediaType);
 

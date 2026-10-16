@@ -184,7 +184,9 @@ namespace Chaptarr.Core.Test.Books
         }
 
         [Test]
-        public void should_repair_multiple_monitored_without_native_format_reselection()
+        // TaleArr: several monitored editions carry no user intent (older refreshes monitored every
+        // new edition), so the repair chooses on merit (native format first) instead of lowest id.
+        public void should_repair_multiple_monitored_by_native_format_reselection()
         {
             var sut = CreateSut();
 
@@ -196,7 +198,7 @@ namespace Chaptarr.Core.Test.Books
 
             sut.EnsureSingleMonitoredEdition(editions, fileCountsByEditionId: null, mediaType: BookMediaType.Ebook);
 
-            Assert.That(editions.Single(e => e.Monitored).Id, Is.EqualTo(1));
+            Assert.That(editions.Single(e => e.Monitored).Id, Is.EqualTo(2));
         }
 
         [Test]
