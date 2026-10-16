@@ -496,7 +496,7 @@ namespace NzbDrone.Core.Books
             }
         }
 
-        private MonitoringConfig BuildRequestedBookMonitoringConfig(Book book, List<string> requestedIds, bool searchRequested)
+        internal static MonitoringConfig BuildRequestedBookMonitoringConfig(Book book, List<string> requestedIds, bool searchRequested)
         {
             var author = book.Author ?? new Author();
             var mediaType = book.MediaType;
@@ -506,7 +506,8 @@ namespace NzbDrone.Core.Books
                 ? MonitorTypes.All
                 : MonitorTypes.SpecificBook;
 
-            return new MonitoringConfig
+            // TaleArr: unless the request says otherwise, a single-book add keeps future releases unmonitored.
+            return TalearrAddMonitoringDefaults.ForSingleBook(new MonitoringConfig
             {
                 IsManualAddition = true,
                 AuthorName = author.Name,
@@ -539,7 +540,7 @@ namespace NzbDrone.Core.Books
                 EbookBooksToMonitor = isAudiobook ? null : requestedIds,
                 AudiobookBooksToSearch = isAudiobook && searchRequested ? requestedIds : null,
                 EbookBooksToSearch = !isAudiobook && searchRequested ? requestedIds : null
-            };
+            }, mediaType);
         }
 
         private Book ResolveLocalRequestedBook(int authorId, string workProviderId, BookMediaType mediaType)

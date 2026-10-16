@@ -58,18 +58,21 @@ export const defaultState = {
     ebookTags: null
   },
 
+  // TaleArr: adding one book monitors only that book and no future releases unless the
+  // user picks otherwise in the add modal (see Store/Migrators/migrateTalearrBookDefaults).
   bookDefaults: {
+    talearrSafeBookDefaults: 1,
     rootFolderPath: '',
     audiobookRootFolderPath: '',
     ebookRootFolderPath: '',
-    monitor: monitorOptions[0].key,
+    monitor: 'specificBook',
     audiobookMonitored: true,
     ebookMonitored: true,
-    audiobookMonitor: monitorOptions[0].key,
-    ebookMonitor: monitorOptions[0].key,
-    monitorNewItems: monitorNewItemsOptions[0].key,
-    audiobookMonitorNewItems: monitorNewItemsOptions[0].key,
-    ebookMonitorNewItems: monitorNewItemsOptions[0].key,
+    audiobookMonitor: 'specificBook',
+    ebookMonitor: 'specificBook',
+    monitorNewItems: 'none',
+    audiobookMonitorNewItems: 'none',
+    ebookMonitorNewItems: 'none',
     qualityProfileId: 1,
     audiobookQualityProfileId: 1,
     ebookQualityProfileId: 1,
