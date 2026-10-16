@@ -93,6 +93,9 @@ const bookTokens = [
 
 const releaseDateTokens = [
   { token: '{Release Year}', example: '2016' },
+  // TaleArr: empty (not "Unknown") when no year is known, so { - } style separators drop too.
+  { token: '{Book Year}', example: '1994' },
+  { token: '{Book Year - }', example: '1994 - ' },
   { token: '{Release YearFirst}', example: '2015' },
   { token: '{Edition Year}', example: '2016' }
 ];
@@ -117,7 +120,9 @@ const narratorTokens = [
   { token: '{Narrator First}', example: 'Ray' },
   { token: '{Narrator Last}', example: 'Porter' },
   { token: '{Narrators}', example: 'Ray Porter, Kate Reading' },
-  { token: '{ - Narrator}', example: ' - Ray Porter' }
+  { token: '{ - Narrator}', example: ' - Ray Porter' },
+  // TaleArr: Audiobookshelf reads the narrator from curly braces at the end of the book folder.
+  { token: '{ {Narrator}}', example: ' {Ray Porter}' }
 ];
 
 const seriesTokens = [
@@ -126,7 +131,36 @@ const seriesTokens = [
   { token: '{Book SeriesTitle}', example: 'Dresden Files #3' },
   { token: '{Series Folder}', example: 'Dresden Files' },
   { token: '{Book TitleWithSeries}', example: 'Grave Peril - Dresden Files #3' },
-  { token: '{ - Book SeriesPosition}', example: ' - 3' }
+  { token: '{ - Book SeriesPosition}', example: ' - 3' },
+  // TaleArr: zero-padded series positions (decimals keep their fraction: 2.5 -> 02.5).
+  { token: '{Book SeriesPosition:00}', example: '03' },
+  { token: '{Book SeriesPosition:000}', example: '003' },
+  { token: '{Book SeriesPosition:00 - }', example: '03 - ' }
+];
+
+// TaleArr: abridged or unabridged recording, from the edition's title, format or runtime.
+const recordingTokens = [
+  { token: '{Abridged}', example: 'Abridged (empty when unabridged)' },
+  { token: '{ (Abridged)}', example: ' (Abridged)' },
+  { token: '{Abridgement}', example: 'Unabridged' },
+  { token: '{ [Abridgement]}', example: ' [Unabridged]' }
+];
+
+// TaleArr: ready-made audiobook layouts, inserted as the whole format. The author folder
+// comes from Author Folder Format, so these start at the series folder.
+const audiobookLayouts = [
+  {
+    token: '{Book Series}/{Book SeriesPosition:00 - }{Book Year - }{Book Title}{ {Narrator}}/{Book Title}{ (PartNumber:smart)}',
+    example: 'Sword of Truth/01 - 1994 - Wizards First Rule {Sam Tsoutsouvas}/Wizards First Rule (01).mp3 (Audiobookshelf)'
+  },
+  {
+    token: '{Book Series}/{Book SeriesPosition:00 - }{Book Title}/{Book Title}{ (PartNumber:smart)}',
+    example: 'Sword of Truth/01 - Wizards First Rule/Wizards First Rule (01).mp3'
+  },
+  {
+    token: '{Book Title}{ {Narrator}}/{Book Title}{ (PartNumber:smart)}',
+    example: 'Wizards First Rule {Sam Tsoutsouvas}/Wizards First Rule (01).mp3 (no series folder)'
+  }
 ];
 
 const graphicAudioTokens = [
@@ -283,6 +317,33 @@ class NamingModal extends Component {
                 </FieldSet>
             }
 
+            {
+              book && !isEbook &&
+                <FieldSet legend="Audiobook layouts">
+                  <div className={styles.groups}>
+                    {
+                      audiobookLayouts.map(({ token, example }) => {
+                        return (
+                          <NamingOption
+                            key={token}
+                            name={name}
+                            value={value}
+                            token={token}
+                            example={example}
+                            isFullFilename={true}
+                            isLiteral={true}
+                            tokenSeparator={tokenSeparator}
+                            tokenCase={tokenCase}
+                            size={sizes.LARGE}
+                            onPress={this.onOptionPress}
+                          />
+                        );
+                      })
+                    }
+                  </div>
+                </FieldSet>
+            }
+
             <FieldSet legend={translate('Author')}>
               <div className={styles.groups}>
                 {
@@ -357,6 +418,30 @@ class NamingModal extends Component {
                         <div className={styles.groups}>
                           {
                             narratorTokens.map(({ token, example }) => {
+                              return (
+                                <NamingOption
+                                  key={token}
+                                  name={name}
+                                  value={value}
+                                  token={token}
+                                  example={example}
+                                  tokenSeparator={tokenSeparator}
+                                  tokenCase={tokenCase}
+                                  onPress={this.onOptionPress}
+                                />
+                              );
+                            })
+                          }
+                        </div>
+                      </FieldSet>
+                  }
+
+                  {
+                    !isEbook &&
+                      <FieldSet legend="Recording">
+                        <div className={styles.groups}>
+                          {
+                            recordingTokens.map(({ token, example }) => {
                               return (
                                 <NamingOption
                                   key={token}

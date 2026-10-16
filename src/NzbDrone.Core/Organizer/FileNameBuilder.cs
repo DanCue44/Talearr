@@ -13,6 +13,7 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.Audiobook;
 
 namespace NzbDrone.Core.Organizer
 {
@@ -85,7 +86,9 @@ namespace NzbDrone.Core.Organizer
             namingConfig = namingConfig.GetForMediaType(mediaType);
 
             var renameBooks = namingConfig.RenameBooks;
-            var originalFileName = GetOriginalFileName(bookFile);
+
+            // TaleArr: multi-disc files keep apart (and in order) when the original name is kept.
+            var originalFileName = TalearrNamingTokens.GetOriginalFileName(bookFile);
 
             if (namingConfig.StandardBookFormat.IsNullOrWhiteSpace())
             {
@@ -110,7 +113,10 @@ namespace NzbDrone.Core.Organizer
             AddCustomFormats(tokenHandlers, author, bookFile, customFormats);
             
             // Add narrator tokens for audiobook organization
-            AddNarratorTokens(tokenHandlers, edition);
+            AddNarratorTokens(tokenHandlers, edition, bookFile);
+
+            // TaleArr: {Book Year}, {Abridged}, {Abridgement}
+            TalearrNamingTokens.Add(tokenHandlers, edition);
 
             // Add GraphicAudio tokens - these override the regular book title tokens when GraphicAudio is detected
             AddGraphicAudioTokens(tokenHandlers, edition, bookFile);
@@ -447,8 +453,11 @@ namespace NzbDrone.Core.Organizer
                 seriesName ?? m.DefaultValue("");
             
             // Series position only (e.g., "3" or "2.5")
-            tokenHandlers["{Book SeriesPosition}"] = m => 
-                seriesPosition ?? m.DefaultValue("");
+            // TaleArr: zero padding with {Book SeriesPosition:00} ("03", "02.5").
+            tokenHandlers["{Book SeriesPosition}"] = m =>
+                seriesPosition.IsNotNullOrWhiteSpace()
+                    ? TalearrNamingTokens.FormatSeriesPosition(seriesPosition, m.CustomFormat)
+                    : m.DefaultValue("");
             
             // Combined series with position (e.g., "Dresden Files #3")
             tokenHandlers["{Book SeriesTitle}"] = m => 
@@ -531,7 +540,7 @@ namespace NzbDrone.Core.Organizer
             }
         }
 
-        private void AddNarratorTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Edition edition)
+        private void AddNarratorTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Edition edition, BookFile bookFile = null)
         {
             // Handle multiple narrators - use the Narrator field (primary) or NarratorNames list
             var primaryNarrator = edition?.Narrator ?? string.Empty;
@@ -544,6 +553,12 @@ namespace NzbDrone.Core.Organizer
             if (string.IsNullOrWhiteSpace(primaryNarrator) && narratorList.Any())
             {
                 primaryNarrator = narratorList.First();
+            }
+
+            // TaleArr: fall back to the narrator read from the file when the edition has none.
+            if (string.IsNullOrWhiteSpace(primaryNarrator) && !string.IsNullOrWhiteSpace(bookFile?.Narrator))
+            {
+                primaryNarrator = bookFile.Narrator.Trim();
             }
 
             // If we have a true multi-narrator cast, represent it as "Full Cast" for display and naming.
