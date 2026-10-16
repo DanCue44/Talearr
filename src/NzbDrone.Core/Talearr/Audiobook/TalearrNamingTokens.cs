@@ -8,6 +8,7 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Talearr.GrabPolicy;
+using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.Talearr.Audiobook
 {
@@ -30,12 +31,12 @@ namespace NzbDrone.Core.Talearr.Audiobook
 
         private static readonly Regex PositionRegex = new Regex(@"^(?<int>\d+)(?<rest>(?:[.,]\d+)?)$", RegexOptions.Compiled);
 
-        internal static void Add(Dictionary<string, Func<TokenMatch, string>> tokens, Edition edition)
+        internal static void Add(Dictionary<string, Func<TokenMatch, string>> tokens, Edition edition, ITalearrAbridgedResolver abridgedResolver = null)
         {
             var year = GetYear(edition);
             tokens["{Book Year}"] = m => year.HasValue ? year.Value.ToString(CultureInfo.InvariantCulture) : m.DefaultValue(string.Empty);
 
-            var abridgement = GetAbridgement(edition);
+            var abridgement = GetAbridgement(edition, abridgedResolver);
             tokens["{Abridged}"] = m => abridgement == AbridgedMarker.Abridged ? "Abridged" : m.DefaultValue(string.Empty);
             tokens["{Abridgement}"] = m => abridgement switch
             {
@@ -91,6 +92,42 @@ namespace NzbDrone.Core.Talearr.Audiobook
             }
 
             return null;
+        }
+
+        // The same answer the grab policy uses (TalearrAbridgedResolver: Audible facts first, then
+        // edition text and runtime), so a folder named "Abridged" matches what was searched for.
+        // Without a resolver, or when it has no answer, the metadata rules below decide.
+        public static AbridgedMarker GetAbridgement(Edition edition, ITalearrAbridgedResolver abridgedResolver)
+        {
+            if (edition != null && abridgedResolver != null)
+            {
+                try
+                {
+                    var resolved = abridgedResolver.ResolveEdition(edition, SiblingsOf(edition)).Marker;
+                    if (resolved != AbridgedMarker.Unknown)
+                    {
+                        return resolved;
+                    }
+                }
+                catch (Exception)
+                {
+                    // Fall back to metadata only.
+                }
+            }
+
+            return GetAbridgement(edition);
+        }
+
+        private static List<Edition> SiblingsOf(Edition edition)
+        {
+            try
+            {
+                return edition.Book?.Editions?.Where(e => e != null).ToList();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         public static AbridgedMarker GetAbridgement(Edition edition)

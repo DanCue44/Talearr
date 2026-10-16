@@ -14,6 +14,7 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Talearr.Audiobook;
+using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.Organizer
 {
@@ -28,6 +29,7 @@ namespace NzbDrone.Core.Organizer
 
     public class FileNameBuilder : IBuildFileNames
     {
+        private readonly ITalearrAbridgedResolver _abridgedResolver; // TaleArr
         private readonly INamingConfigService _namingConfigService;
         private readonly IQualityDefinitionService _qualityDefinitionService;
         private readonly ICustomFormatCalculationService _formatCalculator;
@@ -61,8 +63,11 @@ namespace NzbDrone.Core.Organizer
                                IQualityDefinitionService qualityDefinitionService,
                                ICacheManager cacheManager,
                                ICustomFormatCalculationService formatCalculator,
-                               Logger logger)
+                               Logger logger,
+                               ITalearrAbridgedResolver abridgedResolver = null)
         {
+            // TaleArr: {Abridged} and {Abridgement} use the recordings abridged resolution.
+            _abridgedResolver = abridgedResolver;
             _namingConfigService = namingConfigService;
             _qualityDefinitionService = qualityDefinitionService;
             _formatCalculator = formatCalculator;
@@ -116,7 +121,7 @@ namespace NzbDrone.Core.Organizer
             AddNarratorTokens(tokenHandlers, edition, bookFile);
 
             // TaleArr: {Book Year}, {Abridged}, {Abridgement}
-            TalearrNamingTokens.Add(tokenHandlers, edition);
+            TalearrNamingTokens.Add(tokenHandlers, edition, _abridgedResolver);
 
             // Add GraphicAudio tokens - these override the regular book title tokens when GraphicAudio is detected
             AddGraphicAudioTokens(tokenHandlers, edition, bookFile);

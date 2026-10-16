@@ -84,6 +84,7 @@ MUST_KEEP_RECORDINGS = [
     ("src/NzbDrone.Core/DecisionEngine/Specifications/AbridgedReleaseSpecification.cs", r"WantsAbridged\(subject, _abridgedResolver\)", "recordings: abridged soft filter uses the resolved value"),
     ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionComparer.cs", r"WantsAbridged\(abridged\.RemoteBook, _abridgedResolver\)", "recordings: abridged ranking uses the resolved value"),
     ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionPriorizationService.cs", r"_abridgedResolver\);", "recordings: ranking gets the abridged resolver"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"TalearrNamingTokens\.Add\(tokenHandlers, edition, _abridgedResolver\)", "recordings: {Abridged} naming uses the resolved value"),
 ]
 
 # (folder, file glob, regex, why). No file under the folder may match.
