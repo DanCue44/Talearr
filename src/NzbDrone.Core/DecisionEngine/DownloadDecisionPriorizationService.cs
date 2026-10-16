@@ -5,6 +5,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Qualities;
+using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.DecisionEngine
 {
@@ -19,19 +20,21 @@ namespace NzbDrone.Core.DecisionEngine
         private readonly IDelayProfileService _delayProfileService;
         private readonly IQualityProfileService _qualityProfileService;
         private readonly Logger _logger;
+        private readonly ITalearrGrabPolicyService _grabPolicyService;
 
-        public DownloadDecisionPriorizationService(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger)
+        public DownloadDecisionPriorizationService(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, ITalearrGrabPolicyService grabPolicyService = null)
         {
             _configService = configService;
             _delayProfileService = delayProfileService;
             _qualityProfileService = qualityProfileService;
             _logger = logger;
+            _grabPolicyService = grabPolicyService;
         }
 
         public List<DownloadDecision> PrioritizeDecisions(List<DownloadDecision> decisions)
         {
             var comparerLogger = LogManager.GetLogger("DownloadDecisionComparer");
-            var comparer = new DownloadDecisionComparer(_configService, _delayProfileService, _qualityProfileService, comparerLogger);
+            var comparer = new DownloadDecisionComparer(_configService, _delayProfileService, _qualityProfileService, comparerLogger, TalearrGrabPolicyService.Resolve(_grabPolicyService));
 
             var acceptedDecisions = decisions.Where(c => c.Approved).ToList();
             _logger.Debug("PrioritizeDecisions - Total decisions: {0}, Accepted decisions: {1}", decisions.Count, acceptedDecisions.Count);

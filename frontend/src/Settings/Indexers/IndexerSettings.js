@@ -10,6 +10,7 @@ import translate from 'Utilities/String/translate';
 import IndexersConnector from './Indexers/IndexersConnector';
 import ManageIndexersModal from './Indexers/Manage/ManageIndexersModal';
 import IndexerOptionsConnector from './Options/IndexerOptionsConnector';
+import TalearrGrabPolicyConnector from './Options/TalearrGrabPolicyConnector';
 
 class IndexerSettings extends Component {
 
@@ -20,10 +21,14 @@ class IndexerSettings extends Component {
     super(props, context);
 
     this._saveCallback = null;
+    // TaleArr: the grab policy section saves with the same toolbar button.
+    this._talearrSaveCallback = null;
 
     this.state = {
       isSaving: false,
       hasPendingChanges: false,
+      talearrIsSaving: false,
+      talearrHasPendingChanges: false,
       isManageIndexersOpen: false
     };
   }
@@ -39,6 +44,17 @@ class IndexerSettings extends Component {
     this.setState(payload);
   };
 
+  onTalearrChildMounted = (saveCallback) => {
+    this._talearrSaveCallback = saveCallback;
+  };
+
+  onTalearrChildStateChange = ({ isSaving, hasPendingChanges }) => {
+    this.setState({
+      talearrIsSaving: isSaving,
+      talearrHasPendingChanges: hasPendingChanges
+    });
+  };
+
   onManageIndexersPress = () => {
     this.setState({ isManageIndexersOpen: true });
   };
@@ -50,6 +66,10 @@ class IndexerSettings extends Component {
   onSavePress = () => {
     if (this._saveCallback) {
       this._saveCallback();
+    }
+
+    if (this._talearrSaveCallback && this.state.talearrHasPendingChanges) {
+      this._talearrSaveCallback();
     }
   };
 
@@ -65,14 +85,16 @@ class IndexerSettings extends Component {
     const {
       isSaving,
       hasPendingChanges,
+      talearrIsSaving,
+      talearrHasPendingChanges,
       isManageIndexersOpen
     } = this.state;
 
     return (
       <PageContent title={translate('IndexerSettings')}>
         <SettingsToolbarConnector
-          isSaving={isSaving}
-          hasPendingChanges={hasPendingChanges}
+          isSaving={isSaving || talearrIsSaving}
+          hasPendingChanges={hasPendingChanges || talearrHasPendingChanges}
           additionalButtons={
             <Fragment>
               <PageToolbarSeparator />
@@ -100,6 +122,11 @@ class IndexerSettings extends Component {
           <IndexerOptionsConnector
             onChildMounted={this.onChildMounted}
             onChildStateChange={this.onChildStateChange}
+          />
+
+          <TalearrGrabPolicyConnector
+            onChildMounted={this.onTalearrChildMounted}
+            onChildStateChange={this.onTalearrChildStateChange}
           />
 
           <ManageIndexersModal

@@ -52,6 +52,17 @@ MUST_KEEP_UPSTREAM = [
     ("src/NzbDrone.Core/Update/InstallUpdateService.cs", r"Built-in updater disabled in the TaleArr image", "in-app updater disabled in Docker"),
 ]
 
+# TaleArr feature hooks inside upstream files. An upstream merge that drops one of these
+# silently turns the feature off, so check they are still wired in.
+MUST_KEEP_TALEARR_HOOKS = [
+    ("src/NzbDrone.Core/Parser/ReleasePackDetector.cs", r"TalearrBundleDetector\.Detect", "grab policy: bundle detection hook"),
+    ("src/NzbDrone.Core/DecisionEngine/Specifications/MultiBookReleaseSpecification.cs", r"AllowBundles", "grab policy: bundles opt-in"),
+    ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionComparer.cs", r"CompareUnabridged", "grab policy: unabridged ranking"),
+    ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionPriorizationService.cs", r"TalearrGrabPolicyService\.Resolve", "grab policy: ranking uses the policy"),
+    ("src/NzbDrone.Core/Download/RedownloadFailedDownloadService.cs", r"_talearrRetryService", "grab policy: retry cap and history notes"),
+    ("frontend/src/Settings/Indexers/IndexerSettings.js", r"TalearrGrabPolicyConnector", "grab policy: settings section"),
+]
+
 # Visible strings that should not come back in UI shells after a merge.
 MUST_NOT_HAVE = [
     ("frontend/src/index.ejs", r"<title>Chaptarr</title>", "upstream tab title"),
@@ -70,7 +81,7 @@ def read(rel: str) -> str | None:
 def main() -> int:
     failures: list[str] = []
 
-    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM:
+    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS:
         text = read(rel)
         if text is None:
             failures.append(f"missing file {rel} ({why})")
@@ -89,7 +100,7 @@ def main() -> int:
         print("Re-apply the TaleArr change (see docs/TALEARR_UPSTREAM_SYNC.md).")
         return 1
 
-    print(f"TaleArr brand check passed ({len(MUST_HAVE_BRAND) + len(MUST_KEEP_UPSTREAM) + len(MUST_NOT_HAVE)} checks).")
+    print(f"TaleArr brand check passed ({len(MUST_HAVE_BRAND) + len(MUST_KEEP_UPSTREAM) + len(MUST_KEEP_TALEARR_HOOKS) + len(MUST_NOT_HAVE)} checks).")
     return 0
 
 
