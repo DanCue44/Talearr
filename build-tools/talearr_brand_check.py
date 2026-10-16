@@ -35,6 +35,9 @@ MUST_HAVE_BRAND = [
     ("src/Directory.Build.props", r'<Import Project="\$\(MSBuildThisFileDirectory\)Talearr\.props" />', "Talearr.props import"),
     ("src/Talearr.props", r"<TalearrVersion[^>]*>\d+\.\d+\.\d+</TalearrVersion>", "TaleArr version"),
     ("docker-entrypoint.sh", r"TaleArr Docker Entrypoint", "container log banner"),
+    ("frontend/src/Components/Page/Header/PageHeader.js", r"wordmarkAccent", "header wordmark"),
+    ("frontend/src/System/Status/Status.js", r"<WorksBestWith />", "Works best with block"),
+    ("Logo/talearr-icon-master.png", r"PNG", "icon master"),
 ]
 
 # Technical identity that must stay upstream so TaleArr can run on a Chaptarr

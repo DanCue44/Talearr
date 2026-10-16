@@ -8,7 +8,7 @@ An ebook and audiobook collection manager, based on Chaptarr.
 
 </div>
 
-> TaleArr is a private fork and early work in progress. The logo is a placeholder.
+> TaleArr is a private fork and early work in progress.
 
 ## What is TaleArr?
 
@@ -19,8 +19,9 @@ libraries in one instance: narrator and edition aware metadata, separate audiobo
 ebook root folders, series handling, quality profiles and upgrades, and the usual
 download client and indexer integrations.
 
-TaleArr tracks Chaptarr closely. The differences today are the name, the logo, a separate
-TaleArr version, and its own Docker image and CI.
+TaleArr tracks Chaptarr closely. The differences today are the name and icon, a separate
+TaleArr version, a "Works best with" block in System > Status (AllSeerr, NoBookEnds), and
+its own Docker image and CI. The icon master is `Logo/talearr-icon-master.png`.
 
 ## Drop-in compatibility with Chaptarr
 

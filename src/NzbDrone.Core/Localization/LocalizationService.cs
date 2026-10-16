@@ -165,7 +165,7 @@ namespace NzbDrone.Core.Localization
             foreach (var key in dict.Keys)
             {
                 // TaleArr: rebrand upstream strings at load time.
-                dictionary[key] = TalearrBranding.Apply(dict[key]);
+                dictionary[key] = TalearrBranding.Apply(key, dict[key]);
             }
         }
 
