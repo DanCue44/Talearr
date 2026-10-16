@@ -64,6 +64,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
         private readonly IEditionService _editionService;
         private readonly ITalearrAbridgedResolver _abridgedResolver;
         private readonly ITalearrGrabPolicyService _grabPolicyService;
+        private readonly ITalearrBookGrabPolicyService _bookGrabPolicyService;
         private readonly Logger _logger;
         private readonly object _lock = new object();
 
@@ -78,8 +79,10 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                                         IEditionService editionService,
                                         Logger logger,
                                         ITalearrAbridgedResolver abridgedResolver = null,
-                                        ITalearrGrabPolicyService grabPolicyService = null)
+                                        ITalearrGrabPolicyService grabPolicyService = null,
+                                        ITalearrBookGrabPolicyService bookGrabPolicyService = null)
         {
+            _bookGrabPolicyService = bookGrabPolicyService;
             _store = store;
             _connections = connections;
             _groupService = groupService;
@@ -197,7 +200,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                 return null;
             }
 
-            var anyAbridgement = TalearrGrabPolicyService.Resolve(_grabPolicyService).AbridgedPolicy == AbridgedAudiobookPolicy.Any;
+            var globalPolicy = TalearrGrabPolicyService.Resolve(_grabPolicyService).AbridgedPolicy;
             var itemNarrators = NarratorKeys(item.Narrators);
 
             var compatible = new List<(RecordingRow Row, NarratorRelation Narrator)>();
@@ -209,7 +212,8 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                     itemMarker = marker;
                 }
 
-                if (!anyAbridgement && !AbridgementFits(marker, row.WantsAbridged))
+                var wanted = WantedAbridgement(row, globalPolicy);
+                if (wanted.HasValue && !AbridgementFits(marker, wanted.Value))
                 {
                     continue;
                 }
@@ -382,6 +386,24 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                 Narrators = narrators,
                 Editions = editions
             };
+        }
+
+        // The reading a row wants under its effective abridged policy (per book, else global);
+        // null when any reading will do.
+        private bool? WantedAbridgement(RecordingRow row, AbridgedAudiobookPolicy globalPolicy)
+        {
+            var target = TalearrAbridgedRules.Target(row.Book, globalPolicy, _bookGrabPolicyService, _abridgedResolver);
+            switch (target.Policy)
+            {
+                case AbridgedAudiobookPolicy.Any:
+                    return null;
+                case AbridgedAudiobookPolicy.AbridgedOnly:
+                    return true;
+                case AbridgedAudiobookPolicy.UnabridgedOnly when target.IsStrict:
+                    return false;
+                default:
+                    return row.WantsAbridged;
+            }
         }
 
         private bool WantsAbridged(Book book)

@@ -12,6 +12,7 @@ import { inputTypes, kinds } from 'Helpers/Props';
 // TaleArr: grab policy settings. Stored by TaleArr only (Chaptarr ignores them).
 const abridgedPolicyOptions = [
   { key: 'unabridgedOnly', value: 'Unabridged only' },
+  { key: 'abridgedOnly', value: 'Abridged only' },
   { key: 'preferUnabridged', value: 'Prefer unabridged' },
   { key: 'any', value: 'Any (no preference)' }
 ];
@@ -20,6 +21,8 @@ function getAbridgedHelpText(value) {
   switch (value) {
     case 'preferUnabridged':
       return 'Abridged audiobook releases can be grabbed, but always rank below unabridged ones.';
+    case 'abridgedOnly':
+      return 'Only abridged audiobook releases are grabbed. Before searching, TaleArr monitors an abridged edition of the book when one is known; releases marked unabridged are skipped, and unmarked ones too unless the monitored edition is abridged. Books with their own abridged setting (for example from AllSeerr) keep it.';
     case 'any':
       return 'Abridged and unabridged audiobook releases are treated the same.';
     default:

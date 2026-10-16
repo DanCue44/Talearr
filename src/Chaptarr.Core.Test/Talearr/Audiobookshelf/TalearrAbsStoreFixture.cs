@@ -60,7 +60,7 @@ namespace Chaptarr.Core.Test.Talearr.Audiobookshelf
         [Test]
         public void should_create_the_audiobookshelf_tables_in_talearr_db_version_2()
         {
-            Assert.That(_database.SchemaVersion, Is.EqualTo(2));
+            Assert.That(_database.SchemaVersion, Is.EqualTo(TalearrDatabase.CurrentSchemaVersion));
             using var connection = _database.OpenConnection();
             var tables = connection.Query<string>("SELECT name FROM sqlite_master WHERE type = 'table'").ToList();
             Assert.That(tables, Does.Contain("AbsItems").And.Contain("AbsItemBooks").And.Contain("AbsSyncState"));

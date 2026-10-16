@@ -26,13 +26,15 @@ namespace NzbDrone.Core.DecisionEngine
         // TaleArr: grab policy and recordings abridged resolution for the abridged ranking step.
         private readonly TalearrGrabPolicy _grabPolicy;
         private readonly ITalearrAbridgedResolver _abridgedResolver;
+        private readonly ITalearrBookGrabPolicyService _bookGrabPolicyService;
 
         public delegate int CompareDelegate(DownloadDecision x, DownloadDecision y);
         public delegate int CompareDelegate<TSubject, TValue>(DownloadDecision x, DownloadDecision y);
 
-        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, TalearrGrabPolicy grabPolicy = null, ITalearrAbridgedResolver abridgedResolver = null)
+        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, TalearrGrabPolicy grabPolicy = null, ITalearrAbridgedResolver abridgedResolver = null, ITalearrBookGrabPolicyService bookGrabPolicyService = null)
         {
             _abridgedResolver = abridgedResolver;
+            _bookGrabPolicyService = bookGrabPolicyService;
             _configService = configService;
             _delayProfileService = delayProfileService;
             _qualityProfileService = qualityProfileService;
@@ -142,7 +144,10 @@ namespace NzbDrone.Core.DecisionEngine
                     return isEbook ? "Ebook format" : "Audiobook format preferred";
 
                 case "Unabridged":
-                    return "Unabridged audiobook preferred over abridged";
+                    // TaleArr: the abridged step can prefer either reading (per-book policy).
+                    return AbridgedReleaseDetector.Detect(winner.RemoteBook?.Release?.Title) == AbridgedMarker.Abridged
+                        ? "Abridged audiobook preferred (abridged policy)"
+                        : "Unabridged audiobook preferred over abridged";
 
                 case "Profile Preference":
                     var preference = CompareProfilePreferenceDetailed(x, y);
@@ -253,31 +258,17 @@ namespace NzbDrone.Core.DecisionEngine
         }
 
         // TaleArr: abridged audiobook releases rank below unabridged or unmarked ones unless the
-        // grab policy allows any, or the wanted edition is itself abridged.
+        // grab policy allows any, or the wanted edition is itself abridged; with "abridged only"
+        // abridged releases rank first. The policy is the book's own when it has one.
         private int CompareUnabridged(DownloadDecision x, DownloadDecision y)
         {
-            if (_grabPolicy.AbridgedPolicy == AbridgedAudiobookPolicy.Any)
-            {
-                return 0;
-            }
+            return RankAbridged(x).CompareTo(RankAbridged(y));
+        }
 
-            var xAbridged = AbridgedReleaseDetector.IsAbridgedRelease(x.RemoteBook) && AbridgedReleaseDetector.IsAudiobookRelease(x.RemoteBook);
-            var yAbridged = AbridgedReleaseDetector.IsAbridgedRelease(y.RemoteBook) && AbridgedReleaseDetector.IsAudiobookRelease(y.RemoteBook);
-
-            if (xAbridged == yAbridged)
-            {
-                return 0;
-            }
-
-            // When the wanted recording is itself abridged (an abridged copy row), abridged
-            // releases rank first instead of last.
-            var abridged = xAbridged ? x : y;
-            if (AbridgedReleaseDetector.WantsAbridged(abridged.RemoteBook, _abridgedResolver))
-            {
-                return xAbridged ? 1 : -1;
-            }
-
-            return xAbridged ? -1 : 1;
+        private int RankAbridged(DownloadDecision decision)
+        {
+            var target = TalearrAbridgedRules.Target(decision.RemoteBook, _grabPolicy.AbridgedPolicy, _bookGrabPolicyService, _abridgedResolver);
+            return TalearrAbridgedRules.Rank(decision.RemoteBook, target, _abridgedResolver);
         }
 
         private bool IsEbookFormat(Quality quality)

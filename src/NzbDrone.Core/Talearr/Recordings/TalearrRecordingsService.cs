@@ -145,6 +145,11 @@ namespace NzbDrone.Core.Talearr.Recordings
 
         // Removes an additional recording (a copy row). Never the primary row, never automatic.
         RemoveRecordingOutcome RemoveRecording(int bookId, bool deleteFiles);
+
+        // The best edition of this audiobook row (its own editions) that fits kind (unabridged or
+        // abridged) and is not already another recording, ranked like "Add another recording".
+        // Null when none is known. Used by the per-book abridged policy (TalearrAbridgedEditionSwitch).
+        Edition FindBestEdition(Book row, string kind);
     }
 
     // TaleArr: recordings of a work, built on upstream's wanted copy rows. A recording is one
@@ -363,6 +368,27 @@ namespace NzbDrone.Core.Talearr.Recordings
             return new RemoveRecordingOutcome { Status = RemoveRecordingStatus.Removed };
         }
 
+        public Edition FindBestEdition(Book row, string kind)
+        {
+            if (row == null || row.Id <= 0 || row.MediaType != BookMediaType.Audiobook ||
+                (kind != RecordingKinds.Unabridged && kind != RecordingKinds.Abridged))
+            {
+                return null;
+            }
+
+            var context = Load(row);
+            if (context == null || !context.EditionsByBook.ContainsKey(row.Id))
+            {
+                return null;
+            }
+
+            return AllCandidates(context, row.Id)
+                .Where(c => Fits(c, kind, null))
+                .OrderByDescending(c => c.Rank)
+                .Select(c => c.Edition)
+                .FirstOrDefault();
+        }
+
         private AddRecordingOutcome Invalid(string message)
         {
             return new AddRecordingOutcome { Status = AddRecordingStatus.Invalid, Message = message };
@@ -545,19 +571,24 @@ namespace NzbDrone.Core.Talearr.Recordings
 
         // Audiobook editions of the primary row that are not already a recording, with near
         // identical ones (same narrators, abridged status and runtime within 5%) folded together.
-        private List<Candidate> AllCandidates(Context context)
+        // TaleArr: rowId picks another row's own editions (default: the primary row).
+        private List<Candidate> AllCandidates(Context context, int? rowId = null)
         {
             var taken = context.Group.Books
                 .Select(b => context.MonitoredEdition(b.Id))
                 .Where(e => e != null)
                 .ToList();
 
-            var editions = context.PrimaryEditions
+            var own = rowId.HasValue && context.EditionsByBook.TryGetValue(rowId.Value, out var rowEditions)
+                ? rowEditions
+                : context.PrimaryEditions;
+
+            var editions = own
                 .Where(TalearrAudibleRefreshService.IsAudiobookEdition)
                 .Where(e => !taken.Any(t => SameEditionKey(t, e)))
                 .ToList();
 
-            var siblings = context.PrimaryEditions;
+            var siblings = own;
             var singles = editions.Select(edition =>
             {
                 var abridged = Resolve(() => _abridgedResolver.ResolveEdition(edition, siblings));

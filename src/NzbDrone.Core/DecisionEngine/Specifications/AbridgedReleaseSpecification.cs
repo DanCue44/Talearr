@@ -7,20 +7,23 @@ using NzbDrone.Core.Talearr.Recordings;
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
     // TaleArr: unabridged audiobooks by default. Abridged audiobook releases are rejected when
-    // the grab policy is "unabridged only", unless the wanted edition is itself abridged.
-    // "Prefer unabridged" only ranks them lower (DownloadDecisionComparer).
+    // the grab policy is "unabridged only", unless the wanted edition is itself abridged; with
+    // "abridged only" unabridged releases are rejected instead. A per-book override wins over the
+    // global policy (TalearrAbridgedRules). "Prefer unabridged" only ranks (DownloadDecisionComparer).
     public class AbridgedReleaseSpecification : IDecisionEngineSpecification
     {
         public const string Category = "Abridged";
 
         private readonly ITalearrGrabPolicyService _grabPolicyService;
         private readonly ITalearrAbridgedResolver _abridgedResolver;
+        private readonly ITalearrBookGrabPolicyService _bookGrabPolicyService;
         private readonly Logger _logger;
 
-        public AbridgedReleaseSpecification(Logger logger, ITalearrGrabPolicyService grabPolicyService = null, ITalearrAbridgedResolver abridgedResolver = null)
+        public AbridgedReleaseSpecification(Logger logger, ITalearrGrabPolicyService grabPolicyService = null, ITalearrAbridgedResolver abridgedResolver = null, ITalearrBookGrabPolicyService bookGrabPolicyService = null)
         {
             _grabPolicyService = grabPolicyService;
             _abridgedResolver = abridgedResolver;
+            _bookGrabPolicyService = bookGrabPolicyService;
             _logger = logger;
         }
 
@@ -30,22 +33,16 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         public Decision IsSatisfiedBy(RemoteBook subject, SearchCriteriaBase searchCriteria)
         {
             var policy = TalearrGrabPolicyService.Resolve(_grabPolicyService);
+            var target = TalearrAbridgedRules.Target(subject, policy.AbridgedPolicy, _bookGrabPolicyService, _abridgedResolver);
+            var judgement = TalearrAbridgedRules.Judge(subject, target, _abridgedResolver);
 
-            if (policy.AbridgedPolicy != AbridgedAudiobookPolicy.UnabridgedOnly ||
-                !AbridgedReleaseDetector.IsAbridgedRelease(subject) ||
-                !AbridgedReleaseDetector.IsAudiobookRelease(subject))
+            if (judgement.Accepted)
             {
                 return Decision.Accept();
             }
 
-            if (AbridgedReleaseDetector.WantsAbridged(subject, _abridgedResolver))
-            {
-                _logger.Trace("Abridged release {0} accepted because the wanted edition is abridged", subject.Release?.Title);
-                return Decision.Accept();
-            }
-
-            _logger.Debug("Abridged release {0} rejected (grab policy: unabridged only)", subject.Release?.Title);
-            return Decision.RejectSoftFilter("Abridged audiobook (grab policy is unabridged only)", Category);
+            _logger.Debug("Release {0} rejected: {1}", subject.Release?.Title, judgement.Reason);
+            return Decision.RejectSoftFilter(judgement.Reason, Category);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Books;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Messaging.Commands;
@@ -34,12 +35,16 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
 
         private readonly IHistoryService _historyService;
         private readonly ITalearrGrabPolicyService _grabPolicyService;
+        private readonly ITalearrBookGrabPolicyService _bookGrabPolicyService;
+        private readonly IBookService _bookService;
         private readonly Logger _logger;
 
-        public TalearrRetryService(IHistoryService historyService, ITalearrGrabPolicyService grabPolicyService, Logger logger)
+        public TalearrRetryService(IHistoryService historyService, ITalearrGrabPolicyService grabPolicyService, Logger logger, ITalearrBookGrabPolicyService bookGrabPolicyService = null, IBookService bookService = null)
         {
             _historyService = historyService;
             _grabPolicyService = grabPolicyService;
+            _bookGrabPolicyService = bookGrabPolicyService;
+            _bookService = bookService;
             _logger = logger;
         }
 
@@ -60,6 +65,13 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             decision.Note = decision.Allowed
                 ? string.Format("release blocklisted, searching all indexers for a replacement (attempt {0} of {1})", attempt, maxAttempts)
                 : string.Format("release blocklisted, automatic retry limit reached ({0} failed downloads in {1} days, limit {2}), not searching again", attempt, TalearrGrabPolicy.RetryWindowDays, maxAttempts);
+
+            // The replacement search uses the book's own abridged policy; say so when it has one.
+            var bookPolicy = DescribeBookPolicy(message);
+            if (decision.Allowed && bookPolicy != null)
+            {
+                decision.Note += "; " + bookPolicy;
+            }
 
             return decision;
         }
@@ -102,6 +114,32 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             }
 
             _logger.Info("{0}: {1} {2}", message.SourceTitle, NotePrefix, note);
+        }
+
+        private string DescribeBookPolicy(DownloadFailedEvent message)
+        {
+            if (_bookGrabPolicyService == null || _bookService == null)
+            {
+                return null;
+            }
+
+            foreach (var bookId in message?.BookIds?.Where(id => id > 0).Distinct() ?? Enumerable.Empty<int>())
+            {
+                try
+                {
+                    var value = _bookGrabPolicyService.GetOverride(_bookService.GetBook(bookId));
+                    if (value.HasValue)
+                    {
+                        return "abridged policy for this book: " + TalearrAbridgedRules.Describe(value.Value);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Unable to read the abridged policy of book {0}", bookId);
+                }
+            }
+
+            return null;
         }
 
         private int CountRecentFailures(DownloadFailedEvent message)

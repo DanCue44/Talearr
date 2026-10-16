@@ -12,6 +12,7 @@ using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.IndexerSearch
 {
@@ -31,13 +32,18 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly IMakeDownloadDecision _makeDownloadDecision;
         private readonly Logger _logger;
 
+        // TaleArr: per-book abridged policy edition switch (lazy: it depends on the recordings services).
+        private readonly Lazy<ITalearrAbridgedEditionSwitch> _talearrAbridgedEditionSwitch;
+
         public ReleaseSearchService(IIndexerFactory indexerFactory,
                                 IBookService bookService,
                                 IAuthorService authorService,
                                 IEditionSelector editionSelector,
                                 IMakeDownloadDecision makeDownloadDecision,
-                                Logger logger)
+                                Logger logger,
+                                Lazy<ITalearrAbridgedEditionSwitch> talearrAbridgedEditionSwitch = null)
         {
+            _talearrAbridgedEditionSwitch = talearrAbridgedEditionSwitch;
             _indexerFactory = indexerFactory;
             _bookService = bookService;
             _authorService = authorService;
@@ -125,6 +131,9 @@ namespace NzbDrone.Core.IndexerSearch
             }
 
             _logger.Debug("[RELEASE_SEARCH_SERVICE] Creating search criteria...");
+            // TaleArr: an "abridged only" book searches for its abridged edition (TalearrAbridgedEditionSwitch).
+            TalearrAbridgedEditionSwitch.ApplyBeforeSearch(_talearrAbridgedEditionSwitch, book, _logger);
+
             var searchSpec = Get<BookSearchCriteria>(author, new List<Book> { book }, authorCatalog, userInvokedSearch, interactiveSearch, !allowUnmonitored);
 
             // Search the same edition the API/UI displays: the single monitored edition.

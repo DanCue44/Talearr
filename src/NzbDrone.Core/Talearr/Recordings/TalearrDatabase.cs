@@ -25,7 +25,8 @@ namespace NzbDrone.Core.Talearr.Recordings
 
     // TaleArr: a small SQLite file next to chaptarr.db that only TaleArr opens. It holds
     // rebuildable data (Audible facts, which edition resolved to which product, optional request
-    // provenance), keyed by provider identity rather than Chaptarr row ids. Chaptarr never reads
+    // provenance) and per-book abridged overrides (safe to lose: the book then follows the global
+    // grab policy), keyed by provider identity rather than Chaptarr row ids. Chaptarr never reads
     // it, it is not part of the FluentMigrator schema, and losing it only costs a refetch.
     //
     // Schema versions live in PRAGMA user_version. A file that is corrupt, unreadable or written
@@ -130,6 +131,21 @@ CREATE TABLE IF NOT EXISTS AbsSyncState (
     ItemCount    INTEGER NOT NULL DEFAULT 0,
     MatchedCount INTEGER NOT NULL DEFAULT 0
 );
+",
+
+            // 3: per-book abridged policy overrides (Talearr/GrabPolicy/TalearrBookGrabPolicyStore).
+            // Keyed by the work (the audiobook row's provider BaseBookId, the key recordings use),
+            // so an override survives refresh and row churn. Losing a row only means the book
+            // follows the global grab policy again.
+            @"
+CREATE TABLE IF NOT EXISTS BookGrabPolicies (
+    WorkKey          TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+    AbridgedPolicy   TEXT NOT NULL,
+    BookIdHint       INTEGER,
+    ForeignEditionId TEXT,
+    Title            TEXT,
+    UpdatedAt        TEXT NOT NULL
+);
 "
         };
 
@@ -184,7 +200,7 @@ CREATE TABLE IF NOT EXISTS AbsSyncState (
         {
             lock (_lock)
             {
-                _logger.Warn("TaleArr: recreating {0} ({1}). It only holds cached data (Audible facts, the Audiobookshelf library), which is fetched again.", FileName, reason);
+                _logger.Warn("TaleArr: recreating {0} ({1}). It holds cached data (Audible facts, the Audiobookshelf library), which is fetched again, and per-book abridged overrides, which fall back to the global grab policy.", FileName, reason);
                 MoveAside();
                 _initialized = false;
                 InitializeCore(allowRecreate: false);
@@ -255,7 +271,7 @@ CREATE TABLE IF NOT EXISTS AbsSyncState (
             }
             catch (Exception ex) when (allowRecreate && (ex is TalearrDatabaseUnusableException || IsCorruption(ex)))
             {
-                _logger.Warn("TaleArr: {0} is unusable ({1}); recreating it. It only holds cached data (Audible facts, the Audiobookshelf library).", FileName, ex.Message);
+                _logger.Warn("TaleArr: {0} is unusable ({1}); recreating it. It holds cached data (Audible facts, the Audiobookshelf library) and per-book abridged overrides (books fall back to the global grab policy).", FileName, ex.Message);
                 MoveAside();
                 InitializeCore(allowRecreate: false);
             }
