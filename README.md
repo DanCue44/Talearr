@@ -146,6 +146,7 @@ goes wrong:
 | Allow bundles | Off | Series bundles, omnibuses, box sets, collections, "complete novels", "N books" sets and explicit title lists ("Great Innovators (Benjamin Franklin; Einstein; Steve Jobs)") are skipped for single-book searches. A wanted book that is itself an omnibus still matches bundle releases. |
 | Fail rejected imports | On | When an import is rejected because the release is the wrong book, its files are in the wrong language, its archives are unusable, or it holds no audio or ebook files (zip, rar and 7z are unpacked first, see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), the download is marked failed. That blocklists the release and starts the automatic redownload. Archive formats TaleArr does not unpack, same-title matches (usually duplicate metadata), transient errors and explicit interactive grabs stay in the queue as before. |
 | Automatic retry limit | 3 | Failed downloads per book within 7 days before automatic searching stops. |
+| Retry failed grabs | On | When a release cannot be sent to the download client because the indexer (or Prowlarr) answered 429, a 5xx error or timed out, the next approved release of the same search is tried (other releases of an indexer that just said 429 are left for later), and if nothing could be sent the book is searched again after 2, 10 and 30 minutes. The wait honours Retry-After and the indexer back-off shown under System > Status, is capped at an hour, and the number of re-searches is the automatic retry limit. Only automatic and user-started searches are retried; RSS sync and interactive grabs behave as before. Each step is logged with a "TaleArr:" prefix. |
 
 Automatic redownload itself is the existing Download Clients > Failed Download Handling
 setting, which is on by default. A replacement search covers every indexer with automatic
@@ -154,7 +155,7 @@ are retried as a manual search, so an unmonitored book or a delay profile does n
 replacement. Each step is appended to the Download Failed entry in History, for example
 "TaleArr: release blocklisted, searching all indexers for a replacement (attempt 1 of 3)".
 
-Storage: these four settings live in the existing `Config` key/value table as
+Storage: these five settings live in the existing `Config` key/value table as
 `talearr.grabpolicy.*` rows, read and written only by TaleArr through the new
 `/api/v1/config/talearrgrabpolicy` route. There is no schema change, no existing route or
 field changes, and `config.xml` is not touched. Chaptarr ignores the rows, so a rollback
