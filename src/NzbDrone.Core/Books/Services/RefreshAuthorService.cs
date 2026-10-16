@@ -220,7 +220,7 @@ namespace NzbDrone.Core.Books
 
                         StampAuthorsChecked(new[] { author });
 
-                        // Return null to skip refresh entirely — nothing changed on the server,
+                        // Return null to skip refresh entirely - nothing changed on the server,
                         // and the local author object has Books == null which would cause
                         // SortChildren to delete all local books.
                         return null;
@@ -237,7 +237,7 @@ namespace NzbDrone.Core.Books
                             httpStatus: refreshResult.HttpStatus.HasValue ? (int)refreshResult.HttpStatus.Value : 0
                         );
 
-                        // Return null to skip refresh entirely — returning the local author
+                        // Return null to skip refresh entirely - returning the local author
                         // (which has Books == null) would cause SortChildren to interpret
                         // the empty book list as "API says 0 books" and delete all local books.
                         return null;
@@ -276,7 +276,7 @@ namespace NzbDrone.Core.Books
                     }
                 }
 
-                // Return null to skip refresh — returning the local author (Books == null)
+                // Return null to skip refresh - returning the local author (Books == null)
                 // would cause mass book deletion via SortChildren.
                 return null;
             }
@@ -588,7 +588,7 @@ namespace NzbDrone.Core.Books
 
                     // Pockets are mirrored exactly as the server sent them; a pocket vanishes ONLY because the
                     // user's metadata profile / exclusions left it with no editions. Pockets that merely SHARE a
-                    // provider ID are NOT treated as the same work — they STAY, surfacing the server's identity
+                    // provider ID are NOT treated as the same work - they STAY, surfacing the server's identity
                     // bug upstream. The only de-dup is dropping a bit-for-bit identical pocket the server returned
                     // twice (same work tokens AND same editions), applied post-filter below.
                     var profileFiltered = ApplyMetadataProfileFiltering(
@@ -601,6 +601,9 @@ namespace NzbDrone.Core.Books
                         ebookMetadataProfileIdOverride);
 
                     var afterExclusions = ApplyImportListExclusions(profileFiltered, importListExclusionService);
+
+                    // TaleArr: fold Audible-only (az:) pockets into the matching work before retention.
+                    afterExclusions = TalearrCatalogDedupe.CollapseAudibleOnlyPockets(afterExclusions, logger, local, logContext);
 
                     if (retainEditions)
                     {
@@ -763,7 +766,7 @@ namespace NzbDrone.Core.Books
                     }
                 }
 
-                // Drop ONLY bit-for-bit identical duplicate pockets — a pocket the server returned twice with
+                // Drop ONLY bit-for-bit identical duplicate pockets - a pocket the server returned twice with
                 // the SAME work-identity tokens AND the SAME edition set. ANY difference (an extra edition, a
                 // different or extra provider ID) keeps BOTH pockets: a provider ID that merely spans two works
                 // is never treated as "same work", so we never merge or drop on it. The V5 response is a
@@ -813,7 +816,7 @@ namespace NzbDrone.Core.Books
                 }
 
                 // Fingerprint = media type + the full set of stable work tokens + the full set of edition
-                // identities (ForeignEditionId). Two pockets collapse ONLY when both are equal — i.e. the server
+                // identities (ForeignEditionId). Two pockets collapse ONLY when both are equal - i.e. the server
                 // literally returned the same work with the same editions twice. Returns null (-> keep) for any
                 // pocket we cannot fully fingerprint, so non-identical pockets are never merged or dropped.
                 private static string BuildIdenticalPocketFingerprint(Book book)
