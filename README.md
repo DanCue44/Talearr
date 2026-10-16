@@ -28,7 +28,8 @@ release title matching and Audible duplicates (see [docs/TALEARR_MATCHING.md](do
 audiobook naming tokens, multi-disc import and an optional merge to M4B (see
 [docs/TALEARR_AUDIOBOOKS.md](docs/TALEARR_AUDIOBOOKS.md)), audiobook recordings (abridged and
 unabridged, or two narrators, side by side, with a recording-aware upgrade guard; see
-[docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md)), and its own Docker
+[docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md)), Audiobookshelf library awareness
+(see [docs/TALEARR_AUDIOBOOKSHELF.md](docs/TALEARR_AUDIOBOOKSHELF.md)), and its own Docker
 image and CI. The icon master is
 `Logo/talearr-icon-master.png`.
 
@@ -93,6 +94,27 @@ See [docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md).
 Storage: a separate rebuildable `talearr.db` next to `chaptarr.db`, and `talearr.recordings.*`
 and `talearr.upgrade.*` rows in the `Config` table. No schema change, no migrations, no
 `config.xml` edits.
+
+## Audiobookshelf
+
+See [docs/TALEARR_AUDIOBOOKSHELF.md](docs/TALEARR_AUDIOBOOKSHELF.md).
+
+- **Library awareness.** The existing Settings > Connect > Audiobookshelf connection gets
+  Sync Library (on): TaleArr reads the mapped libraries every hour (GET only) and matches the
+  items to books by path, ASIN, ISBN, then title and author.
+- **No duplicate grabs.** Skip Books Already in Audiobookshelf (on) skips releases for books
+  ABS already has and TaleArr has no files for, shown as "In Audiobookshelf" in interactive
+  search. An abridged copy does not count for a wanted unabridged recording, and with several
+  recordings the narrator decides which one an ABS copy is.
+- **Book page badge.** "In Audiobookshelf", linking to the item (Link URL sets the address
+  your browser uses).
+- **Scan after import** stays the connection's own On Release Import trigger.
+- **API**: `GET /api/v1/talearr/audiobookshelf/book/{bookId}`, `GET .../status`,
+  `POST .../sync`.
+
+Storage: three extra keys in the connection's own settings JSON (stock Chaptarr skips them) and
+a cache in `talearr.db`. Chaptarr deletes connection types it does not know on start, so
+TaleArr adds none.
 
 ## Drop-in compatibility with Chaptarr
 

@@ -134,3 +134,13 @@ Recordings need nothing extra for a rollback, but check these before and after:
   unchanged afterwards, no migrations ran, and `/api/v1/system/status` returned the same
   fields (only `instanceName` differs: `Chaptarr` -> `TaleArr`). The Docker workflow repeats
   this check with the real images on every build.
+
+### Audiobookshelf awareness
+
+Nothing extra for a rollback. Chaptarr keeps using its Audiobookshelf connection, mappings and
+scan after import unchanged; it ignores TaleArr's Sync Library, Skip Books Already in
+Audiobookshelf and Link URL keys in that connection, and drops them only if you save the
+connection in Chaptarr (TaleArr then uses the defaults again). The library cache is in
+`talearr.db`, and the "Sync Audiobookshelf Library" task row is removed by Chaptarr on start.
+Without TaleArr, Chaptarr no longer skips books that are already in Audiobookshelf. See
+[TALEARR_AUDIOBOOKSHELF.md](TALEARR_AUDIOBOOKSHELF.md#storage-and-rollback).
