@@ -110,12 +110,20 @@ jobs:
           set -euo pipefail
           label_args=()
           while IFS= read -r l; do [[ -n "$l" ]] && label_args+=(--label "$l"); done <<< "$LABELS"
-          docker build --force-rm --pull \
-            -f "$RUNNER_TEMP/Dockerfile.classic" \
-            --build-arg TARGETPLATFORM=linux/amd64 \
-            --build-arg BUILDPLATFORM=linux/amd64 \
-            "${label_args[@]}" \
-            -t "$CI_KEY:smoke" .
+          # Registry pulls over the home connection sometimes time out; retry before failing.
+          for attempt in 1 2 3; do
+            if docker build --force-rm --pull \
+              -f "$RUNNER_TEMP/Dockerfile.classic" \
+              --build-arg TARGETPLATFORM=linux/amd64 \
+              --build-arg BUILDPLATFORM=linux/amd64 \
+              "${label_args[@]}" \
+              -t "$CI_KEY:smoke" .; then
+              break
+            fi
+            if [[ $attempt == 3 ]]; then exit 1; fi
+            echo "::warning::docker build attempt $attempt failed, retrying in $((attempt * 30))s"
+            sleep $((attempt * 30))
+          done
 
       - name: Smoke test (drop-in on an upstream Chaptarr config)
         shell: bash
