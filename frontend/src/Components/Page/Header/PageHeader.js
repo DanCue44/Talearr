@@ -59,7 +59,7 @@ class PageHeader extends Component {
             <img
               className={styles.logo}
               src={`${window.Chaptarr.urlBase}/Content/Images/chaptarr-logo.svg`}
-              alt="Chaptarr Logo"
+              alt="TaleArr Logo"
             />
           </Link>
         </div>

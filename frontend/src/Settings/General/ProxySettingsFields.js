@@ -13,7 +13,7 @@ export const proxyModeOptions = [
   {
     key: 'disabled',
     value: 'Disabled',
-    description: 'Chaptarr does not select a proxy. Standard HTTP_PROXY and HTTPS_PROXY environment settings still apply.'
+    description: 'TaleArr does not select a proxy. Standard HTTP_PROXY and HTTPS_PROXY environment settings still apply.'
   },
   {
     key: 'indexerOnly',
@@ -23,7 +23,7 @@ export const proxyModeOptions = [
   {
     key: 'proxyEverything',
     value: 'Proxy everything',
-    description: 'Classic *arr behavior. Routes Chaptarr traffic through the proxy unless it matches the proxy bypass settings.'
+    description: 'Classic *arr behavior. Routes TaleArr traffic through the proxy unless it matches the proxy bypass settings.'
   }
 ];
 

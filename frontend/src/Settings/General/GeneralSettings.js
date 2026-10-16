@@ -186,7 +186,7 @@ class GeneralSettings extends Component {
           kind={kinds.DANGER}
           title={translate('RestartChaptarr')}
           message={
-            `Chaptarr requires a restart to apply changes, do you want to restart now? ${isWindowsService ? 'Depending which user is running the Chaptarr service you may need to restart Chaptarr as admin once before the service will start automatically.' : ''}`
+            `TaleArr requires a restart to apply changes, do you want to restart now? ${isWindowsService ? 'Depending which user is running the TaleArr service you may need to restart TaleArr as admin once before the service will start automatically.' : ''}`
           }
           cancelLabel={translate('IllRestartLater')}
           confirmLabel={translate('RestartNow')}

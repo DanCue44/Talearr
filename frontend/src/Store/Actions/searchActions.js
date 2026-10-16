@@ -140,7 +140,7 @@ function getMediaTypeLabel(mediaType) {
   return mediaType === 'ebook' ? 'eBook' : 'audiobook';
 }
 
-const pendingBookRequestMessage = 'The author and requested book are being prepared by the metadata server. Chaptarr saved your request and will add it automatically when it becomes available.';
+const pendingBookRequestMessage = 'The author and requested book are being prepared by the metadata server. TaleArr saved your request and will add it automatically when it becomes available.';
 
 function getPendingBookRequest(data, xhr) {
   const status = (xhr && xhr.status) || (data && data.pendingId ? 202 : null);

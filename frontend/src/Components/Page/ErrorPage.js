@@ -18,7 +18,7 @@ function ErrorPage(props) {
     systemStatusError
   } = props;
 
-  let errorMessage = 'Failed to load Chaptarr';
+  let errorMessage = 'Failed to load TaleArr';
 
   if (!isLocalStorageSupported) {
     errorMessage = 'Local Storage is not supported or disabled. A plugin or private browsing may have disabled it.';

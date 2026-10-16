@@ -9,7 +9,7 @@ function LoadingPage() {
       <img
         className={styles.logoFull}
         src={`${window.Chaptarr.urlBase}/Content/Images/chaptarr-logo.svg`}
-        alt="Chaptarr"
+        alt="TaleArr"
       />
       <LoadingMessage />
       <LoadingIndicator />

@@ -73,7 +73,7 @@ function checkChunkMismatch() {
 function handleChunkError() {
   // Show user-friendly message
   const message = `
-    Chaptarr has detected cached files from an older version that are interfering with the application.
+    TaleArr has detected cached files from an older version that are interfering with the application.
     The page will reload to fix this issue.
     
     If this problem persists, please clear your browser cache.

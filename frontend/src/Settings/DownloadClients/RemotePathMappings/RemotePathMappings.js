@@ -54,7 +54,7 @@ class RemotePathMappings extends Component {
         >
 
           <Alert kind={kinds.INFO}>
-            <InlineMarkdown data={translate('RemotePathMappingsInfo', { app: 'Chaptarr', wikiLink: 'https://discord.gg/nqFGsGUug2' })} />
+            <InlineMarkdown data={translate('RemotePathMappingsInfo', { app: 'TaleArr', wikiLink: 'https://discord.gg/nqFGsGUug2' })} />
           </Alert>
 
           <div className={styles.remotePathMappingsHeader}>

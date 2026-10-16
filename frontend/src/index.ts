@@ -74,7 +74,7 @@ function showRefreshRequiredMessage(error) {
 
   const message = document.createElement('p');
   message.textContent =
-    'Chaptarr couldn’t load one or more application files. Please refresh the page to continue.';
+    'TaleArr couldn’t load one or more application files. Please refresh the page to continue.';
   message.style.cssText =
     'margin-bottom: 24px; font-size: 16px; line-height: 1.5; max-width: 500px;';
 

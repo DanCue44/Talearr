@@ -15,29 +15,25 @@ class MoreInfo extends Component {
     return (
       <FieldSet legend={translate('MoreInfo')}>
         <DescriptionList>
-          {/* No Home Page entry: chaptarr.com does not serve a site yet; re-add if a landing page ships. */}
-          <DescriptionListItemTitle>{translate('Wiki')}</DescriptionListItemTitle>
-          <DescriptionListItemDescription>
-            <Link to="https://wiki.chaptarr.com">{translate('Wiki')}</Link>
-          </DescriptionListItemDescription>
-
-          {/* No Reddit entry: r/chaptarr is already taken and not affiliated with Chaptarr, and no official subreddit is planned. */}
-
-          <DescriptionListItemTitle>{translate('Discord')}</DescriptionListItemTitle>
-          <DescriptionListItemDescription>
-            <Link to="https://discord.gg/nqFGsGUug2">{translate('ChaptarrOnDiscord')}</Link>
-          </DescriptionListItemDescription>
-
           <DescriptionListItemTitle>{translate('Source')}</DescriptionListItemTitle>
           <DescriptionListItemDescription>
-            <Link to="https://github.com/Chaptarr/chaptarr">{'github.com/Chaptarr/chaptarr'}</Link>
+            <Link to="https://github.com/DanCue44/TaleArr">{'github.com/DanCue44/TaleArr'}</Link>
           </DescriptionListItemDescription>
 
-          <DescriptionListItemTitle>{translate('FeatureRequests')}</DescriptionListItemTitle>
+          <DescriptionListItemTitle>{'Upstream'}</DescriptionListItemTitle>
           <DescriptionListItemDescription>
-            <Link to="https://github.com/Chaptarr/chaptarr/issues">{'github.com/Chaptarr/chaptarr/issues'}</Link>
+            <Link to="https://github.com/Chaptarr/chaptarr">{'Chaptarr (github.com/Chaptarr/chaptarr)'}</Link>
           </DescriptionListItemDescription>
 
+          <DescriptionListItemTitle>{translate('Wiki')}</DescriptionListItemTitle>
+          <DescriptionListItemDescription>
+            <Link to="https://wiki.chaptarr.com">{'Chaptarr Wiki'}</Link>
+          </DescriptionListItemDescription>
+
+          <DescriptionListItemTitle>{'License'}</DescriptionListItemTitle>
+          <DescriptionListItemDescription>
+            <Link to="https://www.gnu.org/licenses/gpl-3.0.html">{'GNU GPL v3'}</Link>
+          </DescriptionListItemDescription>
         </DescriptionList>
       </FieldSet>
     );

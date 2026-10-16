@@ -152,14 +152,14 @@ class DeleteBookModalContent extends Component {
       'Delete files for all matched books' :
       `Delete files for this ${currentFormatLabel}`;
     const deleteFilesHelpText = applyToBothFormats && siblingBook ?
-      `If enabled, Chaptarr will delete files for this ${currentFormatLabel} and all matched copies of the same book.` :
+      `If enabled, TaleArr will delete files for this ${currentFormatLabel} and all matched copies of the same book.` :
       `Delete files for this ${currentFormatLabel}.`;
     const addImportListExclusionLabel = applyToBothFormats && siblingBook ?
       'Don\'t add these books back' :
       `Don't add this ${currentFormatLabel} back`;
     const addImportListExclusionHelpText = applyToBothFormats && siblingBook ?
-      'Chaptarr will skip re-adding both formats during refresh and import-list sync until you manually add them again.' :
-      `Chaptarr will skip re-adding this ${currentFormatLabel} during refresh and import-list sync until you manually add it again.`;
+      'TaleArr will skip re-adding both formats during refresh and import-list sync until you manually add them again.' :
+      `TaleArr will skip re-adding this ${currentFormatLabel} during refresh and import-list sync until you manually add it again.`;
     const siblingDeleteLabel = siblingBook ?
       getSiblingDeleteLabel(mediaType, siblingBook) :
       null;
