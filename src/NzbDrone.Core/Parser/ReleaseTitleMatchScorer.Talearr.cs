@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books;
@@ -69,7 +70,9 @@ namespace NzbDrone.Core.Parser
             }
 
             var primaryKeys = new HashSet<string>(context.PrimaryVariants.Select(TalearrTokenKey), StringComparer.Ordinal);
-            var takenByOtherBooks = BuildTalearrCatalogKeys(book, authorCatalogBooks);
+            var otherBooks = (authorCatalogBooks ?? Enumerable.Empty<Book>())
+                .Where(other => CanContradict(book, other))
+                .ToList();
 
             foreach (var candidate in candidates)
             {
@@ -80,7 +83,12 @@ namespace NzbDrone.Core.Parser
                 }
 
                 // A short form shared with another book by this author is ambiguous: never use it.
-                if (takenByOtherBooks.Contains(key) || takenByOtherBooks.Contains(StripLeadingArticleKey(key)))
+                var articleFreeKey = StripLeadingArticleKey(key);
+                if (otherBooks.Any(other =>
+                    {
+                        var otherKeys = GetTalearrBookKeys(other);
+                        return otherKeys.Contains(key) || otherKeys.Contains(articleFreeKey);
+                    }))
                 {
                     continue;
                 }
@@ -308,25 +316,48 @@ namespace NzbDrone.Core.Parser
             };
         }
 
-        private static HashSet<string> BuildTalearrCatalogKeys(Book targetBook, IEnumerable<Book> authorCatalogBooks)
+        private static readonly ConditionalWeakTable<Book, TalearrBookKeys> TalearrBookKeyCache = new ConditionalWeakTable<Book, TalearrBookKeys>();
+
+        private sealed class TalearrBookKeys
         {
-            var keys = new HashSet<string>(StringComparer.Ordinal);
+            public string Title { get; init; }
+            public string PrimaryTitle { get; init; }
+            public HashSet<string> Keys { get; init; }
+        }
 
-            foreach (var other in (authorCatalogBooks ?? Enumerable.Empty<Book>()).Where(other => CanContradict(targetBook, other)))
+        // Full, main (no subtitle or brackets) and article-free token keys of a catalog book, cached
+        // per book object because the same catalog is scored once per release.
+        private static HashSet<string> GetTalearrBookKeys(Book book)
+        {
+            var title = book?.Title;
+            var primaryTitle = GetPrimaryBookTitle(book);
+            if (book != null &&
+                TalearrBookKeyCache.TryGetValue(book, out var cached) &&
+                string.Equals(cached.Title, title, StringComparison.Ordinal) &&
+                string.Equals(cached.PrimaryTitle, primaryTitle, StringComparison.Ordinal))
             {
-                foreach (var title in new[] { other.Title, GetPrimaryBookTitle(other) }.Where(t => t.IsNotNullOrWhiteSpace()).Distinct(StringComparer.OrdinalIgnoreCase))
-                {
-                    var full = TalearrTokenKey(title);
-                    keys.Add(full);
-                    keys.Add(StripLeadingArticleKey(full));
+                return cached.Keys;
+            }
 
-                    var main = TalearrTokenKey(TalearrTitleNormalizer.GetMainTitle(TalearrTitleNormalizer.StripAllBrackets(title)));
-                    keys.Add(main);
-                    keys.Add(StripLeadingArticleKey(main));
-                }
+            var keys = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var value in new[] { title, primaryTitle }.Where(t => t.IsNotNullOrWhiteSpace()).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                var full = TalearrTokenKey(value);
+                keys.Add(full);
+                keys.Add(StripLeadingArticleKey(full));
+
+                var main = TalearrTokenKey(TalearrTitleNormalizer.GetMainTitle(TalearrTitleNormalizer.StripAllBrackets(value)));
+                keys.Add(main);
+                keys.Add(StripLeadingArticleKey(main));
             }
 
             keys.Remove(string.Empty);
+
+            if (book != null)
+            {
+                TalearrBookKeyCache.AddOrUpdate(book, new TalearrBookKeys { Title = title, PrimaryTitle = primaryTitle, Keys = keys });
+            }
+
             return keys;
         }
 
