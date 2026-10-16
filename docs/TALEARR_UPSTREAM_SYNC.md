@@ -44,6 +44,9 @@ TaleArr keeps its changes small and in few places on purpose:
 | Notification titles and test messages, health check text, startup logs | the word Chaptarr -> TaleArr in literals | take upstream, re-apply the word change |
 | Frontend strings (`translate.ts`, `login.html`, `index.ejs`, `manifest.json`, About, More Info, a few modals) | the word Chaptarr -> TaleArr | take upstream, re-apply |
 | `README.md`, `COPYRIGHT.md`, `docker-compose.yml`, `docker-entrypoint.sh` | TaleArr text | keep ours, carry over relevant upstream content |
+| `EditionSelector.cs`, `BookController.cs` (UpdateBookInternal), `RefreshBookService.cs` (MonitorSingleEdition), `RefreshAuthorService.cs` (NormalizeRemoteBooks), `ReleaseTitleMatchScorer.cs` | matching and edition fixes, marked `// TaleArr:` (see [TALEARR_MATCHING.md](TALEARR_MATCHING.md)) | take upstream, re-apply the block |
+| `Talearr*.cs`, `ReleaseTitleMatchScorer.Talearr.cs` and their `Talearr*Fixture.cs` tests | TaleArr-only files | never conflict |
+| Scorer and edition tests changed to TaleArr behavior (`ReleaseTitleMatchScorerFixture.cs`, `ReleaseTitleMatchSpecificationFixture.cs`, `EditionSelectorInvariantFixture.cs`, one row in `release-title-scorecard.ndjson`) | expectations flipped, marked `TaleArr:` | take upstream, re-apply the flip |
 
 Translation files (`src/NzbDrone.Core/Localization/Core/*.json`) are **not** edited:
 `TalearrBranding` rewrites "Chaptarr" to "TaleArr" when they load, so new upstream strings

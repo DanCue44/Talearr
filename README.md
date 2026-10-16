@@ -21,7 +21,9 @@ download client and indexer integrations.
 
 TaleArr tracks Chaptarr closely. The differences today are the name and icon, a separate
 TaleArr version, a "Works best with" block in System > Status (AllSeerr, NoBookEnds), a
-grab policy (see below), and its own Docker image and CI. The icon master is
+grab policy (see below), fixes to edition choice, release title matching and Audible
+duplicates (see [docs/TALEARR_MATCHING.md](docs/TALEARR_MATCHING.md)), and its own Docker
+image and CI. The icon master is
 `Logo/talearr-icon-master.png`.
 
 ## Drop-in compatibility with Chaptarr
