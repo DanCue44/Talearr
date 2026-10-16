@@ -8,7 +8,7 @@ function LoadingPage() {
     <div className={styles.page}>
       <img
         className={styles.logoFull}
-        src={`${window.Chaptarr.urlBase}/Content/Images/chaptarr-logo.svg`}
+        src={`${window.Chaptarr.urlBase}/Content/Images/talearr-icon.png`}
         alt="TaleArr"
       />
       <LoadingMessage />

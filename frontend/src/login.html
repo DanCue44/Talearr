@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Chrome, Opera, and Firefox OS -->
-    <meta name="theme-color" content="#3a3f51" />
+    <meta name="theme-color" content="#1f2024" />
     <!-- Windows Phone -->
     <meta name="msapplication-navbutton-color" content="#3a3f51" />
     <!-- Android/Apple Phone -->
@@ -46,236 +46,234 @@
     <title>Login - TaleArr</title>
 
     <style>
+      /* TaleArr sign-in: dark charcoal page, one dark card, orange accents. */
       :root {
-        /* Light theme (matches app light theme + auto default) */
-        --page-bg: #f5f7fa;
-        --panel-header-bg: #2b2e33;
-        --panel-body-bg: #ffffff;
-        --panel-border: rgba(0, 0, 0, 0.08);
-        --panel-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+        color-scheme: dark;
 
-        --text: #515253;
-        --muted: #909293;
+        --page-bg: #1f2024;
+        --page-glow-from: #25262a;
+        --page-glow-to: #18191c;
+        --card-bg: #2b2c30;
+        --card-border: #3d3e43;
+        --card-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 
-        --input-bg: #ffffff;
-        --input-text: #333333;
-        --input-border: #dde6e9;
-        --input-border-focus: #66afe9;
-        --input-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-        --input-shadow-focus: inset 0 1px 1px rgba(0, 0, 0, 0.075),
-          0 0 8px rgba(102, 175, 233, 0.6);
+        --text: #f1f1f2;
+        --label: #c0c0c5;
+        --muted: #8e8f96;
 
-        --primary-bg: #5d9cec;
-        --primary-border: #5899eb;
-        --primary-hover-bg: #4b91ea;
-        --primary-hover-border: #3483e7;
-        --primary-text: #ffffff;
+        --input-bg: #25262a;
+        --input-border: #3d3e43;
+        --input-text: #f1f1f2;
+        --input-placeholder: #77787f;
 
-        --secondary-bg: #ffffff;
-        --secondary-border: #eaeaea;
-        --secondary-hover-bg: #f5f5f5;
-        --secondary-hover-border: #d6d6d6;
-        --secondary-text: #515253;
+        --accent: #ec703e;
+        --accent-hover: #f2814f;
+        --accent-text: #1b1310;
+        --focus-ring: 0 0 0 3px rgba(236, 112, 62, 0.35);
 
-        /* Plex brand-ish */
+        --error-text: #ff8a80;
+        --error-bg: rgba(255, 82, 82, 0.1);
+        --error-border: rgba(255, 82, 82, 0.35);
+
+        --secondary-bg: #25262a;
+        --secondary-hover-bg: #303136;
+
         --plex-bg: #e5a00d;
-        --plex-border: #d69600;
-        --plex-hover-bg: #d99000;
-        --plex-hover-border: #c88600;
-        --plex-text: #111111;
+        --plex-hover-bg: #f0ad1b;
+        --plex-text: #1b1310;
       }
 
-      @media (prefers-color-scheme: dark) {
-        :root {
-          /* Dark theme (matches app dark theme + auto default) */
-          --page-bg: #202020;
-          --panel-header-bg: #2a2a2a;
-          --panel-body-bg: #2a2a2a;
-          --panel-border: rgba(255, 255, 255, 0.10);
-          --panel-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+      * {
+        box-sizing: border-box;
+      }
 
-          --text: #cccccc;
-          --muted: #909293;
-
-          --input-bg: #333333;
-          --input-text: #eeeeee;
-          --input-border: #393f45;
-          --input-border-focus: #66afe9;
-          --input-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2);
-          --input-shadow-focus: inset 0 1px 1px rgba(0, 0, 0, 0.2),
-            0 0 8px rgba(102, 175, 233, 0.6);
-
-          --primary-bg: #0b8750;
-          --primary-border: #1d563d;
-          --primary-hover-bg: #097948;
-          --primary-hover-border: #1d563d;
-          --primary-text: #ffffff;
-
-          --secondary-bg: #333333;
-          --secondary-border: #393f45;
-          --secondary-hover-bg: #444444;
-          --secondary-hover-border: #5a6265;
-          --secondary-text: #eeeeee;
-        }
+      html,
+      body {
+        min-height: 100%;
       }
 
       body {
+        margin: 0;
         background-color: var(--page-bg);
+        background-image: radial-gradient(120% 80% at 50% 0%, var(--page-glow-from) 0%, var(--page-glow-to) 70%);
+        background-attachment: fixed;
         color: var(--text);
         font-family: "Roboto", "open sans", "Helvetica Neue", Helvetica, Arial,
           sans-serif;
+        -webkit-font-smoothing: antialiased;
       }
 
       .center {
         display: flex;
         justify-content: center;
+        align-items: flex-start;
+        padding: clamp(28px, 10vh, 120px) 16px 32px;
+        min-height: 100vh;
       }
 
       .content {
-        flex: 0 0 325px;
+        width: 100%;
+        max-width: 400px;
+      }
+
+      .panel {
+        padding: 32px 28px 28px;
+        border: 1px solid var(--card-border);
+        border-radius: 18px;
+        background-color: var(--card-bg);
+        box-shadow: var(--card-shadow);
+      }
+
+      .brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
       }
 
       .logo {
-        box-sizing: border-box;
-        padding: 6px;
-        width: 64px;
-        height: 64px;
-        border-radius: 14px;
-        background-color: #f4f1ec;
+        display: block;
+        width: 88px;
+        height: 88px;
       }
 
       /* TaleArr wordmark: "Tale" plus "Arr" in the brand orange */
       .wordmark {
-        margin-left: 12px;
-        color: #ffffff;
-        font-weight: bold;
-        font-size: 28px;
+        margin-top: 10px;
+        color: var(--text);
+        font-weight: 700;
+        font-size: 30px;
+        letter-spacing: 0.01em;
+        line-height: 1.1;
       }
 
       .wordmark-accent {
-        color: #ec703e;
-      }
-
-      .panel {
-        margin-top: 50px;
-        border-radius: 10px;
-        box-shadow: var(--panel-shadow);
-        border: 1px solid var(--panel-border);
-        overflow: hidden;
-      }
-
-      .panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px;
-        background-color: var(--panel-header-bg);
-      }
-
-      .panel-body {
-        padding: 20px;
-        background-color: var(--panel-body-bg);
+        color: var(--accent);
       }
 
       .sign-in {
-        padding: 10px 0;
-        text-align: center;
-        letter-spacing: 0.06em;
-        font-weight: 600;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 14px;
       }
 
       .form-group {
-        margin: 20px 0;
+        margin: 18px 0 0;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--label);
+        font-weight: 500;
+        font-size: 13px;
       }
 
       .form-input {
-        box-sizing: border-box;
-        padding: 6px 16px;
+        padding: 10px 14px;
         width: 100%;
-        height: 35px;
+        height: 44px;
         border: 1px solid var(--input-border);
-        border-radius: 4px;
-        box-shadow: var(--input-shadow);
+        border-radius: 10px;
         background-color: var(--input-bg);
         color: var(--input-text);
+        font-size: 15px;
+        transition: border-color 0.15s, box-shadow 0.15s;
+      }
+
+      .form-input::placeholder {
+        color: var(--input-placeholder);
       }
 
       .form-input:focus {
         outline: 0;
-        border-color: var(--input-border-focus);
-        box-shadow: var(--input-shadow-focus);
+        border-color: var(--accent);
+        box-shadow: var(--focus-ring);
       }
 
       .button {
-        box-sizing: border-box;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        margin-top: 20px;
-        padding: 10px 16px;
+        margin-top: 22px;
+        padding: 12px 16px;
         width: 100%;
-        min-height: 42px;
-        border: 1px solid;
-        border-color: var(--primary-border);
-        border-radius: 4px;
-        background-color: var(--primary-bg);
-        color: var(--primary-text);
+        min-height: 46px;
+        border: 0;
+        border-radius: 10px;
+        background-color: var(--accent);
+        color: var(--accent-text);
         vertical-align: middle;
         text-align: center;
         white-space: nowrap;
         line-height: normal;
         text-decoration: none;
         cursor: pointer;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 15px;
+        transition: background-color 0.15s, box-shadow 0.15s;
       }
 
       .button:hover {
-        border-color: var(--primary-hover-border);
-        background-color: var(--primary-hover-bg);
-        color: var(--primary-text);
+        background-color: var(--accent-hover);
+        color: var(--accent-text);
         text-decoration: none;
       }
 
+      .button:focus-visible {
+        outline: 0;
+        box-shadow: var(--focus-ring);
+      }
+
       .button-secondary {
-        border-color: var(--secondary-border);
+        border: 1px solid var(--card-border);
         background-color: var(--secondary-bg);
-        color: var(--secondary-text);
+        color: var(--text);
       }
 
       .button-secondary:hover {
-        border-color: var(--secondary-hover-border);
         background-color: var(--secondary-hover-bg);
-        color: var(--secondary-text);
+        color: var(--text);
       }
 
       .button-plex {
-        border-color: var(--plex-border);
         background-color: var(--plex-bg);
         color: var(--plex-text);
       }
 
       .button-plex:hover {
-        border-color: var(--plex-hover-border);
         background-color: var(--plex-hover-bg);
         color: var(--plex-text);
       }
 
       .copy {
-        margin-top: 15px;
-        text-align: center;
-        font-size: 14px;
+        margin-top: 18px;
         color: var(--muted);
+        text-align: center;
+        font-size: 13px;
       }
 
       .remember-me-container {
         display: flex;
+        align-items: center;
         justify-content: space-between;
+        margin-top: 16px;
         line-height: 25px;
       }
 
       .remember-me {
+        display: flex;
+        align-items: center;
+        color: var(--label);
         font-size: 14px;
+      }
+
+      .remember-me input {
+        margin: 0 8px 0 0;
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent);
       }
 
       .forgot-password {
@@ -287,7 +285,7 @@
 
       .forgot-password:focus,
       .forgot-password:hover {
-        color: var(--text);
+        color: var(--accent);
         text-decoration: underline;
       }
 
@@ -296,8 +294,12 @@
       }
 
       .login-failed {
-        margin-top: 20px;
-        color: #f05050;
+        margin-top: 16px;
+        padding: 10px 12px;
+        border: 1px solid var(--error-border);
+        border-radius: 10px;
+        background-color: var(--error-bg);
+        color: var(--error-text);
         font-size: 14px;
       }
 
@@ -313,7 +315,7 @@
       }
 
       .toggle-local {
-        margin-top: 10px;
+        margin-top: 14px;
         text-align: center;
         font-size: 13px;
       }
@@ -324,7 +326,7 @@
       }
 
       .toggle-local a:hover {
-        color: var(--text);
+        color: var(--accent);
         text-decoration: underline;
       }
 
@@ -332,7 +334,20 @@
         display: none;
       }
 
-      @media only screen and (min-device-width: 375px) and (max-device-width: 812px) {
+      @media only screen and (max-width: 480px) {
+        .center {
+          padding-top: 28px;
+        }
+
+        .panel {
+          padding: 26px 20px 22px;
+        }
+
+        .logo {
+          width: 76px;
+          height: 76px;
+        }
+
         .form-input {
           font-size: 16px;
         }
@@ -344,16 +359,13 @@
     <div class="center">
       <div class="content">
         <div class="panel">
-          <div class="panel-header">
-            <img src="/Content/Images/chaptarr-logo.svg" alt="TaleArr Logo" class="logo" />
-            <span class="wordmark">Tale<span class="wordmark-accent">Arr</span></span>
+          <div class="brand">
+            <img src="/Content/Images/talearr-icon.png" alt="TaleArr Logo" class="logo" />
+            <div class="wordmark">Tale<span class="wordmark-accent">Arr</span></div>
+            <div class="sign-in">Sign in to continue</div>
           </div>
 
           <div class="panel-body">
-            <div class="sign-in">
-              SIGN IN TO CONTINUE
-            </div>
-
             <form
               id="local-login-form"
               role="form"
@@ -363,8 +375,10 @@
               method="POST"
             >
               <div class="form-group">
+                <label class="form-label" for="username">Username</label>
                 <input
                   type="email"
+                  id="username"
                   name="username"
                   class="form-input"
                   placeholder="Username"
@@ -378,8 +392,10 @@
               </div>
 
               <div class="form-group">
+                <label class="form-label" for="password">Password</label>
                 <input
                   type="password"
+                  id="password"
                   name="password"
                   class="form-input"
                   placeholder="Password"

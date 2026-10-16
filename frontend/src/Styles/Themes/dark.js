@@ -56,7 +56,7 @@ module.exports = {
   linkHoverColor: '#ca302d',
 
   // Header
-  pageHeaderBackgroundColor: '#2a2a2a',
+  pageHeaderBackgroundColor: '#1f2024', // TaleArr charcoal
 
   // Sidebar
 
