@@ -78,6 +78,9 @@ MUST_KEEP_RECORDINGS = [
     ("src/NzbDrone.Core/Talearr/Recordings/TalearrDatabase.cs", r"PRAGMA user_version", "recordings: talearr.db versions itself, not through FluentMigrator"),
     ("src/NzbDrone.Core/Talearr/Recordings/TalearrRecordingsSettings.cs", r'"talearr\.recordings\.marketplace"', "recordings: settings are talearr.* Config rows"),
     ("src/Chaptarr.Api.V1/Config/TalearrRecordingsConfigController.cs", r'V1ApiController\("config/talearrrecordings"\)', "recordings: settings route used by AllSeerr detection"),
+    ("src/NzbDrone.Core/Jobs/TaskManager.cs", r"RefreshAudibleRecordingFactsCommand", "recordings: scheduled Audible facts refresh"),
+    ("src/NzbDrone.Core/MetadataSource/Audible/AudibleCatalogProxy.cs", r"UserAgents => AudibleUserAgents", "recordings: Audible client shares upstream's user agents"),
+    ("src/NzbDrone.Core/Talearr/Recordings/TalearrAudibleClient.cs", r"RateLimit = MinimumInterval", "recordings: Audible requests are rate limited"),
 ]
 
 # (folder, file glob, regex, why). No file under the folder may match.

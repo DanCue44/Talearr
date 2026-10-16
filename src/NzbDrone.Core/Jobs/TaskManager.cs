@@ -194,6 +194,15 @@ namespace NzbDrone.Core.Jobs
                         Interval = 1, // Run every minute
                         TypeName = typeof(ProcessPendingImportsCommand).FullName,
                         Priority = CommandPriority.Low
+                    },
+
+                    // TaleArr: Audible facts for recordings (talearr.db only). Stock Chaptarr drops
+                    // this row on its next start, so a rollback needs nothing.
+                    new ScheduledTask
+                    {
+                        Interval = 12 * 60,
+                        TypeName = typeof(NzbDrone.Core.Talearr.Recordings.RefreshAudibleRecordingFactsCommand).FullName,
+                        Priority = CommandPriority.Low
                     }
                 };
 
