@@ -138,12 +138,25 @@ MUST_KEEP_SERIES = [
     ("frontend/src/Author/Details/AuthorDetailsSeries.js", r"to=\{`/talearr/series/\$\{this\.props\.id\}`\}", "series: series page link on the author page"),
 ]
 
+# Phase 3 wishlists (docs/TALEARR_WISHLISTS.md). Not an import list provider, so a rollback keeps
+# everything; pin the parts that promise and the Phase 1 rule depend on.
+MUST_KEEP_WISHLISTS = [
+    ("src/NzbDrone.Core/Talearr/Wishlists/TalearrWishlistStore.cs", r'KeyPrefix = "talearr\.wishlist\."', "wishlists: stored as talearr.* Config rows"),
+    ("src/NzbDrone.Core/Talearr/Wishlists/TalearrWishlistService.cs", r"MonitorExistingMode = MonitorTypes\.SpecificBook", "wishlists: a listed book monitors only that book"),
+    ("src/NzbDrone.Core/Talearr/Wishlists/TalearrWishlistService.cs", r"MonitorNewItems = NewItemMonitorTypes\.None", "wishlists: future releases of the author stay unmonitored"),
+    ("src/NzbDrone.Core/Talearr/Wishlists/TalearrWishlistService.cs", r"_pendingAuthorImportService\.EnqueueAsync\(", "wishlists: new authors go through upstream's pending author import"),
+    ("src/NzbDrone.Core/Jobs/TaskManager.cs", r"SyncWishlistsCommand", "wishlists: scheduled sync"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrWishlistsController.cs", r'V1ApiController\("talearr/wishlists"\)', "wishlists: additive API route"),
+    ("frontend/src/Settings/ImportLists/ImportListSettings.js", r"<TalearrWishlists />", "wishlists: section on Settings > Import Lists"),
+]
+
 # (folder, file glob, regex, why). No file under the folder may match.
 MUST_NOT_HAVE_IN_TREE = [
     ("src/NzbDrone.Core/Datastore/Migration", "*.cs", r"(?i)talearr", "TaleArr adds no chaptarr.db migrations"),
     ("src/NzbDrone.Core/Talearr", "*.cs", r"IMainDatabase|\[Migration\(", "TaleArr code keeps its data out of the chaptarr.db schema"),
     ("src/NzbDrone.Core/Talearr", "*.cs", r"NotificationBase<|IProviderConfig\b", "TaleArr adds no provider implementation (stock Chaptarr deletes unknown ones on start)"),
     ("src/NzbDrone.Core/Talearr/Audiobookshelf", "*.cs", r"HttpMethod\.(Post|Put|Patch|Delete)", "TaleArr only reads Audiobookshelf; scans stay upstream's"),
+    ("src/NzbDrone.Core/Talearr/Wishlists", "*.cs", r"ImportListBase<|IImportListSettings", "wishlists are not import list providers (stock Chaptarr deletes unknown ones on start)"),
 ]
 
 # Visible strings that should not come back in UI shells after a merge.
@@ -164,7 +177,7 @@ def read(rel: str) -> str | None:
 def main() -> int:
     failures: list[str] = []
 
-    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS + MUST_KEEP_RECORDINGS + MUST_KEEP_AUDIOBOOKSHELF + MUST_KEEP_SERIES:
+    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS + MUST_KEEP_RECORDINGS + MUST_KEEP_AUDIOBOOKSHELF + MUST_KEEP_SERIES + MUST_KEEP_WISHLISTS:
         text = read(rel)
         if text is None:
             failures.append(f"missing file {rel} ({why})")
@@ -193,7 +206,7 @@ def main() -> int:
         return 1
 
     total = (len(MUST_HAVE_BRAND) + len(MUST_KEEP_UPSTREAM) + len(MUST_KEEP_TALEARR_HOOKS) +
-             len(MUST_KEEP_RECORDINGS) + len(MUST_KEEP_AUDIOBOOKSHELF) + len(MUST_KEEP_SERIES) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE))
+             len(MUST_KEEP_RECORDINGS) + len(MUST_KEEP_AUDIOBOOKSHELF) + len(MUST_KEEP_SERIES) + len(MUST_KEEP_WISHLISTS) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE))
     print(f"TaleArr brand check passed ({total} checks).")
     return 0
 
