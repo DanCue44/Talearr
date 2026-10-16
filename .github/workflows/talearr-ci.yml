@@ -1,8 +1,10 @@
 name: TaleArr CI
 
-# Builds and tests the TaleArr fork on one Linux runner. This is the check to
-# watch after merging upstream Chaptarr changes: it fails if the merge broke the
-# build, the unit tests, or the TaleArr rebrand (build-tools/talearr_brand_check.py).
+# Builds and tests the TaleArr fork on a self-hosted runner on the Unraid
+# server, inside a .NET SDK job container (the runner image has no toolchains).
+# This is the check to watch after merging upstream Chaptarr changes: it fails
+# if the merge broke the build, the unit tests, or the TaleArr rebrand
+# (build-tools/talearr_brand_check.py).
 on:
   push:
     branches: [develop, main, 'feat/**', 'fix/**', 'sync/**']
@@ -19,12 +21,24 @@ permissions:
 
 jobs:
   build-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    runs-on: [self-hosted, unraid, talearr]
+    timeout-minutes: 60
+    container:
+      image: mcr.microsoft.com/dotnet/sdk:10.0
+      # NuGet and Yarn caches persist on the Unraid cache pool between runs.
+      options: >-
+        -v /mnt/cache/appdata/gh-runner-cache/talearr/nuget:/root/.nuget/packages
+        -v /mnt/cache/appdata/gh-runner-cache/talearr/yarn:/usr/local/share/.cache/yarn
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
       DOTNET_NOLOGO: 1
     steps:
+      - name: Toolchain - python3, ffmpeg
+        run: |
+          apt-get update -q
+          apt-get install -y -q --no-install-recommends python3 ffmpeg xz-utils
+          rm -rf /var/lib/apt/lists/*
+
       - uses: actions/checkout@v4
 
       - name: Guard - no merge-conflict markers
@@ -40,14 +54,18 @@ jobs:
       - name: Versions
         run: build-tools/talearr_versions.sh | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
+      # The .NET 10 SDK comes from the job container image.
+      - name: .NET SDK
+        run: dotnet --version
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20.11.1
-          cache: yarn
+
+      - name: Yarn 1.22
+        run: |
+          npm install -g yarn@1.22.22
+          yarn --version
 
       - name: Frontend - install
         run: yarn install --frozen-lockfile --network-timeout 300000
@@ -67,12 +85,11 @@ jobs:
         run: dotnet build src/Chaptarr.NoTests.sln -c Release --no-restore
 
       # The M4B merge tests run the real ffmpeg on generated audio (they skip without it).
-      - name: Backend - install ffmpeg
+      # ffmpeg is installed in the first step.
+      - name: Backend - check ffmpeg
         run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
-            sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
-          fi
           ffmpeg -version | head -1
+          ffprobe -version | head -1
 
       - name: Backend - unit tests
         run: dotnet test src/Chaptarr.Core.Test/Chaptarr.Core.Test.csproj -c Release --no-restore --logger "console;verbosity=minimal"

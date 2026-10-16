@@ -3,16 +3,24 @@ name: TaleArr Docker
 # Builds the TaleArr image from the upstream Dockerfile.cross and pushes it to
 # ghcr.io/dancue44/talearr using the workflow's GITHUB_TOKEN.
 #
+# Runs on a self-hosted runner on the Unraid server (amd64). That host has no
+# buildx/BuildKit, so the image is built with the classic builder: the job
+# rewrites Dockerfile.cross into a classic-compatible copy (drops the BuildKit
+# cache mounts and --platform flags) and builds linux/amd64 only.
+#
 # Tags:
 #   develop branch  -> develop, develop-<sha>
 #   main branch     -> latest, <talearr version>
 #   tag vX.Y.Z      -> X.Y.Z, X.Y
-#   other branches  -> <branch-slug> (amd64 only, for testing before merge)
+#   other branches  -> <branch-slug> (for testing before merge)
 #   every push      -> sha-<sha>
 #
-# Before pushing, the amd64 image is smoke tested: it is started on a config
-# volume created by the matching upstream Chaptarr image (drop-in check), and
-# /api/v1/system/status must answer with the same fields.
+# Before pushing, the image is smoke tested: it is started on a config volume
+# created by the matching upstream Chaptarr image (drop-in check), and
+# /api/v1/system/status must answer with the same fields. The smoke containers
+# publish no host ports (the live Chaptarr owns 8789 on the host); they are
+# reached on their bridge IPs, and every container, volume and image the job
+# creates is removed at the end.
 on:
   push:
     branches: [develop, main, 'feat/**']
@@ -29,31 +37,31 @@ permissions:
 
 env:
   IMAGE: ghcr.io/dancue44/talearr
+  # Unique per run, used for the local image tag, smoke containers and volume.
+  CI_KEY: talearr-ci-${{ github.run_id }}-${{ github.run_attempt }}
+  PY_IMAGE: python:3.12-slim
 
 jobs:
   image:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, unraid, talearr]
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
+      # The runner image has no python3; the workspace path is the same on the
+      # Unraid host, so it can be bind-mounted into a throwaway python container.
       - name: Guard - TaleArr rebrand intact
-        run: python3 build-tools/talearr_brand_check.py
+        run: docker run --rm -v "$PWD:$PWD" -w "$PWD" "$PY_IMAGE" python3 build-tools/talearr_brand_check.py
 
-      - name: Resolve versions and platforms
+      - name: Resolve versions
         id: meta
         shell: bash
         run: |
           set -euo pipefail
-          eval "$(build-tools/talearr_versions.sh)"
+          eval "$(docker run --rm -v "$PWD:$PWD" -w "$PWD" "$PY_IMAGE" bash build-tools/talearr_versions.sh)"
           echo "talearr=$TALEARR_VERSION" >> "$GITHUB_OUTPUT"
           echo "upstream=$UPSTREAM_VERSION" >> "$GITHUB_OUTPUT"
-          if [[ "$GITHUB_REF" == refs/heads/develop || "$GITHUB_REF" == refs/heads/main || "$GITHUB_REF" == refs/tags/v* ]]; then
-            echo "platforms=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT"
-          else
-            echo "platforms=linux/amd64" >> "$GITHUB_OUTPUT"
-          fi
-          echo "TaleArr $TALEARR_VERSION, based on Chaptarr $UPSTREAM_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "TaleArr $TALEARR_VERSION, based on Chaptarr $UPSTREAM_VERSION (linux/amd64)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Docker tags and labels
         id: docker
@@ -76,23 +84,38 @@ jobs:
             org.opencontainers.image.licenses=GPL-3.0-only
             io.talearr.upstream.version=${{ steps.meta.outputs.upstream }}
 
-      - uses: docker/setup-qemu-action@v3
-        if: contains(steps.meta.outputs.platforms, 'arm64')
+      - name: Classic-builder Dockerfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Every stage gets a run label so the cleanup step can find all of
+          # this run's images, including the untagged build stages.
+          sed -E \
+            -e '/^# syntax=/d' \
+            -e 's#^FROM --platform=[^ ]+ #FROM #' \
+            -e 's#^RUN --mount=[^ ]+ \\$#RUN \\#' \
+            -e '/^[[:space:]]+--mount=[^ ]+ \\$/d' \
+            -e "/^FROM /a LABEL io.dancue44.ci.key=$CI_KEY" \
+            Dockerfile.cross > "$RUNNER_TEMP/Dockerfile.classic"
+          if grep -nE -- '--mount=|--platform=' "$RUNNER_TEMP/Dockerfile.classic"; then
+            echo "::error::Dockerfile.cross uses BuildKit syntax this job does not rewrite yet."
+            exit 1
+          fi
 
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Build amd64 image for smoke test
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile.cross
-          platforms: linux/amd64
-          load: true
-          push: false
-          tags: talearr:smoke
-          labels: ${{ steps.docker.outputs.labels }}
-          cache-from: type=gha,scope=talearr
-          cache-to: type=gha,scope=talearr,mode=max
+      - name: Build amd64 image
+        shell: bash
+        env:
+          LABELS: ${{ steps.docker.outputs.labels }}
+        run: |
+          set -euo pipefail
+          label_args=()
+          while IFS= read -r l; do [[ -n "$l" ]] && label_args+=(--label "$l"); done <<< "$LABELS"
+          docker build --force-rm --pull \
+            -f "$RUNNER_TEMP/Dockerfile.classic" \
+            --build-arg TARGETPLATFORM=linux/amd64 \
+            --build-arg BUILDPLATFORM=linux/amd64 \
+            "${label_args[@]}" \
+            -t "$CI_KEY:smoke" .
 
       - name: Smoke test (drop-in on an upstream Chaptarr config)
         shell: bash
@@ -100,62 +123,71 @@ jobs:
           UPSTREAM_VERSION: ${{ steps.meta.outputs.upstream }}
         run: |
           set -euo pipefail
+          vol="$CI_KEY"
+          up="$CI_KEY-upstream"
+          app="$CI_KEY-talearr"
 
+          ip_of() { docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$1"; }
           wait_ready() {
             for i in $(seq 1 120); do
-              if curl -fsS http://127.0.0.1:8789/ping >/dev/null 2>&1; then return 0; fi
+              if curl -fsS "http://$1:8789/ping" >/dev/null 2>&1; then return 0; fi
               sleep 1
             done
             return 1
           }
           api_key() {
-            docker run --rm -v talearr-smoke:/config busybox sed -n 's:.*<ApiKey>\(.*\)</ApiKey>.*:\1:p' /config/config.xml
+            docker run --rm -v "$vol:/config" busybox sed -n 's:.*<ApiKey>\(.*\)</ApiKey>.*:\1:p' /config/config.xml
           }
           run_app() {
-            docker run -d --name "$1" -p 8789:8789 \
+            docker run -d --name "$1" --network bridge \
               -e PUID=99 -e PGID=100 -e UMASK=000 -e TZ=America/New_York \
-              -v talearr-smoke:/config "$2"
+              -v "$vol:/config" "$2"
           }
 
-          docker volume create talearr-smoke >/dev/null
+          docker volume create "$vol" >/dev/null
 
           # 1. Create a fresh config with the matching upstream image, if it is published.
           upstream_image="chaptarr/chaptarr:${UPSTREAM_VERSION}"
+          if docker image inspect "$upstream_image" >/dev/null 2>&1; then
+            echo "had_upstream_image=true" >> "$GITHUB_ENV"
+          fi
           have_upstream=false
           if docker pull "$upstream_image"; then
             have_upstream=true
-            run_app upstream "$upstream_image"
-            if ! wait_ready; then docker logs upstream | tail -n 200; exit 1; fi
+            run_app "$up" "$upstream_image"
+            up_ip="$(ip_of "$up")"
+            if ! wait_ready "$up_ip"; then docker logs "$up" | tail -n 200; exit 1; fi
             sleep 5
-            curl -fsS -H "X-Api-Key: $(api_key)" http://127.0.0.1:8789/api/v1/system/status > status-upstream.json
-            docker stop upstream >/dev/null && docker rm upstream >/dev/null
-            docker run --rm -v talearr-smoke:/config busybox sh -c 'cp /config/config.xml /config/config.upstream.xml; ls -la /config'
+            curl -fsS -H "X-Api-Key: $(api_key)" "http://$up_ip:8789/api/v1/system/status" > status-upstream.json
+            docker stop "$up" >/dev/null && docker rm "$up" >/dev/null
+            docker run --rm -v "$vol:/config" busybox sh -c 'cp /config/config.xml /config/config.upstream.xml; ls -la /config'
           else
             echo "::notice::$upstream_image is not published; testing TaleArr on a fresh config only."
           fi
 
           # 2. Start TaleArr on the same volume.
-          run_app talearr talearr:smoke
-          if ! wait_ready; then docker logs talearr | tail -n 200; exit 1; fi
+          run_app "$app" "$CI_KEY:smoke"
+          app_ip="$(ip_of "$app")"
+          if ! wait_ready "$app_ip"; then docker logs "$app" | tail -n 200; exit 1; fi
           sleep 5
           key="$(api_key)"
-          curl -fsS -H "X-Api-Key: $key" http://127.0.0.1:8789/api/v1/system/status > status-talearr.json
+          curl -fsS -H "X-Api-Key: $key" "http://$app_ip:8789/api/v1/system/status" > status-talearr.json
           cat status-talearr.json
 
           # 3. Assertions.
-          uid_gid="$(docker exec talearr stat -c '%u:%g' /proc/1)"
+          uid_gid="$(docker exec "$app" stat -c '%u:%g' /proc/1)"
           echo "App process runs as $uid_gid"
           [[ "$uid_gid" == "99:100" ]] || { echo "Expected the app to run as 99:100"; exit 1; }
 
           # Save responses to files before grepping: under pipefail, grep -q closing the
           # pipe early would kill curl with SIGPIPE (exit 141).
-          curl -fsS http://127.0.0.1:8789/ -o index.html
+          curl -fsS "http://$app_ip:8789/" -o index.html
           grep '<title>TaleArr</title>' index.html >/dev/null || { echo "UI title is not TaleArr"; exit 1; }
-          curl -fsS http://127.0.0.1:8789/initialize.json -H "X-Api-Key: $key" -o initialize.json
+          curl -fsS "http://$app_ip:8789/initialize.json" -H "X-Api-Key: $key" -o initialize.json
           grep '"talearrVersion"' initialize.json >/dev/null || { echo "initialize.json has no talearrVersion"; exit 1; }
           cat initialize.json
 
-          python3 - "$have_upstream" <<'PY'
+          cat > smoke_check.py <<'PY'
           import json, sys
           talearr = json.load(open("status-talearr.json"))
           assert talearr["appName"] == "Chaptarr", "appName must stay Chaptarr for API clients"
@@ -168,14 +200,15 @@ jobs:
               print("Drop-in check passed: same status fields and migration version as upstream", upstream["version"])
           print("Smoke test passed")
           PY
+          docker run --rm -v "$PWD:$PWD" -w "$PWD" "$PY_IMAGE" python3 smoke_check.py "$have_upstream"
 
           if [[ "$have_upstream" == "true" ]]; then
-            docker run --rm -v talearr-smoke:/config busybox sh -c 'diff /config/config.upstream.xml /config/config.xml && echo "config.xml unchanged"'
+            docker run --rm -v "$vol:/config" busybox sh -c 'diff /config/config.upstream.xml /config/config.xml && echo "config.xml unchanged"'
           fi
 
-          docker logs talearr > talearr.log 2>&1 || true
+          docker logs "$app" > talearr.log 2>&1 || true
           grep 'Bootstrap: Starting TaleArr' talearr.log || true
-          docker stop talearr >/dev/null
+          docker stop "$app" >/dev/null
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -184,21 +217,49 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile.cross
-          platforms: ${{ steps.meta.outputs.platforms }}
-          push: true
-          tags: ${{ steps.docker.outputs.tags }}
-          labels: ${{ steps.docker.outputs.labels }}
-          cache-from: type=gha,scope=talearr
-          cache-to: type=gha,scope=talearr,mode=max
+      # Pushes the smoke-tested image under each tag. A tag that already
+      # existed on this host (for example an image a container runs from) is
+      # pointed back at its previous image right after the push, so the job
+      # never changes what local containers would start from.
+      - name: Push
+        shell: bash
+        env:
+          TAGS: ${{ steps.docker.outputs.tags }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r tag; do
+            [[ -z "$tag" ]] && continue
+            prev="$(docker image inspect -f '{{.Id}}' "$tag" 2>/dev/null || true)"
+            docker tag "$CI_KEY:smoke" "$tag"
+            push_ok=true
+            docker push "$tag" || push_ok=false
+            if [[ -n "$prev" ]]; then docker tag "$prev" "$tag"; else docker rmi "$tag" >/dev/null; fi
+            [[ "$push_ok" == true ]] || exit 1
+          done <<< "$TAGS"
 
       - name: Summary
+        env:
+          TAGS: ${{ steps.docker.outputs.tags }}
         run: |
           {
             echo "### Pushed tags"
-            echo '${{ steps.docker.outputs.tags }}' | sed 's/^/- /'
+            echo "$TAGS" | sed 's/^/- /'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Clean up containers, volume and images
+        if: always()
+        shell: bash
+        env:
+          UPSTREAM_VERSION: ${{ steps.meta.outputs.upstream }}
+        run: |
+          docker rm -f "$CI_KEY-upstream" "$CI_KEY-talearr" >/dev/null 2>&1 || true
+          docker volume rm "$CI_KEY" >/dev/null 2>&1 || true
+          docker rmi "$CI_KEY:smoke" >/dev/null 2>&1 || true
+          # Untagged build stages of this run carry the run label.
+          docker image prune -af --filter "label=io.dancue44.ci.key=$CI_KEY" | tail -n 1 || true
+          # Keep the upstream image only if it was already on the host before this run.
+          if [[ -n "$UPSTREAM_VERSION" && "${had_upstream_image:-}" != "true" ]]; then
+            docker rmi "chaptarr/chaptarr:$UPSTREAM_VERSION" >/dev/null 2>&1 || true
+          fi
+          docker logout ghcr.io >/dev/null 2>&1 || true
+          docker system df
