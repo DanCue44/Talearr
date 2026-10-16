@@ -214,6 +214,31 @@ namespace NzbDrone.Core.Download
 
                 if (importResults.Any(c => c.Result != ImportResultType.Imported))
                 {
+                    // TaleArr: the files are in a language nobody asked for (the file itself says so,
+                    // or the release name does when the file is silent). Retrying imports the same
+                    // files, so fail it like any other bad grab and let a replacement be found.
+                    // Explicit user grabs are not failed; they stay blocked with the reason shown.
+                    if (IsWrongLanguagePayload(importResults))
+                    {
+                        var languageReason = GetWrongLanguageReason(importResults);
+
+                        if (!IsUserForced(trackedDownload))
+                        {
+                            _logger.Warn("{0} Marking {1} failed so it can be replaced.", languageReason, trackedDownload.DownloadItem.Title);
+                            _failedDownloadService.MarkAsFailed(trackedDownload, languageReason);
+
+                            if (trackedDownload.State == TrackedDownloadState.DownloadFailed)
+                            {
+                                return;
+                            }
+                        }
+
+                        BlockImport(trackedDownload,
+                            new TrackedDownloadStatusMessage(trackedDownload.DownloadItem.Title, "WRONG_LANGUAGE"),
+                            new TrackedDownloadStatusMessage(trackedDownload.DownloadItem.Title, languageReason));
+                        return;
+                    }
+
                     // Nothing importable in the payload because every file is a format the profile
                     // does not allow: the release simply is not what its title advertised. That is
                     // deterministic — retrying imports the same files and gets the same answer — so
@@ -281,6 +306,42 @@ namespace NzbDrone.Core.Download
 
             return consideredFiles.All(result =>
                 result.ImportDecision.Rejections?.Any(rejection => rejection.IsQualityFilter) == true);
+        }
+
+        /// <summary>
+        /// TaleArr: true when nothing imported and every file considered was refused by the
+        /// downloaded-file language check (files refused only by the quality-profile gate may sit
+        /// beside them). The category is the signal, never the message text.
+        /// </summary>
+        internal static bool IsWrongLanguagePayload(List<ImportResult> importResults)
+        {
+            if (importResults == null || importResults.Any(result => result.Result == ImportResultType.Imported))
+            {
+                return false;
+            }
+
+            var consideredFiles = importResults
+                .Where(result => result.ImportDecision?.Item != null)
+                .ToList();
+
+            if (!consideredFiles.Any(result => result.ImportDecision.Rejections?.Any(rejection => rejection.IsLanguageFilter) == true))
+            {
+                return false;
+            }
+
+            return consideredFiles.All(result =>
+                result.ImportDecision.Rejections?.Any(rejection => rejection.IsLanguageFilter || rejection.IsQualityFilter) == true);
+        }
+
+        private static string GetWrongLanguageReason(List<ImportResult> importResults)
+        {
+            var reason = importResults
+                .SelectMany(result => result.ImportDecision?.Rejections ?? Enumerable.Empty<Rejection>())
+                .Where(rejection => rejection.IsLanguageFilter)
+                .Select(rejection => rejection.Reason)
+                .FirstOrDefault(r => !r.IsNullOrWhiteSpace());
+
+            return reason ?? "Downloaded files are not in the wanted language.";
         }
 
         private static bool AreAllImportRejectionsTemporary(List<ImportResult> importResults)

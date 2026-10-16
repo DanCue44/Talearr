@@ -60,6 +60,7 @@ namespace NzbDrone.Core.MediaFiles
         // TaleArr: optional so the upstream constructor (and its tests) keep working; DryIoc picks
         // the constructor with the most resolvable parameters, which is the TaleArr one.
         private readonly IDownloadArchiveUnpacker _archiveUnpacker;
+        private readonly IDownloadedFileLanguageVerifier _fileLanguageVerifier;
 
         public DownloadedBooksImportService(
             IDiskProvider diskProvider,
@@ -81,11 +82,11 @@ namespace NzbDrone.Core.MediaFiles
             Logger logger)
             : this(diskProvider, diskScanService, fileMatchingService, metadataTagService, importApprovedBooks, bookService,
                    authorService, editionService, importOrchestrator, authorLibraryService, rootFolderService, configService,
-                   historyService, eventAggregator, runtimeInfo, mediaInfoExtractor, logger, null)
+                   historyService, eventAggregator, runtimeInfo, mediaInfoExtractor, logger, null, null)
         {
         }
 
-        // TaleArr: constructor with the archive unpacker.
+        // TaleArr: constructor with the archive unpacker and the downloaded-file language check.
         public DownloadedBooksImportService(
             IDiskProvider diskProvider,
             IDiskScanService diskScanService,
@@ -104,9 +105,11 @@ namespace NzbDrone.Core.MediaFiles
             IRuntimeInfo runtimeInfo,
             IMediaInfoExtractor mediaInfoExtractor,
             Logger logger,
-            IDownloadArchiveUnpacker archiveUnpacker)
+            IDownloadArchiveUnpacker archiveUnpacker,
+            IDownloadedFileLanguageVerifier fileLanguageVerifier)
         {
             _archiveUnpacker = archiveUnpacker;
+            _fileLanguageVerifier = fileLanguageVerifier;
             _diskProvider = diskProvider;
             _diskScanService = diskScanService;
             _fileMatchingService = fileMatchingService;
@@ -417,6 +420,7 @@ namespace NzbDrone.Core.MediaFiles
 
             EnforceTrackedDownloadTargetBooks(decisions, remoteBook, downloadClientItem);
             EnforceTrackedDownloadExpectedEditions(decisions, downloadClientItem);
+            _fileLanguageVerifier?.Verify(decisions, remoteBook, downloadClientItem); // TaleArr
 
             // Derive effective import mode for downloads (Move if client can move files; otherwise Copy)
             var effectiveMode = importMode;
@@ -564,6 +568,7 @@ namespace NzbDrone.Core.MediaFiles
             ApplyTrackedReleaseEvidence(decisions, remoteBook, downloadClientItem);
             EnforceTrackedDownloadTargetBooks(decisions, remoteBook, downloadClientItem);
             EnforceTrackedDownloadExpectedEditions(decisions, downloadClientItem);
+            _fileLanguageVerifier?.Verify(decisions, remoteBook, downloadClientItem); // TaleArr
 
             var effectiveMode = importMode;
             if (importMode == ImportMode.Auto && downloadClientItem != null)
