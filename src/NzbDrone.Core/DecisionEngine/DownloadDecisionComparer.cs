@@ -11,6 +11,7 @@ using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.DecisionEngine
 {
@@ -21,15 +22,19 @@ namespace NzbDrone.Core.DecisionEngine
         private readonly IQualityProfileService _qualityProfileService;
         private readonly Logger _logger;
 
+        // TaleArr: grab policy for the abridged ranking step.
+        private readonly TalearrGrabPolicy _grabPolicy;
+
         public delegate int CompareDelegate(DownloadDecision x, DownloadDecision y);
         public delegate int CompareDelegate<TSubject, TValue>(DownloadDecision x, DownloadDecision y);
 
-        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger)
+        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, TalearrGrabPolicy grabPolicy = null)
         {
             _configService = configService;
             _delayProfileService = delayProfileService;
             _qualityProfileService = qualityProfileService;
             _logger = logger;
+            _grabPolicy = grabPolicy ?? TalearrGrabPolicy.Default;
         }
 
         public int Compare(DownloadDecision x, DownloadDecision y)
@@ -45,6 +50,7 @@ namespace NzbDrone.Core.DecisionEngine
                 ("Title Match", CompareTitleMatch),
                 ("Native Category", CompareNativeCategory),
                 ("Format Type", CompareFormatType),
+                ("Unabridged", CompareUnabridged), // TaleArr
                 ("Profile Preference", CompareProfilePreference),
                 ("Protocol", CompareProtocol),
                 ("Indexer Priority", CompareIndexerPriority),
@@ -84,6 +90,7 @@ namespace NzbDrone.Core.DecisionEngine
                 ("Title Match", CompareTitleMatch),
                 ("Native Category", CompareNativeCategory),
                 ("Format Type", CompareFormatType),
+                ("Unabridged", CompareUnabridged), // TaleArr
                 ("Profile Preference", CompareProfilePreference),
                 ("Protocol Preference", CompareProtocol),
                 ("Indexer Priority", CompareIndexerPriority),
@@ -130,6 +137,9 @@ namespace NzbDrone.Core.DecisionEngine
                     var quality = winner.RemoteBook.ParsedBookInfo.Quality.Quality;
                     var isEbook = IsEbookFormat(quality);
                     return isEbook ? "Ebook format" : "Audiobook format preferred";
+
+                case "Unabridged":
+                    return "Unabridged audiobook preferred over abridged";
 
                 case "Profile Preference":
                     var preference = CompareProfilePreferenceDetailed(x, y);
@@ -237,6 +247,32 @@ namespace NzbDrone.Core.DecisionEngine
 
             _logger.Debug("Format Type - X is ebook, Y is audiobook. Y wins.");
             return -1; // y (audiobook) is better
+        }
+
+        // TaleArr: abridged audiobook releases rank below unabridged or unmarked ones unless the
+        // grab policy allows any, or the wanted edition is itself abridged.
+        private int CompareUnabridged(DownloadDecision x, DownloadDecision y)
+        {
+            if (_grabPolicy.AbridgedPolicy == AbridgedAudiobookPolicy.Any)
+            {
+                return 0;
+            }
+
+            var xAbridged = AbridgedReleaseDetector.IsAbridgedRelease(x.RemoteBook) && AbridgedReleaseDetector.IsAudiobookRelease(x.RemoteBook);
+            var yAbridged = AbridgedReleaseDetector.IsAbridgedRelease(y.RemoteBook) && AbridgedReleaseDetector.IsAudiobookRelease(y.RemoteBook);
+
+            if (xAbridged == yAbridged)
+            {
+                return 0;
+            }
+
+            var abridged = xAbridged ? x : y;
+            if (AbridgedReleaseDetector.WantsAbridged(abridged.RemoteBook))
+            {
+                return 0;
+            }
+
+            return xAbridged ? -1 : 1;
         }
 
         private bool IsEbookFormat(Quality quality)
