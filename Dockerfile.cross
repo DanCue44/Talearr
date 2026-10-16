@@ -114,6 +114,10 @@ COPY --from=build /app /app
 # Set app permissions at build time
 RUN chmod -R 755 /app
 
+# TaleArr: mark the install as Docker-managed so the in-app updater never replaces
+# TaleArr with an upstream Chaptarr build. Update by pulling a new image instead.
+RUN printf 'UpdateMethod=docker\n' > /package_info
+
 EXPOSE 8789
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["dotnet", "/app/Chaptarr.dll", "-nobrowser", "-data=/config"]

@@ -49,6 +49,7 @@ MUST_KEEP_UPSTREAM = [
     ("src/NzbDrone.Host/Bootstrap.cs", r'"Chaptarr:Postgres"', "Chaptarr__ env config prefix"),
     ("Dockerfile.cross", r'"/app/Chaptarr\.dll"', "entry assembly name"),
     ("Dockerfile.cross", r"EXPOSE 8789", "default port"),
+    ("Dockerfile.cross", r"UpdateMethod=docker", "in-app updater disabled in the image"),
 ]
 
 # Visible strings that should not come back in UI shells after a merge.

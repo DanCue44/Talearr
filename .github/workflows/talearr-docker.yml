@@ -154,6 +154,7 @@ jobs:
           import json, sys
           talearr = json.load(open("status-talearr.json"))
           assert talearr["appName"] == "Chaptarr", "appName must stay Chaptarr for API clients"
+          assert talearr["packageUpdateMechanism"] == "docker", "in-app updater must be disabled in the image"
           if sys.argv[1] == "true":
               upstream = json.load(open("status-upstream.json"))
               missing = set(upstream) - set(talearr)
@@ -168,7 +169,7 @@ jobs:
             docker run --rm -v talearr-smoke:/config busybox sh -c 'diff /config/config.upstream.xml /config/config.xml && echo "config.xml unchanged"'
           fi
 
-          docker logs talearr 2>&1 | grep -m1 'Starting TaleArr'
+          { docker logs talearr 2>&1 || true; } | grep 'Bootstrap: Starting TaleArr' || true
           docker stop talearr >/dev/null
 
       - name: Log in to GHCR

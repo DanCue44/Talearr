@@ -75,8 +75,9 @@ KEY=$(sed -n 's:.*<ApiKey>\(.*\)</ApiKey>.*:\1:p' /mnt/user/appdata/chaptarr/con
 curl -s -H "X-Api-Key: $KEY" http://localhost:8789/api/v1/system/status | head -20
 ```
 
-Expect `"appName": "Chaptarr"` (unchanged for API clients), `"instanceName": "TaleArr"`
-and the same `"version"` and `"migrationVersion"` as before. The UI tab title and
+Expect `"appName": "Chaptarr"` (unchanged for API clients), `"instanceName": "TaleArr"`,
+`"packageUpdateMechanism": "docker"` and the same `"version"` and `"migrationVersion"` as
+before. The UI tab title and
 System > Status should say TaleArr. Check that the library, wanted list and download
 clients look the same, and run a test from one notification and one download client.
 
@@ -103,8 +104,10 @@ TaleArr-only behaviour that carries over is cosmetic: an instance name containin
 ## Notes
 
 - The Unraid "update available" check works with `ghcr.io` images.
-- The in-app updater is disabled in Docker (as upstream). Chaptarr's update feed may still
-  show newer Chaptarr versions in System > Updates; ignore them and update the TaleArr image.
+- The TaleArr image marks itself as Docker-managed (`/package_info` with
+  `UpdateMethod=docker`), so the in-app updater cannot replace TaleArr with an upstream
+  Chaptarr build. The upstream image does not do this. System > Updates may still list newer
+  Chaptarr versions; ignore them and update the TaleArr image instead.
 - Tested locally (native build, macOS): a fresh Chaptarr 0.9.965 config folder was copied
   and started with TaleArr. The database schema and `config.xml` were byte-for-byte
   unchanged afterwards, no migrations ran, and `/api/v1/system/status` returned the same
