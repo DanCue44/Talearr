@@ -753,6 +753,15 @@ namespace NzbDrone.Core.MediaFiles
 
                 var matchedEdition = localBook.Edition;
                 var targetEdition = FindEquivalentEditionForTargetBook(targetBook, matchedEdition);
+
+                // TaleArr: an Audible-only duplicate row (az:) has no equivalent edition under the
+                // grabbed book until the next refresh folds it in. The grab was for the grabbed
+                // book's monitored edition, so import into that one.
+                if (targetEdition == null && TalearrCatalogDedupe.IsAudibleDuplicateOf(targetBook, matchedBook))
+                {
+                    targetEdition = FindMonitoredEdition(targetBook);
+                }
+
                 if (targetEdition == null)
                 {
                     decision.Reject(new Rejection(
@@ -801,7 +810,18 @@ namespace NzbDrone.Core.MediaFiles
             }
         }
 
-        private static bool CanRetargetSameWorkMatch(Book targetBook, Book matchedBook)
+        private Edition FindMonitoredEdition(Book book)
+        {
+            var editions = book?.Editions;
+            if (editions == null || editions.Count == 0)
+            {
+                editions = _editionService.GetEditionsByBook(book.Id) ?? new List<Edition>();
+            }
+
+            return editions.Where(edition => edition != null && edition.Monitored).OrderBy(edition => edition.Id).FirstOrDefault();
+        }
+
+        internal static bool CanRetargetSameWorkMatch(Book targetBook, Book matchedBook)
         {
             if (targetBook == null ||
                 matchedBook == null ||
@@ -824,7 +844,9 @@ namespace NzbDrone.Core.MediaFiles
                 return false;
             }
 
-            return WorkIdMatcher.WorkProviderIdMatches(targetBook, matchedBook);
+            // TaleArr: an Audible-only duplicate of the grabbed book (same title, no work id) is the same work.
+            return WorkIdMatcher.WorkProviderIdMatches(targetBook, matchedBook) ||
+                   TalearrCatalogDedupe.IsAudibleDuplicateOf(targetBook, matchedBook);
         }
 
         private Edition FindEquivalentEditionForTargetBook(Book targetBook, Edition matchedEdition)

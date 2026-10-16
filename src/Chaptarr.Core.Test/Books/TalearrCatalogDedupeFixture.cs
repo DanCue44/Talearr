@@ -133,6 +133,18 @@ namespace Chaptarr.Core.Test.Books
             Assert.That(result, Has.Count.EqualTo(2));
         }
 
+        [TestCase("Animal Farm: Adapted for Children")]
+        [TestCase("Animal Farm: The Graphic Novel")]
+        public void should_keep_audible_pocket_that_adds_its_own_subtitle(string audibleTitle)
+        {
+            var work = Work("Animal Farm", "hc:356467");
+            var audible = Audible(audibleTitle, "B0DVHPLGL7");
+
+            var result = TalearrCatalogDedupe.CollapseAudibleOnlyPockets(new List<Book> { work, audible });
+
+            Assert.That(result, Has.Count.EqualTo(2));
+        }
+
         [Test]
         public void should_not_fold_across_media_types()
         {
@@ -178,6 +190,46 @@ namespace Chaptarr.Core.Test.Books
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].HardcoverBookId, Is.EqualTo("hc:356467"));
             Assert.That(result[0].Editions.Select(e => e.ForeignEditionId), Is.EquivalentTo(new[] { "hc:edition:33157483-audiobook", "az:B002ZVK8HM-audiobook" }));
+        }
+
+        [Test]
+        public void should_let_import_retarget_an_audible_duplicate_to_the_grabbed_book()
+        {
+            // The "Animal Farm - George Orwell (Unabridged)" download was grabbed for book 5003 but the
+            // file matcher picked Audible-only duplicate 5524 (az:B0CLV4M8BD), and import was blocked.
+            var grabbed = Work("Animal Farm", "hc:356467");
+            grabbed.Id = 5003;
+            grabbed.AuthorId = 11;
+            var duplicate = Audible("Animal Farm", "B0CLV4M8BD", narrator: "Mark Young");
+            duplicate.Id = 5524;
+            duplicate.AuthorId = 11;
+
+            Assert.That(TalearrCatalogDedupe.IsAudibleDuplicateOf(grabbed, duplicate), Is.True);
+            Assert.That(NzbDrone.Core.MediaFiles.DownloadedBooksImportService.CanRetargetSameWorkMatch(grabbed, duplicate), Is.True);
+        }
+
+        [Test]
+        public void should_not_retarget_to_a_different_audible_product_or_author()
+        {
+            var grabbed = Work("Animal Farm", "hc:356467");
+            grabbed.Id = 5003;
+            grabbed.AuthorId = 11;
+
+            var adaptation = Audible("Animal Farm: Adapted for Children", "B0DVHPLGL7");
+            adaptation.Id = 4475;
+            adaptation.AuthorId = 11;
+
+            var otherAuthor = Audible("Animal Farm", "B0000000XX");
+            otherAuthor.Id = 9000;
+            otherAuthor.AuthorId = 99;
+
+            var ebook = Audible("Animal Farm", "B0CLV4M8BD", BookMediaType.Ebook);
+            ebook.Id = 9001;
+            ebook.AuthorId = 11;
+
+            Assert.That(NzbDrone.Core.MediaFiles.DownloadedBooksImportService.CanRetargetSameWorkMatch(grabbed, adaptation), Is.False);
+            Assert.That(NzbDrone.Core.MediaFiles.DownloadedBooksImportService.CanRetargetSameWorkMatch(grabbed, otherAuthor), Is.False);
+            Assert.That(NzbDrone.Core.MediaFiles.DownloadedBooksImportService.CanRetargetSameWorkMatch(grabbed, ebook), Is.False);
         }
 
         [TestCase("Animal Farm", "Animal Farm (Audiobook)", true)]

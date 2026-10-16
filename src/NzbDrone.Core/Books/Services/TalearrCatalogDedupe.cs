@@ -99,6 +99,28 @@ namespace NzbDrone.Core.Books.Services
             return editions.Count > 0 && editions.All(e => IsAudibleId(e.ForeignEditionId));
         }
 
+        /// <summary>
+        /// True when <paramref name="candidate"/> is an Audible-only row for the same work as
+        /// <paramref name="book"/>: same media type, same author and the same work title.
+        /// </summary>
+        public static bool IsAudibleDuplicateOf(Book book, Book candidate)
+        {
+            if (book == null || candidate == null || ReferenceEquals(book, candidate) ||
+                (book.Id > 0 && book.Id == candidate.Id) ||
+                book.MediaType != candidate.MediaType ||
+                !IsAudibleOnly(candidate) || IsAudibleOnly(book))
+            {
+                return false;
+            }
+
+            if (book.AuthorId > 0 && candidate.AuthorId > 0 && book.AuthorId != candidate.AuthorId)
+            {
+                return false;
+            }
+
+            return TalearrTitleNormalizer.IsSameOrShortenedTitle(book.Title, candidate.Title);
+        }
+
         internal static Book FindTarget(Book audibleBook, IReadOnlyCollection<Book> candidates)
         {
             var title = audibleBook?.Title;
@@ -127,7 +149,7 @@ namespace NzbDrone.Core.Books.Services
             }
 
             var sameWork = sameMediaType
-                .Where(c => TalearrTitleNormalizer.IsSameWorkTitle(c.Title, title))
+                .Where(c => TalearrTitleNormalizer.IsSameOrShortenedTitle(c.Title, title))
                 .ToList();
 
             return sameWork.Count == 1 ? sameWork[0] : SingleWork(sameWork);

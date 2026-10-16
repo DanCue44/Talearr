@@ -89,6 +89,35 @@ namespace NzbDrone.Core.Parser
             return leftMain.Length > 0 && string.Equals(leftMain, rightMain, StringComparison.Ordinal);
         }
 
+        /// <summary>
+        /// Directional form of <see cref="IsSameWorkTitle"/>: <paramref name="candidate"/> is the work
+        /// title, or the work title without its subtitle ("Steve Jobs" for "Steve Jobs: The Exclusive
+        /// Biography"). A candidate that adds its own subtitle ("Animal Farm: Adapted for Children"
+        /// for "Animal Farm") is a different product and does not match.
+        /// </summary>
+        public static bool IsSameOrShortenedTitle(string workTitle, string candidate)
+        {
+            var workFull = NormalizeFull(workTitle);
+            var candidateFull = NormalizeFull(candidate);
+            if (workFull.Length == 0 || candidateFull.Length == 0)
+            {
+                return false;
+            }
+
+            if (string.Equals(workFull, candidateFull, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (HasSubtitle(StripFormatBrackets(candidate)))
+            {
+                return false;
+            }
+
+            var workMain = Join(CleanTokens(GetMainTitle(StripFormatBrackets(workTitle))));
+            return workMain.Length > 0 && string.Equals(workMain, candidateFull, StringComparison.Ordinal);
+        }
+
         public static bool HasSubtitle(string title)
         {
             if (string.IsNullOrWhiteSpace(title))
