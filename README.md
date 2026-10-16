@@ -20,8 +20,9 @@ ebook root folders, series handling, quality profiles and upgrades, and the usua
 download client and indexer integrations.
 
 TaleArr tracks Chaptarr closely. The differences today are the name and icon, a separate
-TaleArr version, a "Works best with" block in System > Status (AllSeerr, NoBookEnds), and
-its own Docker image and CI. The icon master is `Logo/talearr-icon-master.png`.
+TaleArr version, a "Works best with" block in System > Status (AllSeerr, NoBookEnds), a
+grab policy (see below), and its own Docker image and CI. The icon master is
+`Logo/talearr-icon-master.png`.
 
 ## Drop-in compatibility with Chaptarr
 
@@ -41,6 +42,31 @@ Kept exactly as upstream:
 Changed for users: the product name in the UI, page titles, login page, PWA manifest,
 notifications, startup logs, the logo and icons, and the Docker image name. New native
 installs use a `TaleArr` data folder; an existing `Chaptarr` data folder is reused.
+
+## Grab policy
+
+Settings > Indexers > Grab policy controls what TaleArr grabs and what it does when a grab
+goes wrong:
+
+| Setting | Default | What it does |
+|---|---|---|
+| Abridged audiobooks | Unabridged only | Audiobook releases marked "abridged" are skipped (shown as a soft filter in interactive search, so you can still grab one on purpose). They are allowed when the wanted edition is itself abridged, judged from the edition title or info, or from its runtime being under 60% of the longest edition in the same language. "Prefer unabridged" allows them but always ranks them below unabridged or unmarked releases. "Any" turns this off. |
+| Allow bundles | Off | Series bundles, omnibuses, box sets, collections, "complete novels", "N books" sets and explicit title lists ("Great Innovators (Benjamin Franklin; Einstein; Steve Jobs)") are skipped for single-book searches. A wanted book that is itself an omnibus still matches bundle releases. |
+| Fail rejected imports | On | When an import is rejected because the release is the wrong book, or because it holds no audio or ebook files and no archives, the download is marked failed. That blocklists the release and starts the automatic redownload. Archives, same-title matches (usually duplicate metadata), transient errors and explicit interactive grabs stay in the queue as before. |
+| Automatic retry limit | 3 | Failed downloads per book within 7 days before automatic searching stops. |
+
+Automatic redownload itself is the existing Download Clients > Failed Download Handling
+setting, which is on by default. A replacement search covers every indexer with automatic
+search enabled, Usenet and torrent. Grabs you made yourself (interactive or a manual search)
+are retried as a manual search, so an unmonitored book or a delay profile does not block the
+replacement. Each step is appended to the Download Failed entry in History, for example
+"TaleArr: release blocklisted, searching all indexers for a replacement (attempt 1 of 3)".
+
+Storage: these four settings live in the existing `Config` key/value table as
+`talearr.grabpolicy.*` rows, read and written only by TaleArr through the new
+`/api/v1/config/talearrgrabpolicy` route. There is no schema change, no existing route or
+field changes, and `config.xml` is not touched. Chaptarr ignores the rows, so a rollback
+runs Chaptarr's own behaviour on the same database.
 
 ## Versioning
 
