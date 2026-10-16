@@ -1,0 +1,54 @@
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  flex: 1 1 280px;
+  padding: 15px;
+  max-width: 460px;
+  border: 1px solid var(--borderColor);
+  border-radius: 8px;
+  background-color: var(--cardBackgroundColor);
+  color: var(--textColor);
+  text-decoration: none;
+  transition: border-color 0.2s;
+
+  &:hover,
+  &:focus {
+    border-color: #ec703e;
+    color: var(--textColor);
+    text-decoration: none;
+  }
+}
+
+.logo {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+}
+
+.text {
+  margin-left: 15px;
+  min-width: 0;
+}
+
+.name {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.description {
+  margin-top: 2px;
+  color: var(--helpTextColor);
+}
+
+.url {
+  margin-top: 4px;
+  color: #ec703e;
+  font-size: 13px;
+}

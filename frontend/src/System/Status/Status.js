@@ -7,6 +7,7 @@ import DiskSpaceConnector from './DiskSpace/DiskSpaceConnector';
 import Donations from './Donations/Donations';
 import HealthConnector from './Health/HealthConnector';
 import MoreInfo from './MoreInfo/MoreInfo';
+import WorksBestWith from './WorksBestWith/WorksBestWith';
 
 class Status extends Component {
 
@@ -20,6 +21,7 @@ class Status extends Component {
           <HealthConnector />
           <DiskSpaceConnector />
           <AboutConnector />
+          <WorksBestWith />
           <MoreInfo />
           <Donations />
         </PageContentBody>
