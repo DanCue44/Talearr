@@ -24,7 +24,7 @@ TaleArr version, a "Works best with" block in System > Status (AllSeerr, NoBookE
 grab policy (see below), two import additions (completed downloads that only hold archives
 are unpacked before import, and downloaded files whose own language is not the wanted one
 are rejected; see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), fixes to edition choice,
-release title matching and Audible duplicates (see [docs/TALEARR_MATCHING.md](docs/TALEARR_MATCHING.md)),
+release title matching, Audible duplicates and duplicate rows on add (see [docs/TALEARR_MATCHING.md](docs/TALEARR_MATCHING.md)),
 audiobook naming tokens, multi-disc import and an optional merge to M4B (see
 [docs/TALEARR_AUDIOBOOKS.md](docs/TALEARR_AUDIOBOOKS.md)), audiobook recordings (abridged and
 unabridged, or two narrators, side by side, with a recording-aware upgrade guard; see
@@ -185,6 +185,7 @@ goes wrong:
 | Allow bundles | Off | Series bundles, omnibuses, box sets, collections, "complete novels", "N books" sets and explicit title lists ("Great Innovators (Benjamin Franklin; Einstein; Steve Jobs)") are skipped for single-book searches. A wanted book that is itself an omnibus still matches bundle releases. |
 | Fail rejected imports | On | When an import is rejected because the release is the wrong book, its files are in the wrong language, its archives are unusable, or it holds no audio or ebook files (zip, rar and 7z are unpacked first, see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), the download is marked failed. That blocklists the release and starts the automatic redownload. Archive formats TaleArr does not unpack, same-title matches (usually duplicate metadata), transient errors and explicit interactive grabs stay in the queue as before. |
 | Automatic retry limit | 3 | Failed downloads per book within 7 days before automatic searching stops. |
+| Retry failed grabs | On | When a release cannot be sent to the download client because the indexer (or Prowlarr) answered 429, a 5xx error or timed out, the next approved release of the same search is tried (other releases of an indexer that just said 429 are left for later), and if nothing could be sent the book is searched again after 2, 10 and 30 minutes. The wait honours Retry-After and the indexer back-off shown under System > Status, is capped at an hour, and the number of re-searches is the automatic retry limit. Only automatic and user-started searches are retried; RSS sync and interactive grabs behave as before. Each step is logged with a "TaleArr:" prefix. |
 
 Settings > Indexers > **Format policy** (see [docs/TALEARR_FORMAT_POLICY.md](docs/TALEARR_FORMAT_POLICY.md))
 picks the format grabbed for a wanted book, for the library and per author: Both (default,
@@ -200,7 +201,7 @@ are retried as a manual search, so an unmonitored book or a delay profile does n
 replacement. Each step is appended to the Download Failed entry in History, for example
 "TaleArr: release blocklisted, searching all indexers for a replacement (attempt 1 of 3)".
 
-Storage: these four settings live in the existing `Config` key/value table as
+Storage: these five settings live in the existing `Config` key/value table as
 `talearr.grabpolicy.*` rows, read and written only by TaleArr through the new
 `/api/v1/config/talearrgrabpolicy` route. Per-book abridged values live in `talearr.db`
 (`/api/v1/talearr/grabpolicy/book/{bookId}`). There is no schema change, no existing route or
@@ -209,7 +210,7 @@ runs Chaptarr's own behaviour on the same database.
 
 ## Versioning
 
-TaleArr has its own version, set in `src/Talearr.props` (currently `0.14.0`). System >
+TaleArr has its own version, set in `src/Talearr.props` (currently `0.14.1`). System >
 Status shows it as the version, with a "Based on Chaptarr x.y.z" line underneath. The
 assembly version stays the upstream Chaptarr version (from `package.json` and
 `src/Directory.Build.props`) on purpose, because update checks, backups and metadata
@@ -225,7 +226,7 @@ Images are published to GitHub Container Registry by `.github/workflows/talearr-
 |---|---|
 | `ghcr.io/dancue44/talearr:develop` | every push to `develop` |
 | `ghcr.io/dancue44/talearr:latest` | every push to `main` |
-| `ghcr.io/dancue44/talearr:0.14.0` | `main` (TaleArr version) and `v0.14.0` git tags |
+| `ghcr.io/dancue44/talearr:0.14.1` | `main` (TaleArr version) and `v0.14.1` git tags |
 | `ghcr.io/dancue44/talearr:<branch>` | pushes to `feat/**` and `fix/**` branches (amd64 only) |
 | `ghcr.io/dancue44/talearr:sha-<commit>` | every build |
 

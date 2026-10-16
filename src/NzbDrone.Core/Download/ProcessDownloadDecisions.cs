@@ -8,6 +8,7 @@ using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.Download
 {
@@ -23,16 +24,19 @@ namespace NzbDrone.Core.Download
         private readonly IPrioritizeDownloadDecision _prioritizeDownloadDecision;
         private readonly IPendingReleaseService _pendingReleaseService;
         private readonly Logger _logger;
+        private readonly ITalearrGrabRetryService _talearrGrabRetry;
 
         public ProcessDownloadDecisions(IDownloadService downloadService,
                                         IPrioritizeDownloadDecision prioritizeDownloadDecision,
                                         IPendingReleaseService pendingReleaseService,
-                                        Logger logger)
+                                        Logger logger,
+                                        ITalearrGrabRetryService talearrGrabRetry = null)
         {
             _downloadService = downloadService;
             _prioritizeDownloadDecision = prioritizeDownloadDecision;
             _pendingReleaseService = pendingReleaseService;
             _logger = logger;
+            _talearrGrabRetry = talearrGrabRetry;
         }
 
         public async Task<ProcessedDecisions> ProcessDecisions(List<DownloadDecision> decisions)
@@ -47,6 +51,9 @@ namespace NzbDrone.Core.Download
 
             var usenetFailed = false;
             var torrentFailed = false;
+
+            // TaleArr: grabs that failed for a transient reason (429, 5xx, timeout) in this pass.
+            var talearrFailures = new List<TalearrFailedGrab>();
 
             foreach (var report in prioritizedDecisions)
             {
@@ -71,7 +78,13 @@ namespace NzbDrone.Core.Download
                     continue;
                 }
 
-                var result = await ProcessDecisionInternal(report);
+                // TaleArr: an indexer that just answered 429 is not asked again in this pass.
+                if (TalearrGrabRetryService.ShouldSkipAfterRateLimit(report, talearrFailures, _logger))
+                {
+                    continue;
+                }
+
+                var result = await ProcessDecisionInternal(report, null, talearrFailures);
 
                 switch (result)
                 {
@@ -119,6 +132,19 @@ namespace NzbDrone.Core.Download
             if (pendingAddQueue.Any())
             {
                 _pendingReleaseService.AddMany(pendingAddQueue);
+            }
+
+            // TaleArr: nothing could be sent for a book because of transient failures: schedule a short re-search.
+            if (talearrFailures.Any())
+            {
+                try
+                {
+                    _talearrGrabRetry?.ReportSearchOutcome(talearrFailures, grabbed, pending);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Unable to schedule the TaleArr re-search after failed grabs");
+                }
             }
 
             return new ProcessedDecisions(grabbed, pending, rejected);
@@ -196,7 +222,7 @@ namespace NzbDrone.Core.Download
             pending.Add(report);
         }
 
-        private async Task<ProcessedDecisionResult> ProcessDecisionInternal(DownloadDecision decision, int? downloadClientId = null)
+        private async Task<ProcessedDecisionResult> ProcessDecisionInternal(DownloadDecision decision, int? downloadClientId = null, List<TalearrFailedGrab> talearrFailures = null)
         {
             var remoteBook = decision.RemoteBook;
 
@@ -230,6 +256,10 @@ namespace NzbDrone.Core.Download
                 else
                 {
                     _logger.Warn(ex, "Couldn't add report to download queue. " + remoteBook);
+
+                    // TaleArr: remember transient failures (429, 5xx, timeout) for the re-search.
+                    TalearrGrabRetryService.RecordFailure(talearrFailures, decision, ex, _logger);
+
                     return ProcessedDecisionResult.Skipped;
                 }
             }

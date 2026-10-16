@@ -4,7 +4,7 @@ import createSaveHandler from 'Store/Actions/Creators/createSaveHandler';
 import createSetSettingValueReducer from 'Store/Actions/Creators/Reducers/createSetSettingValueReducer';
 import { createThunk } from 'Store/thunks';
 
-// TaleArr: grab policy settings (abridged audiobooks, bundles, automatic retry).
+// TaleArr: grab policy settings (abridged audiobooks, bundles, automatic retry, re-search after failed grabs).
 
 //
 // Variables

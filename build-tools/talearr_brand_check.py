@@ -60,6 +60,11 @@ MUST_KEEP_TALEARR_HOOKS = [
     ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionComparer.cs", r"CompareUnabridged", "grab policy: unabridged ranking"),
     ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionPriorizationService.cs", r"TalearrGrabPolicyService\.Resolve", "grab policy: ranking uses the policy"),
     ("src/NzbDrone.Core/Download/RedownloadFailedDownloadService.cs", r"_talearrRetryService", "grab policy: retry cap and history notes"),
+    ("src/NzbDrone.Core/Download/ProcessDownloadDecisions.cs", r"TalearrGrabRetryService\.RecordFailure\(", "grab policy: transient grab failures (429, 5xx, timeout) are recorded"),
+    ("src/NzbDrone.Core/Download/ProcessDownloadDecisions.cs", r"TalearrGrabRetryService\.ShouldSkipAfterRateLimit\(", "grab policy: an indexer that said 429 is not asked again in the same pass"),
+    ("src/NzbDrone.Core/Download/ProcessDownloadDecisions.cs", r"_talearrGrabRetry\?\.ReportSearchOutcome\(", "grab policy: short re-search after failed grabs"),
+    ("src/NzbDrone.Core/Talearr/GrabPolicy/TalearrGrabPolicyService.cs", r'"talearr\.grabpolicy\.retryfailedgrabs"', "grab policy: retry-failed-grabs setting is a talearr.* Config row"),
+    ("frontend/src/Settings/Indexers/Options/TalearrGrabPolicy.js", r'name="retryFailedGrabs"', "grab policy: Retry failed grabs checkbox"),
     ("frontend/src/Settings/Indexers/IndexerSettings.js", r"TalearrGrabPolicyConnector", "grab policy: settings section"),
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"TalearrNamingTokens\.Add\(", "audiobooks: {Book Year} and abridged tokens"),
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"TalearrNamingTokens\.FormatSeriesPosition", "audiobooks: zero-padded series position"),
@@ -72,6 +77,11 @@ MUST_KEEP_TALEARR_HOOKS = [
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"var bookTitle = TalearrBookTitle\.ForNaming\(edition\) \?\? edition\.Title;\s*\n\s*tokenHandlers\[\"\{Book Title\}\"\] = m => bookTitle;", "naming: {Book Title} is the book title without format noise"),
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"tokenHandlers\[\"\{Book Title\}\"\] = m => bookTitle \+ graphicAudioSuffix;", "naming: GraphicAudio titles use the same book title"),
     ("src/NzbDrone.Core/Talearr/Audiobook/M4b/TalearrM4bService.cs", r"TalearrBookTitle\.ForNaming\(book, edition\)", "naming: merged M4B is named after the book title"),
+    ("src/NzbDrone.Core/Books/Services/RefreshAuthorService.cs", r"TalearrAuthorRefreshGate\.Enter\(AuthorMetadataRefreshGate", "catalog: add reconcile shares the author refresh gate (no duplicate rows on add)"),
+    ("src/NzbDrone.Core/Books/Services/AddBookService.cs", r"TalearrDuplicateBooks\.PickRequestedBook\(", "catalog: an add does not fail on duplicate rows of one work"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrDuplicatesController.cs", r'V1ApiController\("talearr/duplicates"\)', "catalog: duplicate cleanup API route"),
+    ("src/NzbDrone.Core/Talearr/Catalog/TalearrDuplicateBookCleanupService.cs", r"public bool DryRun \{ get; set; \} = true;", "catalog: duplicate cleanup command is a dry run by default"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrDuplicatesController.cs", r"request\?\.DryRun \?\? true", "catalog: duplicate cleanup route is a dry run by default"),
 ]
 
 # Phase 2 recordings wiring (docs/TALEARR_RECORDINGS_DESIGN.md). TaleArr-only files, but the

@@ -74,3 +74,44 @@ subtitle; one that adds its own subtitle ("Animal Farm: Adapted for Children") s
 Import: when a download was grabbed for a book and the file matcher picks an Audible-only
 duplicate of it, the import goes into the grabbed book (its monitored edition if the duplicate's
 edition is not under it yet) instead of being blocked.
+
+## Duplicate rows on add (`TalearrAuthorRefreshGate`)
+
+Adding a book in a second media type for an author that already exists (AllSeerr sends the ebook
+and the audiobook as two requests) ran the add's author reconcile on the request thread while the
+`RefreshAuthorCommand` queued by the same add ran on a command thread. Both compared the author
+with the same database state, both found the audiobooks missing and both inserted them, so every
+audiobook work was stored twice (Riley Sager on 2026-10-16: "The Only One Left" as 7501 and 7516,
+the bundles as 7511/7526, ...). The add then failed with "Requested work ... resolves to multiple
+local Audiobook books".
+
+- The add reconcile now takes the same gate upstream uses for author refreshes, so the queued
+  refresh starts after it and matches the rows it created. The wait is capped at 90 seconds; after
+  that the reconcile goes ahead as before and logs a "TaleArr:" warning.
+- When a requested work still resolves to several local rows that are the same stored work (same
+  author, media type, all stable work ids and normalized title), the add uses one of them (the
+  monitored row, else the oldest) instead of failing. Distinct works behind one id still fail.
+
+## Duplicate cleanup (opt-in)
+
+`TalearrDuplicateBookCleanup` finds rows that store the same work twice for one media type and
+removes the plain extra copies: unmonitored, no files, not added manually, not a recordings copy
+(no `UnitKeyHash`, no pinned or manual edition). At least one plain row of each work always stays,
+so the primary of a recordings set is never removed, and rows of different works are never
+grouped (a bundle has its own work id and title). Each row is checked again right before it is
+deleted, and files are never deleted.
+
+It is a dry run unless told otherwise:
+
+```bash
+# report only
+curl -H "X-Api-Key: $KEY" "http://host:8789/api/v1/talearr/duplicates?authorId=16"
+# remove (dryRun must be false explicitly)
+curl -X POST -H "X-Api-Key: $KEY" -H "Content-Type: application/json" \
+  -d '{"dryRun": false, "authorId": 16}' http://host:8789/api/v1/talearr/duplicates/cleanup
+# or as a command (shows in System > Tasks)
+curl -X POST -H "X-Api-Key: $KEY" -H "Content-Type: application/json" \
+  -d '{"name": "TalearrDuplicateBookCleanup", "dryRun": false}' http://host:8789/api/v1/command
+```
+
+Each step is logged with a "TaleArr:" prefix. No schema change, no setting, nothing runs on its own.

@@ -38,6 +38,11 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         // Failed downloads per book (within RetryWindowDays) before automatic searching stops.
         public int MaxAutomaticRetries { get; set; } = DefaultMaxAutomaticRetries;
 
+        // On by default: when a release cannot be sent to the download client for a transient
+        // reason (429, 5xx, timeout), search the book again after 2, 10 and 30 minutes (at most
+        // MaxAutomaticRetries times). See TalearrGrabRetryService.
+        public bool RetryFailedGrabs { get; set; } = true;
+
         public const int RetryWindowDays = 7;
 
         public static TalearrGrabPolicy Default => new TalearrGrabPolicy();
@@ -62,7 +67,8 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 AbridgedPolicy = AbridgedPolicy,
                 AllowBundles = AllowBundles,
                 FailRejectedImports = FailRejectedImports,
-                MaxAutomaticRetries = MaxAutomaticRetries
+                MaxAutomaticRetries = MaxAutomaticRetries,
+                RetryFailedGrabs = RetryFailedGrabs
             };
         }
     }

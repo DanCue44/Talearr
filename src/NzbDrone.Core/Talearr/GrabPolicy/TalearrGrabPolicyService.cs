@@ -20,6 +20,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         public const string AllowBundlesKey = "talearr.grabpolicy.allowbundles";
         public const string FailRejectedImportsKey = "talearr.grabpolicy.failrejectedimports";
         public const string MaxAutomaticRetriesKey = "talearr.grabpolicy.maxautomaticretries";
+        public const string RetryFailedGrabsKey = "talearr.grabpolicy.retryfailedgrabs";
 
         private readonly IConfigRepository _repository;
         private readonly Logger _logger;
@@ -68,13 +69,15 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 _repository.Upsert(AllowBundlesKey, policy.AllowBundles.ToString());
                 _repository.Upsert(FailRejectedImportsKey, policy.FailRejectedImports.ToString());
                 _repository.Upsert(MaxAutomaticRetriesKey, policy.EffectiveMaxAutomaticRetries.ToString());
+                _repository.Upsert(RetryFailedGrabsKey, policy.RetryFailedGrabs.ToString());
 
                 _cached = null;
-                _logger.Info("TaleArr grab policy saved: abridged={0}, allowBundles={1}, failRejectedImports={2}, maxAutomaticRetries={3}",
+                _logger.Info("TaleArr grab policy saved: abridged={0}, allowBundles={1}, failRejectedImports={2}, maxAutomaticRetries={3}, retryFailedGrabs={4}",
                     policy.AbridgedPolicy,
                     policy.AllowBundles,
                     policy.FailRejectedImports,
-                    policy.EffectiveMaxAutomaticRetries);
+                    policy.EffectiveMaxAutomaticRetries,
+                    policy.RetryFailedGrabs);
 
                 _cached = Load();
                 return _cached.Clone();
@@ -105,6 +108,11 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             if (int.TryParse(Read(MaxAutomaticRetriesKey), out var maxRetries))
             {
                 policy.MaxAutomaticRetries = maxRetries;
+            }
+
+            if (bool.TryParse(Read(RetryFailedGrabsKey), out var retryFailedGrabs))
+            {
+                policy.RetryFailedGrabs = retryFailedGrabs;
             }
 
             return policy;
