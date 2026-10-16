@@ -10,6 +10,9 @@ namespace NzbDrone.Core.DecisionEngine
         public string Category { get; set; }
         public int Severity { get; set; }
 
+        // TaleArr: the decision specification that produced this rejection (class name), if any.
+        public string Source { get; set; }
+
         public Rejection(string reason, RejectionType type = RejectionType.Permanent)
         {
             Reason = reason;

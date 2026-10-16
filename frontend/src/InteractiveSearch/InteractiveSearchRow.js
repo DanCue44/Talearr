@@ -21,6 +21,7 @@ import formatAge from 'Utilities/Number/formatAge';
 import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
 import translate from 'Utilities/String/translate';
+import getRejectionDisplay from './getRejectionDisplay';
 import Peers from './Peers';
 import styles from './InteractiveSearchRow.css';
 
@@ -246,6 +247,7 @@ class InteractiveSearchRow extends Component {
       authorId,
       bookId,
       rejections,
+      rejectionDetails,
       downloadAllowed,
       isGrabbing,
       isGrabbed,
@@ -258,6 +260,7 @@ class InteractiveSearchRow extends Component {
     const titleText = renderTitleWithMatch(displayTitle || title, matchedTitleCharStart, matchedTitleCharEnd);
     const narratorDisplay = renderNarratorDisplay(this.props.narrator);
     const resolvedGrabTarget = hasResolvedGrabTarget(authorId, bookId);
+    const rejectionItems = getRejectionDisplay(rejections, rejectionDetails);
     const rowClassName = classNames(
       tableRowStyles.row,
       isPreferredChoice && styles.preferredRow
@@ -367,22 +370,41 @@ class InteractiveSearchRow extends Component {
 
         <TableRowCell className={styles.rejected}>
           {
-            !!rejections.length &&
+            !!rejectionItems.length &&
               <Popover
                 anchor={
-                  <Icon
-                    name={icons.DANGER}
-                    kind={kinds.DANGER}
-                  />
+                  <span className={styles.rejectionAnchor}>
+                    <Icon
+                      name={icons.DANGER}
+                      kind={kinds.DANGER}
+                    />
+                    <span className={styles.rejectionLabel}>
+                      {rejectionItems[0].label}
+                    </span>
+                    {
+                      rejectionItems.length > 1 ?
+                        <span className={styles.rejectionMore}>
+                          +{rejectionItems.length - 1}
+                        </span> :
+                        null
+                    }
+                  </span>
                 }
                 title={translate('ReleaseRejected')}
                 body={
-                  <ul>
+                  <ul className={styles.rejectionList}>
                     {
-                      rejections.map((rejection, index) => {
+                      rejectionItems.map((item, index) => {
                         return (
-                          <li key={index}>
-                            {rejection}
+                          <li
+                            key={index}
+                            className={styles.rejectionItem}
+                          >
+                            <span className={styles.rejectionItemLabel}>
+                              {item.label}
+                            </span>
+                            {': '}
+                            {item.reason}
                           </li>
                         );
                       })
@@ -449,6 +471,7 @@ InteractiveSearchRow.propTypes = {
   authorId: PropTypes.number,
   bookId: PropTypes.number,
   rejections: PropTypes.arrayOf(PropTypes.string).isRequired,
+  rejectionDetails: PropTypes.arrayOf(PropTypes.object),
   downloadAllowed: PropTypes.bool.isRequired,
   isGrabbing: PropTypes.bool.isRequired,
   isGrabbed: PropTypes.bool.isRequired,
@@ -464,6 +487,7 @@ InteractiveSearchRow.propTypes = {
 InteractiveSearchRow.defaultProps = {
   indexerFlags: 0,
   rejections: [],
+  rejectionDetails: [],
   isGrabbing: false,
   isGrabbed: false,
   isPreferredChoice: false,

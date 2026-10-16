@@ -50,9 +50,17 @@ namespace NzbDrone.Core.MetadataSource
                 status.ProbeInProgress = false;
                 status.ProbeStartedAt = null;
 
+                // TaleArr: end the outage log window so the next outage gets its own warning.
+                var suppressed = TalearrMetadataOutageLog.Reset(sourceName);
+
                 if (wasUnavailable)
                 {
                     _logger.Info("Metadata server {0} reported success and is available again", sourceName);
+
+                    if (suppressed > 0)
+                    {
+                        _logger.Info("{0} metadata request(s) were skipped while {1} was unavailable; existing data was kept", suppressed + 1, sourceName);
+                    }
                 }
                 else
                 {

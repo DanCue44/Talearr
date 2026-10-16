@@ -22,6 +22,11 @@ namespace Chaptarr.Api.V1.Indexers
         public string Category { get; set; }   // "Quality", "Language", "Seeders", "Format", etc.
         public bool CanBypass { get; set; }
         public int Severity { get; set; }      // 1=Info, 2=Warning, 3=Error
+
+        // TaleArr: short readable label ("Language", "Wrong book", "Pack", ...) and the
+        // specification that produced the rejection. Additive fields; older clients ignore them.
+        public string Label { get; set; }
+        public string Source { get; set; }
     }
 
     // Filter summary statistics for API responses
@@ -278,7 +283,9 @@ namespace Chaptarr.Api.V1.Indexers
 	                    Type = r.Type.ToString(),
 	                    Category = r.Category,
 	                    CanBypass = r.CanBypass,
-	                    Severity = r.Severity
+	                    Severity = r.Severity,
+	                    Label = TalearrRejectionLabels.GetLabel(r),
+	                    Source = r.Source
 	                }).ToList(),
 
 	                HasSoftFilters = rejections.Any(r => r.IsSoftFilter),

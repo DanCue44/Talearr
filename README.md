@@ -27,6 +27,25 @@ are rejected; see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), and its own
 image and CI. The icon master is
 `Logo/talearr-icon-master.png`.
 
+TaleArr behavior changes so far (all without schema changes, new settings or `config.xml` edits):
+
+- **Metadata server probe.** A small GET to the root of the configured metadata server
+  every 15 minutes (10 s timeout, backing off from 2 to 30 minutes while it is down, 5 minutes
+  while slow or rate limited; a new problem is confirmed by a second probe 30 s later). Problems
+  show in System > Status. A refresh during an outage keeps existing authors and books as they
+  are and logs one warning per outage instead of an error per author. The server used is
+  unchanged. State is in memory only.
+- **Rejection reasons in interactive search.** Every rejected release shows a short label
+  ("Language", "Wrong book", "Pack", "Size", "Blocklisted", ...) with the full reasons in a
+  popover. The API adds `label` and `source` to each `rejectionDetails` entry; `rejections`
+  and every existing field are unchanged. A new decision specification is labelled from its
+  category or class name automatically.
+- **Adding one book monitors only that book.** Through the UI or `POST /api/v1/book`, a book
+  for a new author monitors only that book, and future releases stay unmonitored unless the
+  request sets `monitorNewItems` / `audiobookMonitorNewItems` / `ebookMonitorNewItems`.
+  `addOptions.monitor = "all"` still monitors the whole catalog. The add-book modal defaults to
+  "Only this book" and "None"; saved browser defaults from before TaleArr are switched once.
+
 ## Drop-in compatibility with Chaptarr
 
 TaleArr is built so it can start on an existing Chaptarr config folder and database

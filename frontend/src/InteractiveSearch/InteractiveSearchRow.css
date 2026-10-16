@@ -85,13 +85,54 @@
   cursor: default;
 }
 
-.rejected,
 .indexerFlags,
 .download {
   composes: cell;
 
   width: 36px;
   text-align: center;
+}
+
+.rejected {
+  composes: cell;
+
+  width: 110px;
+  text-align: left;
+}
+
+.rejectionAnchor {
+  display: inline-flex;
+  align-items: center;
+  max-width: 106px;
+  gap: 4px;
+  cursor: default;
+}
+
+.rejectionLabel {
+  overflow: hidden;
+  color: var(--dangerColor);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.rejectionMore {
+  color: var(--helpTextColor);
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.rejectionList {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.rejectionItem {
+  margin-bottom: 4px;
+}
+
+.rejectionItemLabel {
+  font-weight: bold;
 }
 
 .download {
