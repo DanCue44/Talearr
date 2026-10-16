@@ -60,6 +60,14 @@ namespace NzbDrone.Core.Parser
                 return explicitPack;
             }
 
+            // TaleArr: extra bundle and omnibus patterns (complete novels, N books, collections,
+            // title lists from the author's catalog).
+            var talearrBundle = NzbDrone.Core.Talearr.GrabPolicy.TalearrBundleDetector.Detect(releaseTitle, targetBook, authorCatalog);
+            if (talearrBundle != null)
+            {
+                return talearrBundle;
+            }
+
             var splitMatch = SingleBookSplitRegex.Match(releaseTitle);
             if (splitMatch.Success)
             {
