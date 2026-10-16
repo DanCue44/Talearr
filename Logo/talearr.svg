@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>TaleArr</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17707a"/>
+      <stop offset="1" stop-color="#0d4a52"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+  <g transform="translate(0 9)">
+  
+  <g fill="#f2b544">
+    <rect x="156" y="148" width="28" height="44" rx="14"/>
+    <rect x="200" y="112" width="28" height="80" rx="14"/>
+    <rect x="242" y="76" width="28" height="116" rx="14"/>
+    <rect x="284" y="112" width="28" height="80" rx="14"/>
+    <rect x="328" y="148" width="28" height="44" rx="14"/>
+  </g>
+  <path fill="#f6eedb" d="M248 222c-40-26-94-34-148-26v196c54-8 108 0 148 26z"/>
+  <path fill="#f6eedb" d="M264 222c40-26 94-34 148-26v196c-54-8-108 0-148 26z"/>
+  <path fill="#f2b544" d="M340 202h36v120l-18-14-18 14z"/>
+</g>
+</svg>

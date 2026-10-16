@@ -1,6 +1,6 @@
 {
-  "name": "Chaptarr",
-  "short_name": "Chaptarr",
+  "name": "TaleArr",
+  "short_name": "TaleArr",
   "icons": [
     {
       "src": "android-chrome-192x192.png",
@@ -41,7 +41,7 @@
   ],
   "start_url": "../../../../",
   "scope": "../../../../",
-  "theme_color": "#7d1b1b",
+  "theme_color": "#0d4a52",
   "background_color": "#c9c6c6",
   "display": "standalone"
 }

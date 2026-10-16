@@ -17,7 +17,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <meta name="description" content="Chaptarr" />
+    <meta name="description" content="TaleArr" />
 
     <link
       rel="apple-touch-icon"
@@ -33,7 +33,7 @@
     <link
       rel="mask-icon"
       href="/Content/Images/Icons/safari-pinned-tab.svg"
-      color="#7d1b1b"
+      color="#0d4a52"
     />
     <meta
       name="msapplication-config"
@@ -43,7 +43,7 @@
     <!-- NOTE: The main UI uses a hashed stylesheet; the login page is intentionally self-styled to avoid hardcoding a build hash here. -->
     <link rel="stylesheet" type="text/css" href="/Content/Fonts/fonts.css" />
 
-    <title>Login - Chaptarr</title>
+    <title>Login - TaleArr</title>
 
     <style>
       :root {
@@ -328,7 +328,7 @@
       <div class="content">
         <div class="panel">
           <div class="panel-header">
-            <img src="/Content/Images/chaptarr-logo.svg" alt="Chaptarr Logo" class="logo" />
+            <img src="/Content/Images/chaptarr-logo.svg" alt="TaleArr Logo" class="logo" />
           </div>
 
           <div class="panel-body">
@@ -407,7 +407,7 @@
           <span>&copy;</span>
           <span id="year"></span>
           <span>-</span>
-          <span>Chaptarr</span>
+          <span>TaleArr</span>
         </div>
       </div>
     </div>
@@ -447,10 +447,10 @@
 
       if (ssoError === "oidc_discovery_unreachable") {
         message =
-          "SSO sign-in failed. Chaptarr could not retrieve the OpenID Connect discovery document from your identity provider. Check DNS/proxy/firewall from the server/container. If you require a proxy, set Chaptarr Proxy Mode to 'Proxy Everything'.";
+          "SSO sign-in failed. TaleArr could not retrieve the OpenID Connect discovery document from your identity provider. Check DNS/proxy/firewall from the server/container. If you require a proxy, set TaleArr Proxy Mode to 'Proxy Everything'.";
       } else if (ssoError === "oidc_backchannel_timeout") {
         message =
-          "SSO sign-in failed. Chaptarr timed out while contacting your identity provider. Check DNS/proxy/firewall from the server/container. If you require a proxy, set Chaptarr Proxy Mode to 'Proxy Everything'.";
+          "SSO sign-in failed. TaleArr timed out while contacting your identity provider. Check DNS/proxy/firewall from the server/container. If you require a proxy, set TaleArr Proxy Mode to 'Proxy Everything'.";
       } else if (ssoError === "missing_callback_parameters") {
         message =
           "SSO sign-in failed. The callback URL was reached without the expected parameters. Check your identity provider flow (Authorization Code) and reverse proxy settings.";
