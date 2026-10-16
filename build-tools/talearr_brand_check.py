@@ -92,6 +92,10 @@ MUST_KEEP_RECORDINGS = [
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"components = TalearrDisambiguateRecordingFolder\(", "recordings: copy folders are disambiguated"),
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"Lazy<ITalearrRecordingFolders> recordingFolders = null", "recordings: folder rule is optional and lazy (no container cycle)"),
     ("src/NzbDrone.Core/MediaFiles/BookImport/ImportApprovedBooks.cs", r"TalearrRecordingFolders\.FindImportConflict\(", "recordings: import refuses a folder holding another recording's files"),
+    ("frontend/src/Book/Details/BookDetails.js", r"<BookRecordings", "recordings: Recordings section on the book page"),
+    ("frontend/src/Settings/Metadata/MetadataSettings.js", r"<TalearrRecordingsConnector", "recordings: settings block on Settings > Metadata"),
+    ("frontend/src/Store/Actions/settingsActions.js", r"talearrRecordings\.actionHandlers", "recordings: settings store section"),
+    ("frontend/src/Book/Recordings/BookRecordings.js", r"url: '/talearr/recordings'", "recordings: book page uses the TaleArr recordings API"),
 ]
 
 # (folder, file glob, regex, why). No file under the folder may match.
