@@ -1,0 +1,198 @@
+name: TaleArr Docker
+
+# Builds the TaleArr image from the upstream Dockerfile.cross and pushes it to
+# ghcr.io/dancue44/talearr using the workflow's GITHUB_TOKEN.
+#
+# Tags:
+#   develop branch  -> develop, develop-<sha>
+#   main branch     -> latest, <talearr version>
+#   tag vX.Y.Z      -> X.Y.Z, X.Y
+#   other branches  -> <branch-slug> (amd64 only, for testing before merge)
+#   every push      -> sha-<sha>
+#
+# Before pushing, the amd64 image is smoke tested: it is started on a config
+# volume created by the matching upstream Chaptarr image (drop-in check), and
+# /api/v1/system/status must answer with the same fields.
+on:
+  push:
+    branches: [develop, main, 'feat/**']
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: talearr-docker-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/dancue44/talearr
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard - TaleArr rebrand intact
+        run: python3 build-tools/talearr_brand_check.py
+
+      - name: Resolve versions and platforms
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(build-tools/talearr_versions.sh)"
+          echo "talearr=$TALEARR_VERSION" >> "$GITHUB_OUTPUT"
+          echo "upstream=$UPSTREAM_VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/heads/develop || "$GITHUB_REF" == refs/heads/main || "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "platforms=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT"
+          else
+            echo "platforms=linux/amd64" >> "$GITHUB_OUTPUT"
+          fi
+          echo "TaleArr $TALEARR_VERSION, based on Chaptarr $UPSTREAM_VERSION" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Docker tags and labels
+        id: docker
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=develop,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=sha,prefix=develop-,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ steps.meta.outputs.talearr }},enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch,enable=${{ github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main' }}
+            type=sha,prefix=sha-
+          labels: |
+            org.opencontainers.image.title=TaleArr
+            org.opencontainers.image.description=TaleArr ebook and audiobook manager (fork of Chaptarr ${{ steps.meta.outputs.upstream }})
+            org.opencontainers.image.version=${{ steps.meta.outputs.talearr }}
+            org.opencontainers.image.licenses=GPL-3.0-only
+            io.talearr.upstream.version=${{ steps.meta.outputs.upstream }}
+
+      - uses: docker/setup-qemu-action@v3
+        if: contains(steps.meta.outputs.platforms, 'arm64')
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build amd64 image for smoke test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.cross
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: talearr:smoke
+          labels: ${{ steps.docker.outputs.labels }}
+          cache-from: type=gha,scope=talearr
+          cache-to: type=gha,scope=talearr,mode=max
+
+      - name: Smoke test (drop-in on an upstream Chaptarr config)
+        shell: bash
+        env:
+          UPSTREAM_VERSION: ${{ steps.meta.outputs.upstream }}
+        run: |
+          set -euo pipefail
+
+          wait_ready() {
+            for i in $(seq 1 120); do
+              if curl -fsS http://127.0.0.1:8789/ping >/dev/null 2>&1; then return 0; fi
+              sleep 1
+            done
+            return 1
+          }
+          api_key() {
+            docker run --rm -v talearr-smoke:/config busybox sed -n 's:.*<ApiKey>\(.*\)</ApiKey>.*:\1:p' /config/config.xml
+          }
+          run_app() {
+            docker run -d --name "$1" -p 8789:8789 \
+              -e PUID=99 -e PGID=100 -e UMASK=000 -e TZ=America/New_York \
+              -v talearr-smoke:/config "$2"
+          }
+
+          docker volume create talearr-smoke >/dev/null
+
+          # 1. Create a fresh config with the matching upstream image, if it is published.
+          upstream_image="chaptarr/chaptarr:${UPSTREAM_VERSION}"
+          have_upstream=false
+          if docker pull "$upstream_image"; then
+            have_upstream=true
+            run_app upstream "$upstream_image"
+            if ! wait_ready; then docker logs upstream | tail -n 200; exit 1; fi
+            sleep 5
+            curl -fsS -H "X-Api-Key: $(api_key)" http://127.0.0.1:8789/api/v1/system/status > status-upstream.json
+            docker stop upstream >/dev/null && docker rm upstream >/dev/null
+            docker run --rm -v talearr-smoke:/config busybox sh -c 'cp /config/config.xml /config/config.upstream.xml; ls -la /config'
+          else
+            echo "::notice::$upstream_image is not published; testing TaleArr on a fresh config only."
+          fi
+
+          # 2. Start TaleArr on the same volume.
+          run_app talearr talearr:smoke
+          if ! wait_ready; then docker logs talearr | tail -n 200; exit 1; fi
+          sleep 5
+          key="$(api_key)"
+          curl -fsS -H "X-Api-Key: $key" http://127.0.0.1:8789/api/v1/system/status > status-talearr.json
+          cat status-talearr.json
+
+          # 3. Assertions.
+          uid_gid="$(docker exec talearr stat -c '%u:%g' /proc/1)"
+          echo "App process runs as $uid_gid"
+          [[ "$uid_gid" == "99:100" ]] || { echo "Expected the app to run as 99:100"; exit 1; }
+
+          curl -fsS http://127.0.0.1:8789/ | grep -q '<title>TaleArr</title>' || { echo "UI title is not TaleArr"; exit 1; }
+          curl -fsS http://127.0.0.1:8789/initialize.json -H "X-Api-Key: $key" | tee initialize.json | grep -q '"talearrVersion"'
+
+          python3 - "$have_upstream" <<'PY'
+          import json, sys
+          talearr = json.load(open("status-talearr.json"))
+          assert talearr["appName"] == "Chaptarr", "appName must stay Chaptarr for API clients"
+          if sys.argv[1] == "true":
+              upstream = json.load(open("status-upstream.json"))
+              missing = set(upstream) - set(talearr)
+              extra = set(talearr) - set(upstream)
+              assert not missing and not extra, f"status shape changed: missing={missing} extra={extra}"
+              assert upstream["migrationVersion"] == talearr["migrationVersion"], "database migration version changed"
+              print("Drop-in check passed: same status fields and migration version as upstream", upstream["version"])
+          print("Smoke test passed")
+          PY
+
+          if [[ "$have_upstream" == "true" ]]; then
+            docker run --rm -v talearr-smoke:/config busybox sh -c 'diff /config/config.upstream.xml /config/config.xml && echo "config.xml unchanged"'
+          fi
+
+          docker logs talearr 2>&1 | grep -m1 'Starting TaleArr'
+          docker stop talearr >/dev/null
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.cross
+          platforms: ${{ steps.meta.outputs.platforms }}
+          push: true
+          tags: ${{ steps.docker.outputs.tags }}
+          labels: ${{ steps.docker.outputs.labels }}
+          cache-from: type=gha,scope=talearr
+          cache-to: type=gha,scope=talearr,mode=max
+
+      - name: Summary
+        run: |
+          {
+            echo "### Pushed tags"
+            echo '${{ steps.docker.outputs.tags }}' | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"
