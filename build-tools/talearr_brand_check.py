@@ -77,6 +77,11 @@ MUST_KEEP_TALEARR_HOOKS = [
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"var bookTitle = TalearrBookTitle\.ForNaming\(edition\) \?\? edition\.Title;\s*\n\s*tokenHandlers\[\"\{Book Title\}\"\] = m => bookTitle;", "naming: {Book Title} is the book title without format noise"),
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"tokenHandlers\[\"\{Book Title\}\"\] = m => bookTitle \+ graphicAudioSuffix;", "naming: GraphicAudio titles use the same book title"),
     ("src/NzbDrone.Core/Talearr/Audiobook/M4b/TalearrM4bService.cs", r"TalearrBookTitle\.ForNaming\(book, edition\)", "naming: merged M4B is named after the book title"),
+    ("src/NzbDrone.Core/Books/Services/RefreshAuthorService.cs", r"TalearrAuthorRefreshGate\.Enter\(AuthorMetadataRefreshGate", "catalog: add reconcile shares the author refresh gate (no duplicate rows on add)"),
+    ("src/NzbDrone.Core/Books/Services/AddBookService.cs", r"TalearrDuplicateBooks\.PickRequestedBook\(", "catalog: an add does not fail on duplicate rows of one work"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrDuplicatesController.cs", r'V1ApiController\("talearr/duplicates"\)', "catalog: duplicate cleanup API route"),
+    ("src/NzbDrone.Core/Talearr/Catalog/TalearrDuplicateBookCleanupService.cs", r"public bool DryRun \{ get; set; \} = true;", "catalog: duplicate cleanup command is a dry run by default"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrDuplicatesController.cs", r"request\?\.DryRun \?\? true", "catalog: duplicate cleanup route is a dry run by default"),
 ]
 
 # Phase 2 recordings wiring (docs/TALEARR_RECORDINGS_DESIGN.md). TaleArr-only files, but the

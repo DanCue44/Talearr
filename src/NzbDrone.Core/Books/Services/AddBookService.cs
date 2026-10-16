@@ -14,6 +14,7 @@ using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.Books.Calibre;
+using NzbDrone.Core.Talearr.Catalog;
 
 namespace NzbDrone.Core.Books
 {
@@ -562,6 +563,16 @@ namespace NzbDrone.Core.Books
 
             if (matches.Count > 1)
             {
+                // TaleArr: duplicate rows of the same stored work (same work ids and title) are a
+                // duplicate pass, not distinct works; use one instead of failing the add.
+                var talearrPick = TalearrDuplicateBooks.PickRequestedBook(matches);
+                if (talearrPick != null)
+                {
+                    _logger.Warn("TaleArr: requested work {0} has {1} local {2} rows ({3}) for the same work; using {4}. The duplicates can be removed with the TaleArr duplicate cleanup.",
+                        workProviderId, matches.Count, mediaType, string.Join(", ", matches.Select(m => m.Id)), talearrPick.Id);
+                    return talearrPick;
+                }
+
                 throw new InvalidOperationException($"Requested work {workProviderId} resolves to multiple local {mediaType} books.");
             }
 

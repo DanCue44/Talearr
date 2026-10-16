@@ -24,7 +24,7 @@ TaleArr version, a "Works best with" block in System > Status (AllSeerr, NoBookE
 grab policy (see below), two import additions (completed downloads that only hold archives
 are unpacked before import, and downloaded files whose own language is not the wanted one
 are rejected; see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), fixes to edition choice,
-release title matching and Audible duplicates (see [docs/TALEARR_MATCHING.md](docs/TALEARR_MATCHING.md)),
+release title matching, Audible duplicates and duplicate rows on add (see [docs/TALEARR_MATCHING.md](docs/TALEARR_MATCHING.md)),
 audiobook naming tokens, multi-disc import and an optional merge to M4B (see
 [docs/TALEARR_AUDIOBOOKS.md](docs/TALEARR_AUDIOBOOKS.md)), audiobook recordings (abridged and
 unabridged, or two narrators, side by side, with a recording-aware upgrade guard; see
