@@ -56,6 +56,9 @@ TaleArr behavior changes so far (all without schema changes, new settings or `co
 
 See [docs/TALEARR_AUDIOBOOKS.md](docs/TALEARR_AUDIOBOOKS.md).
 
+- **Book title in names.** Folders and files are named after the book ("1984"), not the
+  matched edition's store listing ("Nineteen Eighty-Four (MP3 Book)"), and format noise such as
+  `(Audible Audio)`, `(Audio Cassette)` or `[Unabridged]` is dropped from the title.
 - **Naming tokens.** `{Book SeriesPosition:00}` (zero padded), `{Book Year}` (empty when unknown),
   `{Abridged}` / `{Abridgement}`, and ready-made layouts in the naming help, including
   Audiobookshelf's `Author/Series/01 - 1994 - Title {Narrator}/files`.

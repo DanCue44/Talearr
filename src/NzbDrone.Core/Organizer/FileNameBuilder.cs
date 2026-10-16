@@ -14,6 +14,7 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Talearr.Audiobook;
+using NzbDrone.Core.Talearr.Naming;
 using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.Organizer
@@ -429,12 +430,16 @@ namespace NzbDrone.Core.Organizer
 
         private void AddBookTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Edition edition)
         {
-            tokenHandlers["{Book Title}"] = m => edition.Title;
-            tokenHandlers["{Book CleanTitle}"] = m => CleanTitle(edition.Title);
-            tokenHandlers["{Book TitleThe}"] = m => TitleThe(edition.Title);
+            // TaleArr: names use the book's own title ("1984"), not the edition's store listing
+            // ("Nineteen Eighty-Four (MP3 Book)"), without format noise (TalearrBookTitle).
+            var bookTitle = TalearrBookTitle.ForNaming(edition) ?? edition.Title;
+
+            tokenHandlers["{Book Title}"] = m => bookTitle;
+            tokenHandlers["{Book CleanTitle}"] = m => CleanTitle(bookTitle);
+            tokenHandlers["{Book TitleThe}"] = m => TitleThe(bookTitle);
 
             var authorName = edition.Book?.Author?.Name ?? string.Empty;
-            var (titleNoSub, subtitle) = edition.Title.SplitBookTitle(authorName);
+            var (titleNoSub, subtitle) = bookTitle.SplitBookTitle(authorName);
 
             tokenHandlers["{Book TitleNoSub}"] = m => titleNoSub;
             tokenHandlers["{Book CleanTitleNoSub}"] = m => CleanTitle(titleNoSub);
@@ -507,8 +512,6 @@ namespace NzbDrone.Core.Organizer
             // Book title with series position appended if applicable
             tokenHandlers["{Book TitleWithSeries}"] = m =>
             {
-                var bookTitle = edition.Title;
-
                 if (seriesName.IsNotNullOrWhiteSpace() && seriesPosition.IsNotNullOrWhiteSpace())
                 {
                     return $"{bookTitle} - {seriesName} #{seriesPosition}";
@@ -758,12 +761,15 @@ namespace NzbDrone.Core.Organizer
             {
                 var graphicAudioSuffix = " - GraphicAudio";
 
-                // Override the standard book title tokens to include GraphicAudio suffix
-                tokenHandlers["{Book Title}"] = m => edition.Title + graphicAudioSuffix;
-                tokenHandlers["{Book CleanTitle}"] = m => CleanTitle(edition.Title + graphicAudioSuffix);
-                tokenHandlers["{Book TitleThe}"] = m => TitleThe(edition.Title + graphicAudioSuffix);
+                // TaleArr: the same book title as AddBookTokens.
+                var bookTitle = TalearrBookTitle.ForNaming(edition) ?? edition.Title;
 
-                var (titleNoSub, subtitle) = edition.Title.SplitBookTitle(edition.Book.Author?.Name ?? string.Empty);
+                // Override the standard book title tokens to include GraphicAudio suffix
+                tokenHandlers["{Book Title}"] = m => bookTitle + graphicAudioSuffix;
+                tokenHandlers["{Book CleanTitle}"] = m => CleanTitle(bookTitle + graphicAudioSuffix);
+                tokenHandlers["{Book TitleThe}"] = m => TitleThe(bookTitle + graphicAudioSuffix);
+
+                var (titleNoSub, subtitle) = bookTitle.SplitBookTitle(edition.Book.Author?.Name ?? string.Empty);
 
                 tokenHandlers["{Book TitleNoSub}"] = m => titleNoSub + graphicAudioSuffix;
                 tokenHandlers["{Book CleanTitleNoSub}"] = m => CleanTitle(titleNoSub + graphicAudioSuffix);

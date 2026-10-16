@@ -123,6 +123,23 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             Assert.That(Build(Builder(withFolders: false), copy, rename: true), Is.EqualTo("The Firm - Scott Brick/The Firm"), "without the TaleArr hook both would share a folder");
         }
 
+        // The edition titles are store listings that used to keep the folders apart by accident;
+        // with the book title both reduce to "The Firm - Scott Brick", and the copy still gets
+        // the abridged disambiguator.
+        [Test]
+        public void noisy_edition_titles_use_the_book_title_and_keep_the_copy_disambiguated()
+        {
+            PrimaryWithScottBrickFiles();
+            _world.Editions.First(e => e.Id == 28701).Title = "The Firm (MP3 CD)";
+            _world.Editions.First(e => e.Id == 28790).Title = "The Firm [Abridged 5-CD Set]";
+            var copy = AddCopy(28790);
+            var primary = _world.Editions.First(e => e.Id == 28701);
+            primary.Book = _world.Books[3401];
+
+            Assert.That(Build(Builder(), primary, rename: true), Is.EqualTo("The Firm - Scott Brick/The Firm"));
+            Assert.That(Build(Builder(), copy, rename: true), Is.EqualTo("The Firm - Scott Brick (Abridged)/The Firm"));
+        }
+
         [Test]
         public void same_narrator_abridged_copy_gets_its_own_folder_with_renaming_off()
         {

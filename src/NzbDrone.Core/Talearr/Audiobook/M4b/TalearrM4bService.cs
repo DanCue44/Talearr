@@ -14,6 +14,7 @@ using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.Naming;
 
 namespace NzbDrone.Core.Talearr.Audiobook.M4b
 {
@@ -151,11 +152,8 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
 
         internal M4bConversionJob BuildJob(Book book, Author author, Edition edition, M4bLibraryPlan plan)
         {
-            var title = edition?.Title;
-            if (string.IsNullOrWhiteSpace(title))
-            {
-                title = book.Title;
-            }
+            // The file is named like the book folder: the book's own title without format noise.
+            var title = TalearrBookTitle.ForNaming(book, edition);
 
             var fileName = FileNameBuilder.CleanFileName(title);
             if (string.IsNullOrWhiteSpace(fileName))

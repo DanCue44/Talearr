@@ -164,6 +164,18 @@ namespace Chaptarr.Core.Test.Talearr.Audiobook
         }
 
         [Test]
+        public void merged_m4b_is_named_after_the_book_not_the_edition_listing()
+        {
+            _book.Title = "1984";
+            _edition.Title = "Nineteen Eighty-Four (MP3 Book)";
+
+            Service().Execute(new TalearrConvertToM4bCommand { BookId = 5003 });
+
+            Assert.That(_added.Single().Path, Is.EqualTo(Path.Combine(_folder, "1984.m4b")));
+            Assert.That(_converter.Jobs.Single().Metadata.Title, Is.EqualTo("1984"));
+        }
+
+        [Test]
         public void verified_m4b_replaces_the_files_and_originals_go_last()
         {
             Service().Execute(new TalearrConvertToM4bCommand { BookId = 5003 });

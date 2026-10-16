@@ -21,6 +21,37 @@ group, and the Series, Narrator and Release Date groups list the new tokens with
 Narrator (`{Narrator}`, `{Narrators}`, `{Narrator Initials}`, ...) and series (`{Book Series}`,
 `{Book SeriesTitle}`) tokens already existed in Chaptarr and are unchanged.
 
+### Book title, not the edition title
+
+`{Book Title}` and every variant of it (`{Book CleanTitle}`, `{Book TitleThe}`, `{Book TitleNoSub}`,
+`{Book TitleWithSeries}`, the GraphicAudio forms) now use the book's own title instead of the
+title of the edition that was matched. Audiobook edition titles are often a store listing: the
+1984 import on 2026-10-16 matched edition "Nineteen Eighty-Four (MP3 Book)" and was filed under
+`George Orwell/Nineteen Eighty-Four (MP3 Book) - Samuel West/`. It now goes to
+`George Orwell/1984 - Samuel West/`. The same applies to ebooks ("The Client: A Novel" is filed
+as "The Client") and to the file name of a merged M4B.
+
+Format noise in brackets is removed from the title as well, whichever one is used (the edition
+title is the fallback when a book has no title of its own): `(MP3 Book)`, `(Audio Cassette)`,
+`(Audible Audio)`, `(Audiobook)`, `(Audio CD)`, `(MP3 CD)`, `(Unabridged)`, `[MP3]`,
+`[Abridged 5-CD Set]`, `(9 Cassette Tapes)`, `(Unabridged Library Edition)`, `(Playaway)`, and a
+bare trailing `Unabridged` or `Audiobook`. A bracket is noise only when every word in it is a
+format word, a number or a filler word like "Edition" or "Set", so `(Book 1)`,
+`(French Edition)`, `(Special Edition)` and `[Dramatised]` stay. A title that is nothing but noise
+is kept as it is.
+
+Abridged and narrator information is not lost: additional recordings still get their own
+folder with the narrator or ` (Abridged)` appended (see
+[TALEARR_RECORDINGS.md](TALEARR_RECORDINGS.md#folders)), and `{Abridged}` / `{Abridgement}` come
+from the recording, not from the title.
+
+Existing files are not moved on their own. New imports and upgrades use the new name; to move
+files already in the library, preview Rename Files on the author first. After a rollback,
+Chaptarr goes back to the edition title, so its Rename preview would propose the old names.
+
+Code: `src/NzbDrone.Core/Talearr/Naming/TalearrBookTitle.cs`, hooked from `AddBookTokens` and
+`AddGraphicAudioTokens` in `FileNameBuilder.cs` and from `TalearrM4bService.BuildJob`.
+
 ### Audiobookshelf layout
 
 Audiobookshelf's preferred folder structure is `Author/Series/Vol 1 - 1994 - Title {Narrator}/files`.

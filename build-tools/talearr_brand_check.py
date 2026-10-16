@@ -69,6 +69,9 @@ MUST_KEEP_TALEARR_HOOKS = [
     ("frontend/src/Settings/Conversion/ConversionSettings.js", r"TalearrM4bConnector", "audiobooks: merge to M4B setting"),
     ("frontend/src/Book/Details/BookDetails.js", r"onConvertToM4bPress", "audiobooks: Convert to M4B action"),
     ("frontend/src/Settings/MediaManagement/Naming/NamingModal.js", r"audiobookLayouts", "audiobooks: naming tokens and layouts"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"var bookTitle = TalearrBookTitle\.ForNaming\(edition\) \?\? edition\.Title;\s*\n\s*tokenHandlers\[\"\{Book Title\}\"\] = m => bookTitle;", "naming: {Book Title} is the book title without format noise"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"tokenHandlers\[\"\{Book Title\}\"\] = m => bookTitle \+ graphicAudioSuffix;", "naming: GraphicAudio titles use the same book title"),
+    ("src/NzbDrone.Core/Talearr/Audiobook/M4b/TalearrM4bService.cs", r"TalearrBookTitle\.ForNaming\(book, edition\)", "naming: merged M4B is named after the book title"),
 ]
 
 # Phase 2 recordings wiring (docs/TALEARR_RECORDINGS_DESIGN.md). TaleArr-only files, but the
