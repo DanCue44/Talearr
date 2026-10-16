@@ -18,6 +18,7 @@ import AdvancedSettingsButton from 'Settings/AdvancedSettingsButton';
 import translate from 'Utilities/String/translate';
 import AudioBookShelfLibraryMappings from './AudioBookShelfLibraryMappings';
 import NotificationEventItems from './NotificationEventItems';
+import TalearrAbsSyncStatus from './TalearrAbsSyncStatus';
 import styles from './EditNotificationModalContent.css';
 
 function EditNotificationModalContent(props) {
@@ -147,6 +148,12 @@ function EditNotificationModalContent(props) {
                     onInputChange={onInputChange}
                     onFieldChange={onFieldChange}
                   />
+              }
+
+              {
+                // TaleArr: library sync status and "Sync now" for a saved Audiobookshelf connection.
+                implementationName === 'AudioBookShelf' && !!id && !!id.value &&
+                  <TalearrAbsSyncStatus connectionId={id.value} />
               }
 
               {

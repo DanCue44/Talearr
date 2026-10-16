@@ -1,0 +1,24 @@
+.text {
+  margin-left: 5px;
+}
+
+.details {
+  max-width: 420px;
+  line-height: 1.5;
+}
+
+.item {
+  margin-bottom: 6px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.itemTitle {
+  font-weight: bold;
+}
+
+.muted {
+  opacity: 0.75;
+}

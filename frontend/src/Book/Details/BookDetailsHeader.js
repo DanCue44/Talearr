@@ -18,6 +18,7 @@ import formatDurationMinutes from 'Utilities/Date/formatDurationMinutes';
 import formatBytes from 'Utilities/Number/formatBytes';
 import stripHtml from 'Utilities/String/stripHtml';
 import translate from 'Utilities/String/translate';
+import TalearrAbsBadge from '../Audiobookshelf/TalearrAbsBadge';
 import BookDetailsLinks from './BookDetailsLinks';
 import styles from './BookDetailsHeader.css';
 
@@ -147,6 +148,7 @@ class BookDetailsHeader extends Component {
 
   render() {
     const {
+      id,
       width,
       titleSlug,
       title,
@@ -359,6 +361,16 @@ class BookDetailsHeader extends Component {
                   {(mediaType === 'audiobook' ? audiobookMonitored : ebookMonitored) ? 'Monitored' : 'Not Monitored'}
                 </span>
               </Label>
+
+              {
+                // TaleArr: the book is already in Audiobookshelf; links to the item there.
+                <TalearrAbsBadge
+                  bookId={id}
+                  className={styles.detailsLabel}
+                  linkClassName={styles.downloadStatusLink}
+                  textClassName={styles.links}
+                />
+              }
 
               <Tooltip
                 anchor={
