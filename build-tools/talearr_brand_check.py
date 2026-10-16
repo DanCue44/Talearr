@@ -150,6 +150,16 @@ MUST_KEEP_WISHLISTS = [
     ("frontend/src/Settings/ImportLists/ImportListSettings.js", r"<TalearrWishlists />", "wishlists: section on Settings > Import Lists"),
 ]
 
+# Phase 3 format policy (docs/TALEARR_FORMAT_POLICY.md).
+MUST_KEEP_FORMAT_POLICY = [
+    ("src/NzbDrone.Core/Talearr/FormatPolicy/TalearrFormatPolicy.cs", r'DefaultKey = "talearr\.formatpolicy\.default"', "format policy: settings are talearr.* Config rows"),
+    ("src/NzbDrone.Core/Talearr/FormatPolicy/TalearrFormatPolicy.cs", r"public FormatPolicyMode Default \{ get; set; \} = FormatPolicyMode\.Both;", "format policy: upstream behaviour by default"),
+    ("src/NzbDrone.Core/Talearr/FormatPolicy/TalearrFormatPolicySpecification.cs", r"Decision\.RejectSoftFilter\(reason, Category\)", "format policy: a soft filter, still grabbable from interactive search"),
+    ("src/NzbDrone.Core/Talearr/FormatPolicy/TalearrFormatPolicySpecification.cs", r"TalearrRecordingGroupService\.IsCopySlug", "format policy: additional recordings are not the book's audiobook"),
+    ("src/Chaptarr.Api.V1/Config/TalearrFormatPolicyConfigController.cs", r'V1ApiController\("config/talearrformatpolicy"\)', "format policy: additive API route"),
+    ("frontend/src/Settings/Indexers/IndexerSettings.js", r"<TalearrFormatPolicy />", "format policy: section on Settings > Indexers"),
+]
+
 # (folder, file glob, regex, why). No file under the folder may match.
 MUST_NOT_HAVE_IN_TREE = [
     ("src/NzbDrone.Core/Datastore/Migration", "*.cs", r"(?i)talearr", "TaleArr adds no chaptarr.db migrations"),
@@ -177,7 +187,7 @@ def read(rel: str) -> str | None:
 def main() -> int:
     failures: list[str] = []
 
-    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS + MUST_KEEP_RECORDINGS + MUST_KEEP_AUDIOBOOKSHELF + MUST_KEEP_SERIES + MUST_KEEP_WISHLISTS:
+    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS + MUST_KEEP_RECORDINGS + MUST_KEEP_AUDIOBOOKSHELF + MUST_KEEP_SERIES + MUST_KEEP_WISHLISTS + MUST_KEEP_FORMAT_POLICY:
         text = read(rel)
         if text is None:
             failures.append(f"missing file {rel} ({why})")
@@ -206,7 +216,7 @@ def main() -> int:
         return 1
 
     total = (len(MUST_HAVE_BRAND) + len(MUST_KEEP_UPSTREAM) + len(MUST_KEEP_TALEARR_HOOKS) +
-             len(MUST_KEEP_RECORDINGS) + len(MUST_KEEP_AUDIOBOOKSHELF) + len(MUST_KEEP_SERIES) + len(MUST_KEEP_WISHLISTS) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE))
+             len(MUST_KEEP_RECORDINGS) + len(MUST_KEEP_AUDIOBOOKSHELF) + len(MUST_KEEP_SERIES) + len(MUST_KEEP_WISHLISTS) + len(MUST_KEEP_FORMAT_POLICY) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE))
     print(f"TaleArr brand check passed ({total} checks).")
     return 0
 

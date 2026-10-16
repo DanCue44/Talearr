@@ -1,0 +1,47 @@
+.overrides {
+  flex: 1 1 auto;
+  padding-top: 4px;
+}
+
+.overrideRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.authorName {
+  flex: 0 0 180px;
+}
+
+.select {
+  flex: 0 0 360px;
+}
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.help {
+  margin: 6px 0 12px;
+  max-width: 900px;
+  color: var(--helpTextColor);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.saved {
+  color: var(--helpTextColor);
+  font-size: 13px;
+}
