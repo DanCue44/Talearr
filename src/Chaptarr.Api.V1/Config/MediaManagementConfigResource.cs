@@ -34,6 +34,10 @@ namespace Chaptarr.Api.V1.Config
         public bool CopyUsingHardlinks { get; set; }
         public bool ImportExtraFiles { get; set; }
         public string ExtraFileExtensions { get; set; }
+
+        // TaleArr: additive fields; Chaptarr clients ignore them.
+        public bool TalearrUnpackArchives { get; set; }
+        public bool TalearrVerifyFileLanguage { get; set; }
     }
 
     public static class MediaManagementConfigResourceMapper
@@ -69,6 +73,8 @@ namespace Chaptarr.Api.V1.Config
                 CopyUsingHardlinks = model.CopyUsingHardlinks,
                 ImportExtraFiles = model.ImportExtraFiles,
                 ExtraFileExtensions = model.ExtraFileExtensions,
+                TalearrUnpackArchives = model.TalearrUnpackArchives,
+                TalearrVerifyFileLanguage = model.TalearrVerifyFileLanguage,
             };
         }
     }

@@ -196,6 +196,34 @@ class MediaManagement extends Component {
 
                       <FormGroup size={sizes.MEDIUM}>
                         <FormLabel>
+                          {'Unpack Archives'}
+                        </FormLabel>
+
+                        <FormInputGroup
+                          type={inputTypes.CHECK}
+                          name="talearrUnpackArchives"
+                          helpText="Unpack zip, rar and 7z downloads (including archives inside archives) into a temporary folder next to the download before importing. The original download is left untouched."
+                          onChange={onInputChange}
+                          {...settings.talearrUnpackArchives}
+                        />
+                      </FormGroup>
+
+                      <FormGroup size={sizes.MEDIUM}>
+                        <FormLabel>
+                          {'Verify File Language'}
+                        </FormLabel>
+
+                        <FormInputGroup
+                          type={inputTypes.CHECK}
+                          name="talearrVerifyFileLanguage"
+                          helpText="Read the language from downloaded files (EPUB, MOBI/AZW3, PDF, audio tags, then the release name) and fail the download when it is not the wanted language, so another release is tried."
+                          onChange={onInputChange}
+                          {...settings.talearrVerifyFileLanguage}
+                        />
+                      </FormGroup>
+
+                      <FormGroup size={sizes.MEDIUM}>
+                        <FormLabel>
                           {translate('ImportExtraFiles')}
                         </FormLabel>
 

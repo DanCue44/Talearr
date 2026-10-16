@@ -247,6 +247,22 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("ImportExtraFiles", value); }
         }
 
+        // TaleArr: import settings stored as extra rows in the existing Config table. Chaptarr
+        // ignores keys it does not know, so a rollback keeps working on the same database.
+        public bool TalearrUnpackArchives
+        {
+            get { return GetValueBoolean("TalearrUnpackArchives", true); }
+
+            set { SetValue("TalearrUnpackArchives", value); }
+        }
+
+        public bool TalearrVerifyFileLanguage
+        {
+            get { return GetValueBoolean("TalearrVerifyFileLanguage", true); }
+
+            set { SetValue("TalearrVerifyFileLanguage", value); }
+        }
+
         public string ExtraFileExtensions
         {
             get { return GetValue("ExtraFileExtensions", "jpg,png,cue,m3u,opf"); }
