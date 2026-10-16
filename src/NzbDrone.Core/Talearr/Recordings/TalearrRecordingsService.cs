@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.IndexerSearch;
@@ -77,6 +79,11 @@ namespace NzbDrone.Core.Talearr.Recordings
         public string Marketplace { get; set; }
         public List<RecordingInfo> Recordings { get; set; } = new List<RecordingInfo>();
         public List<RecordingCandidateInfo> Candidates { get; set; } = new List<RecordingCandidateInfo>();
+
+        // TaleArr: true when the answer may still change shortly: the work's editions are not known
+        // yet (a book added a moment ago), or its first Audible lookup did not finish in time and
+        // goes on in the background. Ask again in a few seconds.
+        public bool FactsPending { get; set; }
     }
 
     public sealed class AddRecordingRequest
@@ -141,6 +148,10 @@ namespace NzbDrone.Core.Talearr.Recordings
         RecordingsView GetRecordings(int bookId, bool allLanguages = false);
         RecordingsView GetRecordings(Book anyRow, bool allLanguages = false);
 
+        // Like GetRecordings, but first looks up Audible facts for editions that were never looked
+        // up (a book added a moment ago), waiting at most timeout. Used by the API GET.
+        RecordingsView GetRecordingsWithFacts(Book anyRow, bool allLanguages, TimeSpan timeout);
+
         AddRecordingOutcome AddRecording(AddRecordingRequest request);
 
         // Removes an additional recording (a copy row). Never the primary row, never automatic.
@@ -200,6 +211,94 @@ namespace NzbDrone.Core.Talearr.Recordings
         {
             var context = Load(anyRow);
             return context == null ? null : BuildView(context, allLanguages);
+        }
+
+        public RecordingsView GetRecordingsWithFacts(Book anyRow, bool allLanguages, TimeSpan timeout)
+        {
+            var context = Load(anyRow);
+            if (context == null)
+            {
+                return null;
+            }
+
+            var editions = context.EditionsByBook.Values
+                .SelectMany(list => list)
+                .Where(TalearrAudibleRefreshService.IsAudiobookEdition)
+                .ToList();
+
+            if (editions.Count == 0)
+            {
+                var empty = BuildView(context, allLanguages);
+                empty.FactsPending = true;
+                return empty;
+            }
+
+            var never = editions
+                .Where(e => TalearrEditionKey.For(e) != null)
+                .Where(e => !context.Facts.TryGetValue(e.Id, out var facts) || facts.Link == null)
+                .ToList();
+
+            var primary = context.Group.Primary;
+            var key = primary.BaseBookId ?? $"book:{primary.Id}";
+
+            // One first lookup per work at a time, and at most one every few minutes when Audible
+            // throttles or fails, so the book page never waits on every visit.
+            if (never.Count == 0 || TalearrRecordingsSettingsService.Resolve(_settingsService).Provider == TalearrAudibleProvider.Off ||
+                (!PendingLookups.ContainsKey(key) && LastLookups.TryGetValue(key, out var last) && last + FirstLookupCooldown > DateTime.UtcNow))
+            {
+                return BuildView(context, allLanguages);
+            }
+            if (PendingLookups.TryGetValue(key, out var running) && running.IsCompleted)
+            {
+                PendingLookups.TryRemove(key, out _);
+            }
+
+            var lookup = PendingLookups.GetOrAdd(key, workKey => Task.Run(() =>
+            {
+                LastLookups[workKey] = DateTime.UtcNow;
+                try
+                {
+                    _factsService.Resolve(never, primary.Title, SafeAuthorName(primary), new AudibleResolveOptions { SearchBudget = 1 });
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "TaleArr: first Audible lookup for '{0}' failed", primary.Title);
+                }
+                finally
+                {
+                    PendingLookups.TryRemove(key, out _);
+                }
+            }));
+
+            bool finished;
+            try
+            {
+                finished = lookup.Wait(timeout);
+            }
+            catch (AggregateException)
+            {
+                finished = true;
+            }
+
+            var view = BuildView(finished ? Load(anyRow) ?? context : context, allLanguages);
+            view.FactsPending = !finished;
+            return view;
+        }
+
+        private static readonly TimeSpan FirstLookupCooldown = TimeSpan.FromMinutes(5);
+        private static readonly ConcurrentDictionary<string, DateTime> LastLookups = new ConcurrentDictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<string, Task> PendingLookups = new ConcurrentDictionary<string, Task>(StringComparer.OrdinalIgnoreCase);
+
+        private static string SafeAuthorName(Book book)
+        {
+            try
+            {
+                return book.Author?.Name;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         public AddRecordingOutcome AddRecording(AddRecordingRequest request)

@@ -183,14 +183,14 @@ For AllSeerr, NoBookEnds and scripts (all additive; nothing upstream changes):
 
 | Route | What it does |
 |---|---|
-| `GET /api/v1/talearr/recordings?bookId=` (or `providerId=hc:...`) | The recordings and candidate editions of a book. `bookId` may be any entry of the book, ebook included. |
+| `GET /api/v1/talearr/recordings?bookId=` (or `providerId=hc:...`) | The recordings and candidate editions of a book. `bookId` may be any entry of the book, ebook included. Editions that were never looked up on Audible (a book added a moment ago) are looked up first, waiting at most 8 seconds, so abridged candidates show right after an add. `factsPending: true` means the answer may still change: the book's editions are not known yet (the add is still being refreshed) or the lookup goes on in the background; ask again in a few seconds. A lookup that Audible throttles or fails is not retried on this GET for 5 minutes. |
 | `POST /api/v1/talearr/recordings` | `{"bookId": 3401, "kind": "unabridged" \| "abridged" \| "narrator" \| "edition", "narrator": ..., "editionId": ..., "search": true, "requestedBy": "allseerr", "externalRef": "req-812"}`. `201` created, `200` already there, `404` nothing fits, `409` several fit (pick one with `kind: edition`), `400` bad input. |
 | `DELETE /api/v1/talearr/recordings/{bookId}?deleteFiles=false` | Removes an additional recording. The primary one is refused with `409`. |
 | `POST /api/v1/talearr/recordings/refresh?bookId=` | Refetches Audible facts for the book's recordings (`202`). |
 | `GET\|PUT /api/v1/config/talearrrecordings` | The settings above. The upgrade fields are optional on `PUT`; leaving them out keeps the current values. |
-| `GET /api/v1/talearr/grabpolicy/book/{bookId}` | A book's abridged policy: `{"bookId": 3401, "abridgedPolicy": "abridgedOnly", "effectivePolicy": "abridgedOnly", "source": "book"}`. `abridgedPolicy` is the book's own value or `null`; `source` is `book` or `global`. `bookId` may be any entry of the book (the ebook entry answers for its audiobook). `404` unknown book, `400` a book with no audiobook. |
+| `GET /api/v1/talearr/grabpolicy/book/{bookId}` | A book's abridged policy (values are always these camelCase strings, never numbers): `{"bookId": 3401, "abridgedPolicy": "abridgedOnly", "effectivePolicy": "abridgedOnly", "source": "book"}`. `abridgedPolicy` is the book's own value or `null`; `source` is `book` or `global`. `bookId` may be any entry of the book (the ebook entry answers for its audiobook). `404` for an unknown book, `0` included, always with a JSON body (`{"message": "Book 0 not found"}`); `400` a book with no audiobook. |
 | `PUT /api/v1/talearr/grabpolicy/book/{bookId}` | `{"abridgedPolicy": "unabridgedOnly" \| "abridgedOnly" \| "preferUnabridged" \| "any" \| null}`; `null` clears the book's value. Answers like `GET` (`200`); `400` for another value (numbers included) or a book with no audiobook, `404` unknown book. The edition switch happens on the next search, not on `PUT`. |
-| `GET\|PUT /api/v1/config/talearrgrabpolicy` | The global grab policy; `abridgedPolicy` also takes `abridgedOnly`. |
+| `GET\|PUT /api/v1/config/talearrgrabpolicy` | The global grab policy; `abridgedPolicy` is a camelCase string and also takes `abridgedOnly` (stored number 3, after the existing values, so nothing earlier changes meaning). |
 
 Local ids in responses (`bookId`, `editionId`) are handles; store `baseBookId`,
 `foreignEditionId` or the ASIN instead.

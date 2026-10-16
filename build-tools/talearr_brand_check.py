@@ -129,6 +129,7 @@ MUST_KEEP_RECORDINGS = [
     ("src/NzbDrone.Core/Talearr/GrabPolicy/TalearrRetryService.cs", r"abridged policy for this book: ", "abridged policy: automatic retry notes the book's policy"),
     ("src/NzbDrone.Core/Talearr/Audiobookshelf/TalearrAbsLibraryService.cs", r"TalearrAbridgedRules\.Target\(row\.Book", "abridged policy: Audiobookshelf copies count by the book's policy"),
     ("frontend/src/Settings/Indexers/Options/TalearrGrabPolicy.js", r"key: 'abridgedOnly'", "abridged policy: Abridged only in Settings > Indexers > Grab policy"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrRecordingsController.cs", r"GetRecordingsWithFacts\(book, allLanguages, FirstLookupTimeout\)", "recordings: a new book's first Audible lookup happens on the API GET"),
 ]
 
 # Phase 3 Audiobookshelf library awareness (docs/TALEARR_AUDIOBOOKSHELF.md). The connection is

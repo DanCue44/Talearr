@@ -328,6 +328,64 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
             Assert.That(Status(controller.SetBook(4801, new TalearrBookGrabPolicyBody { AbridgedPolicy = "any" })), Is.EqualTo(400));
         }
 
+        [TestCase(0)]
+        [TestCase(-1)]
+        [TestCase(424242)]
+        public void api_answers_404_with_a_json_body_for_unknown_ids(int bookId)
+        {
+            // AllSeerr probes with id 0 and reads an empty 404 as "route missing".
+            var controller = new TalearrGrabPolicyController(_service);
+
+            foreach (var result in new[] { controller.GetBook(bookId), controller.SetBook(bookId, new TalearrBookGrabPolicyBody { AbridgedPolicy = "any" }) })
+            {
+                Assert.That(Status(result), Is.EqualTo(404));
+                var body = ((ObjectResult)result.Result).Value as TalearrGrabPolicyProblem;
+                Assert.That(body, Is.Not.Null);
+                Assert.That(body.Message, Does.Contain("not found"));
+                Assert.That(NzbDrone.Common.Serializer.STJson.ToJson(body), Does.Contain("\"message\""));
+            }
+        }
+
+        [Test]
+        public void api_writes_policies_as_camel_case_strings()
+        {
+            var book = Firm(FirmEditions.ScottBrickUs());
+            var controller = new TalearrGrabPolicyController(_service);
+            controller.SetBook(book.Id, new TalearrBookGrabPolicyBody { AbridgedPolicy = "preferUnabridged" });
+
+            var json = NzbDrone.Common.Serializer.STJson.ToJson(controller.GetBook(book.Id).Value);
+
+            Assert.That(json, Does.Contain("\"abridgedPolicy\": \"preferUnabridged\"").Or.Contain("\"abridgedPolicy\":\"preferUnabridged\""));
+            Assert.That(json, Does.Contain("\"effectivePolicy\": \"preferUnabridged\"").Or.Contain("\"effectivePolicy\":\"preferUnabridged\""));
+            Assert.That(json, Does.Contain("\"source\": \"book\"").Or.Contain("\"source\":\"book\""));
+        }
+
+        [TestCase(AbridgedAudiobookPolicy.UnabridgedOnly, "unabridgedOnly")]
+        [TestCase(AbridgedAudiobookPolicy.AbridgedOnly, "abridgedOnly")]
+        [TestCase(AbridgedAudiobookPolicy.PreferUnabridged, "preferUnabridged")]
+        [TestCase(AbridgedAudiobookPolicy.Any, "any")]
+        public void global_config_route_writes_and_reads_the_policy_as_a_string(AbridgedAudiobookPolicy policy, string text)
+        {
+            var resource = new Chaptarr.Api.V1.Config.TalearrGrabPolicyConfigResource { AbridgedPolicy = policy, MaxAutomaticRetries = 3 };
+
+            var json = NzbDrone.Common.Serializer.STJson.ToJson(resource);
+            Assert.That(json, Does.Contain($"\"abridgedPolicy\": \"{text}\"").Or.Contain($"\"abridgedPolicy\":\"{text}\""));
+
+            var back = NzbDrone.Common.Serializer.STJson.Deserialize<Chaptarr.Api.V1.Config.TalearrGrabPolicyConfigResource>($"{{\"abridgedPolicy\":\"{text}\",\"maxAutomaticRetries\":3}}");
+            Assert.That(back.AbridgedPolicy, Is.EqualTo(policy));
+            Assert.That(TalearrBookGrabPolicyService.ToApiValue(policy), Is.EqualTo(text));
+        }
+
+        [Test]
+        public void abridged_only_is_appended_last_so_stored_and_numeric_values_keep_their_meaning()
+        {
+            Assert.That((int)AbridgedAudiobookPolicy.UnabridgedOnly, Is.EqualTo(0));
+            Assert.That((int)AbridgedAudiobookPolicy.PreferUnabridged, Is.EqualTo(1));
+            Assert.That((int)AbridgedAudiobookPolicy.Any, Is.EqualTo(2));
+            Assert.That((int)AbridgedAudiobookPolicy.AbridgedOnly, Is.EqualTo(3));
+            Assert.That(Enum.GetValues(typeof(AbridgedAudiobookPolicy)).Cast<int>().Max(), Is.EqualTo(3));
+        }
+
         [Test]
         public void api_writes_a_null_override_explicitly()
         {

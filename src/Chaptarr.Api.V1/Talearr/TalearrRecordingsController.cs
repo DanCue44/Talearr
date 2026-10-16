@@ -61,6 +61,8 @@ namespace Chaptarr.Api.V1.Talearr
             _commandQueueManager = commandQueueManager;
         }
 
+        public static readonly global::System.TimeSpan FirstLookupTimeout = global::System.TimeSpan.FromSeconds(8);
+
         // bookId may be any row of the work, ebook rows included; or providerId (hc:..., gr:..., ...).
         [HttpGet]
         public ActionResult<RecordingsView> GetRecordings([FromQuery] int? bookId, [FromQuery] string providerId, [FromQuery] bool allLanguages = false)
@@ -71,7 +73,9 @@ namespace Chaptarr.Api.V1.Talearr
                 return NotFound(new TalearrRecordingProblem { Message = "Book not found" });
             }
 
-            var view = _recordingsService.GetRecordings(book, allLanguages);
+            // TaleArr: a book added a moment ago gets its first Audible lookup here (at most a few
+            // seconds), so AllSeerr sees abridged candidates right after the add.
+            var view = _recordingsService.GetRecordingsWithFacts(book, allLanguages, FirstLookupTimeout);
             if (view == null)
             {
                 return NotFound(new TalearrRecordingProblem { Message = "This work has no audiobook recordings" });
