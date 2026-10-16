@@ -1,0 +1,107 @@
+.header {
+  margin-bottom: 20px;
+}
+
+.title {
+  margin: 0;
+  font-weight: 300;
+  font-size: 30px;
+}
+
+.authors {
+  margin-top: 4px;
+  color: var(--helpTextColor);
+  font-size: 15px;
+}
+
+.description {
+  margin-top: 10px;
+  max-width: 900px;
+  color: var(--textColor);
+}
+
+.monitoring {
+  margin-bottom: 20px;
+  padding: 10px 15px;
+  max-width: 900px;
+  border: 1px solid var(--borderColor);
+  border-radius: 4px;
+  background-color: var(--inputBackgroundColor);
+}
+
+.monitoringTitle {
+  margin-bottom: 8px;
+  font-weight: 300;
+  font-size: 21px;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.help {
+  margin-top: 6px;
+  color: var(--helpTextColor);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lastResult {
+  color: var(--helpTextColor);
+  font-size: 13px;
+}
+
+.position {
+  width: 70px;
+  white-space: nowrap;
+}
+
+.skip {
+  display: block;
+  margin-top: 2px;
+  color: var(--helpTextColor);
+  font-size: 12px;
+}
+
+.copies {
+  margin-left: 4px;
+  color: var(--helpTextColor);
+  font-size: 12px;
+}
+
+.skippedRow {
+  opacity: 0.6;
+}
+
+@media only screen and (max-width: $breakpointSmall) {
+  .options {
+    flex-direction: column;
+  }
+}
+
+.check {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  user-select: none;
+}
+
+.bookTitle {
+  text-align: left;
+}

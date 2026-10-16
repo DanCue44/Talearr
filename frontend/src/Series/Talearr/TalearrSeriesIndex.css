@@ -1,0 +1,30 @@
+.intro {
+  margin-bottom: 15px;
+  max-width: 900px;
+  color: var(--helpTextColor);
+}
+
+.filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.monitoring {
+  white-space: nowrap;
+}
+
+.lastResult {
+  display: block;
+  margin-top: 2px;
+  color: var(--helpTextColor);
+  font-size: 12px;
+}
+
+.check {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  user-select: none;
+}

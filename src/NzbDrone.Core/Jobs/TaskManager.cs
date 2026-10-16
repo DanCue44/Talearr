@@ -212,6 +212,15 @@ namespace NzbDrone.Core.Jobs
                         Interval = 60,
                         TypeName = typeof(NzbDrone.Core.Talearr.Audiobookshelf.SyncAudiobookshelfLibraryCommand).FullName,
                         Priority = CommandPriority.Low
+                    },
+
+                    // TaleArr: monitored series pick up books added since the last run (also queued
+                    // after every author refresh). Local reads only. Stock Chaptarr drops the row.
+                    new ScheduledTask
+                    {
+                        Interval = 6 * 60,
+                        TypeName = typeof(NzbDrone.Core.Talearr.SeriesMonitoring.ApplySeriesMonitoringCommand).FullName,
+                        Priority = CommandPriority.Low
                     }
                 };
 

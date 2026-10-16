@@ -19,6 +19,7 @@ interface CssExports {
   'left': string;
   'noBooks': string;
   'seriesTitle': string;
+  'talearrSeriesLink': string;
 }
 export const cssExports: CssExports;
 export default cssExports;
