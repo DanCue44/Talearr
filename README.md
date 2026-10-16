@@ -147,6 +147,13 @@ goes wrong:
 | Fail rejected imports | On | When an import is rejected because the release is the wrong book, its files are in the wrong language, its archives are unusable, or it holds no audio or ebook files (zip, rar and 7z are unpacked first, see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), the download is marked failed. That blocklists the release and starts the automatic redownload. Archive formats TaleArr does not unpack, same-title matches (usually duplicate metadata), transient errors and explicit interactive grabs stay in the queue as before. |
 | Automatic retry limit | 3 | Failed downloads per book within 7 days before automatic searching stops. |
 
+Settings > Indexers > **Format policy** (see [docs/TALEARR_FORMAT_POLICY.md](docs/TALEARR_FORMAT_POLICY.md))
+picks the format grabbed for a wanted book, for the library and per author: Both (default,
+upstream behaviour), Prefer audiobook (accept the ebook after the audiobook has been missing for
+24 hours, still upgrade to audio later), Audiobook only or Ebook only. Monitoring is unchanged;
+the policy is a soft filter on grabs, stored as `talearr.formatpolicy.*` rows through
+`/api/v1/config/talearrformatpolicy`.
+
 Automatic redownload itself is the existing Download Clients > Failed Download Handling
 setting, which is on by default. A replacement search covers every indexer with automatic
 search enabled, Usenet and torrent. Grabs you made yourself (interactive or a manual search)

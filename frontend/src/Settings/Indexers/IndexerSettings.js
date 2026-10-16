@@ -10,6 +10,7 @@ import translate from 'Utilities/String/translate';
 import IndexersConnector from './Indexers/IndexersConnector';
 import ManageIndexersModal from './Indexers/Manage/ManageIndexersModal';
 import IndexerOptionsConnector from './Options/IndexerOptionsConnector';
+import TalearrFormatPolicy from './Options/TalearrFormatPolicy';
 import TalearrGrabPolicyConnector from './Options/TalearrGrabPolicyConnector';
 
 class IndexerSettings extends Component {
@@ -128,6 +129,9 @@ class IndexerSettings extends Component {
             onChildMounted={this.onTalearrChildMounted}
             onChildStateChange={this.onTalearrChildStateChange}
           />
+
+          {/* TaleArr: format policy (docs/TALEARR_FORMAT_POLICY.md), saved with its own button */}
+          <TalearrFormatPolicy />
 
           <ManageIndexersModal
             isOpen={isManageIndexersOpen}
