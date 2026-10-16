@@ -44,6 +44,8 @@ TaleArr keeps its changes small and in few places on purpose:
 | Notification titles and test messages, health check text, startup logs | the word Chaptarr -> TaleArr in literals | take upstream, re-apply the word change |
 | Frontend strings (`translate.ts`, `login.html`, `index.ejs`, `manifest.json`, About, More Info, a few modals) | the word Chaptarr -> TaleArr | take upstream, re-apply |
 | `README.md`, `COPYRIGHT.md`, `docker-compose.yml`, `docker-entrypoint.sh` | TaleArr text | keep ours, carry over relevant upstream content |
+| `src/NzbDrone.Core/MediaFiles/TalearrImport/`, `src/Chaptarr.Core.Test/MediaFiles/TalearrImport/` | archive unpacking and downloaded-file language check | TaleArr-only, never conflict |
+| `DownloadedBooksImportService.cs` (second constructor, `ProcessPath` unpack wrapper, `Verify` calls), `CompletedDownloadService.cs` (`IsWrongLanguagePayload` branch), `ConfigService.cs`/`IConfigService.cs`/`MediaManagementConfigResource.cs` (two `Talearr*` settings), `MediaManagement.js` (two checkboxes), `Directory.Packages.props`/`Chaptarr.Core.csproj` (SharpCompress) | marked `TaleArr` blocks, see [TALEARR_IMPORT.md](TALEARR_IMPORT.md) | take upstream, re-apply the block |
 
 Translation files (`src/NzbDrone.Core/Localization/Core/*.json`) are **not** edited:
 `TalearrBranding` rewrites "Chaptarr" to "TaleArr" when they load, so new upstream strings
