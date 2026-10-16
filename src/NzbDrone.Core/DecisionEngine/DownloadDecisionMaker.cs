@@ -808,7 +808,7 @@ namespace NzbDrone.Core.DecisionEngine
 
                 if (!result.Accepted)
                 {
-                    return new Rejection(result.Reason, spec.Type, result.CanBypass, result.Category, result.Severity);
+                    return TalearrRejectionLabels.FromSpecification(spec, result);
                 }
             }
             catch (NotImplementedException)
@@ -820,7 +820,7 @@ namespace NzbDrone.Core.DecisionEngine
                 e.Data.Add("report", remoteBook.Release.ToJson());
                 e.Data.Add("parsed", remoteBook.ParsedBookInfo.ToJson());
                 _logger.Error(e, "Couldn't evaluate decision on {0}", remoteBook.Release.Title);
-                return new Rejection($"{spec.GetType().Name}: {e.Message}");
+                return new Rejection($"{spec.GetType().Name}: {e.Message}") { Source = spec.GetType().Name };
             }
 
             return null;

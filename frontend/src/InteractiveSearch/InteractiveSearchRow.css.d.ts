@@ -22,6 +22,12 @@ interface CssExports {
   'quality': string;
   'rank': string;
   'rejected': string;
+  'rejectionAnchor': string;
+  'rejectionItem': string;
+  'rejectionItemLabel': string;
+  'rejectionLabel': string;
+  'rejectionList': string;
+  'rejectionMore': string;
   'size': string;
   'title': string;
   'titleContent': string;

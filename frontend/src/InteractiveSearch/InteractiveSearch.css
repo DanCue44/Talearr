@@ -53,9 +53,13 @@
   width: 44px;
 }
 
-.table th:nth-child(12),
-.table th:nth-child(13) {
+.table th:nth-child(12) {
   width: 36px;
+}
+
+/* TaleArr: room for the rejection label ("Language", "Wrong book", ...) */
+.table th:nth-child(13) {
+  width: 116px;
 }
 
 .table th:nth-child(14) {
