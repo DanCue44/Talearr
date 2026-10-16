@@ -105,6 +105,18 @@ function TalearrGrabPolicy(props) {
                 {...settings.maxAutomaticRetries}
               />
             </FormGroup>
+
+            <FormGroup>
+              <FormLabel>{'Retry failed grabs'}</FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.CHECK}
+                name="retryFailedGrabs"
+                helpText="When a release cannot be sent to the download client because the indexer is rate limited (429), returns a server error or times out, try the next release and then search the book again after 2, 10 and 30 minutes (up to the retry limit, waiting out Retry-After and indexer back-off). Steps are logged with a TaleArr: prefix."
+                onChange={onInputChange}
+                {...settings.retryFailedGrabs}
+              />
+            </FormGroup>
           </Form>
       }
     </FieldSet>
