@@ -10,6 +10,7 @@ import translate from 'Utilities/String/translate';
 import ImportListsExclusionsConnector from './ImportListExclusions/ImportListExclusionsConnector';
 import ImportListsConnector from './ImportLists/ImportListsConnector';
 import ManageImportListsModal from './ImportLists/Manage/ManageImportListsModal';
+import TalearrWishlists from './Talearr/TalearrWishlists';
 
 class ImportListSettings extends Component {
 
@@ -93,6 +94,8 @@ class ImportListSettings extends Component {
 
         <PageContentBody>
           <ImportListsConnector />
+          {/* TaleArr: wishlists (docs/TALEARR_WISHLISTS.md) */}
+          <TalearrWishlists />
           <ImportListsExclusionsConnector />
           <ManageImportListsModal
             isOpen={isManageImportListsOpen}

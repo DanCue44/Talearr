@@ -1,0 +1,42 @@
+.intro {
+  margin-bottom: 10px;
+  max-width: 900px;
+  color: var(--helpTextColor);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.rowActions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--helpTextColor);
+  font-size: 12px;
+}
+
+.left {
+  text-align: left;
+}
+
+.addRow {
+  margin-top: 10px;
+}
+
+.fileInput {
+  padding: 6px 0;
+}
+
+.previewSummary {
+  margin: 10px 0;
+  color: var(--helpTextColor);
+}

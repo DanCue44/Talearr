@@ -212,6 +212,15 @@ namespace NzbDrone.Core.Jobs
                         Interval = 60,
                         TypeName = typeof(NzbDrone.Core.Talearr.Audiobookshelf.SyncAudiobookshelfLibraryCommand).FullName,
                         Priority = CommandPriority.Low
+                    },
+
+                    // TaleArr: wishlists (CSV exports, Hardcover lists) add their new rows. Stock
+                    // Chaptarr drops this row on its next start.
+                    new ScheduledTask
+                    {
+                        Interval = 12 * 60,
+                        TypeName = typeof(NzbDrone.Core.Talearr.Wishlists.SyncWishlistsCommand).FullName,
+                        Priority = CommandPriority.Low
                     }
                 };
 

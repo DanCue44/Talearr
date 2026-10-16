@@ -95,6 +95,22 @@ Storage: a separate rebuildable `talearr.db` next to `chaptarr.db`, and `talearr
 and `talearr.upgrade.*` rows in the `Config` table. No schema change, no migrations, no
 `config.xml` edits.
 
+## Wishlists
+
+See [docs/TALEARR_WISHLISTS.md](docs/TALEARR_WISHLISTS.md).
+
+- **Settings > Import Lists > Wishlists**: StoryGraph to-read and Audible wishlist exports,
+  Goodreads CSV exports, any title/author/ISBN/ASIN CSV, and Hardcover lists by URL (upstream's
+  Goodreads and Hardcover Library import lists are unchanged and cover shelves and Want to Read).
+- Each row is matched (ASIN, ISBN, then title and author) and added with "Only this book": only
+  that book is monitored, in the chosen formats, once. Preview shows the matches first; Sync
+  Wishlists runs every 12 hours.
+- **API**: `/api/v1/talearr/wishlists` (list, add, change, remove, preview, sync).
+
+Storage: one `talearr.wishlist.*` row per wishlist in the `Config` table and uploaded files in
+`talearr-wishlists/` in the config folder. Not an import list provider, so a rollback deletes
+nothing.
+
 ## Audiobookshelf
 
 See [docs/TALEARR_AUDIOBOOKSHELF.md](docs/TALEARR_AUDIOBOOKSHELF.md).
