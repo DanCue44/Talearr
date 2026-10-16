@@ -33,6 +33,18 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
         }
 
         [Test]
+        public void monitored_follows_audiobook_monitoring_not_the_legacy_flag()
+        {
+            AbridgedPrimaryWithFiles();
+            _world.Books[3401].Monitored = false;
+
+            Assert.That(_world.Recordings.GetRecordings(3401).Recordings.Single().Monitored, Is.True);
+
+            _world.Books[3401].AudiobookMonitored = false;
+            Assert.That(_world.Recordings.GetRecordings(3401).Recordings.Single().Monitored, Is.False);
+        }
+
+        [Test]
         public void add_unabridged_creates_an_upstream_copy_row_and_searches_it()
         {
             AbridgedPrimaryWithFiles();

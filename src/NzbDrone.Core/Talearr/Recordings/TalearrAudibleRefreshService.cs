@@ -143,7 +143,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             if (scope == TalearrEnrichScope.All)
             {
                 var bookIds = _bookService.GetAllBooks()
-                    .Where(b => b != null && b.MediaType == BookMediaType.Audiobook && b.Monitored && b.AudiobookMonitored)
+                    .Where(b => b != null && b.MediaType == BookMediaType.Audiobook && b.AudiobookMonitored)
                     .Select(b => b.Id)
                     .ToList();
                 editions = _editionService.GetEditionsByBook(bookIds).Where(IsAudiobookEdition).ToList();
@@ -154,7 +154,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
 
             var books = _bookService.GetBooks(editions.Select(e => e.BookId).Distinct())
-                .Where(b => b != null && b.MediaType == BookMediaType.Audiobook && b.Monitored)
+                .Where(b => b != null && b.MediaType == BookMediaType.Audiobook && b.AudiobookMonitored)
                 .ToDictionary(b => b.Id);
 
             return editions
