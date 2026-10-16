@@ -169,11 +169,23 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
         }
 
         [Test]
-        public void classifier_should_leave_archives_to_the_importer()
+        public void classifier_should_fail_a_payload_whose_zip_and_rar_archives_held_no_book()
         {
+            // TaleArr unpacks zip, rar and 7z itself (MediaFiles/TalearrImport), so this report
+            // only appears once the importer could not use them.
             var reason = ImportRejectionClassifier.Classify(Status(
                 "John.Grisham.The.Pelican.Brief.2010.RETAiL.ePub.eBook-LiBRiCiDE-xpost",
                 "No supported audio or ebook files were found in /downloads/completed/Books/John.Grisham.The.Pelican.Brief.2010.RETAiL.ePub.eBook-LiBRiCiDE-xpost. Chaptarr did see unsupported file(s): lc000sba.zip, libricide.nfo, file_id.diz. Unsupported extension(s): .diz, .nfo, .zip. Check that the download contains supported audio or ebook files and that Chaptarr can read the completed download folder."));
+
+            Assert.That(reason, Is.EqualTo("release contains no audio or ebook files"));
+        }
+
+        [Test]
+        public void classifier_should_leave_archives_tale_arr_does_not_unpack_to_the_user()
+        {
+            var reason = ImportRejectionClassifier.Classify(Status(
+                "Some.Book.2024.EPUB",
+                "No supported audio or ebook files were found in /downloads/completed/Books/Some.Book.2024.EPUB. Chaptarr did see unsupported file(s): book.tar.gz. Unsupported extension(s): .gz. Check that the download contains supported audio or ebook files and that Chaptarr can read the completed download folder."));
 
             Assert.That(reason, Is.Null);
         }

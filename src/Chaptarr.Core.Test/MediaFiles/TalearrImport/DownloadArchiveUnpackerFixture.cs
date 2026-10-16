@@ -185,6 +185,7 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 
             Assert.That(result.Success, Is.False);
             Assert.That(result.Error, Does.Contain("did not contain any supported"));
+            Assert.That(result.ReleaseProblem, Is.True);
             Assert.That(Directory.Exists(result.WorkFolder), Is.False);
         }
 
@@ -197,6 +198,7 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 
             Assert.That(result.Success, Is.False);
             Assert.That(result.Error, Does.Contain("broken.rar"));
+            Assert.That(result.ReleaseProblem, Is.False);
             Assert.That(Directory.Exists(result.WorkFolder), Is.False);
             Assert.That(File.Exists(Path.Combine(_download, "broken.rar")), Is.True);
         }
@@ -216,6 +218,7 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 
             Assert.That(result.Success, Is.False);
             Assert.That(result.Error, Does.Contain("nested more than 2 levels"));
+            Assert.That(result.ReleaseProblem, Is.True);
         }
 
         [Test]
@@ -229,6 +232,7 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 
             Assert.That(result.Success, Is.False);
             Assert.That(result.Error, Does.Contain("zip bomb"));
+            Assert.That(result.ReleaseProblem, Is.True);
             Assert.That(Directory.Exists(result.WorkFolder), Is.False);
         }
 
@@ -241,6 +245,7 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 
             Assert.That(result.Success, Is.False);
             Assert.That(result.Error, Does.Contain("not enough free space"));
+            Assert.That(result.ReleaseProblem, Is.False);
         }
 
         [Test]

@@ -155,7 +155,9 @@ namespace NzbDrone.Core.MediaFiles
         {
             if (!unpacked.Success)
             {
-                var reason = $"TaleArr could not unpack the archives in {unpacked.SourcePath}: {unpacked.Error}.";
+                // The closing sentence is what ImportRejectionClassifier keys on to fail the download.
+                var reason = $"{ArchiveUnpackResult.FailurePrefix} {unpacked.SourcePath}: {unpacked.Error}. " +
+                             (unpacked.ReleaseProblem ? ArchiveUnpackResult.ReleaseProblemSuffix : ArchiveUnpackResult.TransientSuffix);
                 var localBook = new LocalBook { Path = unpacked.SourcePath };
                 return new List<ImportResult>
                 {

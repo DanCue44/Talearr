@@ -185,7 +185,21 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
             Assert.That(results, Has.Count.EqualTo(1));
             Assert.That(results[0].Result, Is.EqualTo(ImportResultType.Rejected));
             Assert.That(results[0].Errors.Single(), Does.StartWith("TaleArr could not unpack the archives in"));
+            Assert.That(results[0].Errors.Single(), Does.EndWith("Fix the cause and use Retry Import."));
             Assert.That(_importApprovedBooks.Calls, Is.Empty);
+        }
+
+        [Test]
+        public void should_say_when_the_archives_are_the_release_problem()
+        {
+            File.WriteAllBytes(Path.Combine(_download, "junk.zip"), TestArchives.Zip(("readme.txt", TestArchives.Text("no book here"))));
+            _downloadItem.FilePaths = Directory.GetFiles(_download).ToList();
+
+            var results = Subject().ProcessPath(_download, ImportMode.Copy, null, _downloadItem, _remoteBook);
+
+            Assert.That(results.Single().Errors.Single(), Does.EndWith("The release itself is unusable."));
+            Assert.That(NzbDrone.Core.Talearr.GrabPolicy.ImportRejectionClassifier.ClassifyMessage(results.Single().Errors.Single()),
+                Is.EqualTo("release archives are unusable"));
         }
 
         [Test]

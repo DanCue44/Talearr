@@ -13,6 +13,7 @@ using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.BookImport;
+using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
@@ -20,9 +21,9 @@ using NzbDrone.Core.Qualities;
 namespace Chaptarr.Core.Test.Download
 {
     /// <summary>
-    /// TaleArr: a completed download whose files are in the wrong language is a bad grab. It is
-    /// marked failed the normal way (blocklist + replacement search) instead of sitting in the
-    /// queue, unless the user forced the grab.
+    /// TaleArr: a completed download whose files are in the wrong language is blocked with one
+    /// clean language reason, which the grab policy's ImportRejectionClassifier recognises and
+    /// fails the normal way (blocklist + replacement search, user grabs exempt).
     /// </summary>
     [TestFixture]
     public class CompletedDownloadServiceWrongLanguageFixture
@@ -84,43 +85,37 @@ namespace Chaptarr.Core.Test.Download
         }
 
         [Test, Platform(Exclude = "Win", Reason = "Test uses Unix paths")]
-        public void should_mark_a_wrong_language_download_failed_with_the_reason()
+        public void should_block_a_wrong_language_download_with_only_the_language_reason()
         {
+            // The grab policy (TalearrImportRejectionRetryService) fails it from here; the per-file
+            // "No match" reason must not reach the status, or the classifier would leave it alone.
             var harness = new Harness();
-            harness.ImportResults = new List<ImportResult> { BuildResult(Quality.EPUB, LanguageRejection()) };
+            harness.ImportResults = new List<ImportResult> { BuildResult(Quality.EPUB, new Rejection("No match in local library"), LanguageRejection()) };
 
             harness.Subject.Import(harness.TrackedDownload);
 
-            Assert.That(harness.FailedDownloadService.Failures, Has.Count.EqualTo(1));
-            Assert.That(harness.FailedDownloadService.Failures[0].Reason, Is.EqualTo(LanguageReason));
-            Assert.That(harness.TrackedDownload.State, Is.EqualTo(TrackedDownloadState.DownloadFailed));
-        }
-
-        [Test, Platform(Exclude = "Win", Reason = "Test uses Unix paths")]
-        public void should_block_instead_of_failing_a_forced_grab()
-        {
-            var harness = new Harness();
-            harness.TrackedDownload.DownloadItem.DownloadForced = true;
-            harness.ImportResults = new List<ImportResult> { BuildResult(Quality.EPUB, LanguageRejection()) };
-
-            harness.Subject.Import(harness.TrackedDownload);
-
+            Assert.That(harness.TrackedDownload.State, Is.EqualTo(TrackedDownloadState.ImportBlocked));
             Assert.That(harness.FailedDownloadService.Failures, Is.Empty);
-            Assert.That(harness.TrackedDownload.State, Is.EqualTo(TrackedDownloadState.ImportBlocked));
-            Assert.That(harness.TrackedDownload.StatusMessages.SelectMany(m => m.Messages), Has.Some.EqualTo(LanguageReason));
+            Assert.That(harness.TrackedDownload.StatusMessages.SelectMany(m => m.Messages), Is.EqualTo(new[] { "WRONG_LANGUAGE", LanguageReason }));
+            Assert.That(harness.EventAggregator.Events, Has.Some.InstanceOf<BookImportIncompleteEvent>());
+            Assert.That(NzbDrone.Core.Talearr.GrabPolicy.ImportRejectionClassifier.Classify(harness.TrackedDownload.StatusMessages),
+                Is.EqualTo("release is in Swedish (swe), not English (eng)"));
         }
 
         [Test, Platform(Exclude = "Win", Reason = "Test uses Unix paths")]
-        public void should_block_with_the_reason_when_the_download_cannot_be_failed()
+        public void should_keep_the_usual_status_when_language_is_not_the_only_problem()
         {
             var harness = new Harness();
-            harness.FailedDownloadService.CanFail = false;
-            harness.ImportResults = new List<ImportResult> { BuildResult(Quality.EPUB, LanguageRejection()) };
+            harness.ImportResults = new List<ImportResult>
+            {
+                BuildResult(Quality.EPUB, LanguageRejection()),
+                BuildResult(Quality.MOBI, new Rejection("Author not found"))
+            };
 
             harness.Subject.Import(harness.TrackedDownload);
 
             Assert.That(harness.TrackedDownload.State, Is.EqualTo(TrackedDownloadState.ImportBlocked));
-            Assert.That(harness.TrackedDownload.StatusMessages.SelectMany(m => m.Messages), Has.Some.EqualTo(LanguageReason));
+            Assert.That(harness.TrackedDownload.StatusMessages.SelectMany(m => m.Messages), Has.None.EqualTo("WRONG_LANGUAGE"));
         }
 
         private sealed class Harness
@@ -191,16 +186,8 @@ namespace Chaptarr.Core.Test.Download
         {
             public List<(TrackedDownload Download, string Reason)> Failures { get; } = new();
 
-            public bool CanFail { get; set; } = true;
-
             public void MarkAsFailed(TrackedDownload trackedDownload, string reason, bool skipRedownload = false)
             {
-                if (!CanFail)
-                {
-                    // Mirrors FailedDownloadService when there is no grab history to fail.
-                    return;
-                }
-
                 Failures.Add((trackedDownload, reason));
                 trackedDownload.State = TrackedDownloadState.DownloadFailed;
             }

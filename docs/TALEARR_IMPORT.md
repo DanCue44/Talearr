@@ -28,6 +28,10 @@ importing:
   archives' size. Password-protected or incomplete archives are refused. Sizes are counted
   from the bytes written, not from archive headers.
 - An archive that cannot be unpacked blocks the import with the reason shown in the queue.
+  When the release itself is at fault (no book inside, password, zip bomb, unsafe paths,
+  too deep or too many entries) the message ends "The release itself is unusable." and the
+  grab policy fails the download (see below). Transient causes (free space, a volume still
+  missing, a read error) end "Fix the cause and use Retry Import." and stay in the queue.
 
 The library is [SharpCompress](https://github.com/adamhathcock/sharpcompress) (MIT,
 pure managed code, so it runs in the linux-musl image without native unrar or 7z).
@@ -64,15 +68,17 @@ rejection, for example:
 > tried.
 
 If nothing in the download imported and every file was rejected for language (files only
-refused by the quality profile may sit beside them), the download is marked failed the
-normal way (`FailedDownloadService.MarkAsFailed`), so it is blocklisted and the usual
-redownload setting decides whether another release is searched. The reason is stored in
-the `downloadFailed` history entry. Grabs the user forced are not failed; they stay
-blocked in the queue with the same reason.
+refused by the quality profile may sit beside them), the import is blocked with just that
+reason. The grab policy's Fail rejected imports setting (README, Grab policy) recognises it
+in `ImportRejectionClassifier` and marks the download failed the normal way, so the release
+is blocklisted, the reason lands in the `downloadFailed` history entry, and the usual retry
+and retry cap apply. Explicit user grabs stay blocked in the queue with the reason. With
+Fail rejected imports off, the download stays blocked.
 
 Code: `FileLanguageReader.cs`, `ReleaseNameLanguageDetector.cs` and
-`DownloadedFileLanguageVerifier.cs` in `src/NzbDrone.Core/MediaFiles/TalearrImport/`, and
-`CompletedDownloadService.IsWrongLanguagePayload`.
+`DownloadedFileLanguageVerifier.cs` in `src/NzbDrone.Core/MediaFiles/TalearrImport/`,
+`CompletedDownloadService.IsWrongLanguagePayload`, and the language and archive rules in
+`src/NzbDrone.Core/Talearr/GrabPolicy/ImportRejectionClassifier.cs`.
 
 ## Settings
 
@@ -83,6 +89,9 @@ Importing (shown with advanced settings):
 |---|---|---|
 | Unpack Archives | `talearrUnpackArchives` | `Config` table row `talearrunpackarchives` |
 | Verify File Language | `talearrVerifyFileLanguage` | `Config` table row `talearrverifyfilelanguage` |
+
+With Unpack Archives off, a download that only holds zip, rar or 7z files is reported as
+having no book files, which the grab policy treats as a bad release.
 
 They live in the existing key/value `Config` table, so there is no schema migration and
 `config.xml` is not touched. Chaptarr ignores rows it does not know, so rolling back to

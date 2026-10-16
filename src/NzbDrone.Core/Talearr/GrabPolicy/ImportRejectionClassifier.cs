@@ -23,10 +23,25 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         // "No supported audio or ebook files were found in ... Unsupported extension(s): .diz, .nfo, .zip."
         private const string NoMediaFilesText = "No supported audio or ebook files were found";
 
-        // Archives are handled by the importer (extraction); never fail a download for them here.
-        private static readonly Regex ArchiveRegex = new Regex(
-            @"\.(?:zip|rar|7z|tar|gz|tgz|bz2|xz|r\d{2}|s\d{2}|\d{3}|part\d+)\b",
+        // TaleArr unpacks zip, rar (and its .rNN/.partN volumes) and 7z itself
+        // (MediaFiles/TalearrImport), so a "no supported files" report that lists those means
+        // the importer already looked inside them, or Unpack Archives is off. Formats it does
+        // not unpack (tar, gzip, bzip2, xz, .001 splits) are still left for the user.
+        private static readonly Regex UnhandledArchiveRegex = new Regex(
+            @"\.(?:tar|gz|tgz|bz2|xz|\d{3})\b",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        // "File language is Swedish (swe) (from EPUB dc:language), but English (eng) is wanted
+        //  (editions of 'The Pelican Brief'). TaleArr rejected this release so another one can be tried."
+        private static readonly Regex WrongLanguageRegex = new Regex(
+            @"File language is (?<found>.+?) \(from .+?\), but (?<wanted>.+?) is wanted \(.*TaleArr rejected this release",
+            RegexOptions.Compiled | RegexOptions.Singleline);
+
+        // "TaleArr could not unpack the archives in <path>: <error>. The release itself is unusable."
+        // Only the release-problem suffix fails; the transient suffix ("Fix the cause and use Retry
+        // Import.") stays blocked.
+        private const string UnpackFailedText = "TaleArr could not unpack the archives in";
+        private const string UnpackReleaseProblemText = "The release itself is unusable.";
 
         private static readonly Regex StatusCodeRegex = new Regex(@"^[A-Z0-9_]+$", RegexOptions.Compiled);
         private static readonly Regex NonWordRegex = new Regex(@"[^a-z0-9]+", RegexOptions.Compiled);
@@ -88,9 +103,22 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 return string.Format("release contains '{0}', not the wanted book", matched);
             }
 
+            var wrongLanguage = WrongLanguageRegex.Match(message);
+            if (wrongLanguage.Success)
+            {
+                return string.Format("release is in {0}, not {1}", wrongLanguage.Groups["found"].Value, wrongLanguage.Groups["wanted"].Value);
+            }
+
+            if (message.Contains(UnpackFailedText, StringComparison.Ordinal))
+            {
+                return message.Contains(UnpackReleaseProblemText, StringComparison.Ordinal)
+                    ? "release archives are unusable"
+                    : null;
+            }
+
             if (message.Contains(NoMediaFilesText, StringComparison.OrdinalIgnoreCase))
             {
-                if (ArchiveRegex.IsMatch(message))
+                if (UnhandledArchiveRegex.IsMatch(message))
                 {
                     return null;
                 }

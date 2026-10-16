@@ -215,35 +215,18 @@ namespace NzbDrone.Core.Download
                 if (importResults.Any(c => c.Result != ImportResultType.Imported))
                 {
                     // TaleArr: the files are in a language nobody asked for (the file itself says so,
-                    // or the release name does when the file is silent). Retrying imports the same
-                    // files, so fail it like any other bad grab and let a replacement be found.
-                    // Explicit user grabs are not failed; they stay blocked with the reason shown.
+                    // or the release name does when the file is silent). Block with only the language
+                    // reason so ImportRejectionClassifier recognises it and the grab policy fails the
+                    // download (blocklist, retry cap, user-grab exemption) the same way as other bad
+                    // releases. Other per-file reasons (an unmatched translated title) would hide it.
                     if (IsWrongLanguagePayload(importResults))
                     {
-                        var languageReason = GetWrongLanguageReason(importResults);
-
-                        if (!IsUserForced(trackedDownload))
-                        {
-                            _logger.Warn("{0} Marking {1} failed so it can be replaced.", languageReason, trackedDownload.DownloadItem.Title);
-                            _failedDownloadService.MarkAsFailed(trackedDownload, languageReason);
-
-                            if (trackedDownload.State == TrackedDownloadState.DownloadFailed)
-                            {
-                                return;
-                            }
-                        }
-
                         BlockImport(trackedDownload,
                             new TrackedDownloadStatusMessage(trackedDownload.DownloadItem.Title, "WRONG_LANGUAGE"),
-                            new TrackedDownloadStatusMessage(trackedDownload.DownloadItem.Title, languageReason));
+                            new TrackedDownloadStatusMessage(trackedDownload.DownloadItem.Title, GetWrongLanguageReason(importResults)));
                         return;
                     }
 
-                    // Nothing importable in the payload because every file is a format the profile
-                    // does not allow: the release simply is not what its title advertised. That is
-                    // deterministic — retrying imports the same files and gets the same answer — so
-                    // fail it like any other bad grab (blocklist + configured replacement search)
-                    // instead of parking it in the queue forever. Explicit user grabs are exempt.
                     if (IsProfileDisallowedPayload(importResults) && !IsUserForced(trackedDownload))
                     {
                         var reason = string.Format("No file in this download is in a format allowed by the quality profile ({0})",

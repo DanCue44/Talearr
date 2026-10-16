@@ -28,10 +28,17 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
 
     public class ArchiveUnpackResult
     {
+        public const string FailurePrefix = "TaleArr could not unpack the archives in";
+        public const string ReleaseProblemSuffix = "The release itself is unusable.";
+        public const string TransientSuffix = "Fix the cause and use Retry Import.";
+
         public string SourcePath { get; set; }
         public string WorkFolder { get; set; }
         public bool Success { get; set; }
         public string Error { get; set; }
+
+        // True when the failure is the release's fault and retrying cannot help.
+        public bool ReleaseProblem { get; set; }
         public List<string> ArchivesUnpacked { get; set; } = new List<string>();
         public List<string> MediaFiles { get; set; } = new List<string>();
         public bool Reused { get; set; }
@@ -146,6 +153,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
             {
                 result.Success = false;
                 result.Error = ex.Message;
+                result.ReleaseProblem = ex is ArchiveExtractionException extractionException && extractionException.ReleaseProblem;
                 _logger.Warn("TaleArr could not unpack {0}: {1}", downloadPath, ex.Message);
                 Cleanup(result);
             }
@@ -343,7 +351,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
 
             if (available.Value < needed)
             {
-                throw new ArchiveExtractionException(
+                throw ArchiveExtractionException.Transient(
                     $"not enough free space to unpack ({ArchiveExtractionBudget.FormatBytes(available.Value)} free, " +
                     $"at least {ArchiveExtractionBudget.FormatBytes(needed)} needed)");
             }

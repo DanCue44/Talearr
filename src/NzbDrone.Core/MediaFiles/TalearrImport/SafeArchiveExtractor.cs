@@ -42,14 +42,26 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
 
     public class ArchiveExtractionException : Exception
     {
+        // A problem with the release itself (zip bomb, unsafe paths, password, no book inside):
+        // unpacking the same files again can never work.
         public ArchiveExtractionException(string message)
             : base(message)
         {
+            ReleaseProblem = true;
         }
 
-        public ArchiveExtractionException(string message, Exception innerException)
+        private ArchiveExtractionException(string message, Exception innerException, bool releaseProblem)
             : base(message, innerException)
         {
+            ReleaseProblem = releaseProblem;
+        }
+
+        public bool ReleaseProblem { get; }
+
+        // A problem that may go away (a volume still being moved, disk space, a read error).
+        public static ArchiveExtractionException Transient(string message, Exception innerException = null)
+        {
+            return new ArchiveExtractionException(message, innerException, false);
         }
     }
 
@@ -178,7 +190,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
             }
             catch (Exception ex)
             {
-                throw new ArchiveExtractionException($"cannot read {Path.GetFileName(archivePath)}: {ex.Message}", ex);
+                throw ArchiveExtractionException.Transient($"cannot read {Path.GetFileName(archivePath)}: {ex.Message}", ex);
             }
 
             if (volumes.Count == 0)
@@ -202,7 +214,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
 
                 if (!archive.IsComplete)
                 {
-                    throw new ArchiveExtractionException($"{Path.GetFileName(archivePath)} is missing one or more volumes");
+                    throw ArchiveExtractionException.Transient($"{Path.GetFileName(archivePath)} is missing one or more volumes");
                 }
 
                 void WriteEntry(IEntry entry, Func<Stream> openStream)
@@ -273,7 +285,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
             }
             catch (Exception ex)
             {
-                throw new ArchiveExtractionException($"cannot unpack {Path.GetFileName(archivePath)}: {ex.Message}", ex);
+                throw ArchiveExtractionException.Transient($"cannot unpack {Path.GetFileName(archivePath)}: {ex.Message}", ex);
             }
 
             return written;
