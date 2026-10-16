@@ -5,6 +5,7 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.Talearr.GrabPolicy
 {
@@ -74,11 +75,35 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         // edition metadata first and runtime second. Grabbing an abridged release is then right.
         public static bool WantsAbridged(RemoteBook remoteBook)
         {
+            return WantsAbridged(remoteBook, null);
+        }
+
+        // With a resolver (TaleArr recordings), the wanted edition's abridged status comes from
+        // Audible facts first, then the same metadata and runtime rules as below.
+        public static bool WantsAbridged(RemoteBook remoteBook, ITalearrAbridgedResolver resolver)
+        {
             var books = remoteBook?.GetBooksMatchingReleaseMediaType() ?? new List<Book>();
 
             return books.Any(book => book != null &&
                                      book.MediaType == BookMediaType.Audiobook &&
-                                     IsAbridgedBook(book));
+                                     IsAbridgedBook(book, resolver));
+        }
+
+        public static bool IsAbridgedBook(Book book, ITalearrAbridgedResolver resolver)
+        {
+            if (resolver == null)
+            {
+                return IsAbridgedBook(book);
+            }
+
+            try
+            {
+                return resolver.Resolve(book).IsAbridged;
+            }
+            catch (System.Exception)
+            {
+                return IsAbridgedBook(book);
+            }
         }
 
         public static bool IsAbridgedBook(Book book)

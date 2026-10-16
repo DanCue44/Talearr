@@ -12,6 +12,7 @@ using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Talearr.GrabPolicy;
+using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.DecisionEngine
 {
@@ -22,14 +23,16 @@ namespace NzbDrone.Core.DecisionEngine
         private readonly IQualityProfileService _qualityProfileService;
         private readonly Logger _logger;
 
-        // TaleArr: grab policy for the abridged ranking step.
+        // TaleArr: grab policy and recordings abridged resolution for the abridged ranking step.
         private readonly TalearrGrabPolicy _grabPolicy;
+        private readonly ITalearrAbridgedResolver _abridgedResolver;
 
         public delegate int CompareDelegate(DownloadDecision x, DownloadDecision y);
         public delegate int CompareDelegate<TSubject, TValue>(DownloadDecision x, DownloadDecision y);
 
-        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, TalearrGrabPolicy grabPolicy = null)
+        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, TalearrGrabPolicy grabPolicy = null, ITalearrAbridgedResolver abridgedResolver = null)
         {
+            _abridgedResolver = abridgedResolver;
             _configService = configService;
             _delayProfileService = delayProfileService;
             _qualityProfileService = qualityProfileService;
@@ -266,10 +269,12 @@ namespace NzbDrone.Core.DecisionEngine
                 return 0;
             }
 
+            // When the wanted recording is itself abridged (an abridged copy row), abridged
+            // releases rank first instead of last.
             var abridged = xAbridged ? x : y;
-            if (AbridgedReleaseDetector.WantsAbridged(abridged.RemoteBook))
+            if (AbridgedReleaseDetector.WantsAbridged(abridged.RemoteBook, _abridgedResolver))
             {
-                return 0;
+                return xAbridged ? 1 : -1;
             }
 
             return xAbridged ? -1 : 1;

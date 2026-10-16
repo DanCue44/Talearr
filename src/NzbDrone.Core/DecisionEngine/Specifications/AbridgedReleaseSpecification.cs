@@ -2,6 +2,7 @@ using NLog;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Talearr.GrabPolicy;
+using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
@@ -13,11 +14,13 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         public const string Category = "Abridged";
 
         private readonly ITalearrGrabPolicyService _grabPolicyService;
+        private readonly ITalearrAbridgedResolver _abridgedResolver;
         private readonly Logger _logger;
 
-        public AbridgedReleaseSpecification(Logger logger, ITalearrGrabPolicyService grabPolicyService = null)
+        public AbridgedReleaseSpecification(Logger logger, ITalearrGrabPolicyService grabPolicyService = null, ITalearrAbridgedResolver abridgedResolver = null)
         {
             _grabPolicyService = grabPolicyService;
+            _abridgedResolver = abridgedResolver;
             _logger = logger;
         }
 
@@ -35,7 +38,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return Decision.Accept();
             }
 
-            if (AbridgedReleaseDetector.WantsAbridged(subject))
+            if (AbridgedReleaseDetector.WantsAbridged(subject, _abridgedResolver))
             {
                 _logger.Trace("Abridged release {0} accepted because the wanted edition is abridged", subject.Release?.Title);
                 return Decision.Accept();

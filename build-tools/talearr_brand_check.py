@@ -81,6 +81,9 @@ MUST_KEEP_RECORDINGS = [
     ("src/NzbDrone.Core/Jobs/TaskManager.cs", r"RefreshAudibleRecordingFactsCommand", "recordings: scheduled Audible facts refresh"),
     ("src/NzbDrone.Core/MetadataSource/Audible/AudibleCatalogProxy.cs", r"UserAgents => AudibleUserAgents", "recordings: Audible client shares upstream's user agents"),
     ("src/NzbDrone.Core/Talearr/Recordings/TalearrAudibleClient.cs", r"RateLimit = MinimumInterval", "recordings: Audible requests are rate limited"),
+    ("src/NzbDrone.Core/DecisionEngine/Specifications/AbridgedReleaseSpecification.cs", r"WantsAbridged\(subject, _abridgedResolver\)", "recordings: abridged soft filter uses the resolved value"),
+    ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionComparer.cs", r"WantsAbridged\(abridged\.RemoteBook, _abridgedResolver\)", "recordings: abridged ranking uses the resolved value"),
+    ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionPriorizationService.cs", r"_abridgedResolver\);", "recordings: ranking gets the abridged resolver"),
 ]
 
 # (folder, file glob, regex, why). No file under the folder may match.
