@@ -25,7 +25,8 @@ grab policy (see below), two import additions (completed downloads that only hol
 are unpacked before import, and downloaded files whose own language is not the wanted one
 are rejected; see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), fixes to edition choice,
 release title matching and Audible duplicates (see [docs/TALEARR_MATCHING.md](docs/TALEARR_MATCHING.md)),
-and its own Docker
+audiobook naming tokens, multi-disc import and an optional merge to M4B (see
+[docs/TALEARR_AUDIOBOOKS.md](docs/TALEARR_AUDIOBOOKS.md)), and its own Docker
 image and CI. The icon master is
 `Logo/talearr-icon-master.png`.
 
@@ -47,6 +48,23 @@ TaleArr behavior changes so far (all without schema changes, new settings or `co
   request sets `monitorNewItems` / `audiobookMonitorNewItems` / `ebookMonitorNewItems`.
   `addOptions.monitor = "all"` still monitors the whole catalog. The add-book modal defaults to
   "Only this book" and "None"; saved browser defaults from before TaleArr are switched once.
+
+## Audiobooks
+
+See [docs/TALEARR_AUDIOBOOKS.md](docs/TALEARR_AUDIOBOOKS.md).
+
+- **Naming tokens.** `{Book SeriesPosition:00}` (zero padded), `{Book Year}` (empty when unknown),
+  `{Abridged}` / `{Abridgement}`, and ready-made layouts in the naming help, including
+  Audiobookshelf's `Author/Series/01 - 1994 - Title {Narrator}/files`.
+- **Multi-disc import.** CD1/Disc 2/Part 03 folders and many-file rips import as one book in
+  playing order (track and disc tags, then disc folder numbers, then a natural sort); files with
+  the same name on different discs no longer overwrite each other; a folder holding two books
+  (by album tags) is matched as two books.
+- **Merge to M4B.** Settings > Conversion > Merge after import (off by default) and a Convert to
+  M4B button on the book page merge multi-file mp3/m4a audiobooks into one chaptered M4B with
+  FFmpeg, keeping the cover and tags. The originals are removed only after the M4B is verified
+  (duration within 1%). Stored as the `talearr.audiobook.m4bafterimport` row in the `Config`
+  table through the new `/api/v1/config/talearrm4b` route.
 
 ## Drop-in compatibility with Chaptarr
 
