@@ -1859,9 +1859,13 @@ namespace Chaptarr.Api.V1.Books
             var book = _bookService.GetBook(bookResource.Id);
             var wasMonitoredForFacadeMediaType = facadeContext != null &&
                                                  book.IsMonitoredForMediaType(facadeContext.MediaType);
-            var beforeMonitoredEditionId = book?.Editions?.SingleOrDefault(e => e != null && e.Monitored)?.Id;
+            // TaleArr: a book left with several monitored editions (an older refresh bug) made
+            // SingleOrDefault throw, so every edition switch on it failed with a 500.
+            var beforeMonitoredEditionId = GetSingleMonitoredEditionId(book?.Editions);
+            var storedMonitoredEditionIds = GetMonitoredEditionIds(book?.Editions);
 
             var model = bookResource.ToModel(book, facadeContext);
+            ResolveSubmittedEditionSelection(storedMonitoredEditionIds, model?.Editions);
             var shouldPinExplicitEditionSelection = ShouldPinExplicitEditionSelection(pinExplicitEditionChange, beforeMonitoredEditionId, model?.Editions);
             var shouldSkipEditionRepair = ShouldSkipEditionRepairForPartialFacadeCompat(pinExplicitEditionChange, facadeContext, beforeMonitoredEditionId, book?.Editions, model?.Editions);
 
@@ -1877,7 +1881,7 @@ namespace Chaptarr.Api.V1.Books
             }
             var afterMonitoredEditionId = shouldSkipEditionRepair
                 ? beforeMonitoredEditionId
-                : model?.Editions?.SingleOrDefault(e => e != null && e.Monitored)?.Id;
+                : GetSingleMonitoredEditionId(model?.Editions);
 
             if (ShouldApplyFacadeSpecificBookMonitoring(
                     facadeContext,
@@ -1905,6 +1909,57 @@ namespace Chaptarr.Api.V1.Books
             BroadcastResourceChange(ModelAction.Updated, model.Id);
 
             return Accepted(model.Id);
+        }
+
+        internal static int? GetSingleMonitoredEditionId(IEnumerable<Edition> editions)
+        {
+            var monitoredIds = GetMonitoredEditionIds(editions);
+            return monitoredIds.Count == 1 ? monitoredIds.First() : null;
+        }
+
+        internal static HashSet<int> GetMonitoredEditionIds(IEnumerable<Edition> editions)
+        {
+            return new HashSet<int>((editions ?? Enumerable.Empty<Edition>())
+                .Where(e => e != null && e.Monitored)
+                .Select(e => e.Id));
+        }
+
+        /// <summary>
+        /// TaleArr: when the client echoes several monitored editions back (it loaded a book whose
+        /// stored state already had several), keep the edition the user just turned on: the one
+        /// monitored in the request that was not monitored before. Returns true when it narrowed
+        /// the selection.
+        /// </summary>
+        internal static bool ResolveSubmittedEditionSelection(IReadOnlySet<int> storedMonitoredEditionIds, IList<Edition> submittedEditions)
+        {
+            if (submittedEditions == null)
+            {
+                return false;
+            }
+
+            var submittedMonitored = submittedEditions.Where(e => e != null && e.Monitored).ToList();
+            if (submittedMonitored.Count < 2)
+            {
+                return false;
+            }
+
+            var stored = storedMonitoredEditionIds ?? new HashSet<int>();
+            var newlyMonitored = submittedMonitored
+                .Where(e => e.Id > 0 && !stored.Contains(e.Id))
+                .ToList();
+
+            if (newlyMonitored.Count != 1)
+            {
+                return false;
+            }
+
+            var keep = newlyMonitored[0];
+            foreach (var edition in submittedMonitored)
+            {
+                edition.Monitored = ReferenceEquals(edition, keep);
+            }
+
+            return true;
         }
 
         internal static bool ShouldApplyFacadeSpecificBookMonitoring(

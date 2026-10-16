@@ -22,7 +22,11 @@ namespace NzbDrone.Core.Parser
         SiblingTitleContradiction = 3,
         SeriesPositionMismatch = 4,
         SuspiciousAdjacentNumber = 5,
-        EmbeddedShortTitle = 6
+        EmbeddedShortTitle = 6,
+
+        // TaleArr: loose title matching guards (see ReleaseTitleMatchScorer.Talearr.cs).
+        SeriesNameOnly = 7,
+        SubtitleMismatch = 8
     }
 
     public sealed class TitleMatchProblem
@@ -59,6 +63,12 @@ namespace NzbDrone.Core.Parser
         public string SeriesPosition { get; set; }
         public List<string> PrimaryVariants { get; } = new List<string>();
         public HashSet<string> PrefixAllowanceTokens { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // TaleArr: loose variants (subtitle, article or series bracket dropped) mapped to the text they dropped.
+        public Dictionary<string, string> LooseVariants { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        // TaleArr: token lists of other books by the author, used to spot "Sibling: After Target" releases.
+        public List<IReadOnlyList<string>> SiblingTitleTokens { get; } = new List<IReadOnlyList<string>>();
     }
 
     internal sealed class ContradictoryVariant
@@ -67,7 +77,7 @@ namespace NzbDrone.Core.Parser
         public IReadOnlyList<string> Tokens { get; set; }
     }
 
-    public static class ReleaseTitleMatchScorer
+    public static partial class ReleaseTitleMatchScorer
     {
         private const int HintOnlyPrefixGuardTokenThreshold = 2;
         private const string DecimalPointToken = "chaptarrdecimalpoint";
@@ -198,7 +208,10 @@ namespace NzbDrone.Core.Parser
             }
 
             var contradictoryVariants = BuildContradictoryVariants(book, authorCatalogBooks).ToList();
-            return ScoreAgainstVariants(releaseTokens, hasAuthorEvidence, hasAuthorInTitle, book, context.PrimaryVariants, context, contradictoryVariants);
+
+            // TaleArr: also try loose variants (no subtitle, moved or missing article, no series bracket).
+            AddTalearrLooseVariants(context, book, authorCatalogBooks);
+            return ScoreAgainstVariants(releaseTokens, hasAuthorEvidence, hasAuthorInTitle, book, context.PrimaryVariants.Concat(context.LooseVariants.Keys).ToList(), context, contradictoryVariants);
         }
 
         private static TitleMatchResult ScoreAgainstVariants(IReadOnlyList<string> releaseTokens, bool hasAuthorEvidence, bool hasAuthorInTitle, Book book, IEnumerable<string> variants, BookTitleMatchContext context, IReadOnlyCollection<ContradictoryVariant> contradictoryVariants)
@@ -234,6 +247,7 @@ namespace NzbDrone.Core.Parser
             foreach (var span in spans)
             {
                 var problems = GetProblems(releaseTokens, span.Start, span.End, titleTokens.Count, hasAuthorInTitle, book?.Author?.Name, context, contradictoryVariants);
+                AddTalearrProblems(problems, releaseTokens, span.Start, span.End, bookTitleVariant, book?.Author?.Name, context);
                 var leftovers = problems.Select(problem => problem.Value).ToList();
 
                 var candidate = new TitleMatchResult

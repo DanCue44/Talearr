@@ -225,7 +225,8 @@ namespace Chaptarr.Core.Test.Parser
         [TestCase("Tuesdays with Morrie")]
         [TestCase("Mitch Albom - Tuesdays with Morrie (2007) MP3")]
         [TestCase("Tuesdays With Morrie - Mitch Albom audiobook")]
-        public void should_not_shorten_the_monitored_edition_title_for_release_identity(string releaseTitle)
+        // TaleArr: a release without the subtitle matches (upstream rejected it).
+        public void should_match_release_that_omits_the_monitored_edition_subtitle(string releaseTitle)
         {
             var author = new Author { Name = "Mitch Albom" };
             var book = new Book
@@ -252,11 +253,12 @@ namespace Chaptarr.Core.Test.Parser
                 "Mitch Albom",
                 new[] { book });
 
-            Assert.That(result, Is.Null);
+            Assert.That(result?.IsMatch, Is.True);
         }
 
         [Test]
-        public void should_not_drop_an_unmapped_marketing_subtitle_from_release_identity()
+        // TaleArr: the marketing subtitle may be missing from the release (upstream rejected it).
+        public void should_match_release_without_an_unmapped_marketing_subtitle()
         {
             var author = new Author { Name = "A.F. Kay" };
             var book = new Book
@@ -284,7 +286,7 @@ namespace Chaptarr.Core.Test.Parser
                 "A F Kay",
                 new[] { book });
 
-            Assert.That(result, Is.Null);
+            Assert.That(result?.IsMatch, Is.True);
         }
 
         [Test]
@@ -1063,7 +1065,8 @@ namespace Chaptarr.Core.Test.Parser
         }
 
         [Test]
-        public void should_not_fallback_to_split_main_title_when_primary_title_is_absent()
+        // TaleArr: "Heretics of Dune: Dune Chronicles" is released as "Heretics of Dune" (upstream rejected it).
+        public void should_fallback_to_split_main_title_when_primary_title_is_absent()
         {
             var book = new Book
             {
@@ -1079,7 +1082,7 @@ namespace Chaptarr.Core.Test.Parser
                 "Frank Herbert",
                 new[] { book });
 
-            Assert.That(result, Is.Null);
+            Assert.That(result?.IsMatch, Is.True);
         }
 
         [Test]
