@@ -7,6 +7,8 @@ interface Window {
     theme: string;
     urlBase: string;
     version: string;
+    productName?: string;
+    talearrVersion?: string;
     isProduction: boolean;
   };
 }

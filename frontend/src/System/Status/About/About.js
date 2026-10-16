@@ -39,7 +39,12 @@ class About extends Component {
           <DescriptionList className={styles.descriptionList}>
             <DescriptionListItem
               title={translate('Version')}
-              data={version}
+              data={window.Chaptarr.talearrVersion || version}
+            />
+
+            <DescriptionListItem
+              title="Based on"
+              data={`Chaptarr ${version}`}
             />
 
             {

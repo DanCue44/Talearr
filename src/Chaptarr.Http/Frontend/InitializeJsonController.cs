@@ -33,6 +33,8 @@ namespace Chaptarr.Http.Frontend
                 ApiKey = _configFileProvider.ApiKey,
                 Release = BuildInfo.Release,
                 Version = BuildInfo.Version.ToString(),
+                ProductName = BuildInfo.ProductName,
+                TalearrVersion = BuildInfo.TalearrVersion,
                 BuildTime = BuildInfo.BuildDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture),
                 InstanceName = _configFileProvider.InstanceName,
                 Theme = _configFileProvider.Theme,
@@ -51,6 +53,8 @@ namespace Chaptarr.Http.Frontend
             public string ApiKey { get; set; }
             public string Release { get; set; }
             public string Version { get; set; }
+            public string ProductName { get; set; }
+            public string TalearrVersion { get; set; }
             public string BuildTime { get; set; }
             public string InstanceName { get; set; }
             public string Theme { get; set; }

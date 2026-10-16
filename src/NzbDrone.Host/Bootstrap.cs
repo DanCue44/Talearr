@@ -52,7 +52,9 @@ namespace NzbDrone.Host
         {
             try
             {
-                Logger.Info("Starting Chaptarr - {0} - Version {1}",
+                Logger.Info("Starting TaleArr {0} (based on Chaptarr {1}) - {2} - Release {3}",
+                            BuildInfo.TalearrVersion,
+                            BuildInfo.Version.ToString(3),
                             Environment.ProcessPath,
                             BuildInfo.Release);
 
@@ -287,7 +289,7 @@ namespace NzbDrone.Host
             {
                 Logger.Error(ex, ex.Message);
 
-                throw new InvalidConfigFileException($"{configPath} is corrupt or invalid. Please delete the config file and Chaptarr will recreate it.", ex);
+                throw new InvalidConfigFileException($"{configPath} is corrupt or invalid. Please delete the config file and TaleArr will recreate it.", ex);
             }
         }
 
