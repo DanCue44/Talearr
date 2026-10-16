@@ -97,6 +97,65 @@ abridged is imported as its own recording, an additional recording of the best u
 edition (an existing one is reused), instead of replacing the abridged files. With it off, such
 a download is refused and the abridged files stay.
 
+## Per-book abridged policy
+
+The grab policy's **Abridged audiobooks** setting (Settings > Indexers > Grab policy, see the
+[README](../README.md#grab-policy)) is the default for every book. A book can have its own value,
+set through the API below. AllSeerr does this when its "Audiobook versions" setting is "requester
+chooses"; its other choices (unabridged, abridged, both) map onto the same values or onto an
+additional recording.
+
+| Value | Releases | Ranking |
+|---|---|---|
+| `unabridgedOnly` | Releases marked abridged are skipped. As the global value they are still allowed when the monitored edition is itself abridged; as a book's own value that exception does not apply. | Abridged last. |
+| `abridgedOnly` | Releases marked unabridged are skipped. Unmarked releases (most of them) are allowed only when the monitored edition is abridged. Releases marked abridged are always allowed. | Abridged first, then unmarked, then unabridged. |
+| `preferUnabridged` | All allowed. | Abridged last, or first when the monitored edition is abridged. |
+| `any` | All allowed. | No abridged step. |
+
+Skipped releases are a soft filter labelled "Abridged" in interactive search, so you can still
+grab one on purpose; the reason ends in "for this book" when a book's own value decided.
+"Abridged" for a release means its name says so (`AbridgedReleaseDetector`); for the monitored
+edition it is the recordings answer (Audible, then the edition's title or info, then its runtime,
+see [The book page](#the-book-page)).
+
+Which value applies:
+
+- the book's own value when it has one, else the global value,
+- additional recordings never take a book's value and keep their own behaviour: an abridged
+  recording searches abridged. Under a global `abridgedOnly` an unabridged recording searches
+  unabridged only and a recording of unknown abridgement takes either,
+- ebooks are not affected.
+
+The same value decides Audiobookshelf awareness: under `abridgedOnly` only an abridged copy in
+Audiobookshelf counts as owned. The automatic retry after a failed download searches with the
+book's value, and its history note says so ("...; abridged policy for this book: abridged only").
+
+### Edition choice
+
+Before a book search (missing book searches, Search, a retry after a failed download, an
+interactive search of a monitored book, a search queued by AllSeerr), TaleArr checks the
+monitored edition against the value that applies:
+
+- `abridgedOnly` (the book's own or global) and the monitored edition is not abridged: TaleArr
+  monitors the best abridged edition of the book, chosen the way **Add another recording >
+  Abridged version** chooses (abridged status known, same language, Audible match, runtime
+  known, popularity), and searches for it,
+- a book's own `unabridgedOnly` and the monitored edition is abridged: the best unabridged
+  edition, the same way.
+
+The edition is pinned with Chaptarr's own wanted edition pin (the one the narrator picker uses),
+and the book's history gets a "TaleArr: monitored edition switched to the abridged edition ..."
+entry. When no matching edition is known, nothing changes: the search runs, finds nothing that
+fits (only a release named abridged would), and history says "TaleArr: no abridged edition of
+this book is known, so the search can only find releases marked abridged (...)", at most once a
+day. History entries use the existing Download Ignored type with the text as the message, so
+Chaptarr shows them after a rollback.
+
+Not switched: books that already have files (the files stay, and the upgrade guard never
+replaces one reading with the other), additional recordings, unmonitored books, and author-wide
+searches (they apply the release rules above but keep the monitored editions). A switch is not
+undone when the value changes back; pick another edition on the book page if you want one.
+
 ## Settings
 
 Settings > Metadata > Recordings:
@@ -129,6 +188,9 @@ For AllSeerr, NoBookEnds and scripts (all additive; nothing upstream changes):
 | `DELETE /api/v1/talearr/recordings/{bookId}?deleteFiles=false` | Removes an additional recording. The primary one is refused with `409`. |
 | `POST /api/v1/talearr/recordings/refresh?bookId=` | Refetches Audible facts for the book's recordings (`202`). |
 | `GET\|PUT /api/v1/config/talearrrecordings` | The settings above. The upgrade fields are optional on `PUT`; leaving them out keeps the current values. |
+| `GET /api/v1/talearr/grabpolicy/book/{bookId}` | A book's abridged policy: `{"bookId": 3401, "abridgedPolicy": "abridgedOnly", "effectivePolicy": "abridgedOnly", "source": "book"}`. `abridgedPolicy` is the book's own value or `null`; `source` is `book` or `global`. `bookId` may be any entry of the book (the ebook entry answers for its audiobook). `404` unknown book, `400` a book with no audiobook. |
+| `PUT /api/v1/talearr/grabpolicy/book/{bookId}` | `{"abridgedPolicy": "unabridgedOnly" \| "abridgedOnly" \| "preferUnabridged" \| "any" \| null}`; `null` clears the book's value. Answers like `GET` (`200`); `400` for another value (numbers included) or a book with no audiobook, `404` unknown book. The edition switch happens on the next search, not on `PUT`. |
+| `GET\|PUT /api/v1/config/talearrgrabpolicy` | The global grab policy; `abridgedPolicy` also takes `abridgedOnly`. |
 
 Local ids in responses (`bookId`, `editionId`) are handles; store `baseBookId`,
 `foreignEditionId` or the ASIN instead.
@@ -138,6 +200,13 @@ Local ids in responses (`bookId`, `editionId`) are handles; store `baseBookId`,
 - `talearr.db` in the config folder (next to `chaptarr.db`): Audible products, which edition
   matched which product, and which recordings were requested by whom. A rebuildable cache:
   delete it and TaleArr fetches again. Chaptarr never opens it.
+- Per-book abridged values, in the `BookGrabPolicies` table of `talearr.db` (schema version 3).
+  They are keyed by the work, the book's `BaseBookId` (`hc:378630`), the key the recordings use
+  for a work: it comes from the metadata server, is shared by the book's audiobook and ebook
+  entries and any duplicate entry, and stays the same when the book is refreshed or its entry is
+  recreated. An entry without a `BaseBookId` falls back to `book:<id>` (none on a normal
+  library). The monitored edition's key and the entry id are kept beside it for reference only.
+  Losing `talearr.db` only loses these values: the books follow the global policy again.
 - `talearr.*` rows in the existing `Config` table for the settings. Chaptarr ignores them.
 - Additional recordings are Chaptarr's own copy entries; no new tables or columns, no
   migrations, `config.xml` untouched.

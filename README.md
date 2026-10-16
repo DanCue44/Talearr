@@ -91,10 +91,16 @@ See [docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md).
 - **Upgrade guard.** An audiobook upgrade only replaces files of the same recording, never with
   fewer channels or a lower measured bitrate, and bitrate gains count only within one codec. An
   unabridged download for abridged files becomes its own recording (Keep both recordings).
+- **Per-book abridged policy.** A book can have its own Abridged audiobooks value (unabridged
+  only, abridged only, prefer unabridged, any), set by AllSeerr through
+  `GET|PUT /api/v1/talearr/grabpolicy/book/{bookId}`. An abridged only book without files
+  monitors its best abridged edition before it is searched; when none is known, its history says
+  so. Additional recordings keep their own behaviour.
 - **API** for AllSeerr and NoBookEnds: `GET|POST /api/v1/talearr/recordings`,
   `DELETE /api/v1/talearr/recordings/{bookId}`, `GET|PUT /api/v1/config/talearrrecordings`.
 
-Storage: a separate rebuildable `talearr.db` next to `chaptarr.db`, and `talearr.recordings.*`
+Storage: a separate `talearr.db` next to `chaptarr.db` (a rebuildable cache, plus the per-book
+abridged values, which fall back to the global policy if it is lost), and `talearr.recordings.*`
 and `talearr.upgrade.*` rows in the `Config` table. No schema change, no migrations, no
 `config.xml` edits.
 
@@ -175,7 +181,7 @@ goes wrong:
 
 | Setting | Default | What it does |
 |---|---|---|
-| Abridged audiobooks | Unabridged only | Audiobook releases marked "abridged" are skipped (shown as a soft filter in interactive search, so you can still grab one on purpose). They are allowed when the wanted edition is itself abridged, judged from the edition title or info, or from its runtime being under 60% of the longest edition in the same language. "Prefer unabridged" allows them but always ranks them below unabridged or unmarked releases. "Any" turns this off. |
+| Abridged audiobooks | Unabridged only | Audiobook releases marked "abridged" are skipped (shown as a soft filter in interactive search, so you can still grab one on purpose). They are allowed when the wanted edition is itself abridged, judged from the edition title or info, or from its runtime being under 60% of the longest edition in the same language. "Abridged only" does the opposite: releases marked unabridged are skipped, unmarked ones are allowed only when the monitored edition is abridged, abridged releases rank first, and before searching a book without files TaleArr monitors its best abridged edition (see [docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md#per-book-abridged-policy)). "Prefer unabridged" allows them but always ranks them below unabridged or unmarked releases. "Any" turns this off. A book can have its own value (from AllSeerr), which wins over this one. |
 | Allow bundles | Off | Series bundles, omnibuses, box sets, collections, "complete novels", "N books" sets and explicit title lists ("Great Innovators (Benjamin Franklin; Einstein; Steve Jobs)") are skipped for single-book searches. A wanted book that is itself an omnibus still matches bundle releases. |
 | Fail rejected imports | On | When an import is rejected because the release is the wrong book, its files are in the wrong language, its archives are unusable, or it holds no audio or ebook files (zip, rar and 7z are unpacked first, see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), the download is marked failed. That blocklists the release and starts the automatic redownload. Archive formats TaleArr does not unpack, same-title matches (usually duplicate metadata), transient errors and explicit interactive grabs stay in the queue as before. |
 | Automatic retry limit | 3 | Failed downloads per book within 7 days before automatic searching stops. |
@@ -196,7 +202,8 @@ replacement. Each step is appended to the Download Failed entry in History, for 
 
 Storage: these four settings live in the existing `Config` key/value table as
 `talearr.grabpolicy.*` rows, read and written only by TaleArr through the new
-`/api/v1/config/talearrgrabpolicy` route. There is no schema change, no existing route or
+`/api/v1/config/talearrgrabpolicy` route. Per-book abridged values live in `talearr.db`
+(`/api/v1/talearr/grabpolicy/book/{bookId}`). There is no schema change, no existing route or
 field changes, and `config.xml` is not touched. Chaptarr ignores the rows, so a rollback
 runs Chaptarr's own behaviour on the same database.
 
