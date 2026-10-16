@@ -85,6 +85,9 @@ MUST_KEEP_RECORDINGS = [
     ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionComparer.cs", r"WantsAbridged\(abridged\.RemoteBook, _abridgedResolver\)", "recordings: abridged ranking uses the resolved value"),
     ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionPriorizationService.cs", r"_abridgedResolver\);", "recordings: ranking gets the abridged resolver"),
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"TalearrNamingTokens\.Add\(tokenHandlers, edition, _abridgedResolver\)", "recordings: {Abridged} naming uses the resolved value"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrRecordingsController.cs", r'V1ApiController\("talearr/recordings"\)', "recordings: API route for AllSeerr and NoBookEnds"),
+    ("src/NzbDrone.Core/Talearr/Recordings/TalearrRecordingsService.cs", r"_bookService\.AddWantedEdition\(", "recordings: new recordings are upstream wanted copies"),
+    ("src/NzbDrone.Core/Talearr/Recordings/TalearrEditionKey.cs", r"GetTrustedForeignEditionId", "recordings: facts keyed the way upstream keys cloned editions"),
 ]
 
 # (folder, file glob, regex, why). No file under the folder may match.
