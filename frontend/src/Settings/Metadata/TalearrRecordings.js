@@ -132,6 +132,50 @@ function TalearrRecordings(props) {
               />
             </FormGroup>
 
+            <FormGroup size={sizes.MEDIUM}>
+              <FormLabel>{'Upgrade guard'}</FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.CHECK}
+                name="upgradeGuard"
+                helpText="Audiobook upgrades only replace files of the same recording (abridged or unabridged, narrator, length) and never with fewer channels or a lower measured bitrate. Manual imports and forced grabs are not checked. The reason is shown on the import."
+                onChange={onInputChange}
+                {...settings.upgradeGuard}
+              />
+            </FormGroup>
+
+            <FormGroup size={sizes.MEDIUM}>
+              <FormLabel>{'Minimum bitrate gain'}</FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.NUMBER}
+                name="minBitrateGainKbps"
+                min={0}
+                max={320}
+                unit="kbps"
+                helpText="At the same quality, a download must have at least this much more bitrate in the same codec to replace the files. A gain across codecs (mp3 against aac) never counts."
+                isDisabled={!(settings.upgradeGuard && settings.upgradeGuard.value)}
+                onChange={onInputChange}
+                {...settings.minBitrateGainKbps}
+              />
+            </FormGroup>
+
+            <FormGroup size={sizes.MEDIUM}>
+              <FormLabel>{'Runtime tolerance'}</FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.NUMBER}
+                name="runtimeTolerancePct"
+                min={0}
+                max={50}
+                unit="%"
+                helpText="A download shorter than the files by more than this is a different recording or incomplete and does not replace them"
+                isDisabled={!(settings.upgradeGuard && settings.upgradeGuard.value)}
+                onChange={onInputChange}
+                {...settings.runtimeTolerancePct}
+              />
+            </FormGroup>
+
             <Alert kind={kinds.INFO}>
               {'The Audible catalog API is unofficial. TaleArr keeps requests low (batched, at most one a second, long cache) and never shares the data, but using it is at your own risk, as with Chaptarr\'s own Audible search.'}
             </Alert>
