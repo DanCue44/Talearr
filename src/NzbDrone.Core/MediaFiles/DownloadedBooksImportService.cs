@@ -18,6 +18,7 @@ using NzbDrone.Core.MediaFiles.BookImport;
 using NzbDrone.Core.MediaFiles.BookImport.Services;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.MediaFiles.TagExtraction;
+using NzbDrone.Core.MediaFiles.TalearrImport;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
@@ -56,6 +57,10 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IMediaInfoExtractor _mediaInfoExtractor;
         private readonly Logger _logger;
 
+        // TaleArr: optional so the upstream constructor (and its tests) keep working; DryIoc picks
+        // the constructor with the most resolvable parameters, which is the TaleArr one.
+        private readonly IDownloadArchiveUnpacker _archiveUnpacker;
+
         public DownloadedBooksImportService(
             IDiskProvider diskProvider,
             IDiskScanService diskScanService,
@@ -74,7 +79,34 @@ namespace NzbDrone.Core.MediaFiles
             IRuntimeInfo runtimeInfo,
             IMediaInfoExtractor mediaInfoExtractor,
             Logger logger)
+            : this(diskProvider, diskScanService, fileMatchingService, metadataTagService, importApprovedBooks, bookService,
+                   authorService, editionService, importOrchestrator, authorLibraryService, rootFolderService, configService,
+                   historyService, eventAggregator, runtimeInfo, mediaInfoExtractor, logger, null)
         {
+        }
+
+        // TaleArr: constructor with the archive unpacker.
+        public DownloadedBooksImportService(
+            IDiskProvider diskProvider,
+            IDiskScanService diskScanService,
+            IFileMatchingService fileMatchingService,
+            IMetadataTagService metadataTagService,
+            IImportApprovedBooks importApprovedBooks,
+            IBookService bookService,
+            IAuthorService authorService,
+            IEditionService editionService,
+            IImportOrchestrator importOrchestrator,
+            IAuthorLibraryService authorLibraryService,
+            IRootFolderService rootFolderService,
+            IConfigService configService,
+            IHistoryService historyService,
+            IEventAggregator eventAggregator,
+            IRuntimeInfo runtimeInfo,
+            IMediaInfoExtractor mediaInfoExtractor,
+            Logger logger,
+            IDownloadArchiveUnpacker archiveUnpacker)
+        {
+            _archiveUnpacker = archiveUnpacker;
             _diskProvider = diskProvider;
             _diskScanService = diskScanService;
             _fileMatchingService = fileMatchingService;
@@ -103,7 +135,57 @@ namespace NzbDrone.Core.MediaFiles
 
         public List<ImportResult> ProcessPath(string path, ImportMode importMode = ImportMode.Auto, Author author = null, DownloadClientItem downloadClientItem = null, RemoteBook remoteBook = null, bool requireDefaultRootFolderForMissingAuthors = false)
         {
+            // TaleArr: a payload that only holds archives is unpacked next to the download first.
+            var unpacked = _archiveUnpacker?.Unpack(path);
+            if (unpacked != null)
+            {
+                return ProcessUnpackedPath(unpacked, importMode, author, downloadClientItem, remoteBook, requireDefaultRootFolderForMissingAuthors);
+            }
+
             return ProcessPath(path, importMode, author, downloadClientItem, remoteBook, null, requireDefaultRootFolderForMissingAuthors);
+        }
+
+        // TaleArr: imports from the unpack work folder, then removes it. The original download is
+        // never moved or deleted (it may still be seeding); the work folder is our own copy, so
+        // files are moved out of it whatever mode the download client allows.
+        private List<ImportResult> ProcessUnpackedPath(ArchiveUnpackResult unpacked, ImportMode importMode, Author author, DownloadClientItem downloadClientItem, RemoteBook remoteBook, bool requireDefaultRootFolderForMissingAuthors)
+        {
+            if (!unpacked.Success)
+            {
+                var reason = $"TaleArr could not unpack the archives in {unpacked.SourcePath}: {unpacked.Error}.";
+                var localBook = new LocalBook { Path = unpacked.SourcePath };
+                return new List<ImportResult>
+                {
+                    new ImportResult(new ImportDecision<LocalBook>(localBook, new Rejection(reason)), reason)
+                };
+            }
+
+            DownloadClientItem unpackedItem = null;
+            if (downloadClientItem != null)
+            {
+                unpackedItem = downloadClientItem.Clone();
+                unpackedItem.OutputPath = new OsPath(unpacked.WorkFolder);
+                unpackedItem.FilePaths = null;
+                unpackedItem.FileListConfidence = null;
+                unpackedItem.CanMoveFiles = true;
+            }
+
+            var unpackedMode = importMode == ImportMode.Copy ? ImportMode.Move : importMode;
+            List<ImportResult> results = null;
+
+            try
+            {
+                results = ProcessPath(unpacked.WorkFolder, unpackedMode, author, unpackedItem, remoteBook, null, requireDefaultRootFolderForMissingAuthors);
+                return results;
+            }
+            finally
+            {
+                // A detached conversion still reads from the work folder; keep it for the next pass.
+                if (results?.Any(result => result.Result == ImportResultType.Pending) != true)
+                {
+                    _archiveUnpacker.Cleanup(unpacked);
+                }
+            }
         }
 
             private List<ImportResult> ProcessPath(string path, ImportMode importMode, Author author, DownloadClientItem downloadClientItem, RemoteBook remoteBook, ParsedBookInfo parsedBookInfo, bool requireDefaultRootFolderForMissingAuthors = false)
