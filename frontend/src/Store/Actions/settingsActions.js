@@ -29,6 +29,7 @@ import qualityProfiles from './Settings/qualityProfiles';
 import releaseProfiles from './Settings/releaseProfiles';
 import remotePathMappings from './Settings/remotePathMappings';
 import rootFolders from './Settings/rootFolders';
+import talearrGrabPolicy from './Settings/talearrGrabPolicy';
 import ui from './Settings/ui';
 
 export * from './Settings/customFormatSpecifications.js';
@@ -60,6 +61,7 @@ export * from './Settings/remotePathMappings';
 export * from './Settings/rootFolders';
 export * from './Settings/development';
 export * from './Settings/ui';
+export * from './Settings/talearrGrabPolicy';
 
 //
 // Variables
@@ -100,7 +102,8 @@ export const defaultState = {
   remotePathMappings: remotePathMappings.defaultState,
   rootFolders: rootFolders.defaultState,
   development: development.defaultState,
-  ui: ui.defaultState
+  ui: ui.defaultState,
+  talearrGrabPolicy: talearrGrabPolicy.defaultState
 };
 
 export const persistState = [
@@ -149,7 +152,8 @@ export const actionHandlers = handleThunks({
   ...remotePathMappings.actionHandlers,
   ...rootFolders.actionHandlers,
   ...development.actionHandlers,
-  ...ui.actionHandlers
+  ...ui.actionHandlers,
+  ...talearrGrabPolicy.actionHandlers
 });
 
 //
@@ -189,6 +193,7 @@ export const reducers = createHandleActions({
   ...remotePathMappings.reducers,
   ...rootFolders.reducers,
   ...development.reducers,
-  ...ui.reducers
+  ...ui.reducers,
+  ...talearrGrabPolicy.reducers
 
 }, defaultState, section);
