@@ -55,6 +55,11 @@ namespace NzbDrone.Core.Parser
                 return;
             }
 
+            var otherBooks = (authorCatalogBooks ?? Enumerable.Empty<Book>())
+                .Where(other => CanContradict(book, other))
+                .ToList();
+            AddTalearrSiblingTitles(context, otherBooks);
+
             var candidates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var (variant, dropped) in GetTalearrLooseVariants(context.PrimaryTitle, context.SeriesName, book?.Title))
             {
@@ -70,10 +75,6 @@ namespace NzbDrone.Core.Parser
             }
 
             var primaryKeys = new HashSet<string>(context.PrimaryVariants.Select(TalearrTokenKey), StringComparer.Ordinal);
-            var otherBooks = (authorCatalogBooks ?? Enumerable.Empty<Book>())
-                .Where(other => CanContradict(book, other))
-                .ToList();
-
             foreach (var candidate in candidates)
             {
                 var key = TalearrTokenKey(candidate.Key);
@@ -204,6 +205,12 @@ namespace NzbDrone.Core.Parser
                 return;
             }
 
+            var siblingProblem = GetTalearrLeadingSiblingProblem(releaseTokens, matchedStart, context);
+            if (siblingProblem != null && !problems.Any(p => p.Code == siblingProblem.Code))
+            {
+                problems.Add(siblingProblem);
+            }
+
             var seriesProblem = GetTalearrSeriesNameOnlyProblem(releaseTokens, matchedEnd, variant, context);
             if (seriesProblem != null && !problems.Any(p => p.Code == seriesProblem.Code))
             {
@@ -226,9 +233,21 @@ namespace NzbDrone.Core.Parser
         {
             var next = matchedEnd + 1;
             if (next >= releaseTokens.Count ||
-                !string.Equals(releaseTokens[next], "series", StringComparison.OrdinalIgnoreCase) ||
-                string.IsNullOrWhiteSpace(context?.SeriesName) ||
-                !TokenizedEquals(variant, context.SeriesName))
+                !string.Equals(releaseTokens[next], "series", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var isSeriesName = !string.IsNullOrWhiteSpace(context?.SeriesName) && TokenizedEquals(variant, context.SeriesName);
+
+            // "The Firm Series (2)": the title names the series and a different position follows.
+            var numberIndex = next + 1;
+            var hasOtherPosition = numberIndex < releaseTokens.Count &&
+                                   IsNumericToken(releaseTokens[numberIndex]) &&
+                                   !YearTokenRegex.IsMatch(releaseTokens[numberIndex]) &&
+                                   !SeriesPositionMatches(context, releaseTokens[numberIndex]);
+
+            if (!isSeriesName && !hasOtherPosition)
             {
                 return null;
             }
@@ -236,8 +255,84 @@ namespace NzbDrone.Core.Parser
             return new TitleMatchProblem
             {
                 Code = TitleMatchProblemCode.SeriesNameOnly,
-                Value = $"{context.SeriesName} series"
+                Value = $"{variant} series"
             };
+        }
+
+        private static void AddTalearrSiblingTitles(BookTitleMatchContext context, IEnumerable<Book> otherBooks)
+        {
+            var ownTokens = new HashSet<string>(
+                Tokenize(context.PrimaryTitle).Concat(context.PrimaryVariants.SelectMany(Tokenize)),
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (var other in otherBooks)
+            {
+                foreach (var title in new[] { other.Title, GetPrimaryBookTitle(other) }
+                             .Where(t => t.IsNotNullOrWhiteSpace())
+                             .Select(t => TalearrTitleNormalizer.GetMainTitle(TalearrTitleNormalizer.StripAllBrackets(t)))
+                             .Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    if (IsTargetSeriesContext(title, context))
+                    {
+                        continue;
+                    }
+
+                    var tokens = Tokenize(title);
+                    var meaningful = tokens.Where(token => !TalearrStopwords.Contains(token)).ToList();
+
+                    // Skip siblings whose words are all part of this book's own title ("Bride" for
+                    // "Mate: Bride, Vol. 2"), and very weak titles.
+                    if (meaningful.Count == 0 || meaningful.All(ownTokens.Contains) ||
+                        (meaningful.Count == 1 && meaningful[0].Length < 4))
+                    {
+                        continue;
+                    }
+
+                    if (!context.SiblingTitleTokens.Any(existing => existing.SequenceEqual(tokens, StringComparer.OrdinalIgnoreCase)))
+                    {
+                        context.SiblingTitleTokens.Add(tokens);
+                    }
+                }
+            }
+        }
+
+        // "John Grisham - The Exchange: After the Firm" is the sequel, not "The Firm": another book's
+        // title sits just before the matched title, joined by a few plain words. Series markers or
+        // numbers in between ("Lightlark Series 03 - Skyshade") mean a series prefix and are allowed.
+        private static TitleMatchProblem GetTalearrLeadingSiblingProblem(IReadOnlyList<string> releaseTokens, int matchedStart, BookTitleMatchContext context)
+        {
+            if (context?.SiblingTitleTokens == null || context.SiblingTitleTokens.Count == 0 || matchedStart <= 0)
+            {
+                return null;
+            }
+
+            foreach (var sibling in context.SiblingTitleTokens)
+            {
+                foreach (var span in FindExactTitleSpans(releaseTokens, sibling))
+                {
+                    if (span.End >= matchedStart)
+                    {
+                        continue;
+                    }
+
+                    var gap = releaseTokens.Skip(span.End + 1).Take(matchedStart - span.End - 1).ToList();
+                    if (gap.Count == 0 || gap.Count > 3 ||
+                        gap.Any(token => IsNumericToken(token) || TalearrPositionMarkers.Contains(token) ||
+                                         string.Equals(token, "series", StringComparison.OrdinalIgnoreCase) ||
+                                         MetadataTokens.Contains(token) && !TalearrStopwords.Contains(token)))
+                    {
+                        continue;
+                    }
+
+                    return new TitleMatchProblem
+                    {
+                        Code = TitleMatchProblemCode.SiblingTitleContradiction,
+                        Value = string.Join(" ", sibling)
+                    };
+                }
+            }
+
+            return null;
         }
 
         private static TitleMatchProblem GetTalearrSubtitleMismatch(IReadOnlyList<string> releaseTokens, int matchedEnd, string dropped, string authorName, BookTitleMatchContext context)

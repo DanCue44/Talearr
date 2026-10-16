@@ -66,6 +66,9 @@ namespace NzbDrone.Core.Parser
 
         // TaleArr: loose variants (subtitle, article or series bracket dropped) mapped to the text they dropped.
         public Dictionary<string, string> LooseVariants { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        // TaleArr: token lists of other books by the author, used to spot "Sibling: After Target" releases.
+        public List<IReadOnlyList<string>> SiblingTitleTokens { get; } = new List<IReadOnlyList<string>>();
     }
 
     internal sealed class ContradictoryVariant

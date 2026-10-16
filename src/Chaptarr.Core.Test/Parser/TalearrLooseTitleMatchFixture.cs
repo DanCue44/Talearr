@@ -161,6 +161,57 @@ namespace Chaptarr.Core.Test.Parser
             Assert.That(Match(release, wrong, right, wrong)?.IsMatch ?? false, Is.False);
         }
 
+        // Book 3129 "The Firm" on the TaleArr test server. Its monitored edition was
+        // "The Firm: A Novel (The Firm Series Book 1)" when automatic searches grabbed nothing,
+        // and interactive search later approved the sequel and a series listing.
+        private static (Book Firm, Book[] Catalog) FirmCatalog(string monitoredTitle, bool withSeries)
+        {
+            var firm = CreateBook("John Grisham", "The Firm", withSeries ? "The Firm" : null, withSeries ? "1" : null, monitoredTitle);
+            var exchange = CreateBook("John Grisham", "The Exchange", withSeries ? "The Firm" : null, withSeries ? "2" : null, "The Exchange: After The Firm");
+            return (firm, new[] { firm, exchange });
+        }
+
+        [TestCase("The Firm: A Novel (The Firm Series Book 1)", true)]
+        [TestCase("The Firm: A Novel (The Firm Series Book 1)", false)]
+        [TestCase("The Firm", true)]
+        [TestCase("The Firm", false)]
+        public void should_match_the_firm_releases_for_either_monitored_edition_title(string monitoredTitle, bool withSeries)
+        {
+            var (firm, catalog) = FirmCatalog(monitoredTitle, withSeries);
+
+            Assert.That(Match("John Grisham - The Firm (epub)", firm, catalog)?.IsMatch, Is.True);
+            Assert.That(Match("John.Grisham.-.The.Firm.1991.RETAIL.EPUB.eBook", firm, catalog)?.IsMatch, Is.True);
+            Assert.That(Match("John Grisham The Firm 2010 Retail EPUB eBook-BitBook", firm, catalog)?.IsMatch, Is.True);
+        }
+
+        [TestCase("John Grisham - The Exchange: After the Firm (epub)", TitleMatchProblemCode.SiblingTitleContradiction)]
+        [TestCase("John Grisham - The Exchange After The Firm (2023) [m4b]", TitleMatchProblemCode.SiblingTitleContradiction)]
+        [TestCase("John Grisham - The Firm Series (2)", TitleMatchProblemCode.SeriesNameOnly)]
+        [TestCase("John Grisham - The Firm Series 2 - The Exchange (epub)", TitleMatchProblemCode.SeriesNameOnly)]
+        public void should_not_match_the_sequel_or_another_series_entry_for_the_firm(string release, TitleMatchProblemCode expected)
+        {
+            foreach (var monitoredTitle in new[] { "The Firm", "The Firm: A Novel (The Firm Series Book 1)" })
+            {
+                foreach (var withSeries in new[] { true, false })
+                {
+                    var (firm, catalog) = FirmCatalog(monitoredTitle, withSeries);
+                    var result = Match(release, firm, catalog);
+
+                    Assert.That(result?.IsMatch ?? false, Is.False, $"monitored '{monitoredTitle}', series {withSeries}");
+                    Assert.That(result.Problems.Select(p => p.Code), Does.Contain(expected));
+                }
+            }
+        }
+
+        [Test]
+        public void should_still_match_a_series_prefix_before_the_title()
+        {
+            var skyshade = CreateBook("Alex Aster", "Skyshade");
+            var lightlark = CreateBook("Alex Aster", "Lightlark");
+
+            Assert.That(Match("Alex Aster - Lightlark Series 03 - Skyshade (m4b)", skyshade, skyshade, lightlark)?.IsMatch, Is.True);
+        }
+
         [Test]
         public void should_list_loose_variants_with_the_text_they_drop()
         {
