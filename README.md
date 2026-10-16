@@ -162,7 +162,7 @@ runs Chaptarr's own behaviour on the same database.
 
 ## Versioning
 
-TaleArr has its own version, set in `src/Talearr.props` (currently `0.12.0`). System >
+TaleArr has its own version, set in `src/Talearr.props` (currently `0.13.0`). System >
 Status shows it as the version, with a "Based on Chaptarr x.y.z" line underneath. The
 assembly version stays the upstream Chaptarr version (from `package.json` and
 `src/Directory.Build.props`) on purpose, because update checks, backups and metadata
@@ -178,7 +178,7 @@ Images are published to GitHub Container Registry by `.github/workflows/talearr-
 |---|---|
 | `ghcr.io/dancue44/talearr:develop` | every push to `develop` |
 | `ghcr.io/dancue44/talearr:latest` | every push to `main` |
-| `ghcr.io/dancue44/talearr:0.12.0` | `main` (TaleArr version) and `v0.12.0` git tags |
+| `ghcr.io/dancue44/talearr:0.13.0` | `main` (TaleArr version) and `v0.13.0` git tags |
 | `ghcr.io/dancue44/talearr:<branch>` | pushes to `feat/**` branches (amd64 only) |
 | `ghcr.io/dancue44/talearr:sha-<commit>` | every build |
 

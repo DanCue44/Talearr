@@ -106,7 +106,7 @@ function createLibraryOption(library, folder) {
 
   return {
     key: `${library.id}:${folder.id}`,
-    value: `${library.name} — ${folder.fullPath} (${libraryMode}${watcherStatus})`,
+    value: `${library.name} - ${folder.fullPath} (${libraryMode}${watcherStatus})`,
     libraryId: library.id,
     libraryFolderId: folder.id,
     libraryFolderPath: folder.fullPath
