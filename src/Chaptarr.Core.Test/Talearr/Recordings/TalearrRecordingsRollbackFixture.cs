@@ -87,7 +87,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
                 connection.Open();
                 var keys = connection.Query<string>("SELECT \"Key\" FROM \"Config\" WHERE \"Key\" LIKE 'talearr.%'").ToList();
                 Assert.That(keys, Is.Not.Empty);
-                Assert.That(keys.All(k => k.StartsWith("talearr.recordings.")), Is.True);
+                Assert.That(keys.All(k => k.StartsWith("talearr.recordings.") || k.StartsWith("talearr.upgrade.")), Is.True, "only talearr.* rows, which Chaptarr ignores");
             });
 
             // Deleting talearr.db (a rollback cleanup) costs nothing but a refetch.

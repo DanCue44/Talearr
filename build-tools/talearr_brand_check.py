@@ -88,12 +88,44 @@ MUST_KEEP_RECORDINGS = [
     ("src/Chaptarr.Api.V1/Talearr/TalearrRecordingsController.cs", r'V1ApiController\("talearr/recordings"\)', "recordings: API route for AllSeerr and NoBookEnds"),
     ("src/NzbDrone.Core/Talearr/Recordings/TalearrRecordingsService.cs", r"_bookService\.AddWantedEdition\(", "recordings: new recordings are upstream wanted copies"),
     ("src/NzbDrone.Core/Talearr/Recordings/TalearrEditionKey.cs", r"GetTrustedForeignEditionId", "recordings: facts keyed the way upstream keys cloned editions"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"public partial class FileNameBuilder", "recordings: FileNameBuilder stays partial for the TaleArr half"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"components = TalearrDisambiguateRecordingFolder\(", "recordings: copy folders are disambiguated"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"Lazy<ITalearrRecordingFolders> recordingFolders = null", "recordings: folder rule is optional and lazy (no container cycle)"),
+    ("src/NzbDrone.Core/MediaFiles/BookImport/ImportApprovedBooks.cs", r"TalearrRecordingFolders\.FindImportConflict\(", "recordings: import refuses a folder holding another recording's files"),
+    ("src/NzbDrone.Core/MediaFiles/BookImport/ImportApprovedBooks.cs", r"_talearrUpgradeGuard\.Evaluate\(", "upgrades: recording-aware upgrade guard runs before old files are touched"),
+    ("src/NzbDrone.Core/MediaFiles/BookImport/ImportApprovedBooks.cs", r"ResolveKeepBothDestination\(book\)", "upgrades: keep both reroutes an unabridged download to its own recording"),
+    ("src/NzbDrone.Core/Talearr/Recordings/TalearrRecordingsSettings.cs", r'"talearr\.upgrade\.guard"', "upgrades: guard settings are talearr.* Config rows"),
+    ("frontend/src/Book/Details/BookDetails.js", r"<BookRecordings", "recordings: Recordings section on the book page"),
+    ("frontend/src/Settings/Metadata/MetadataSettings.js", r"<TalearrRecordingsConnector", "recordings: settings block on Settings > Metadata"),
+    ("frontend/src/Store/Actions/settingsActions.js", r"talearrRecordings\.actionHandlers", "recordings: settings store section"),
+    ("frontend/src/Book/Recordings/BookRecordings.js", r"url: '/talearr/recordings'", "recordings: book page uses the TaleArr recordings API"),
+]
+
+# Phase 3 Audiobookshelf library awareness (docs/TALEARR_AUDIOBOOKSHELF.md). The connection is
+# upstream's own AudioBookShelf provider row; TaleArr adds keys to its Settings JSON and keeps the
+# library cache in talearr.db. Pin the parts the rollback promise depends on.
+MUST_KEEP_AUDIOBOOKSHELF = [
+    ("src/NzbDrone.Core/Notifications/AudioBookShelf/AudioBookShelfSettings.cs", r"public partial class AudioBookShelfSettings", "abs: upstream settings stay partial for the TaleArr fields"),
+    ("src/NzbDrone.Core/Notifications/AudioBookShelf/AudioBookShelfSettings.Talearr.cs", r"public bool TalearrSyncLibrary \{ get; set; \} = true;", "abs: library sync is on by default"),
+    ("src/NzbDrone.Core/Notifications/AudioBookShelf/AudioBookShelfSettings.Talearr.cs", r"public bool TalearrSkipOwned \{ get; set; \} = true;", "abs: skip books already in Audiobookshelf, on by default, can be turned off"),
+    ("src/NzbDrone.Core/Notifications/AudioBookShelf/AudioBookShelf.cs", r"TalearrAbsClient\.TestLibraryRead\(", "abs: Test button checks the libraries can be read"),
+    ("src/NzbDrone.Core/ThingiProvider/ProviderRepository.cs", r"PropertyNameCaseInsensitive = true", "abs: provider settings JSON read the way stock Chaptarr reads it"),
+    ("src/NzbDrone.Core/Talearr/Recordings/TalearrDatabase.cs", r"CREATE TABLE IF NOT EXISTS AbsItems", "abs: library cache lives in talearr.db"),
+    ("src/NzbDrone.Core/Jobs/TaskManager.cs", r"SyncAudiobookshelfLibraryCommand", "abs: scheduled library sync"),
+    ("src/NzbDrone.Core/Talearr/Audiobookshelf/TalearrInAudiobookshelfSpecification.cs", r'Category = "In Audiobookshelf"', "abs: rejection label in interactive search"),
+    ("src/NzbDrone.Core/Talearr/Audiobookshelf/TalearrInAudiobookshelfSpecification.cs", r"Decision\.RejectSoftFilter\(", "abs: owned copies are a soft filter, still grabbable on purpose"),
+    ("src/NzbDrone.Core/Talearr/Audiobookshelf/TalearrAbsLibraryService.cs", r"AbridgementFits\(marker, row\.WantsAbridged\)", "abs: an abridged copy does not satisfy a wanted unabridged recording"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrAudiobookshelfController.cs", r'V1ApiController\("talearr/audiobookshelf"\)', "abs: additive API route"),
+    ("frontend/src/Book/Details/BookDetailsHeader.js", r"<TalearrAbsBadge", "abs: In Audiobookshelf badge on the book page"),
+    ("frontend/src/Settings/Notifications/Notifications/EditNotificationModalContent.js", r"<TalearrAbsSyncStatus", "abs: sync status and Sync now on the connection"),
 ]
 
 # (folder, file glob, regex, why). No file under the folder may match.
 MUST_NOT_HAVE_IN_TREE = [
     ("src/NzbDrone.Core/Datastore/Migration", "*.cs", r"(?i)talearr", "TaleArr adds no chaptarr.db migrations"),
     ("src/NzbDrone.Core/Talearr", "*.cs", r"IMainDatabase|\[Migration\(", "TaleArr code keeps its data out of the chaptarr.db schema"),
+    ("src/NzbDrone.Core/Talearr", "*.cs", r"NotificationBase<|IProviderConfig\b", "TaleArr adds no provider implementation (stock Chaptarr deletes unknown ones on start)"),
+    ("src/NzbDrone.Core/Talearr/Audiobookshelf", "*.cs", r"HttpMethod\.(Post|Put|Patch|Delete)", "TaleArr only reads Audiobookshelf; scans stay upstream's"),
 ]
 
 # Visible strings that should not come back in UI shells after a merge.
@@ -114,7 +146,7 @@ def read(rel: str) -> str | None:
 def main() -> int:
     failures: list[str] = []
 
-    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS + MUST_KEEP_RECORDINGS:
+    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS + MUST_KEEP_RECORDINGS + MUST_KEEP_AUDIOBOOKSHELF:
         text = read(rel)
         if text is None:
             failures.append(f"missing file {rel} ({why})")
@@ -143,7 +175,7 @@ def main() -> int:
         return 1
 
     total = (len(MUST_HAVE_BRAND) + len(MUST_KEEP_UPSTREAM) + len(MUST_KEEP_TALEARR_HOOKS) +
-             len(MUST_KEEP_RECORDINGS) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE))
+             len(MUST_KEEP_RECORDINGS) + len(MUST_KEEP_AUDIOBOOKSHELF) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE))
     print(f"TaleArr brand check passed ({total} checks).")
     return 0
 

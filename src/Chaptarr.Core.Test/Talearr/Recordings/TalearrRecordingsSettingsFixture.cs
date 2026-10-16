@@ -26,6 +26,9 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
                 Assert.That(settings.Enrich, Is.EqualTo(TalearrEnrichScope.Monitored));
                 Assert.That(settings.SearchOnAdd, Is.True, "adding a recording searches right away");
                 Assert.That(settings.KeepBoth, Is.True, "an unabridged arrival never replaces the abridged recording");
+                Assert.That(settings.UpgradeGuard, Is.True);
+                Assert.That(settings.MinBitrateGainKbps, Is.EqualTo(16));
+                Assert.That(settings.RuntimeTolerancePct, Is.EqualTo(3));
                 Assert.That(proxy.Values, Is.Empty, "defaults are not written until the user saves");
             });
         }
@@ -56,7 +59,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
                 Assert.That(reloaded.Enrich, Is.EqualTo(TalearrEnrichScope.All));
                 Assert.That(reloaded.SearchOnAdd, Is.False);
                 Assert.That(reloaded.KeepBoth, Is.False);
-                Assert.That(proxy.Values.Keys.All(k => k.StartsWith("talearr.recordings.")), Is.True);
+                Assert.That(proxy.Values.Keys.All(k => k.StartsWith("talearr.recordings.") || k.StartsWith("talearr.upgrade.")), Is.True);
                 Assert.That(proxy.Values.Keys.All(k => k == k.ToLowerInvariant()), Is.True, "keys follow the grab policy's lowercase style");
                 Assert.That(proxy.Values[TalearrRecordingsSettingsService.ProviderKey], Is.EqualTo("audnexus"));
             });
@@ -82,6 +85,45 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
                 Assert.That(settings.SearchOnAdd, Is.True);
                 Assert.That(settings.KeepBoth, Is.True);
             });
+        }
+
+        [Test]
+        public void upgrade_guard_settings_round_trip_and_clamp()
+        {
+            var (repository, proxy) = ConfigRepositoryProxy.Create();
+            var service = new TalearrRecordingsSettingsService(repository, LogManager.GetCurrentClassLogger());
+
+            service.Save(new TalearrRecordingsSettings { UpgradeGuard = false, MinBitrateGainKbps = 32, RuntimeTolerancePct = 500 });
+            var reloaded = new TalearrRecordingsSettingsService(repository, LogManager.GetCurrentClassLogger()).Get();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(proxy.Values[TalearrRecordingsSettingsService.UpgradeGuardKey], Is.EqualTo("False"));
+                Assert.That(proxy.Values[TalearrRecordingsSettingsService.MinBitrateGainKey], Is.EqualTo("32"));
+                Assert.That(reloaded.UpgradeGuard, Is.False);
+                Assert.That(reloaded.MinBitrateGainKbps, Is.EqualTo(32));
+                Assert.That(reloaded.RuntimeTolerancePct, Is.EqualTo(TalearrRecordingsSettingsService.MaxRuntimeTolerancePct));
+            });
+
+            proxy.Values[TalearrRecordingsSettingsService.MinBitrateGainKey] = "-4";
+            Assert.That(new TalearrRecordingsSettingsService(repository, LogManager.GetCurrentClassLogger()).Get().MinBitrateGainKbps, Is.EqualTo(16));
+        }
+
+        [Test]
+        public void config_put_without_the_upgrade_fields_keeps_them()
+        {
+            var (repository, _) = ConfigRepositoryProxy.Create();
+            var service = new TalearrRecordingsSettingsService(repository, LogManager.GetCurrentClassLogger());
+            service.Save(new TalearrRecordingsSettings { UpgradeGuard = false, MinBitrateGainKbps = 24 });
+            var controller = new TalearrRecordingsConfigController(service);
+
+            // An older client (AllSeerr) sends only the fields it knows.
+            controller.SaveConfig(new TalearrRecordingsConfigResource { Id = 1, Marketplace = "us", KeepBoth = true, SearchOnAdd = true });
+
+            var settings = service.Get();
+            Assert.That(settings.UpgradeGuard, Is.False);
+            Assert.That(settings.MinBitrateGainKbps, Is.EqualTo(24));
+            Assert.That(settings.RuntimeTolerancePct, Is.EqualTo(3));
         }
 
         [Test]

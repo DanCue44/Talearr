@@ -20,6 +20,7 @@ import InteractiveSearchTable from 'InteractiveSearch/InteractiveSearchTable';
 import OrganizePreviewModalConnector from 'Organize/OrganizePreviewModalConnector';
 import RetagPreviewModalConnector from 'Retag/RetagPreviewModalConnector';
 import translate from 'Utilities/String/translate';
+import BookRecordings from '../Recordings/BookRecordings';
 import BookDetailsHeaderConnector from './BookDetailsHeaderConnector';
 import BookChaptersTable from './Chapters/BookChaptersTable';
 import BookMatchProvenanceTable from './Matching/BookMatchProvenanceTable';
@@ -276,6 +277,15 @@ class BookDetails extends Component {
                 <div>
                   {translate('LoadingBookFilesFailed')}
                 </div>
+            }
+
+            {
+              // TaleArr: recordings of this audiobook (narrators, abridged, add and remove copies).
+              mediaType !== 'ebook' &&
+                <BookRecordings
+                  bookId={id}
+                  authorId={author.id}
+                />
             }
 
             <Tabs selectedIndex={selectedTabIndex} onSelect={this.onTabSelect}>

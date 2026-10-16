@@ -5,6 +5,7 @@ import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
 import translate from 'Utilities/String/translate';
 import MetadatasConnector from './Metadata/MetadatasConnector';
 import MetadataProviderConnector from './MetadataProvider/MetadataProviderConnector';
+import TalearrRecordingsConnector from './TalearrRecordingsConnector';
 
 class MetadataSettings extends Component {
 
@@ -16,9 +17,14 @@ class MetadataSettings extends Component {
 
     this._saveCallback = null;
 
+    // TaleArr: the recordings section saves with the same toolbar button.
+    this._talearrSaveCallback = null;
+
     this.state = {
       isSaving: false,
-      hasPendingChanges: false
+      hasPendingChanges: false,
+      talearrIsSaving: false,
+      talearrHasPendingChanges: false
     };
   }
 
@@ -33,9 +39,24 @@ class MetadataSettings extends Component {
     this.setState(payload);
   };
 
+  onTalearrChildMounted = (saveCallback) => {
+    this._talearrSaveCallback = saveCallback;
+  };
+
+  onTalearrChildStateChange = ({ isSaving, hasPendingChanges }) => {
+    this.setState({
+      talearrIsSaving: isSaving,
+      talearrHasPendingChanges: hasPendingChanges
+    });
+  };
+
   onSavePress = () => {
     if (this._saveCallback) {
       this._saveCallback();
+    }
+
+    if (this._talearrSaveCallback && this.state.talearrHasPendingChanges) {
+      this._talearrSaveCallback();
     }
   };
 
@@ -44,14 +65,16 @@ class MetadataSettings extends Component {
   render() {
     const {
       isSaving,
-      hasPendingChanges
+      hasPendingChanges,
+      talearrIsSaving,
+      talearrHasPendingChanges
     } = this.state;
 
     return (
       <PageContent title={translate('MetadataSettings')}>
         <SettingsToolbarConnector
-          isSaving={isSaving}
-          hasPendingChanges={hasPendingChanges}
+          isSaving={isSaving || talearrIsSaving}
+          hasPendingChanges={hasPendingChanges || talearrHasPendingChanges}
           onSavePress={this.onSavePress}
         />
 
@@ -59,6 +82,10 @@ class MetadataSettings extends Component {
           <MetadataProviderConnector
             onChildMounted={this.onChildMounted}
             onChildStateChange={this.onChildStateChange}
+          />
+          <TalearrRecordingsConnector
+            onChildMounted={this.onTalearrChildMounted}
+            onChildStateChange={this.onTalearrChildStateChange}
           />
           <MetadatasConnector />
         </PageContentBody>

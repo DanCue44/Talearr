@@ -270,6 +270,12 @@ namespace NzbDrone.Core.Notifications.AudioBookShelf
 
             failures.AddIfNotNull(_proxy.Test(Settings));
 
+            // TaleArr: with Sync Library on, also check that the libraries can be read (GET only).
+            if (failures.Count == 0)
+            {
+                failures.AddIfNotNull(NzbDrone.Core.Talearr.Audiobookshelf.TalearrAbsClient.TestLibraryRead(_httpClient, Settings));
+            }
+
             return new ValidationResult(failures);
         }
 

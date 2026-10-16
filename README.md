@@ -26,7 +26,10 @@ are unpacked before import, and downloaded files whose own language is not the w
 are rejected; see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), fixes to edition choice,
 release title matching and Audible duplicates (see [docs/TALEARR_MATCHING.md](docs/TALEARR_MATCHING.md)),
 audiobook naming tokens, multi-disc import and an optional merge to M4B (see
-[docs/TALEARR_AUDIOBOOKS.md](docs/TALEARR_AUDIOBOOKS.md)), and its own Docker
+[docs/TALEARR_AUDIOBOOKS.md](docs/TALEARR_AUDIOBOOKS.md)), audiobook recordings (abridged and
+unabridged, or two narrators, side by side, with a recording-aware upgrade guard; see
+[docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md)), Audiobookshelf library awareness
+(see [docs/TALEARR_AUDIOBOOKSHELF.md](docs/TALEARR_AUDIOBOOKSHELF.md)), and its own Docker
 image and CI. The icon master is
 `Logo/talearr-icon-master.png`.
 
@@ -65,6 +68,53 @@ See [docs/TALEARR_AUDIOBOOKS.md](docs/TALEARR_AUDIOBOOKS.md).
   FFmpeg, keeping the cover and tags. The originals are removed only after the M4B is verified
   (duration within 1%). Stored as the `talearr.audiobook.m4bafterimport` row in the `Config`
   table through the new `/api/v1/config/talearrm4b` route.
+
+## Recordings
+
+See [docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md).
+
+- **More than one recording per audiobook.** Keep the abridged and the unabridged reading, or
+  two narrators, each with its own files and folder. The book page lists the recordings with
+  narrator, runtime, abridged or unabridged (and where that answer came from), Audible
+  marketplace and ASIN, and file status, and has "Add another recording" (unabridged, abridged,
+  another narrator, pick an edition) and "Remove this recording" (asks first, never the primary
+  recording, never automatic). Recordings are Chaptarr's own copy entries, so a rollback keeps
+  them.
+- **Audible facts.** Narrator, runtime and abridged or unabridged per edition from the Audible
+  catalog of the chosen marketplace (US by default), cached in `talearr.db`. Audnexus is opt in.
+  The grab policy and the `{Abridged}` naming tokens use the same answer.
+- **Own folder per recording.** When the naming format would put two recordings in one folder,
+  the copy gets ` (Abridged)`, the narrator, the edition year or the ASIN appended.
+- **Upgrade guard.** An audiobook upgrade only replaces files of the same recording, never with
+  fewer channels or a lower measured bitrate, and bitrate gains count only within one codec. An
+  unabridged download for abridged files becomes its own recording (Keep both recordings).
+- **API** for AllSeerr and NoBookEnds: `GET|POST /api/v1/talearr/recordings`,
+  `DELETE /api/v1/talearr/recordings/{bookId}`, `GET|PUT /api/v1/config/talearrrecordings`.
+
+Storage: a separate rebuildable `talearr.db` next to `chaptarr.db`, and `talearr.recordings.*`
+and `talearr.upgrade.*` rows in the `Config` table. No schema change, no migrations, no
+`config.xml` edits.
+
+## Audiobookshelf
+
+See [docs/TALEARR_AUDIOBOOKSHELF.md](docs/TALEARR_AUDIOBOOKSHELF.md).
+
+- **Library awareness.** The existing Settings > Connect > Audiobookshelf connection gets
+  Sync Library (on): TaleArr reads the mapped libraries every hour (GET only) and matches the
+  items to books by path, ASIN, ISBN, then title and author.
+- **No duplicate grabs.** Skip Books Already in Audiobookshelf (on) skips releases for books
+  ABS already has and TaleArr has no files for, shown as "In Audiobookshelf" in interactive
+  search. An abridged copy does not count for a wanted unabridged recording, and with several
+  recordings the narrator decides which one an ABS copy is.
+- **Book page badge.** "In Audiobookshelf", linking to the item (Link URL sets the address
+  your browser uses).
+- **Scan after import** stays the connection's own On Release Import trigger.
+- **API**: `GET /api/v1/talearr/audiobookshelf/book/{bookId}`, `GET .../status`,
+  `POST .../sync`.
+
+Storage: three extra keys in the connection's own settings JSON (stock Chaptarr skips them) and
+a cache in `talearr.db`. Chaptarr deletes connection types it does not know on start, so
+TaleArr adds none.
 
 ## Drop-in compatibility with Chaptarr
 
@@ -112,7 +162,7 @@ runs Chaptarr's own behaviour on the same database.
 
 ## Versioning
 
-TaleArr has its own version, set in `src/Talearr.props` (currently `0.10.0`). System >
+TaleArr has its own version, set in `src/Talearr.props` (currently `0.12.0`). System >
 Status shows it as the version, with a "Based on Chaptarr x.y.z" line underneath. The
 assembly version stays the upstream Chaptarr version (from `package.json` and
 `src/Directory.Build.props`) on purpose, because update checks, backups and metadata
@@ -128,7 +178,7 @@ Images are published to GitHub Container Registry by `.github/workflows/talearr-
 |---|---|
 | `ghcr.io/dancue44/talearr:develop` | every push to `develop` |
 | `ghcr.io/dancue44/talearr:latest` | every push to `main` |
-| `ghcr.io/dancue44/talearr:0.10.0` | `main` (TaleArr version) and `v0.10.0` git tags |
+| `ghcr.io/dancue44/talearr:0.12.0` | `main` (TaleArr version) and `v0.12.0` git tags |
 | `ghcr.io/dancue44/talearr:<branch>` | pushes to `feat/**` branches (amd64 only) |
 | `ghcr.io/dancue44/talearr:sha-<commit>` | every build |
 

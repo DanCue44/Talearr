@@ -50,6 +50,16 @@ namespace NzbDrone.Core.Talearr.Recordings
         // in place of it. Removing a recording is always a manual action.
         public bool KeepBoth { get; set; } = true;
 
+        // On by default: the recording-aware upgrade guard (same recording only, never worse on
+        // measured bitrate, channels or duration, bitrate gains only within one codec).
+        public bool UpgradeGuard { get; set; } = true;
+
+        // Same quality and codec: the smallest bitrate gain that counts as better.
+        public int MinBitrateGainKbps { get; set; } = 16;
+
+        // A replacement shorter than this (percent) is not the same recording.
+        public int RuntimeTolerancePct { get; set; } = 3;
+
         public static TalearrRecordingsSettings Default => new TalearrRecordingsSettings();
 
         public TalearrRecordingsSettings Clone()
@@ -61,7 +71,10 @@ namespace NzbDrone.Core.Talearr.Recordings
                 AudnexusFallback = AudnexusFallback,
                 Enrich = Enrich,
                 SearchOnAdd = SearchOnAdd,
-                KeepBoth = KeepBoth
+                KeepBoth = KeepBoth,
+                UpgradeGuard = UpgradeGuard,
+                MinBitrateGainKbps = MinBitrateGainKbps,
+                RuntimeTolerancePct = RuntimeTolerancePct
             };
         }
     }
@@ -80,6 +93,12 @@ namespace NzbDrone.Core.Talearr.Recordings
         public const string EnrichKey = "talearr.recordings.enrich";
         public const string SearchOnAddKey = "talearr.recordings.searchonadd";
         public const string KeepBothKey = "talearr.recordings.keepboth";
+        public const string UpgradeGuardKey = "talearr.upgrade.guard";
+        public const string MinBitrateGainKey = "talearr.upgrade.minbitrategainkbps";
+        public const string RuntimeToleranceKey = "talearr.upgrade.runtimetolerancepct";
+
+        public const int MaxBitrateGainKbps = 320;
+        public const int MaxRuntimeTolerancePct = 50;
 
         private readonly IConfigRepository _repository;
         private readonly Logger _logger;
@@ -127,15 +146,21 @@ namespace NzbDrone.Core.Talearr.Recordings
                 _repository.Upsert(EnrichKey, Defined(settings.Enrich, TalearrEnrichScope.Monitored).ToString().ToLowerInvariant());
                 _repository.Upsert(SearchOnAddKey, settings.SearchOnAdd.ToString());
                 _repository.Upsert(KeepBothKey, settings.KeepBoth.ToString());
+                _repository.Upsert(UpgradeGuardKey, settings.UpgradeGuard.ToString());
+                _repository.Upsert(MinBitrateGainKey, Math.Clamp(settings.MinBitrateGainKbps, 0, MaxBitrateGainKbps).ToString());
+                _repository.Upsert(RuntimeToleranceKey, Math.Clamp(settings.RuntimeTolerancePct, 0, MaxRuntimeTolerancePct).ToString());
 
                 _cached = Load();
-                _logger.Info("TaleArr recordings settings saved: marketplace={0}, provider={1}, audnexusFallback={2}, enrich={3}, searchOnAdd={4}, keepBoth={5}",
+                _logger.Info("TaleArr recordings settings saved: marketplace={0}, provider={1}, audnexusFallback={2}, enrich={3}, searchOnAdd={4}, keepBoth={5}, upgradeGuard={6}, minBitrateGain={7}, runtimeTolerance={8}",
                     _cached.Marketplace,
                     _cached.Provider,
                     _cached.AudnexusFallback,
                     _cached.Enrich,
                     _cached.SearchOnAdd,
-                    _cached.KeepBoth);
+                    _cached.KeepBoth,
+                    _cached.UpgradeGuard,
+                    _cached.MinBitrateGainKbps,
+                    _cached.RuntimeTolerancePct);
 
                 return _cached.Clone();
             }
@@ -156,6 +181,9 @@ namespace NzbDrone.Core.Talearr.Recordings
             settings.AudnexusFallback = ReadBool(AudnexusFallbackKey, settings.AudnexusFallback);
             settings.SearchOnAdd = ReadBool(SearchOnAddKey, settings.SearchOnAdd);
             settings.KeepBoth = ReadBool(KeepBothKey, settings.KeepBoth);
+            settings.UpgradeGuard = ReadBool(UpgradeGuardKey, settings.UpgradeGuard);
+            settings.MinBitrateGainKbps = ReadInt(MinBitrateGainKey, settings.MinBitrateGainKbps, MaxBitrateGainKbps);
+            settings.RuntimeTolerancePct = ReadInt(RuntimeToleranceKey, settings.RuntimeTolerancePct, MaxRuntimeTolerancePct);
 
             return settings;
         }
@@ -176,6 +204,11 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
 
             return fallback;
+        }
+
+        private int ReadInt(string key, int fallback, int max)
+        {
+            return int.TryParse(Read(key), out var value) && value >= 0 && value <= max ? value : fallback;
         }
 
         private bool ReadBool(string key, bool fallback)

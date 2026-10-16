@@ -68,6 +68,20 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
         }
 
         [Test]
+        public void scheduled_run_reads_audiobook_monitoring_not_the_legacy_flag()
+        {
+            // Upstream keeps Book.Monitored only for compatibility; new rows leave it false.
+            _book.Monitored = false;
+
+            _subject.Execute(new RefreshAudibleRecordingFactsCommand());
+            Assert.That(_http.CountTo("asins="), Is.EqualTo(1));
+
+            _book.AudiobookMonitored = false;
+            _subject.Execute(new RefreshAudibleRecordingFactsCommand(new List<int>(), force: true));
+            Assert.That(_http.CountTo("asins="), Is.EqualTo(1), "an unmonitored audiobook is not enriched in the background");
+        }
+
+        [Test]
         public void scheduled_run_is_incremental()
         {
             _subject.Execute(new RefreshAudibleRecordingFactsCommand());

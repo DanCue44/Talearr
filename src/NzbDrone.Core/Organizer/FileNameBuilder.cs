@@ -27,9 +27,10 @@ namespace NzbDrone.Core.Organizer
         string GetAuthorFolder(Author author, NamingConfig namingConfig = null, string mediaType = "audiobook");
     }
 
-    public class FileNameBuilder : IBuildFileNames
+    public partial class FileNameBuilder : IBuildFileNames // TaleArr: partial, see FileNameBuilder.Talearr.cs
     {
         private readonly ITalearrAbridgedResolver _abridgedResolver; // TaleArr
+        private readonly Lazy<ITalearrRecordingFolders> _recordingFolders; // TaleArr
         private readonly INamingConfigService _namingConfigService;
         private readonly IQualityDefinitionService _qualityDefinitionService;
         private readonly ICustomFormatCalculationService _formatCalculator;
@@ -64,10 +65,14 @@ namespace NzbDrone.Core.Organizer
                                ICacheManager cacheManager,
                                ICustomFormatCalculationService formatCalculator,
                                Logger logger,
-                               ITalearrAbridgedResolver abridgedResolver = null)
+                               ITalearrAbridgedResolver abridgedResolver = null,
+                               Lazy<ITalearrRecordingFolders> recordingFolders = null)
         {
             // TaleArr: {Abridged} and {Abridgement} use the recordings abridged resolution.
             _abridgedResolver = abridgedResolver;
+
+            // TaleArr: two recordings of one book never share a book folder (lazy: it reads books).
+            _recordingFolders = recordingFolders;
             _namingConfigService = namingConfigService;
             _qualityDefinitionService = qualityDefinitionService;
             _formatCalculator = formatCalculator;
@@ -144,6 +149,10 @@ namespace NzbDrone.Core.Organizer
                     components.Add(component);
                 }
             }
+
+            // TaleArr: an additional recording whose book folder another recording already has gets
+            // a disambiguator on its folder (narrator, then abridged/unabridged, then the edition).
+            components = TalearrDisambiguateRecordingFolder(author, edition, bookFile, namingConfig, customFormats, components);
 
             // When renaming is disabled, we still organize into the configured folder structure,
             // but we preserve the original filename for the final path component.

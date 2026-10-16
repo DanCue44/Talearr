@@ -484,7 +484,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             {
                 BookId = book.Id,
                 Role = book.Id == context.Group.Primary.Id ? "primary" : "additional",
-                Monitored = book.Monitored && book.AudiobookMonitored,
+                Monitored = book.IsMonitored(), // Book.Monitored is upstream's legacy flag, always false for new rows
                 HasFiles = files.Count > 0,
                 CanRemove = book.Id != context.Group.Primary.Id
             };

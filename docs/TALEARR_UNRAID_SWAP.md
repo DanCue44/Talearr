@@ -101,6 +101,28 @@ back is normally enough. Settings changed while running TaleArr are kept. The on
 TaleArr-only behaviour that carries over is cosmetic: an instance name containing
 "TaleArr" is shown as "Chaptarr" by upstream.
 
+### Recordings (TaleArr 0.12.0 and later)
+
+Recordings need nothing extra for a rollback, but check these before and after:
+
+- **Additional recordings stay.** They are Chaptarr's own copy entries (`_wanted_` and `_copy_`
+  in the URL), so Chaptarr keeps, searches and upgrades each one by itself. Without TaleArr
+  there is no upgrade guard and no keep both reroute: an unabridged download may replace an
+  abridged recording's files again, as in stock Chaptarr.
+- **Preview before renaming.** TaleArr gives a copy its own folder (` (Abridged)`, the narrator,
+  the year or the ASIN appended) when the naming format cannot tell two recordings apart.
+  Chaptarr does not know that rule. Files stay where they are, but before running Rename files
+  in Chaptarr, look at the preview (Preview Rename on the book page, or
+  `GET /api/v1/rename?authorId=...`) and skip any move of a copy into the primary recording's
+  folder.
+- **`talearr.db`** in `/config` is not used by Chaptarr. Keep it for a return to TaleArr or
+  delete it (`talearr.db`, `talearr.db-wal`, `talearr.db-shm`); it is a cache and is fetched
+  again.
+- **`talearr.*` rows** in the `Config` table (`talearr.recordings.*`, `talearr.upgrade.*`,
+  `talearr.grabpolicy.*`, `talearr.audiobook.*`) are ignored by Chaptarr and can stay.
+- **Scheduled task.** TaleArr's "Refresh Audible Recording Facts" task row is dropped by
+  Chaptarr on its next start.
+
 ## Notes
 
 - The Unraid "update available" check works with `ghcr.io` images.
@@ -112,3 +134,13 @@ TaleArr-only behaviour that carries over is cosmetic: an instance name containin
   unchanged afterwards, no migrations ran, and `/api/v1/system/status` returned the same
   fields (only `instanceName` differs: `Chaptarr` -> `TaleArr`). The Docker workflow repeats
   this check with the real images on every build.
+
+### Audiobookshelf awareness
+
+Nothing extra for a rollback. Chaptarr keeps using its Audiobookshelf connection, mappings and
+scan after import unchanged; it ignores TaleArr's Sync Library, Skip Books Already in
+Audiobookshelf and Link URL keys in that connection, and drops them only if you save the
+connection in Chaptarr (TaleArr then uses the defaults again). The library cache is in
+`talearr.db`, and the "Sync Audiobookshelf Library" task row is removed by Chaptarr on start.
+Without TaleArr, Chaptarr no longer skips books that are already in Audiobookshelf. See
+[TALEARR_AUDIOBOOKSHELF.md](TALEARR_AUDIOBOOKSHELF.md#storage-and-rollback).

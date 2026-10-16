@@ -85,6 +85,51 @@ CREATE TABLE IF NOT EXISTS RecordingRequests (
 );
 
 CREATE INDEX IF NOT EXISTS IX_RecordingRequests_BaseBookId ON RecordingRequests (BaseBookId);
+",
+
+            // 2: Audiobookshelf library awareness (Talearr/Audiobookshelf). Rows are keyed by the
+            // connection (Notifications row id) and the ABS library item id; a sync replaces them.
+            @"
+CREATE TABLE IF NOT EXISTS AbsItems (
+    ConnectionId    INTEGER NOT NULL,
+    ItemId          TEXT NOT NULL,
+    LibraryId       TEXT NOT NULL,
+    Path            TEXT,
+    LocalPath       TEXT,
+    Title           TEXT,
+    Subtitle        TEXT,
+    Authors         TEXT,
+    Narrators       TEXT,
+    Asin            TEXT,
+    Isbn            TEXT,
+    DurationSeconds REAL,
+    Abridged        INTEGER NOT NULL DEFAULT 0,
+    HasAudio        INTEGER NOT NULL DEFAULT 0,
+    HasEbook        INTEGER NOT NULL DEFAULT 0,
+    EbookFormat     TEXT,
+    UpdatedAt       TEXT,
+    SyncedAt        TEXT NOT NULL,
+    PRIMARY KEY (ConnectionId, ItemId)
+);
+
+CREATE TABLE IF NOT EXISTS AbsItemBooks (
+    ConnectionId INTEGER NOT NULL,
+    ItemId       TEXT NOT NULL,
+    BookId       INTEGER NOT NULL,
+    Method       TEXT NOT NULL,
+    Managed      INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (ConnectionId, ItemId, BookId)
+);
+
+CREATE INDEX IF NOT EXISTS IX_AbsItemBooks_BookId ON AbsItemBooks (BookId);
+
+CREATE TABLE IF NOT EXISTS AbsSyncState (
+    ConnectionId INTEGER PRIMARY KEY,
+    LastSyncAt   TEXT,
+    LastError    TEXT,
+    ItemCount    INTEGER NOT NULL DEFAULT 0,
+    MatchedCount INTEGER NOT NULL DEFAULT 0
+);
 "
         };
 
@@ -139,7 +184,7 @@ CREATE INDEX IF NOT EXISTS IX_RecordingRequests_BaseBookId ON RecordingRequests 
         {
             lock (_lock)
             {
-                _logger.Warn("TaleArr: recreating {0} ({1}). It only holds cached Audible facts, which are fetched again.", FileName, reason);
+                _logger.Warn("TaleArr: recreating {0} ({1}). It only holds cached data (Audible facts, the Audiobookshelf library), which is fetched again.", FileName, reason);
                 MoveAside();
                 _initialized = false;
                 InitializeCore(allowRecreate: false);
@@ -210,7 +255,7 @@ CREATE INDEX IF NOT EXISTS IX_RecordingRequests_BaseBookId ON RecordingRequests 
             }
             catch (Exception ex) when (allowRecreate && (ex is TalearrDatabaseUnusableException || IsCorruption(ex)))
             {
-                _logger.Warn("TaleArr: {0} is unusable ({1}); recreating it. It only holds cached Audible facts.", FileName, ex.Message);
+                _logger.Warn("TaleArr: {0} is unusable ({1}); recreating it. It only holds cached data (Audible facts, the Audiobookshelf library).", FileName, ex.Message);
                 MoveAside();
                 InitializeCore(allowRecreate: false);
             }

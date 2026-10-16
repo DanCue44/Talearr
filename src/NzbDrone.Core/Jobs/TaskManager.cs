@@ -203,6 +203,15 @@ namespace NzbDrone.Core.Jobs
                         Interval = 12 * 60,
                         TypeName = typeof(NzbDrone.Core.Talearr.Recordings.RefreshAudibleRecordingFactsCommand).FullName,
                         Priority = CommandPriority.Low
+                    },
+
+                    // TaleArr: read the Audiobookshelf libraries into talearr.db (GET only). Stock
+                    // Chaptarr drops this row on its next start, so a rollback needs nothing.
+                    new ScheduledTask
+                    {
+                        Interval = 60,
+                        TypeName = typeof(NzbDrone.Core.Talearr.Audiobookshelf.SyncAudiobookshelfLibraryCommand).FullName,
+                        Priority = CommandPriority.Low
                     }
                 };
 

@@ -1,0 +1,90 @@
+.container {
+  margin-bottom: 20px;
+  padding: 10px 15px 5px;
+  border: 1px solid var(--borderColor);
+  border-radius: 4px;
+  background-color: var(--inputBackgroundColor);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-weight: 300;
+  font-size: 21px;
+}
+
+.count {
+  margin-left: 8px;
+  color: var(--helpTextColor);
+  font-size: 14px;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.marketplace {
+  margin-right: 4px;
+  color: var(--helpTextColor);
+  font-size: 13px;
+}
+
+.source {
+  display: block;
+  margin-top: 2px;
+  color: var(--helpTextColor);
+  font-size: 12px;
+}
+
+.asin {
+  display: block;
+  font-size: 12px;
+}
+
+.roleLabel {
+  display: block;
+  color: var(--helpTextColor);
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.currentRow {
+  background-color: var(--tableRowHoverBackgroundColor);
+}
+
+.actions {
+  width: 40px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.menuReason {
+  display: block;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.promptButton {
+  flex: 0 0 auto;
+}
+
+.notice {
+  margin-bottom: 10px;
+}

@@ -1,0 +1,27 @@
+.container {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-top: 15px;
+  padding: 10px 15px;
+  border: 1px solid var(--borderColor);
+  border-radius: 4px;
+  gap: 15px;
+}
+
+.text {
+  flex: 1 1 auto;
+  line-height: 1.6;
+}
+
+.title {
+  font-weight: bold;
+}
+
+.error {
+  color: var(--dangerColor);
+}
+
+.message {
+  color: var(--helpTextColor);
+}
