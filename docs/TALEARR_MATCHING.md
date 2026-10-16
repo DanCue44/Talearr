@@ -47,8 +47,16 @@ moved ("Pelican Brief, The") or dropped ("Love Hypothesis"), without a series pr
 - one-word short forms are only used when the dropped part is series information, so
   "Dune: The Duke of Caladan" never matches a plain "Dune" release;
 - multi-level titles ("Pocket Potters: Harry Potter: ...") keep their full form;
-- a series name followed by "Series" ("Bride Series 02 Mate") is `SeriesNameOnly` and does not
-  match the book "Bride".
+- a series name followed by "Series" ("Bride Series 02 Mate"), or a title followed by
+  "Series N" where N is not this book's position ("The Firm Series (2)"), is `SeriesNameOnly`;
+- another book's title just before the matched title, joined by a few plain words
+  ("The Exchange: After the Firm"), is `SiblingTitleContradiction`. Numbers or series words in
+  between ("Lightlark Series 03 - Skyshade") are a series prefix and still match.
+
+Automatic and interactive search use the same rules. When they seem to disagree, check which
+edition was monitored at the time: searches use the monitored edition title, and The Firm's
+changed from "The Firm: A Novel (The Firm Series Book 1)" to "The Firm" between the automatic
+runs and the interactive one.
 
 Upstream tests that required subtitle-less releases to be rejected were changed to the TaleArr
 behavior and are marked `TaleArr:`.
@@ -59,3 +67,10 @@ During add and refresh, a remote book that only has an Audible (`az:`) identity 
 book of the same media type with the same work title, and its editions are added there. It is kept
 separate when no such book exists or when several books could be the target. The local duplicate
 row is then removed by the normal refresh prune, which keeps rows with files or a manual add.
+
+An Audible row only folds when its title is the work title or the work title without its
+subtitle; one that adds its own subtitle ("Animal Farm: Adapted for Children") stays separate.
+
+Import: when a download was grabbed for a book and the file matcher picks an Audible-only
+duplicate of it, the import goes into the grabbed book (its monitored edition if the duplicate's
+edition is not under it yet) instead of being blocked.
