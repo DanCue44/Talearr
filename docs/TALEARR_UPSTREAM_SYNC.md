@@ -43,6 +43,7 @@ TaleArr keeps its changes small and in few places on purpose:
 | Notification titles and test messages, health check text, startup logs | the word Chaptarr -> TaleArr in literals | take upstream, re-apply the word change |
 | Frontend strings (`translate.ts`, `login.html`, `index.ejs`, `manifest.json`, About, More Info, a few modals) | the word Chaptarr -> TaleArr | take upstream, re-apply |
 | `README.md`, `COPYRIGHT.md`, `docker-compose.yml`, `docker-entrypoint.sh` | TaleArr text | keep ours, carry over relevant upstream content |
+| Phase 1 quick wins: `MetadataServerHealthService.cs` (ReportSuccess), `MetadataServerCheck.cs`, `BookInfoProxy.cs` (RefreshAuthorInfo error paths), `RefreshResult.cs`, `RefreshAuthorService.cs` (RefreshReason.Error log), `Rejection.cs` (Source), `DownloadDecisionMaker.cs` (EvaluateSpec), `ReleaseResource.cs` (RejectionDetail.Label/Source), `AddBookService.cs` (BuildRequestedBookMonitoringConfig), `InteractiveSearchRow.js/.css`, `InteractiveSearch.css`, `searchActions.js` (bookDefaults), `migrate.js` | small marked blocks (`// TaleArr:`); the logic lives in `Talearr*` files | take upstream, re-apply the block |
 
 Translation files (`src/NzbDrone.Core/Localization/Core/*.json`) are **not** edited:
 `TalearrBranding` rewrites "Chaptarr" to "TaleArr" when they load, so new upstream strings
