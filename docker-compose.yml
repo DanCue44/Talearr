@@ -1,7 +1,7 @@
 services:
-  chaptarr:
-    image: chaptarr/chaptarr:latest
-    container_name: chaptarr
+  talearr:
+    image: ghcr.io/dancue44/talearr:latest
+    container_name: talearr
     environment:
       - PUID=1000
       - PGID=1000
