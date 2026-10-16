@@ -104,10 +104,10 @@ TaleArr-only behaviour that carries over is cosmetic: an instance name containin
 ## Notes
 
 - The Unraid "update available" check works with `ghcr.io` images.
-- The TaleArr image marks itself as Docker-managed (`/package_info` with
-  `UpdateMethod=docker`), so the in-app updater cannot replace TaleArr with an upstream
-  Chaptarr build. The upstream image does not do this. System > Updates may still list newer
-  Chaptarr versions; ignore them and update the TaleArr image instead.
+- Inside Docker, TaleArr always reports its update mechanism as `docker`, so the in-app
+  updater cannot replace TaleArr with an upstream Chaptarr build (upstream Chaptarr does
+  not do this). System > Updates may still list newer Chaptarr versions; ignore them and
+  update the TaleArr image instead.
 - Tested locally (native build, macOS): a fresh Chaptarr 0.9.965 config folder was copied
   and started with TaleArr. The database schema and `config.xml` were byte-for-byte
   unchanged afterwards, no migrations ran, and `/api/v1/system/status` returned the same

@@ -147,8 +147,13 @@ jobs:
           echo "App process runs as $uid_gid"
           [[ "$uid_gid" == "99:100" ]] || { echo "Expected the app to run as 99:100"; exit 1; }
 
-          curl -fsS http://127.0.0.1:8789/ | grep -q '<title>TaleArr</title>' || { echo "UI title is not TaleArr"; exit 1; }
-          curl -fsS http://127.0.0.1:8789/initialize.json -H "X-Api-Key: $key" | tee initialize.json | grep -q '"talearrVersion"'
+          # Save responses to files before grepping: under pipefail, grep -q closing the
+          # pipe early would kill curl with SIGPIPE (exit 141).
+          curl -fsS http://127.0.0.1:8789/ -o index.html
+          grep '<title>TaleArr</title>' index.html >/dev/null || { echo "UI title is not TaleArr"; exit 1; }
+          curl -fsS http://127.0.0.1:8789/initialize.json -H "X-Api-Key: $key" -o initialize.json
+          grep '"talearrVersion"' initialize.json >/dev/null || { echo "initialize.json has no talearrVersion"; exit 1; }
+          cat initialize.json
 
           python3 - "$have_upstream" <<'PY'
           import json, sys
@@ -169,7 +174,8 @@ jobs:
             docker run --rm -v talearr-smoke:/config busybox sh -c 'diff /config/config.upstream.xml /config/config.xml && echo "config.xml unchanged"'
           fi
 
-          { docker logs talearr 2>&1 || true; } | grep 'Bootstrap: Starting TaleArr' || true
+          docker logs talearr > talearr.log 2>&1 || true
+          grep 'Bootstrap: Starting TaleArr' talearr.log || true
           docker stop talearr >/dev/null
 
       - name: Log in to GHCR

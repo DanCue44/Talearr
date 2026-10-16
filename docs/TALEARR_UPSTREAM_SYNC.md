@@ -39,7 +39,7 @@ TaleArr keeps its changes small and in few places on purpose:
 | Logos and icons (`Logo/`, `frontend/src/Content/Images/`) | files replaced in place, same names | keep ours: `git checkout --ours <file>` |
 | `src/Directory.Build.props` | one `<Import>` line at the end | keep upstream's version, re-add the import |
 | `src/Talearr.props`, `TalearrBranding.cs`, `build-tools/talearr_*`, `docs/TALEARR_*`, `.github/workflows/talearr-*` | TaleArr-only files | never conflict |
-| `BuildInfo.cs`, `ConfigFileProvider.cs` (InstanceName), `AppFolderInfo.cs`, `LocalizationService.cs`, `RuleBuilderExtensions.cs` | small marked blocks (`// TaleArr:`) | take upstream, re-apply the block |
+| `BuildInfo.cs`, `ConfigFileProvider.cs` (InstanceName), `AppFolderInfo.cs`, `LocalizationService.cs`, `RuleBuilderExtensions.cs`, `DeploymentInfoProvider.cs` | small marked blocks (`// TaleArr:`) | take upstream, re-apply the block |
 | Notification titles and test messages, health check text, startup logs | the word Chaptarr -> TaleArr in literals | take upstream, re-apply the word change |
 | Frontend strings (`translate.ts`, `login.html`, `index.ejs`, `manifest.json`, About, More Info, a few modals) | the word Chaptarr -> TaleArr | take upstream, re-apply |
 | `README.md`, `COPYRIGHT.md`, `docker-compose.yml`, `docker-entrypoint.sh` | TaleArr text | keep ours, carry over relevant upstream content |
