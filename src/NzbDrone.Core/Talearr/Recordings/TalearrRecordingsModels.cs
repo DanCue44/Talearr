@@ -67,7 +67,8 @@ namespace NzbDrone.Core.Talearr.Recordings
     }
 
     // TaleArr: which Audible product a Chaptarr edition resolved to, keyed by the edition's
-    // provider identity (ForeignEditionId) so it survives row churn. Asin null means "looked,
+    // provider identity (TalearrEditionKey, stored in the ForeignEditionId column) so it survives
+    // row churn and is shared by a base edition and its upstream copies. Asin null means "looked,
     // nothing matched well enough".
     public class EditionAudibleLink
     {

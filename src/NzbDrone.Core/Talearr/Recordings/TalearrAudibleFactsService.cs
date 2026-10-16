@@ -114,20 +114,20 @@ namespace NzbDrone.Core.Talearr.Recordings
             var list = (editions ?? Enumerable.Empty<Edition>()).Where(e => e != null && e.Id > 0).GroupBy(e => e.Id).Select(g => g.First()).ToList();
             var result = list.ToDictionary(e => e.Id, e => new EditionAudibleFacts { Edition = e });
 
-            var keyed = list.Where(e => !string.IsNullOrWhiteSpace(e.ForeignEditionId)).ToList();
+            var keyed = list.Where(e => TalearrEditionKey.For(e) != null).ToList();
             if (keyed.Count == 0)
             {
                 return result;
             }
 
-            var links = _store.GetLinks(keyed.Select(e => e.ForeignEditionId), market)
+            var links = _store.GetLinks(keyed.Select(TalearrEditionKey.For), market)
                 .ToDictionary(l => l.ForeignEditionId, StringComparer.Ordinal);
             var products = _store.GetProducts(market, links.Values.Where(l => l.Matched).Select(l => l.Asin))
                 .ToDictionary(p => p.Asin, StringComparer.Ordinal);
 
             foreach (var edition in keyed)
             {
-                if (!links.TryGetValue(edition.ForeignEditionId.Trim(), out var link))
+                if (!links.TryGetValue(TalearrEditionKey.For(edition), out var link))
                 {
                     continue;
                 }
@@ -155,17 +155,17 @@ namespace NzbDrone.Core.Talearr.Recordings
             var market = settings.Marketplace;
             var now = _clock();
             var candidates = (editions ?? Array.Empty<Edition>())
-                .Where(e => e != null && !string.IsNullOrWhiteSpace(e.ForeignEditionId))
-                .GroupBy(e => e.ForeignEditionId.Trim(), StringComparer.Ordinal)
+                .Where(e => e != null && TalearrEditionKey.For(e) != null)
+                .GroupBy(TalearrEditionKey.For, StringComparer.Ordinal)
                 .Select(g => g.First())
                 .ToList();
 
             summary.Editions = candidates.Count;
-            var existing = _store.GetLinks(candidates.Select(e => e.ForeignEditionId), market)
+            var existing = _store.GetLinks(candidates.Select(TalearrEditionKey.For), market)
                 .ToDictionary(l => l.ForeignEditionId, StringComparer.Ordinal);
 
             var pending = candidates
-                .Where(e => options.Force || !existing.TryGetValue(e.ForeignEditionId.Trim(), out var link) || NeedsRefresh(link, now))
+                .Where(e => options.Force || !existing.TryGetValue(TalearrEditionKey.For(e), out var link) || NeedsRefresh(link, now))
                 .ToList();
             summary.Skipped = candidates.Count - pending.Count;
             if (pending.Count == 0)
@@ -323,7 +323,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         {
             _store.UpsertLink(new EditionAudibleLink
             {
-                ForeignEditionId = edition.ForeignEditionId.Trim(),
+                ForeignEditionId = TalearrEditionKey.For(edition),
                 Marketplace = market,
                 Asin = match?.Product?.Asin,
                 Method = match?.Method ?? EditionAudibleLink.MethodSearch,

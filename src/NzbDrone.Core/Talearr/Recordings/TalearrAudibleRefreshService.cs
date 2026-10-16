@@ -71,14 +71,14 @@ namespace NzbDrone.Core.Talearr.Recordings
             if (!onDemand && !message.Force)
             {
                 // Incremental: drop editions whose cache rows are still fresh before any network call.
-                var keys = work.SelectMany(w => w.Editions).Select(e => e.ForeignEditionId).Where(id => !string.IsNullOrWhiteSpace(id));
+                var keys = work.SelectMany(w => w.Editions).Select(TalearrEditionKey.For).Where(id => id != null);
                 var fresh = _store.GetLinks(keys, settings.Marketplace)
                     .Where(l => !_factsService.NeedsRefresh(l, now))
                     .Select(l => l.ForeignEditionId)
                     .ToHashSet(StringComparer.Ordinal);
 
                 work = work
-                    .Select(w => new BookWork(w.Book, w.Editions.Where(e => !fresh.Contains(e.ForeignEditionId?.Trim() ?? string.Empty)).ToList(), w.Priority))
+                    .Select(w => new BookWork(w.Book, w.Editions.Where(e => !fresh.Contains(TalearrEditionKey.For(e) ?? string.Empty)).ToList(), w.Priority))
                     .Where(w => w.Editions.Count > 0)
                     .ToList();
             }
