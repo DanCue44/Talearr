@@ -105,7 +105,7 @@ namespace NzbDrone.Core.Notifications
 
         private string GetBookIncompleteImportMessage(string source)
         {
-            return string.Format("Chaptarr failed to Import all files for {0}",
+            return string.Format("TaleArr failed to Import all files for {0}",
                 source);
         }
 
@@ -510,7 +510,7 @@ namespace NzbDrone.Core.Notifications
         public void Handle(UpdateInstalledEvent message)
         {
             var updateMessage = new ApplicationUpdateMessage();
-            updateMessage.Message = $"Chaptarr updated from {message.PreviousVerison.ToString()} to {message.NewVersion.ToString()}";
+            updateMessage.Message = $"TaleArr updated from {message.PreviousVerison.ToString()} to {message.NewVersion.ToString()}";
             updateMessage.PreviousVersion = message.PreviousVerison;
             updateMessage.NewVersion = message.NewVersion;
 

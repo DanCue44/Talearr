@@ -244,7 +244,7 @@ namespace NzbDrone.Core.Notifications.Slack
         {
             try
             {
-                var message = $"Test message from Chaptarr posted at {DateTime.Now}";
+                var message = $"Test message from TaleArr posted at {DateTime.Now}";
                 var payload = CreatePayload(message);
 
                 _proxy.SendPayload(payload, Settings);

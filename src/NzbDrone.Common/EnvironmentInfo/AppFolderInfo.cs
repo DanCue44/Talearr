@@ -33,11 +33,26 @@ namespace NzbDrone.Common.EnvironmentInfo
             }
             else
             {
-                AppDataFolder = Path.Combine(Environment.GetFolderPath(_dataSpecialFolder, Environment.SpecialFolderOption.DoNotVerify), "Chaptarr");
+                AppDataFolder = GetDefaultAppDataFolder(Environment.GetFolderPath(_dataSpecialFolder, Environment.SpecialFolderOption.DoNotVerify));
             }
 
             StartUpFolder = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory.FullName;
             TempFolder = Path.GetTempPath();
+        }
+
+        // TaleArr: new installs get a "TaleArr" folder, but an existing "Chaptarr" folder is
+        // reused as-is so TaleArr can start on a Chaptarr install unchanged.
+        private static string GetDefaultAppDataFolder(string baseFolder)
+        {
+            var talearrFolder = Path.Combine(baseFolder, BuildInfo.ProductName);
+            var chaptarrFolder = Path.Combine(baseFolder, BuildInfo.UpstreamName);
+
+            if (!Directory.Exists(talearrFolder) && Directory.Exists(chaptarrFolder))
+            {
+                return chaptarrFolder;
+            }
+
+            return talearrFolder;
         }
 
         public string AppDataFolder { get; }

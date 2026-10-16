@@ -523,7 +523,7 @@ namespace NzbDrone.Core.Notifications.AudioBookShelf
 
                     if (message != null && message.IndexOf("Name or service not known", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        message = $"{message} If you're using a Docker container name (e.g. host 'audiobookshelf'), make sure Chaptarr and AudioBookShelf are on the same Docker network, or use a hostname/IP reachable from the Chaptarr container.";
+                        message = $"{message} If you're using a Docker container name (e.g. host 'audiobookshelf'), make sure TaleArr and AudioBookShelf are on the same Docker network, or use a hostname/IP reachable from the TaleArr container.";
                     }
 
                     throw new ValidationException(new[]

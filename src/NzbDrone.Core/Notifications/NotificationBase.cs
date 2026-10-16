@@ -23,18 +23,18 @@ namespace NzbDrone.Core.Notifications
         protected const string BOOK_RETAGGED_TITLE = "Book File Tags Updated";
         protected const string APPLICATION_UPDATE_TITLE = "Application Updated";
 
-        protected const string BOOK_GRABBED_TITLE_BRANDED = "Chaptarr - " + BOOK_GRABBED_TITLE;
-        protected const string BOOK_DOWNLOADED_TITLE_BRANDED = "Chaptarr - " + BOOK_DOWNLOADED_TITLE;
-        protected const string AUTHOR_ADDED_TITLE_BRANDED = "Chaptarr - " + AUTHOR_ADDED_TITLE;
-        protected const string BOOK_ADDED_TITLE_BRANDED = "Chaptarr - " + BOOK_ADDED_TITLE;
-        protected const string AUTHOR_DELETED_TITlE_BRANDED = "Chaptarr - " + AUTHOR_DELETED_TITLE;
-        protected const string BOOK_DELETED_TITLE_BRANDED = "Chaptarr - " + BOOK_DELETED_TITLE;
-        protected const string BOOK_FILE_DELETED_TITLE_BRANDED = "Chaptarr - " + BOOK_FILE_DELETED_TITLE;
-        protected const string HEALTH_ISSUE_TITLE_BRANDED = "Chaptarr - " + HEALTH_ISSUE_TITLE;
-        protected const string DOWNLOAD_FAILURE_TITLE_BRANDED = "Chaptarr - " + DOWNLOAD_FAILURE_TITLE;
-        protected const string IMPORT_FAILURE_TITLE_BRANDED = "Chaptarr - " + IMPORT_FAILURE_TITLE;
-        protected const string BOOK_RETAGGED_TITLE_BRANDED = "Chaptarr - " + BOOK_RETAGGED_TITLE;
-        protected const string APPLICATION_UPDATE_TITLE_BRANDED = "Chaptarr - " + APPLICATION_UPDATE_TITLE;
+        protected const string BOOK_GRABBED_TITLE_BRANDED = "TaleArr - " + BOOK_GRABBED_TITLE;
+        protected const string BOOK_DOWNLOADED_TITLE_BRANDED = "TaleArr - " + BOOK_DOWNLOADED_TITLE;
+        protected const string AUTHOR_ADDED_TITLE_BRANDED = "TaleArr - " + AUTHOR_ADDED_TITLE;
+        protected const string BOOK_ADDED_TITLE_BRANDED = "TaleArr - " + BOOK_ADDED_TITLE;
+        protected const string AUTHOR_DELETED_TITlE_BRANDED = "TaleArr - " + AUTHOR_DELETED_TITLE;
+        protected const string BOOK_DELETED_TITLE_BRANDED = "TaleArr - " + BOOK_DELETED_TITLE;
+        protected const string BOOK_FILE_DELETED_TITLE_BRANDED = "TaleArr - " + BOOK_FILE_DELETED_TITLE;
+        protected const string HEALTH_ISSUE_TITLE_BRANDED = "TaleArr - " + HEALTH_ISSUE_TITLE;
+        protected const string DOWNLOAD_FAILURE_TITLE_BRANDED = "TaleArr - " + DOWNLOAD_FAILURE_TITLE;
+        protected const string IMPORT_FAILURE_TITLE_BRANDED = "TaleArr - " + IMPORT_FAILURE_TITLE;
+        protected const string BOOK_RETAGGED_TITLE_BRANDED = "TaleArr - " + BOOK_RETAGGED_TITLE;
+        protected const string APPLICATION_UPDATE_TITLE_BRANDED = "TaleArr - " + APPLICATION_UPDATE_TITLE;
 
         public abstract string Name { get; }
 

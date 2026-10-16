@@ -85,7 +85,7 @@ namespace NzbDrone.Core.Localization
 
         private string ReplaceTokens(string input, Dictionary<string, object> tokens)
         {
-            tokens.TryAdd("appName", "Chaptarr");
+            tokens.TryAdd("appName", BuildInfo.ProductName);
 
             return TokenRegex.Replace(input, (match) =>
             {
@@ -164,7 +164,8 @@ namespace NzbDrone.Core.Localization
 
             foreach (var key in dict.Keys)
             {
-                dictionary[key] = dict[key];
+                // TaleArr: rebrand upstream strings at load time.
+                dictionary[key] = TalearrBranding.Apply(dict[key]);
             }
         }
 

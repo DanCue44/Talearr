@@ -247,7 +247,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 
                         throw new DownloadClientUnavailableException("Remote site redirected to " + url);
                     case HttpStatusCode.Forbidden:
-                        throw new DownloadClientUnavailableException($"Failed to authenticate with Transmission. It may be necessary to add {BuildInfo.AppName}'s IP address to RPC whitelist.");
+                        throw new DownloadClientUnavailableException($"Failed to authenticate with Transmission. It may be necessary to add {BuildInfo.ProductName}'s IP address to RPC whitelist.");
                     case HttpStatusCode.Conflict:
                         sessionId = SanitizeSessionId(response.Headers.GetSingleValue("X-Transmission-Session-Id"));
 
@@ -402,7 +402,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                 {
                     if (response.StatusCode == HttpStatusCode.Forbidden)
                     {
-                        throw new DownloadClientUnavailableException($"Access forbidden by Transmission. It may be necessary to add {BuildInfo.AppName}'s IP address to the RPC whitelist.");
+                        throw new DownloadClientUnavailableException($"Access forbidden by Transmission. It may be necessary to add {BuildInfo.ProductName}'s IP address to the RPC whitelist.");
                     }
 
                     var attemptedUrl = response.Request?.Url?.FullUri ?? "(unknown)";

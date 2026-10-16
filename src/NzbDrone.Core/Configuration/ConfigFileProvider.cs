@@ -322,12 +322,20 @@ namespace NzbDrone.Core.Configuration
             {
                 var instanceName = _appOptions.InstanceName ?? GetValue("InstanceName", BuildInfo.AppName);
 
-                if (instanceName.Contains(BuildInfo.AppName, StringComparison.OrdinalIgnoreCase))
+                // TaleArr: an untouched upstream default reads as the TaleArr product name, so an
+                // existing Chaptarr config.xml shows "TaleArr" without being rewritten.
+                if (instanceName.Equals(BuildInfo.AppName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BuildInfo.ProductName;
+                }
+
+                if (instanceName.Contains(BuildInfo.AppName, StringComparison.OrdinalIgnoreCase) ||
+                    instanceName.Contains(BuildInfo.ProductName, StringComparison.OrdinalIgnoreCase))
                 {
                     return instanceName;
                 }
 
-                return BuildInfo.AppName;
+                return BuildInfo.ProductName;
             }
         }
 

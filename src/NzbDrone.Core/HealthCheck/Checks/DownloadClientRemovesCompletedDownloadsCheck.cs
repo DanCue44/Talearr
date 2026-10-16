@@ -1,5 +1,6 @@
 using System;
 using NLog;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients;
@@ -44,7 +45,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     {
                         return new HealthCheck(GetType(),
                             HealthCheckResult.Warning,
-                            string.Format(_localizationService.GetLocalizedString("DownloadClientRemovesCompletedDownloadsHealthCheckMessage"), clientName, "Chaptarr"),
+                            string.Format(_localizationService.GetLocalizedString("DownloadClientRemovesCompletedDownloadsHealthCheckMessage"), clientName, BuildInfo.ProductName),
                             "#download-client-removes-completed-downloads");
                     }
                 }

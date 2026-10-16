@@ -32,7 +32,7 @@ namespace NzbDrone.Host
         {
             if (IsAlreadyRunning())
             {
-                _logger.Warn("Another instance of Chaptarr is already running.");
+                _logger.Warn("Another instance of TaleArr is already running.");
                 _browserService.LaunchWebUI();
                 throw new TerminateApplicationException("Another instance is already running");
             }
@@ -50,7 +50,7 @@ namespace NzbDrone.Host
         {
             if (IsAlreadyRunning())
             {
-                _logger.Debug("Another instance of Chaptarr is already running.");
+                _logger.Debug("Another instance of TaleArr is already running.");
             }
         }
 
@@ -73,14 +73,14 @@ namespace NzbDrone.Host
 
                 if (otherProcesses.Any())
                 {
-                    _logger.Info("{0} instance(s) of Chaptarr are running", otherProcesses.Count);
+                    _logger.Info("{0} instance(s) of TaleArr are running", otherProcesses.Count);
                 }
 
                 return otherProcesses;
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "Failed to check for multiple instances of Chaptarr.");
+                _logger.Warn(ex, "Failed to check for multiple instances of TaleArr.");
                 return new List<int>();
             }
         }

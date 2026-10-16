@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Notifications.Prowl
 
                 var request = requestBuilder.Post()
                     .AddFormParameter("apikey", settings.ApiKey)
-                    .AddFormParameter("application", BuildInfo.AppName)
+                    .AddFormParameter("application", BuildInfo.ProductName)
                     .AddFormParameter("event", title)
                     .AddFormParameter("description", message)
                     .AddFormParameter("priority", settings.Priority)
@@ -62,7 +62,7 @@ namespace NzbDrone.Core.Notifications.Prowl
             try
             {
                 const string title = "Test Notification";
-                const string body = "This is a test message from Chaptarr";
+                const string body = "This is a test message from TaleArr";
 
                 SendNotification(title, body, settings);
             }

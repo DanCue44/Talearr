@@ -92,7 +92,7 @@ namespace Chaptarr.Http.Authentication
 
         protected override Task HandleChallengeAsync(AuthenticationProperties properties)
         {
-            Response.Headers["WWW-Authenticate"] = $"Basic realm=\"{BuildInfo.AppName}\"";
+            Response.Headers["WWW-Authenticate"] = $"Basic realm=\"{BuildInfo.ProductName}\"";
             Response.StatusCode = 401;
             return Task.CompletedTask;
         }

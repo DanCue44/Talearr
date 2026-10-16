@@ -107,8 +107,8 @@ namespace NzbDrone.Host
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Version = "1.0.0",
-                    Title = "Chaptarr",
-                    Description = "Chaptarr API docs",
+                    Title = BuildInfo.ProductName,
+                    Description = $"{BuildInfo.ProductName} API docs (Chaptarr-compatible API)",
                     License = new OpenApiLicense
                     {
                         Name = "GPL-3.0-only",
