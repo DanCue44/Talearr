@@ -337,6 +337,10 @@ namespace NzbDrone.Core.Books
                 return false;
             }
 
+            // TaleArr: take the author metadata refresh gate so a RefreshAuthorCommand queued by the
+            // same add cannot insert the same missing books at the same time (duplicate rows on add).
+            using var talearrGate = TalearrAuthorRefreshGate.Enter(AuthorMetadataRefreshGate, _logger, $"add reconcile for author '{localAuthor?.Name}'");
+
             return RefreshEntityInfoIfRemoteDataAvailable(
                 localAuthor,
                 authoritativeRemoteAuthor,

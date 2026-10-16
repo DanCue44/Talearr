@@ -69,6 +69,11 @@ MUST_KEEP_TALEARR_HOOKS = [
     ("frontend/src/Settings/Conversion/ConversionSettings.js", r"TalearrM4bConnector", "audiobooks: merge to M4B setting"),
     ("frontend/src/Book/Details/BookDetails.js", r"onConvertToM4bPress", "audiobooks: Convert to M4B action"),
     ("frontend/src/Settings/MediaManagement/Naming/NamingModal.js", r"audiobookLayouts", "audiobooks: naming tokens and layouts"),
+    ("src/NzbDrone.Core/Books/Services/RefreshAuthorService.cs", r"TalearrAuthorRefreshGate\.Enter\(AuthorMetadataRefreshGate", "catalog: add reconcile shares the author refresh gate (no duplicate rows on add)"),
+    ("src/NzbDrone.Core/Books/Services/AddBookService.cs", r"TalearrDuplicateBooks\.PickRequestedBook\(", "catalog: an add does not fail on duplicate rows of one work"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrDuplicatesController.cs", r'V1ApiController\("talearr/duplicates"\)', "catalog: duplicate cleanup API route"),
+    ("src/NzbDrone.Core/Talearr/Catalog/TalearrDuplicateBookCleanupService.cs", r"public bool DryRun \{ get; set; \} = true;", "catalog: duplicate cleanup command is a dry run by default"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrDuplicatesController.cs", r"request\?\.DryRun \?\? true", "catalog: duplicate cleanup route is a dry run by default"),
 ]
 
 # Phase 2 recordings wiring (docs/TALEARR_RECORDINGS_DESIGN.md). TaleArr-only files, but the
