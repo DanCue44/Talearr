@@ -33,7 +33,7 @@
     <link
       rel="mask-icon"
       href="/Content/Images/Icons/safari-pinned-tab.svg"
-      color="#0d4a52"
+      color="#ec703e"
     />
     <meta
       name="msapplication-config"
@@ -49,7 +49,7 @@
       :root {
         /* Light theme (matches app light theme + auto default) */
         --page-bg: #f5f7fa;
-        --panel-header-bg: #ca302d;
+        --panel-header-bg: #2b2e33;
         --panel-body-bg: #ffffff;
         --panel-border: rgba(0, 0, 0, 0.08);
         --panel-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
@@ -136,8 +136,24 @@
       }
 
       .logo {
+        box-sizing: border-box;
+        padding: 6px;
         width: 64px;
         height: 64px;
+        border-radius: 14px;
+        background-color: #f4f1ec;
+      }
+
+      /* TaleArr wordmark: "Tale" plus "Arr" in the brand orange */
+      .wordmark {
+        margin-left: 12px;
+        color: #ffffff;
+        font-weight: bold;
+        font-size: 28px;
+      }
+
+      .wordmark-accent {
+        color: #ec703e;
       }
 
       .panel {
@@ -150,6 +166,7 @@
 
       .panel-header {
         display: flex;
+        align-items: center;
         justify-content: center;
         padding: 10px;
         background-color: var(--panel-header-bg);
@@ -329,6 +346,7 @@
         <div class="panel">
           <div class="panel-header">
             <img src="/Content/Images/chaptarr-logo.svg" alt="TaleArr Logo" class="logo" />
+            <span class="wordmark">Tale<span class="wordmark-accent">Arr</span></span>
           </div>
 
           <div class="panel-body">

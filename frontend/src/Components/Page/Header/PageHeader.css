@@ -16,12 +16,38 @@
 }
 
 .logoLink {
+  display: flex;
+  align-items: center;
+  color: var(--white);
+  text-decoration: none;
   line-height: 0;
+
+  &:hover,
+  &:focus {
+    color: var(--white);
+    text-decoration: none;
+  }
+}
+
+/* TaleArr wordmark: "Tale" plus "Arr" in the brand orange */
+.wordmark {
+  margin-left: 10px;
+  font-weight: bold;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.wordmarkAccent {
+  color: #ec703e;
 }
 
 .logo {
+  box-sizing: border-box;
+  padding: 3px;
   width: 36px;
   height: 36px;
+  border-radius: 8px;
+  background-color: #f4f1ec; /* TaleArr: light tile so the slate icon reads on dark headers */
 }
 
 .sidebarToggleContainer {
@@ -54,6 +80,10 @@
 @media only screen and (max-width: $breakpointSmall) {
   .logoContainer {
     flex: 0 0 60px;
+  }
+
+  .wordmark {
+    display: none;
   }
 
   .sidebarToggleContainer {
