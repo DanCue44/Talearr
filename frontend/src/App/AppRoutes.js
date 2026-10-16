@@ -15,6 +15,8 @@ import NavigationErrorBoundary from 'Components/Error/NavigationErrorBoundary';
 import NotFound from 'Components/NotFound';
 import Switch from 'Components/Router/Switch';
 import SeriesDetailsPageConnector from 'Series/Details/SeriesDetailsPageConnector';
+import TalearrSeriesIndex from 'Series/Talearr/TalearrSeriesIndex';
+import TalearrSeriesPage from 'Series/Talearr/TalearrSeriesPage';
 import AddNewItemConnector from 'Search/AddNewItemConnector';
 import ConversionSettingsConnector from 'Settings/Conversion/ConversionSettingsConnector';
 import CustomFormatSettingsConnector from 'Settings/CustomFormats/CustomFormatSettingsConnector';
@@ -131,6 +133,18 @@ function AppRoutes(props) {
       <Route
         path="/series/:localSeriesId"
         component={SeriesDetailsPageConnector}
+      />
+
+      {/* TaleArr: series monitoring (docs/TALEARR_SERIES.md) */}
+      <Route
+        exact={true}
+        path="/talearr/series"
+        component={TalearrSeriesIndex}
+      />
+
+      <Route
+        path="/talearr/series/:seriesId(\d+)"
+        component={TalearrSeriesPage}
       />
 
       {/*

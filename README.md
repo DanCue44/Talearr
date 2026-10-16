@@ -95,6 +95,21 @@ Storage: a separate rebuildable `talearr.db` next to `chaptarr.db`, and `talearr
 and `talearr.upgrade.*` rows in the `Config` table. No schema change, no migrations, no
 `config.xml` edits.
 
+## Series
+
+See [docs/TALEARR_SERIES.md](docs/TALEARR_SERIES.md).
+
+- **Series page and Library > Series.** Every series with its books in order and the audiobook
+  and ebook status of each.
+- **Monitor a series** as audiobooks, ebooks or both: every main book is monitored and searched,
+  and so is each new book that appears in the series later (applied after every author refresh
+  and every 6 hours). It never unmonitors anything, follows the grab policy for box sets and
+  leaves additional recordings alone.
+- **API**: `GET|PUT /api/v1/talearr/series/{id}`, `GET /api/v1/talearr/series`,
+  `POST .../apply`, `POST .../authors`.
+
+Storage: one `talearr.series.monitor.*` row per monitored series in the `Config` table.
+
 ## Audiobookshelf
 
 See [docs/TALEARR_AUDIOBOOKSHELF.md](docs/TALEARR_AUDIOBOOKSHELF.md).

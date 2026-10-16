@@ -178,6 +178,15 @@ class AuthorDetailsSeries extends Component {
 
             </div>
           </Link>
+
+          {/* TaleArr: series page with series monitoring (docs/TALEARR_SERIES.md) */}
+          <IconButton
+            className={styles.talearrSeriesLink}
+            name={icons.OVERVIEW}
+            size={18}
+            title="Series page: monitor this series"
+            to={`/talearr/series/${this.props.id}`}
+          />
         </div>
 
         <div>

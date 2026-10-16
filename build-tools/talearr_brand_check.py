@@ -120,6 +120,21 @@ MUST_KEEP_AUDIOBOOKSHELF = [
     ("frontend/src/Settings/Notifications/Notifications/EditNotificationModalContent.js", r"<TalearrAbsSyncStatus", "abs: sync status and Sync now on the connection"),
 ]
 
+# Phase 3 series monitoring (docs/TALEARR_SERIES.md). Rules are Config rows, so a rollback keeps
+# them as rows stock Chaptarr ignores; pin the parts that promise depends on.
+MUST_KEEP_SERIES = [
+    ("src/NzbDrone.Core/Talearr/SeriesMonitoring/TalearrSeriesRuleStore.cs", r'KeyPrefix = "talearr\.series\.monitor\."', "series: rules are talearr.* Config rows"),
+    ("src/NzbDrone.Core/Talearr/SeriesMonitoring/TalearrSeriesMonitorService.cs", r"_bookService\.SetMonitoredForMediaType\(newIds, format, true\)", "series: rules only turn monitoring on, per format"),
+    ("src/NzbDrone.Core/Talearr/SeriesMonitoring/TalearrSeriesMonitorService.cs", r"IHandleAsync<AuthorRefreshCompleteEvent>", "series: new books are picked up after each author refresh"),
+    ("src/NzbDrone.Core/Talearr/SeriesMonitoring/TalearrSeriesMonitorService.cs", r"TalearrGrabPolicyService\.Resolve\(_grabPolicyService\)\.AllowBundles", "series: box sets follow the grab policy"),
+    ("src/NzbDrone.Core/Talearr/SeriesMonitoring/TalearrSeriesMonitorService.cs", r"TalearrRecordingGroupService\.IsCopySlug", "series: additional recordings are left alone"),
+    ("src/NzbDrone.Core/Jobs/TaskManager.cs", r"ApplySeriesMonitoringCommand", "series: scheduled apply"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrSeriesController.cs", r'V1ApiController\("talearr/series"\)', "series: additive API route"),
+    ("frontend/src/App/AppRoutes.js", r'path="/talearr/series/:seriesId', "series: series page route"),
+    ("frontend/src/Components/Page/Sidebar/PageSidebar.js", r"to: '/talearr/series'", "series: Library > Series"),
+    ("frontend/src/Author/Details/AuthorDetailsSeries.js", r"to=\{`/talearr/series/\$\{this\.props\.id\}`\}", "series: series page link on the author page"),
+]
+
 # (folder, file glob, regex, why). No file under the folder may match.
 MUST_NOT_HAVE_IN_TREE = [
     ("src/NzbDrone.Core/Datastore/Migration", "*.cs", r"(?i)talearr", "TaleArr adds no chaptarr.db migrations"),
@@ -146,7 +161,7 @@ def read(rel: str) -> str | None:
 def main() -> int:
     failures: list[str] = []
 
-    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS + MUST_KEEP_RECORDINGS + MUST_KEEP_AUDIOBOOKSHELF:
+    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS + MUST_KEEP_RECORDINGS + MUST_KEEP_AUDIOBOOKSHELF + MUST_KEEP_SERIES:
         text = read(rel)
         if text is None:
             failures.append(f"missing file {rel} ({why})")
@@ -175,7 +190,7 @@ def main() -> int:
         return 1
 
     total = (len(MUST_HAVE_BRAND) + len(MUST_KEEP_UPSTREAM) + len(MUST_KEEP_TALEARR_HOOKS) +
-             len(MUST_KEEP_RECORDINGS) + len(MUST_KEEP_AUDIOBOOKSHELF) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE))
+             len(MUST_KEEP_RECORDINGS) + len(MUST_KEEP_AUDIOBOOKSHELF) + len(MUST_KEEP_SERIES) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE))
     print(f"TaleArr brand check passed ({total} checks).")
     return 0
 

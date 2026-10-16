@@ -33,6 +33,11 @@ const links = [
         title: () => translate('Books'),
         to: '/books'
       },
+      // TaleArr: series monitoring.
+      {
+        title: () => translate('Series'),
+        to: '/talearr/series'
+      },
       {
         title: () => translate('AddNew'),
         to: '/add/search'
