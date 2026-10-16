@@ -63,7 +63,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
                     FetchedAt = DateTime.UtcNow
                 }
             });
-            _store.UpsertLink(new EditionAudibleLink { ForeignEditionId = edition.ForeignEditionId, Marketplace = "us", Asin = asin, Method = EditionAudibleLink.MethodSearch, Confidence = 0.9, CheckedAt = DateTime.UtcNow });
+            _store.UpsertLink(new EditionAudibleLink { ForeignEditionId = TalearrEditionKey.For(edition), Marketplace = "us", Asin = asin, Method = EditionAudibleLink.MethodSearch, Confidence = 0.9, CheckedAt = DateTime.UtcNow });
         }
 
         private static Book Row(int id, params Edition[] editions)
