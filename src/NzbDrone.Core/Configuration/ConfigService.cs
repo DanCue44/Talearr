@@ -263,6 +263,14 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("TalearrVerifyFileLanguage", value); }
         }
 
+        // TaleArr: torrent imports copy (hardlink) instead of moving, so the client keeps seeding.
+        public bool TalearrSeedingSafeImports
+        {
+            get { return GetValueBoolean("TalearrSeedingSafeImports", true); }
+
+            set { SetValue("TalearrSeedingSafeImports", value); }
+        }
+
         public string ExtraFileExtensions
         {
             get { return GetValue("ExtraFileExtensions", "jpg,png,cue,m3u,opf"); }

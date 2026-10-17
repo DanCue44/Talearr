@@ -65,7 +65,7 @@ namespace NzbDrone.Core.Extras.Files
 
             if (readOnly)
             {
-                transferMode = _configService.CopyUsingHardlinks ? TransferMode.HardLinkOrCopy : TransferMode.Copy;
+                transferMode = NzbDrone.Core.Talearr.Import.TalearrTransferScope.CopyMode(_configService.CopyUsingHardlinks); // TaleArr
             }
 
             _diskTransferService.TransferFile(path, newFileName, transferMode, true);

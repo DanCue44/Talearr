@@ -16,6 +16,7 @@ using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.Import;
 
 namespace NzbDrone.Core.MediaFiles
 {
@@ -65,6 +66,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IEventAggregator _eventAggregator;
         private readonly IConfigService _configService;
         private readonly IFileMutationSafetyService _fileMutationSafetyService;
+        private readonly ITalearrHardlinkMonitor _talearrHardlinkMonitor;
         private readonly Logger _logger;
 
         public BookFileMovingService(IEditionService editionService,
@@ -81,7 +83,8 @@ namespace NzbDrone.Core.MediaFiles
                                       IEventAggregator eventAggregator,
                                       IConfigService configService,
                                       IFileMutationSafetyService fileMutationSafetyService,
-                                      Logger logger)
+                                      Logger logger,
+                                      ITalearrHardlinkMonitor talearrHardlinkMonitor = null)
         {
             _editionService = editionService;
             _updateBookFileService = updateBookFileService;
@@ -98,6 +101,7 @@ namespace NzbDrone.Core.MediaFiles
             _configService = configService;
             _fileMutationSafetyService = fileMutationSafetyService;
             _logger = logger;
+            _talearrHardlinkMonitor = talearrHardlinkMonitor;
         }
 
         public BookFileMovePlan GetOrganizeDestination(BookFile bookFile, Author author, bool moveToCanonicalAuthorFolder, RenameBatchContext renameBatchContext = null)
@@ -194,7 +198,7 @@ namespace NzbDrone.Core.MediaFiles
                     TransferFile(bookFile, author, edition.Book, plan.DestinationPath, TransferMode.Move, plan.DestinationAuthorFolderPath);
                 }
 
-                ReconcileReplicaFiles(bookFile, author, edition.Book, plan.ReplicaPaths, preferHardlinks: _configService.CopyUsingHardlinks);
+                ReconcileReplicaFiles(bookFile, author, edition.Book, plan.ReplicaPaths, preferHardlinks: TalearrTransferScope.PreferHardlinks(_configService.CopyUsingHardlinks));
                 return bookFile;
             }
 
@@ -224,7 +228,7 @@ namespace NzbDrone.Core.MediaFiles
                     TransferFile(bookFile, localBook.Author, localBook.Book, filePath, TransferMode.Move);
                 }
 
-                ReconcileReplicaFiles(bookFile, localBook.Author, localBook.Book, replicaPaths, preferHardlinks: _configService.CopyUsingHardlinks);
+                ReconcileReplicaFiles(bookFile, localBook.Author, localBook.Book, replicaPaths, preferHardlinks: TalearrTransferScope.PreferHardlinks(_configService.CopyUsingHardlinks));
                 return bookFile;
             }
 
@@ -243,7 +247,8 @@ namespace NzbDrone.Core.MediaFiles
             {
                 EnsureTrackFolder(bookFile, localBook, filePath);
 
-                var primaryMode = _configService.CopyUsingHardlinks ? TransferMode.HardLinkOrCopy : TransferMode.Copy;
+                // TaleArr: a manual import can ask for a hardlink or a plain copy explicitly.
+                var primaryMode = TalearrTransferScope.CopyMode(_configService.CopyUsingHardlinks);
                 if (bookFile.Path.PathNotEquals(filePath))
                 {
                     _logger.Debug("{0} ebook file: {1} to {2}", primaryMode.HasFlag(TransferMode.HardLink) ? "Hardlinking" : "Copying", bookFile.Path, filePath);
@@ -254,13 +259,13 @@ namespace NzbDrone.Core.MediaFiles
                     _logger.Debug("Ebook file already at destination: {0}", filePath);
                 }
 
-                ReconcileReplicaFiles(bookFile, localBook.Author, localBook.Book, replicaPaths, preferHardlinks: _configService.CopyUsingHardlinks);
+                ReconcileReplicaFiles(bookFile, localBook.Author, localBook.Book, replicaPaths, preferHardlinks: TalearrTransferScope.PreferHardlinks(_configService.CopyUsingHardlinks));
                 return bookFile;
             }
 
             EnsureTrackFolder(bookFile, localBook, filePath);
 
-            if (_configService.CopyUsingHardlinks)
+            if (TalearrTransferScope.PreferHardlinks(_configService.CopyUsingHardlinks))
             {
                 _logger.Debug("Hardlinking book file: {0} to {1}", bookFile.Path, filePath);
                 return TransferFile(bookFile, localBook.Author, localBook.Book, filePath, TransferMode.HardLinkOrCopy);
@@ -373,7 +378,8 @@ namespace NzbDrone.Core.MediaFiles
                     var mode = preferHardlinks ? TransferMode.HardLinkOrCopy : TransferMode.Copy;
                     if (!_diskProvider.FileExists(replicaPath))
                     {
-                        _diskTransferService.TransferFile(sourcePath, replicaPath, mode, overwrite: false);
+                        var actualMode = _diskTransferService.TransferFile(sourcePath, replicaPath, mode, overwrite: false);
+                        _talearrHardlinkMonitor?.Record(sourcePath, replicaPath, mode, actualMode); // TaleArr
                         _mediaFileAttributeService.SetFilePermissions(replicaPath);
                     }
 
@@ -448,6 +454,7 @@ namespace NzbDrone.Core.MediaFiles
 
             _rootFolderWatchingService.ReportFileSystemChangeBeginning(bookFilePath, destinationFilePath);
             var actualTransferMode = _diskTransferService.TransferFile(bookFilePath, destinationFilePath, mode);
+            _talearrHardlinkMonitor?.Record(bookFilePath, destinationFilePath, mode, actualTransferMode); // TaleArr
 
             bookFile.Path = destinationFilePath;
             _fileMutationSafetyService.PrepareImportDestination(bookFile, actualTransferMode);

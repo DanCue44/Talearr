@@ -38,6 +38,7 @@ namespace Chaptarr.Api.V1.Config
         // TaleArr: additive fields; Chaptarr clients ignore them.
         public bool TalearrUnpackArchives { get; set; }
         public bool TalearrVerifyFileLanguage { get; set; }
+        public bool TalearrSeedingSafeImports { get; set; }
     }
 
     public static class MediaManagementConfigResourceMapper
@@ -75,6 +76,7 @@ namespace Chaptarr.Api.V1.Config
                 ExtraFileExtensions = model.ExtraFileExtensions,
                 TalearrUnpackArchives = model.TalearrUnpackArchives,
                 TalearrVerifyFileLanguage = model.TalearrVerifyFileLanguage,
+                TalearrSeedingSafeImports = model.TalearrSeedingSafeImports,
             };
         }
     }
