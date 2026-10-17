@@ -51,6 +51,7 @@ namespace NzbDrone.Core.DecisionEngine
             { "MinimumAgeSpecification", "Minimum age" },
             { "MonitoredMediaTypeSpecification", "Not monitored" },
             { "MonitoredBookSpecification", "Not monitored" },
+            { "MyAnonaMouseFreeleechOnlySpecification", "MyAnonaMouse" }, // TaleArr
             { "MyAnonaMouseVipAccessSpecification", "MyAnonaMouse" },
             { "MyAnonaMouseUnsatisfiedSlotSpecification", "MyAnonaMouse" },
             { "NotSampleSpecification", "Sample" },

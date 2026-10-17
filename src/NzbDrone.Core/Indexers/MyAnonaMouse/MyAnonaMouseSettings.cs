@@ -15,6 +15,13 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             RuleFor(c => c.UnsatisfiedSlotReserve).GreaterThanOrEqualTo(0);
             RuleFor(c => c.ManualGrabBuffer).GreaterThanOrEqualTo(0);
             RuleFor(c => c.SeedCriteria).SetValidator(_ => new SeedCriteriaSettingsValidator(seedTimeMinimum: 72 * 60));
+
+            // TaleArr: dynamic seedbox updates. MAM only accepts an IP change once an hour, so
+            // checking more often than every 5 minutes only adds load.
+            RuleFor(c => c.DynamicSeedboxInterval)
+                .GreaterThanOrEqualTo(MyAnonaMouseSettings.MinimumDynamicSeedboxInterval)
+                .LessThanOrEqualTo(MyAnonaMouseSettings.MaximumDynamicSeedboxInterval)
+                .When(c => c.DynamicSeedboxEnabled);
         }
     }
 
@@ -35,7 +42,20 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             ProtectUnsatisfiedSlots = true;
             UnsatisfiedSlotReserve = 5;
             ManualGrabBuffer = 0;
+
+            // TaleArr: freeleech ranking is on by default, the stricter filter and the dynamic
+            // seedbox update are opt-in.
+            PreferFreeleech = true;
+            FreeleechOnly = false;
+            DynamicSeedboxEnabled = false;
+            DynamicSeedboxInterval = DefaultDynamicSeedboxInterval;
+            SeedboxProxyId = 0;
         }
+
+        // TaleArr: dynamic seedbox interval bounds, in minutes.
+        public const int DefaultDynamicSeedboxInterval = 30;
+        public const int MinimumDynamicSeedboxInterval = 5;
+        public const int MaximumDynamicSeedboxInterval = 24 * 60;
 
         [FieldDefinition(0, Label = "Website URL", Hidden = HiddenType.Hidden)]
         public string BaseUrl { get; set; }
@@ -97,6 +117,35 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
         [FieldDefinition(14, Type = FieldType.Checkbox, Label = "IndexerSettingsNeverMoveOnImport", HelpText = "IndexerSettingsNeverMoveOnImportHelpText")]
         public bool NeverMoveOnImport { get; set; }
+
+        // TaleArr: freeleech awareness. Freeleech covers MAM global freeleech, personal
+        // freeleech (an applied wedge) and VIP freeleech for VIP members.
+        [FieldDefinition(15, Type = FieldType.Checkbox, Label = "Prefer Freeleech", HelpText = "Rank freeleech, personal freeleech and VIP freeleech MAM releases above other releases of the same quality. Also applies to MAM results that arrive through Prowlarr.")]
+        public bool PreferFreeleech { get; set; }
+
+        [FieldDefinition(16, Type = FieldType.Checkbox, Label = "Freeleech Only", HelpText = "Reject MAM releases that are not freeleech, personal freeleech or VIP freeleech for you. A wedge requested at grab time does not count, because MAM may not apply it.", Advanced = true)]
+        public bool FreeleechOnly { get; set; }
+
+        // TaleArr: dynamic seedbox. MAM must see the torrent client's public IP; with a VPN that
+        // IP changes, and dynamicSeedbox.php tells MAM about the new one. The call has to leave
+        // from the same IP as the torrent client.
+        [FieldDefinition(17, Type = FieldType.Checkbox, Label = "Update Dynamic Seedbox IP", HelpText = "Tell MAM your torrent client's current IP on startup and on a schedule. The request must leave from the same IP as your torrent client: route it through the client's VPN with Seedbox Proxy (or this indexer's proxy). The session needs 'Allow session to set dynamic seedbox' on MAM.")]
+        public bool DynamicSeedboxEnabled { get; set; }
+
+        [FieldDefinition(18, Type = FieldType.Number, Label = "Dynamic Seedbox Interval", Unit = "minutes", HelpText = "How often to check the IP with MAM (5 to 1440). MAM accepts at most one IP change per hour; unchanged IPs cost nothing.", Advanced = true)]
+        public int DynamicSeedboxInterval { get; set; }
+
+        private string _seedboxMamId;
+
+        [FieldDefinition(19, Label = "Seedbox mam_id", Type = FieldType.Password, Privacy = PrivacyLevel.Password, HelpText = "Optional separate MAM session for the dynamic seedbox update (for example one created from the VPN IP). Leave empty to use mam_id.", Advanced = true)]
+        public string SeedboxMamId
+        {
+            get => _seedboxMamId;
+            set => _seedboxMamId = string.IsNullOrEmpty(value) ? value : value.Trim();
+        }
+
+        [FieldDefinition(20, Label = "Seedbox Proxy", Type = FieldType.Select, SelectOptionsProviderAction = "getSeedboxProxies", HelpText = "Proxy that exits through your torrent client's VPN (for example the Privoxy built into a qBittorrent VPN container). Same As Indexer uses this indexer's proxy setting.", Advanced = true)]
+        public int SeedboxProxyId { get; set; }
 
         // Persisted provider snapshot used by the grab guard. These are not user-editable.
         public int? UnsatisfiedCount { get; set; }

@@ -7,6 +7,7 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.MyAnonaMouse;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Qualities;
@@ -28,11 +29,17 @@ namespace NzbDrone.Core.DecisionEngine
         private readonly ITalearrAbridgedResolver _abridgedResolver;
         private readonly ITalearrBookGrabPolicyService _bookGrabPolicyService;
 
+        // TaleArr: MAM freeleech ranking (Prefer Freeleech). Ranks are cached per release because
+        // resolving the governing indexer settings reads the indexer table.
+        private readonly IMyAnonaMouseReleasePolicy _mamReleasePolicy;
+        private readonly Dictionary<ReleaseInfo, int> _freeleechRanks = new Dictionary<ReleaseInfo, int>(ReferenceEqualityComparer.Instance);
+
         public delegate int CompareDelegate(DownloadDecision x, DownloadDecision y);
         public delegate int CompareDelegate<TSubject, TValue>(DownloadDecision x, DownloadDecision y);
 
-        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, TalearrGrabPolicy grabPolicy = null, ITalearrAbridgedResolver abridgedResolver = null, ITalearrBookGrabPolicyService bookGrabPolicyService = null)
+        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, TalearrGrabPolicy grabPolicy = null, ITalearrAbridgedResolver abridgedResolver = null, ITalearrBookGrabPolicyService bookGrabPolicyService = null, IMyAnonaMouseReleasePolicy mamReleasePolicy = null)
         {
+            _mamReleasePolicy = mamReleasePolicy;
             _abridgedResolver = abridgedResolver;
             _bookGrabPolicyService = bookGrabPolicyService;
             _configService = configService;
@@ -57,6 +64,7 @@ namespace NzbDrone.Core.DecisionEngine
                 ("Format Type", CompareFormatType),
                 ("Unabridged", CompareUnabridged), // TaleArr
                 ("Profile Preference", CompareProfilePreference),
+                ("Freeleech", CompareFreeleech), // TaleArr
                 ("Protocol", CompareProtocol),
                 ("Indexer Priority", CompareIndexerPriority),
                 ("Size", CompareSize),
@@ -97,6 +105,7 @@ namespace NzbDrone.Core.DecisionEngine
                 ("Format Type", CompareFormatType),
                 ("Unabridged", CompareUnabridged), // TaleArr
                 ("Profile Preference", CompareProfilePreference),
+                ("Freeleech", CompareFreeleech), // TaleArr
                 ("Protocol Preference", CompareProtocol),
                 ("Indexer Priority", CompareIndexerPriority),
                 ("File Size", CompareSize),
@@ -162,6 +171,9 @@ namespace NzbDrone.Core.DecisionEngine
                         default:
                             return "Higher profile preference";
                     }
+
+                case "Freeleech":
+                    return "MAM freeleech preferred (does not count against ratio)";
 
                 case "Protocol Preference":
                     var protocol = winner.RemoteBook.Release.DownloadProtocol.ToString();
@@ -281,6 +293,35 @@ namespace NzbDrone.Core.DecisionEngine
         }
 
         // MAM-specific ranking is handled through quality profiles and custom formats.
+
+        // TaleArr: with Prefer Freeleech on, a freeleech MAM release beats an otherwise equal
+        // release of the same profile preference. Without a release policy this is a no-op.
+        private int CompareFreeleech(DownloadDecision x, DownloadDecision y)
+        {
+            if (_mamReleasePolicy == null)
+            {
+                return 0;
+            }
+
+            return GetFreeleechRank(x).CompareTo(GetFreeleechRank(y));
+        }
+
+        private int GetFreeleechRank(DownloadDecision decision)
+        {
+            var release = decision?.RemoteBook?.Release;
+            if (release == null)
+            {
+                return 0;
+            }
+
+            if (!_freeleechRanks.TryGetValue(release, out var rank))
+            {
+                rank = MyAnonaMouseReleasePolicy.FreeleechRank(_mamReleasePolicy, release);
+                _freeleechRanks[release] = rank;
+            }
+
+            return rank;
+        }
 
         private int CompareIndexerPriority(DownloadDecision x, DownloadDecision y)
         {
