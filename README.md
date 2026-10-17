@@ -222,6 +222,12 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
   settings.
 - **Unsatisfied limit warning.** System > Status warns at 80% of MAM's unsatisfied-torrent
   limit, and when automatic grabs are paused by the safety reserve.
+- **Freeleech wedge balance.** The hourly account refresh also reads your wedge count and
+  bonus points (`wedges`, `seedbonus` in `jsonLoad.php`, when MAM sends them). The indexer Test
+  shows them, and System > Status shows a notice when **Freeleech Wedges** is Prefer Wedge and
+  no wedges are left (grabs then download without one). TaleArr never spends bonus points:
+  MAM's purchase endpoint is not documented and automating it risks the account, so buying
+  wedges stays a manual step on MAM's Bonus page.
 
 Storage: new keys in the indexer's own settings JSON (stock Chaptarr ignores them) and one
 scheduled task row that Chaptarr drops on start.
