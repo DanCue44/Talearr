@@ -329,11 +329,24 @@ class TalearrSeeding extends Component {
                     kind = kinds.SUCCESS;
                   }
 
+                  // TaleArr: taste preferences (Preferred badge, why, and the library import).
+                  const details = [
+                    p.preferredReason,
+                    p.preferred || !p.category ? null : p.category,
+                    p.libraryMessage ? `Library: ${p.libraryMessage}` : null
+                  ].filter(Boolean).join('. ');
+
                   return (
                     <li key={p.torrentId}>
                       <Label kind={kind} size={sizes.SMALL}>{status}</Label>
-                      {` ${p.title} (${p.isAudiobook ? 'audiobook' : 'ebook'}, ${formatBytes(p.size)}, `}
+                      {
+                        p.preferred ?
+                          <Label kind={kinds.PRIMARY} size={sizes.SMALL}>{'Preferred'}</Label> :
+                          null
+                      }
+                      {` ${p.title}${p.author ? ` by ${p.author}` : ''} (${p.isAudiobook ? 'audiobook' : 'ebook'}, ${formatBytes(p.size)}, `}
                       {`${p.leechers} leechers, ${p.seeders} seeders)`}
+                      {details ? <div className={styles.bonusReason}>{details}</div> : null}
                     </li>
                   );
                 })

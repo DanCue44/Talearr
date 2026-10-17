@@ -17,6 +17,10 @@ namespace NzbDrone.Core.Talearr.MamFiller
         // Null when talearr.db could not be read.
         TalearrMamFillerStatus GetStatus();
         void SaveStatus(TalearrMamFillerStatus status);
+
+        // TaleArr: preferred picks put into the library (JSON rows in TalearrFillerState).
+        List<TalearrFillerPick> AllPicks();
+        void SavePick(TalearrFillerPick pick);
     }
 
     // TaleArr: filler bookkeeping in talearr.db (schema version 7). Best effort: a broken file
@@ -25,6 +29,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
     public class TalearrMamFillerStore : ITalearrMamFillerStore
     {
         private const string StatusKey = "status";
+        private const string PickPrefix = "pick:";
 
         private readonly ITalearrDatabase _database;
         private readonly Logger _logger;
@@ -114,6 +119,45 @@ ON CONFLICT (TorrentId) DO UPDATE SET
             Run("save the filler status", 0, connection => connection.Execute(@"
 INSERT INTO TalearrFillerState (Key, Value) VALUES (@Key, @Value)
 ON CONFLICT (Key) DO UPDATE SET Value = excluded.Value;", new { Key = StatusKey, Value = json }));
+        }
+
+        public List<TalearrFillerPick> AllPicks()
+        {
+            var rows = Run("read filler picks", new List<string>(), connection => connection
+                .Query<string>("SELECT Value FROM TalearrFillerState WHERE Key LIKE @Prefix", new { Prefix = PickPrefix + "%" })
+                .ToList());
+
+            var picks = new List<TalearrFillerPick>();
+            foreach (var json in rows.Where(r => !string.IsNullOrWhiteSpace(r)))
+            {
+                try
+                {
+                    var pick = JsonConvert.DeserializeObject<TalearrFillerPick>(json);
+                    if (!string.IsNullOrWhiteSpace(pick?.TorrentId))
+                    {
+                        picks.Add(pick);
+                    }
+                }
+                catch (JsonException)
+                {
+                    // A damaged row only loses that pick's library state.
+                }
+            }
+
+            return picks;
+        }
+
+        public void SavePick(TalearrFillerPick pick)
+        {
+            if (string.IsNullOrWhiteSpace(pick?.TorrentId))
+            {
+                return;
+            }
+
+            var json = JsonConvert.SerializeObject(pick);
+            Run("save a filler pick", 0, connection => connection.Execute(@"
+INSERT INTO TalearrFillerState (Key, Value) VALUES (@Key, @Value)
+ON CONFLICT (Key) DO UPDATE SET Value = excluded.Value;", new { Key = PickPrefix + pick.TorrentId, Value = json }));
         }
 
         private T Run<T>(string what, T fallback, Func<IDbConnection, T> action)

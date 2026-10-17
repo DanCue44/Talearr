@@ -27,9 +27,11 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         // freeleech flags on every result anyway.
         public const string FreeleechSearchType = "fl";
 
-        public async Task<List<JToken>> SearchFillerFreeleechAsync(int page)
+        // TaleArr: categoryIds limits the search to those MAM site categories (the filler's
+        // preferred categories); null or empty searches all audiobooks and ebooks.
+        public async Task<List<JToken>> SearchFillerFreeleechAsync(int page, IReadOnlyCollection<int> categoryIds = null)
         {
-            var request = new IndexerRequest(BuildFillerSearchRequest(page));
+            var request = new IndexerRequest(BuildFillerSearchRequest(page, categoryIds));
             var response = await FetchIndexerResponse(request);
             var http = response.HttpResponse;
 
@@ -91,10 +93,10 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             return response.ResponseData;
         }
 
-        internal HttpRequest BuildFillerSearchRequest(int page)
+        internal HttpRequest BuildFillerSearchRequest(int page, IReadOnlyCollection<int> categoryIds = null)
         {
             var url = $"{Settings.BaseUrl.Trim().TrimEnd('/')}/tor/js/loadSearchJSONbasic.php";
-            var payload = BuildFillerSearchPayload(page);
+            var payload = BuildFillerSearchPayload(page, categoryIds);
 
             var request = new HttpRequest(url)
             {
@@ -122,26 +124,38 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             return request;
         }
 
-        internal static Dictionary<string, object> BuildFillerSearchPayload(int page)
+        internal static Dictionary<string, object> BuildFillerSearchPayload(int page, IReadOnlyCollection<int> categoryIds = null)
         {
+            var tor = new Dictionary<string, object>
+            {
+                ["text"] = string.Empty,
+                ["srchIn"] = new[] { "title", "author", "narrator", "series", "tags" },
+                ["searchType"] = FreeleechSearchType,
+                ["searchIn"] = "torrents",
+                ["cat"] = new[] { "0" },
+                ["main_cat"] = new[] { "13", "14" },
+                ["browse_lang"] = new[] { "1" },
+                ["browseFlagsHideVsShow"] = "0",
+                ["startDate"] = string.Empty,
+                ["endDate"] = string.Empty,
+                ["hash"] = string.Empty,
+                ["sortType"] = "default",
+                ["startNumber"] = (Math.Max(0, page) * FillerPageSize).ToString()
+            };
+
+            // TaleArr: MAM's JSON search takes site category ids in "cat" ("0" means all). The
+            // main_cat filter is left out so it cannot widen the result again; the filler still
+            // checks the main category of every result.
+            var ids = (categoryIds ?? Array.Empty<int>()).Where(id => id > 0).Distinct().OrderBy(id => id).ToList();
+            if (ids.Count > 0)
+            {
+                tor["cat"] = ids.Select(id => id.ToString()).ToArray();
+                tor.Remove("main_cat");
+            }
+
             return new Dictionary<string, object>
             {
-                ["tor"] = new Dictionary<string, object>
-                {
-                    ["text"] = string.Empty,
-                    ["srchIn"] = new[] { "title", "author", "narrator", "series", "tags" },
-                    ["searchType"] = FreeleechSearchType,
-                    ["searchIn"] = "torrents",
-                    ["cat"] = new[] { "0" },
-                    ["main_cat"] = new[] { "13", "14" },
-                    ["browse_lang"] = new[] { "1" },
-                    ["browseFlagsHideVsShow"] = "0",
-                    ["startDate"] = string.Empty,
-                    ["endDate"] = string.Empty,
-                    ["hash"] = string.Empty,
-                    ["sortType"] = "default",
-                    ["startNumber"] = (Math.Max(0, page) * FillerPageSize).ToString()
-                },
+                ["tor"] = tor,
                 ["perpage"] = FillerPageSize.ToString()
             };
         }

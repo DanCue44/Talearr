@@ -31,7 +31,16 @@ namespace NzbDrone.Core.Talearr.MamFiller
         public bool VipFreeleech { get; set; }
         public bool Vip { get; set; }
 
+        // TaleArr: taste preferences (TalearrMamFillerTaste). MAM's site category and author_info.
+        public int? CategoryId { get; set; }
+        public string CategoryName { get; set; }
+        public List<string> Authors { get; set; } = new List<string>();
+
+        // Set by the run: why this is a preferred pick, null for an ordinary one.
+        public string PreferredReason { get; set; }
+
         public bool IsAudiobook => MainCategory == 13;
+        public bool IsPreferred => PreferredReason != null;
     }
 
     // A torrent the filler sent to the download client (sidecar table TalearrFillerTorrents).
@@ -62,6 +71,65 @@ namespace NzbDrone.Core.Talearr.MamFiller
         public int Leechers { get; set; }
         public bool IsAudiobook { get; set; }
         public bool Grabbed { get; set; }
+
+        // TaleArr: taste preferences. Additive API.
+        public bool Preferred { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public string PreferredReason { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public string Category { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public string Author { get; set; }
+
+        // Library import of a preferred pick (TalearrFillerPick.LibraryState), null when none.
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public string LibraryState { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public string LibraryMessage { get; set; }
+    }
+
+    // TaleArr: a preferred filler pick that is also put into the library ("Import Preferred
+    // Picks"). Kept as JSON in TalearrFillerState (key "pick:<torrent id>"), so no schema change.
+    // The torrent itself stays in the filler category and keeps seeding; the files are copied or
+    // hardlinked into the library once the download has finished and the book is in the library.
+    public class TalearrFillerPick
+    {
+        public const string StateWaiting = "waiting";
+        public const string StateAdding = "adding";
+        public const string StateImported = "imported";
+        public const string StateInLibrary = "inLibrary";
+        public const string StateNoMatch = "noMatch";
+        public const string StateExcluded = "excluded";
+        public const string StateFailed = "failed";
+        public const string StateGone = "gone";
+
+        public string TorrentId { get; set; }
+        public string Title { get; set; }
+        public string Author { get; set; }
+        public bool IsAudiobook { get; set; }
+        public string PreferredReason { get; set; }
+        public string LibraryState { get; set; }
+        public string LibraryMessage { get; set; }
+        public string BookProviderId { get; set; }
+        public string AuthorProviderId { get; set; }
+        public int? BookId { get; set; }
+        public int Attempts { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+
+        public bool IsOpen => LibraryState == StateWaiting || LibraryState == StateAdding;
+    }
+
+    // TaleArr: what the download client says about one filler torrent, for the library import.
+    public class TalearrFillerDownload
+    {
+        public bool Completed { get; set; }
+
+        // Local path of the torrent's content (remote path mappings applied), null when unknown.
+        public string OutputPath { get; set; }
     }
 
     // The latest run, shown on Activity > Seeding (report "filler" block). Additive API.
@@ -104,5 +172,19 @@ namespace NzbDrone.Core.Talearr.MamFiller
         bool HasTorrent(string hash);
 
         void RemoveFillerTorrent(string hash);
+
+        // TaleArr: taste preferences. Null when the client does not have the torrent.
+        TalearrFillerDownload GetFillerDownload(string hash, string category);
+    }
+
+    // TaleArr: puts preferred filler picks into the library (TalearrMamFillerLibraryService).
+    public interface ITalearrMamFillerLibrary
+    {
+        // Names of the authors in the library, for "Prefer Authors in My Library".
+        List<string> LibraryAuthorNames();
+
+        // Moves one pick along (find the book, add it, import the finished download). Returns
+        // true when the pick changed.
+        bool Advance(TalearrFillerPick pick, TalearrFillerDownload download, DateTime now);
     }
 }
