@@ -19,6 +19,12 @@ namespace NzbDrone.Core.Notifications.Webhook
         BookFileDelete,
         Health,
         Retag,
-        ApplicationUpdate
+        ApplicationUpdate,
+
+        // TaleArr: Sonarr/Radarr parity, appended so existing values keep their names.
+        DownloadFailure,
+        ImportFailure,
+        ManualInteractionRequired,
+        HealthRestored
     }
 }

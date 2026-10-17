@@ -18,6 +18,9 @@ namespace NzbDrone.Core.Notifications
         void OnBookDelete(BookDeleteMessage deleteMessage);
         void OnBookFileDelete(BookFileDeleteMessage deleteMessage);
         void OnHealthIssue(HealthCheck.HealthCheck healthCheck);
+
+        // TaleArr: a failing health check passes again.
+        void OnHealthRestored(HealthCheck.HealthCheck previousCheck);
         void OnApplicationUpdate(ApplicationUpdateMessage updateMessage);
         void OnDownloadFailure(DownloadFailedMessage message);
         void OnImportFailure(BookDownloadMessage message);
@@ -35,6 +38,7 @@ namespace NzbDrone.Core.Notifications
         bool SupportsOnBookFileDelete { get; }
         bool SupportsOnBookFileDeleteForUpgrade { get; }
         bool SupportsOnHealthIssue { get; }
+        bool SupportsOnHealthRestored { get; }
         bool SupportsOnApplicationUpdate { get; }
         bool SupportsOnDownloadFailure { get; }
         bool SupportsOnImportFailure { get; }

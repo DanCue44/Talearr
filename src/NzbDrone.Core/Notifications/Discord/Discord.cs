@@ -24,15 +24,27 @@ namespace NzbDrone.Core.Notifications.Discord
 
         public override void OnGrab(GrabMessage message)
         {
+            // TaleArr: cover art and book details; a last-resort bundle says so in the title.
+            var remoteBook = message.RemoteBook;
+            var book = remoteBook?.Books?.FirstOrDefault();
+            var details = TalearrNotificationDetails.Describe(book, null, message.Quality, message.Author);
+            var fields = new List<DiscordField>();
+            AddField(fields, "Quality", message.Quality?.Quality?.Name, true);
+            AddField(fields, "Size", remoteBook?.Release?.Size > 0 ? remoteBook.Release.Size.SizeSuffix() : null, true);
+            AddField(fields, "Indexer", remoteBook?.Release?.Indexer, true);
+            AddField(fields, "Download Client", message.DownloadClientName, true);
+
+            if (remoteBook?.IsBundle == true)
+            {
+                AddField(fields, "Bundle", TalearrNotificationDetails.IsBundleFallback(remoteBook) ? "Grabbed as last resort: no single copy was found" : "Yes", false);
+            }
+
+            AddField(fields, "Release", remoteBook?.Release?.Title, false);
+
+            var title = TalearrNotificationDetails.IsBundleFallback(remoteBook) ? BUNDLE_GRABBED_TITLE : BOOK_GRABBED_TITLE;
             var embeds = new List<Embed>
             {
-                new ()
-                {
-                    Description = message.Message,
-                    Title = message.Author.Name,
-                    Text = message.Message,
-                    Color = (int)DiscordColors.Warning
-                }
+                BookEmbed(details, message.Author?.Name, title, message.Message, DiscordColors.Warning, fields)
             };
             var payload = CreatePayload($"Grabbed: {message.Message}", embeds);
 
@@ -41,17 +53,26 @@ namespace NzbDrone.Core.Notifications.Discord
 
         public override void OnReleaseImport(BookDownloadMessage message)
         {
+            // TaleArr: cover art and book details; upgrades are labelled as such.
+            var bookFile = message.BookFiles?.FirstOrDefault();
+            var isUpgrade = message.OldFiles?.Any() == true;
+            var details = TalearrNotificationDetails.Describe(message.Book, bookFile?.Edition, bookFile?.Quality, message.Author);
+            var fields = new List<DiscordField>();
+            AddField(fields, "Quality", bookFile?.Quality?.Quality?.Name, true);
+            AddField(fields, "Files", message.BookFiles?.Count > 0 ? message.BookFiles.Count.ToString() : null, true);
+            AddField(fields, "Size", message.BookFiles?.Sum(f => f.Size) > 0 ? message.BookFiles.Sum(f => f.Size).SizeSuffix() : null, true);
+            AddField(fields, "Download Client", message.DownloadClientInfo?.Name, true);
+
             var attachments = new List<Embed>
             {
-                new ()
-                {
-                    Description = message.Message,
-                    Title = message.Author.Name,
-                    Text = message.Message,
-                    Color = (int)DiscordColors.Success
-                }
+                BookEmbed(details,
+                    message.Author?.Name,
+                    isUpgrade ? BOOK_UPGRADED_TITLE : BOOK_DOWNLOADED_TITLE,
+                    message.Message,
+                    isUpgrade ? DiscordColors.Upgrade : DiscordColors.Success,
+                    fields)
             };
-            var payload = CreatePayload($"Imported: {message.Message}", attachments);
+            var payload = CreatePayload($"{(isUpgrade ? "Upgraded" : "Imported")}: {message.Message}", attachments);
 
             _proxy.SendPayload(payload, Settings);
         }
@@ -95,13 +116,11 @@ namespace NzbDrone.Core.Notifications.Discord
 
         public override void OnBookAdded(Book book)
         {
+            // TaleArr: cover art and book details.
+            var details = TalearrNotificationDetails.Describe(book);
             var attachments = new List<Embed>
             {
-                new ()
-                {
-                    Title = $"{book.Author.Name} - {book.Title}",
-                    Color = (int)DiscordColors.Success
-                }
+                BookEmbed(details, book.Author?.Name, $"{book.Author?.Name} - {book.Title}", details?.Overview, DiscordColors.Success, new List<DiscordField>())
             };
             var payload = CreatePayload("Book Added", attachments);
 
@@ -130,8 +149,11 @@ namespace NzbDrone.Core.Notifications.Discord
             {
                 new ()
                 {
-                    Title = $"{deleteMessage.Book.Author.Name} - ${deleteMessage.Book.Title}",
-                    Description = deleteMessage.DeletedFilesMessage
+                    Title = $"{deleteMessage.Book.Author.Name} - {deleteMessage.Book.Title}",
+                    Description = deleteMessage.DeletedFilesMessage,
+
+                    // TaleArr: cover art on deletes too.
+                    Thumbnail = Cover(TalearrNotificationDetails.CoverUrl(deleteMessage.Book))
                 }
             };
 
@@ -146,7 +168,7 @@ namespace NzbDrone.Core.Notifications.Discord
             {
                 new ()
                 {
-                    Title = $"{deleteMessage.Book.Author.Name} - ${deleteMessage.Book.Title} - file deleted",
+                    Title = $"{deleteMessage.Book.Author.Name} - {deleteMessage.Book.Title} - file deleted",
                     Description = deleteMessage.BookFile.Path
                 }
             };
@@ -173,6 +195,24 @@ namespace NzbDrone.Core.Notifications.Discord
             _proxy.SendPayload(payload, Settings);
         }
 
+        // TaleArr: Sonarr/Radarr "Health Restored".
+        public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
+        {
+            var attachments = new List<Embed>
+            {
+                new ()
+                {
+                    Title = previousCheck.Source.Name,
+                    Description = $"The following issue is now resolved: {previousCheck.Message}",
+                    Color = (int)DiscordColors.Success
+                }
+            };
+
+            var payload = CreatePayload(HEALTH_RESTORED_TITLE, attachments);
+
+            _proxy.SendPayload(payload, Settings);
+        }
+
         public override void OnBookRetag(BookRetagMessage message)
         {
             var attachments = new List<Embed>
@@ -191,15 +231,24 @@ namespace NzbDrone.Core.Notifications.Discord
 
         public override void OnDownloadFailure(DownloadFailedMessage message)
         {
+            // TaleArr: book details when the failed download is still tracked.
+            var book = message.Books?.FirstOrDefault();
+            var details = TalearrNotificationDetails.Describe(book, null, message.Quality, message.Author);
+            var fields = new List<DiscordField>();
+            AddField(fields, "Release", message.SourceTitle, false);
+            AddField(fields, "Download Client", message.DownloadClientInfo?.Name ?? message.DownloadClient, true);
+
             var attachments = new List<Embed>
             {
-                new ()
-                {
-                    Description = message.Message,
-                    Title = message.SourceTitle,
-                    Text = message.Message,
-                    Color = (int)DiscordColors.Danger
-                }
+                details == null
+                    ? new Embed
+                    {
+                        Description = message.Message,
+                        Title = message.SourceTitle,
+                        Text = message.Message,
+                        Color = (int)DiscordColors.Danger
+                    }
+                    : BookEmbed(details, message.Author?.Name, DOWNLOAD_FAILURE_TITLE, message.Message, DiscordColors.Danger, fields)
             };
             var payload = CreatePayload($"Download Failed: {message.Message}", attachments);
 
@@ -208,17 +257,26 @@ namespace NzbDrone.Core.Notifications.Discord
 
         public override void OnImportFailure(BookDownloadMessage message)
         {
-            var attachments = new List<Embed>
-            {
-                new ()
+            // TaleArr: the reasons, and whether the import waits for the user (Manual Interaction Required).
+            var details = TalearrNotificationDetails.Describe(message.Book, null, message.RemoteBook?.ParsedBookInfo?.Quality, message.Author);
+            var title = message.ManualInteractionRequired ? MANUAL_INTERACTION_REQUIRED_TITLE : IMPORT_FAILURE_TITLE;
+            var fields = new List<DiscordField>();
+            AddField(fields, "Release", message.SourceTitle, false);
+            AddField(fields, "Reason", message.StatusMessages?.Any() == true ? string.Join("\n", message.StatusMessages.Take(5)) : null, false);
+
+            var embed = details == null
+                ? new Embed
                 {
                     Description = message.Message,
-                    Title = message.Book?.Title ?? message.Message,
+                    Title = message.Book?.Title ?? title,
                     Text = message.Message,
-                    Color = (int)DiscordColors.Warning
+                    Color = (int)DiscordColors.Warning,
+                    Fields = fields
                 }
-            };
-            var payload = CreatePayload($"Import Failed: {message.Message}", attachments);
+                : BookEmbed(details, message.Author?.Name, title, message.Message, DiscordColors.Warning, fields);
+
+            var attachments = new List<Embed> { embed };
+            var payload = CreatePayload($"{title}: {message.Message}", attachments);
 
             _proxy.SendPayload(payload, Settings);
         }
@@ -282,6 +340,60 @@ namespace NzbDrone.Core.Notifications.Discord
             }
 
             return null;
+        }
+
+        // TaleArr: one embed layout for book events: cover thumbnail, author line, then format,
+        // narrator and series before the event's own fields.
+        private static Embed BookEmbed(TalearrBookDetails details, string authorName, string title, string description, DiscordColors color, List<DiscordField> eventFields)
+        {
+            var fields = new List<DiscordField>();
+
+            if (details != null)
+            {
+                AddField(fields, "Book", details.Year.HasValue ? $"{details.Title} ({details.Year})" : details.Title, false);
+                AddField(fields, "Author", authorName ?? details.AuthorName, true);
+                AddField(fields, "Format", details.FormatLabel, true);
+                AddField(fields, "Narrator", details.Narrator, true);
+                AddField(fields, "Series", details.Series, true);
+            }
+            else
+            {
+                AddField(fields, "Author", authorName, true);
+            }
+
+            fields.AddRange(eventFields ?? new List<DiscordField>());
+
+            return new Embed
+            {
+                Title = title,
+                Description = description,
+                Text = description,
+                Color = (int)color,
+                Thumbnail = Cover(details?.CoverUrl),
+                Timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                Fields = fields
+            };
+        }
+
+        private static DiscordImage Cover(string url)
+        {
+            return url.IsNullOrWhiteSpace() ? null : new DiscordImage { Url = url };
+        }
+
+        // Discord rejects empty field values and values over 1024 characters.
+        private static void AddField(List<DiscordField> fields, string name, string value, bool inline)
+        {
+            if (value.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+
+            fields.Add(new DiscordField
+            {
+                Name = name,
+                Value = value.Length > 1024 ? value.Substring(0, 1021) + "..." : value,
+                Inline = inline
+            });
         }
 
         private DiscordPayload CreatePayload(string message, List<Embed> embeds = null)

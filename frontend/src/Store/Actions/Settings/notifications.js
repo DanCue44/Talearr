@@ -113,6 +113,7 @@ export default {
         selectedSchema.onBookFileDelete = selectedSchema.supportsOnBookFileDelete;
         selectedSchema.onBookFileDeleteForUpgrade = selectedSchema.supportsOnBookFileDeleteForUpgrade;
         selectedSchema.onHealthIssue = selectedSchema.supportsOnHealthIssue;
+        selectedSchema.onHealthRestored = selectedSchema.supportsOnHealthRestored;
         selectedSchema.onDownloadFailure = selectedSchema.supportsOnDownloadFailure;
         selectedSchema.onImportFailure = selectedSchema.supportsOnImportFailure;
         selectedSchema.onBookRetag = selectedSchema.supportsOnBookRetag;
@@ -120,8 +121,7 @@ export default {
 
         // UX: prefill a sensible default name for Plex.
         // (Name is required and unique; users can rename it.)
-        if ((selectedSchema.name == null || selectedSchema.name === '') && selectedSchema.implementationName === 'Plex Media Server')
-        {
+        if ((selectedSchema.name == null || selectedSchema.name === '') && selectedSchema.implementationName === 'Plex Media Server') {
           selectedSchema.name = 'Plex';
         }
 

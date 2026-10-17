@@ -32,6 +32,13 @@ namespace NzbDrone.Core.Notifications.Webhook
             {
                 Edition = new WebhookBookEdition(selectedEdition);
             }
+
+            // TaleArr: additive details for consumers that show a card (Readarr fields unchanged).
+            var details = TalearrNotificationDetails.Describe(book, selectedEdition);
+            CoverUrl = details?.CoverUrl;
+            MediaType = details?.MediaType?.ToLowerInvariant();
+            Narrator = details?.Narrator;
+            Series = details?.Series;
         }
 
         public int Id { get; set; }
@@ -39,5 +46,9 @@ namespace NzbDrone.Core.Notifications.Webhook
         public string Title { get; set; }
         public WebhookBookEdition Edition { get; set; }
         public DateTime? ReleaseDate { get; set; }
+        public string CoverUrl { get; set; }
+        public string MediaType { get; set; }
+        public string Narrator { get; set; }
+        public string Series { get; set; }
     }
 }

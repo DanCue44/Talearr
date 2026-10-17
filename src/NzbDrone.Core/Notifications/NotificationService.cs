@@ -6,6 +6,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Books.Events;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
@@ -26,6 +27,7 @@ namespace NzbDrone.Core.Notifications
           IHandle<BookDeletedEvent>,
           IHandle<BookFileDeletedEvent>,
           IHandle<HealthCheckFailedEvent>,
+          IHandle<HealthCheckRestoredEvent>,
           IHandle<DownloadFailedEvent>,
           IHandle<BookImportIncompleteEvent>,
           IHandle<BookFileRetaggedEvent>,
@@ -153,7 +155,20 @@ namespace NzbDrone.Core.Notifications
                 return true;
             }
 
+            // TaleArr: TaleArr's own notices (metadata fallback active) go out with warnings.
+            if (healthCheck.Type == HealthCheckResult.Notice && includeWarnings && TalearrNotificationDetails.IsTalearrHealthCheck(healthCheck))
+            {
+                return true;
+            }
+
             return false;
+        }
+
+        // TaleArr: a notification with tags only hears about authors it is tagged for, so an
+        // event without an author (manual mark-as-failed, unknown download) goes to untagged ones.
+        private bool ShouldHandleAuthorOrUntagged(ProviderDefinition definition, Author author)
+        {
+            return author == null ? definition.Tags.Empty() : ShouldHandleAuthor(definition, author);
         }
 
         public void Handle(BookGrabbedEvent message)
@@ -162,7 +177,9 @@ namespace NzbDrone.Core.Notifications
 
             var grabMessage = new GrabMessage
             {
-                Message = GetMessage(message.Book.Author, message.Book.Books, message.Book.ParsedBookInfo.Quality),
+                Message = TalearrNotificationDetails.WithBundleNote(
+                    GetMessage(message.Book.Author, message.Book.Books, message.Book.ParsedBookInfo.Quality),
+                    message.Book),
                 Author = message.Book.Author,
                 Quality = message.Book.ParsedBookInfo.Quality,
                 RemoteBook = message.Book,
@@ -420,22 +437,58 @@ namespace NzbDrone.Core.Notifications
             }
         }
 
+        // TaleArr: Sonarr/Radarr "On Health Restored", using the existing OnHealthRestored column.
+        public void Handle(HealthCheckRestoredEvent message)
+        {
+            if (message.IsInStartupGracePeriod)
+            {
+                return;
+            }
+
+            foreach (var notification in _notificationFactory.OnHealthRestoredEnabled())
+            {
+                try
+                {
+                    if (ShouldHandleHealthFailure(message.PreviousCheck, ((NotificationDefinition)notification.Definition).IncludeHealthWarnings))
+                    {
+                        notification.OnHealthRestored(message.PreviousCheck);
+                        _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Warn(ex, "Unable to send OnHealthRestored notification to: " + notification.Definition.Name);
+                }
+            }
+        }
+
         public void Handle(DownloadFailedEvent message)
         {
+            var remoteBook = message.TrackedDownload?.RemoteBook;
+            EnsureEditionsLoaded(remoteBook?.Books);
+
             var downloadFailedMessage = new DownloadFailedMessage
             {
                 DownloadId = message.DownloadId,
                 DownloadClient = message.DownloadClient,
                 Quality = message.Quality,
                 SourceTitle = message.SourceTitle,
-                Message = message.Message
+                Message = message.Message,
+
+                // TaleArr: book context for richer messages and webhook payloads.
+                Author = remoteBook?.Author,
+                Books = remoteBook?.Books ?? new List<Book>(),
+                RemoteBook = remoteBook,
+                DownloadClientInfo = message.TrackedDownload?.DownloadItem?.DownloadClientInfo
             };
 
             foreach (var notification in _notificationFactory.OnDownloadFailureEnabled())
             {
                 try
                 {
-                    if (ShouldHandleAuthor(notification.Definition, message.TrackedDownload.RemoteBook.Author))
+                    // TaleArr: a manual mark-as-failed has no tracked download; do not throw on it.
+                    if (ShouldHandleAuthorOrUntagged(notification.Definition, remoteBook?.Author))
                     {
                         notification.OnDownloadFailure(downloadFailedMessage);
                         _notificationStatusService.RecordSuccess(notification.Definition.Id);
@@ -451,17 +504,34 @@ namespace NzbDrone.Core.Notifications
 
         public void Handle(BookImportIncompleteEvent message)
         {
-            // TODO: Build out this message so that we can pass on what failed and what was successful
+            // TaleArr: pass on the book, the reasons and whether the user has to step in
+            // (import blocked = Sonarr/Radarr "Manual Interaction Required").
+            var trackedDownload = message.TrackedDownload;
+            var remoteBook = trackedDownload?.RemoteBook;
+            var books = remoteBook?.Books ?? new List<Book>();
+            EnsureEditionsLoaded(books);
+
             var downloadMessage = new BookDownloadMessage
             {
-                Message = GetBookIncompleteImportMessage(message.TrackedDownload.DownloadItem.Title)
+                Message = GetBookIncompleteImportMessage(trackedDownload?.DownloadItem?.Title),
+                Author = remoteBook?.Author,
+                Book = books.FirstOrDefault(),
+                Books = books,
+                RemoteBook = remoteBook,
+                SourceTitle = trackedDownload?.DownloadItem?.Title,
+                DownloadClientInfo = trackedDownload?.DownloadItem?.DownloadClientInfo,
+                DownloadId = trackedDownload?.DownloadItem?.DownloadId,
+                ManualInteractionRequired = trackedDownload?.State == TrackedDownloadState.ImportBlocked,
+                StatusMessages = TalearrNotificationDetails.StatusMessages(trackedDownload?.StatusMessages),
+                BookFiles = new List<BookFile>(),
+                OldFiles = new List<BookFile>()
             };
 
             foreach (var notification in _notificationFactory.OnImportFailureEnabled())
             {
                 try
                 {
-                    if (ShouldHandleAuthor(notification.Definition, message.TrackedDownload.RemoteBook.Author))
+                    if (ShouldHandleAuthorOrUntagged(notification.Definition, remoteBook?.Author))
                     {
                         notification.OnImportFailure(downloadMessage);
                         _notificationStatusService.RecordSuccess(notification.Definition.Id);

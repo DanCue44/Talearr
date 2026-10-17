@@ -61,6 +61,22 @@ namespace NzbDrone.Core.Notifications.Notifiarr
             _proxy.SendNotification(BuildHealthPayload(healthCheck), Settings);
         }
 
+        // TaleArr: health restored, download failure and import failure / manual interaction.
+        public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
+        {
+            _proxy.SendNotification(BuildHealthRestoredPayload(previousCheck), Settings);
+        }
+
+        public override void OnDownloadFailure(DownloadFailedMessage message)
+        {
+            _proxy.SendNotification(BuildOnDownloadFailurePayload(message), Settings);
+        }
+
+        public override void OnImportFailure(BookDownloadMessage message)
+        {
+            _proxy.SendNotification(BuildOnImportFailurePayload(message), Settings);
+        }
+
         public override void OnApplicationUpdate(ApplicationUpdateMessage updateMessage)
         {
             _proxy.SendNotification(BuildApplicationUpdatePayload(updateMessage), Settings);

@@ -15,6 +15,7 @@ namespace NzbDrone.Core.Notifications
         List<INotification> OnUpgradeEnabled(bool filterBlockedNotifications = true);
         List<INotification> OnRenameEnabled(bool filterBlockedNotifications = true);
         List<INotification> OnHealthIssueEnabled(bool filterBlockedNotifications = true);
+        List<INotification> OnHealthRestoredEnabled(bool filterBlockedNotifications = true);
         List<INotification> OnAuthorAddedEnabled(bool filterBlockedNotifications = true);
         List<INotification> OnBookAddedEnabled(bool filterBlockedNotifications = true);
         List<INotification> OnAuthorDeleteEnabled(bool filterBlockedNotifications = true);
@@ -169,6 +170,17 @@ namespace NzbDrone.Core.Notifications
             return GetAvailableProviders().Where(n => ((NotificationDefinition)n.Definition).OnHealthIssue).ToList();
         }
 
+        // TaleArr: OnHealthRestored is an existing Notifications column that was never wired up.
+        public List<INotification> OnHealthRestoredEnabled(bool filterBlockedNotifications = true)
+        {
+            if (filterBlockedNotifications)
+            {
+                return FilterBlockedNotifications(GetAvailableProviders().Where(n => ((NotificationDefinition)n.Definition).OnHealthRestored)).ToList();
+            }
+
+            return GetAvailableProviders().Where(n => ((NotificationDefinition)n.Definition).OnHealthRestored).ToList();
+        }
+
         public List<INotification> OnDownloadFailureEnabled(bool filterBlockedNotifications = true)
         {
             if (filterBlockedNotifications)
@@ -240,6 +252,7 @@ namespace NzbDrone.Core.Notifications
             definition.SupportsOnBookFileDelete = provider.SupportsOnBookFileDelete;
             definition.SupportsOnBookFileDeleteForUpgrade = provider.SupportsOnBookFileDeleteForUpgrade;
             definition.SupportsOnHealthIssue = provider.SupportsOnHealthIssue;
+            definition.SupportsOnHealthRestored = provider.SupportsOnHealthRestored;
             definition.SupportsOnDownloadFailure = provider.SupportsOnDownloadFailure;
             definition.SupportsOnImportFailure = provider.SupportsOnImportFailure;
             definition.SupportsOnBookRetag = provider.SupportsOnBookRetag;
