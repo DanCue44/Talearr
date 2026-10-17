@@ -505,7 +505,10 @@ namespace Chaptarr.Http.Authentication
                 {
                     options.HeaderName = "X-Api-Key";
                     options.QueryName = "access_token";
-                });
+                })
+
+                // TaleArr: the OPDS feed signs in with HTTP Basic or ?apikey=.
+                .AddScheme<AuthenticationSchemeOptions, TalearrOpdsAuthenticationHandler>(TalearrOpdsAuthenticationHandler.SchemeName, options => { });
         }
 
         private static string ValidateAndNormalizeOidcPrincipal(ClaimsPrincipal principal, IConfigFileProvider configFileProvider)

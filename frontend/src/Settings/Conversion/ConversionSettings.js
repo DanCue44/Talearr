@@ -12,7 +12,9 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
 import translate from 'Utilities/String/translate';
+import TalearrKindle from './TalearrKindle';
 import TalearrM4bConnector from './TalearrM4bConnector';
+import TalearrOpds from './TalearrOpds';
 import TalearrReaderHandoff from './TalearrReaderHandoff';
 
 const bitrateOptions = [
@@ -198,6 +200,12 @@ class ConversionSettings extends Component {
           />
 
           <TalearrReaderHandoff />
+
+          <div id="ebook-delivery">
+            <TalearrOpds />
+
+            <TalearrKindle />
+          </div>
         </PageContentBody>
       </PageContent>
     );

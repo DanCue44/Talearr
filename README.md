@@ -199,6 +199,45 @@ download to a watch folder, for example the ingest folder of Calibre-Web-Automat
 Storage: `talearr.readerhandoff.*` rows in the `Config` table. Not a connection type, so a
 rollback to Chaptarr only stops the copies.
 
+## Ebook delivery
+
+Settings > Conversion, below the reader hand-off. Both parts are off by default.
+
+**OPDS catalog.** A read-only OPDS 1.2 feed at `http://<host>:8789/opds` (plus your URL base)
+for KOReader, Panels, Thorium, Moon+ Reader and other OPDS readers:
+
+- Recently added, Authors, Series and All books (ebooks with a file only), paged, plus search
+  by title, author or series through an OpenSearch description.
+- Downloads stream the library file (EPUB, AZW3, MOBI, PDF and the rest). **Offer KEPUB
+  downloads** (off) adds a KEPUB link next to each EPUB, converted on download with kepubify
+  when it is installed; otherwise the plain EPUB is sent. The library file is never changed.
+- Sign-in: HTTP Basic with your TaleArr user (Forms or Basic authentication, same lockout as the
+  login page), or any user name with the API key as the password (works with Plex, OIDC or
+  External authentication too), or `?apikey=` on the URL. From a local address no sign-in is
+  needed when Authentication Required is "Disabled for Local Addresses", like the web UI. While
+  the feed is off, `/opds` answers 404.
+
+**Send to Kindle.** Emails an ebook to one or more Send-to-Kindle addresses, from the **Send to
+Kindle** button on an ebook's page, and optionally after each ebook imported from a download.
+
+- Mail goes through the SMTP settings in the section, or through an existing **Email
+  connection** (its server, login and From address are reused). **Test** signs in to the server
+  and sends nothing. The password is never logged or returned by the API.
+- The best file Amazon accepts is sent: EPUB, then PDF, DOCX, DOC, RTF, TXT, HTML. MOBI and AZW3
+  are no longer accepted by Amazon, so those books are skipped with a message. Files over 50 MB
+  are refused with their size. The From address must be on the Approved Personal Document
+  E-mail List in your Amazon account.
+
+**Kobo.** There is no Kobo store sync emulation. Use KOReader on the Kobo with the OPDS feed, or
+the reader hand-off with Convert to KEPUB into Calibre-Web-Automated (which has Kobo sync).
+
+- **API**: `GET|PUT /api/v1/config/talearropds`, `GET|PUT /api/v1/config/talearrkindle`,
+  `POST .../test`, `GET .../emailconnections`, `GET /api/v1/talearr/kindle/book/{bookId}`,
+  `POST /api/v1/talearr/kindle/send/{bookId}`.
+
+Storage: `talearr.opds.*` and `talearr.kindle.*` rows in the `Config` table. No connection type
+and no schema change, so a rollback to Chaptarr removes the feed and the button.
+
 ## MyAnonamouse
 
 The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additions:
