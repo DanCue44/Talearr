@@ -159,6 +159,39 @@ CREATE TABLE IF NOT EXISTS BookTags (
 );
 
 CREATE INDEX IF NOT EXISTS IX_BookTags_TagId ON BookTags (TagId);
+",
+
+            // 5: merge redirects (Talearr/Catalog/TalearrMergeRedirectStore). Provider ids of rows
+            // removed by the merge tool, pointing at the row they were merged into, so a refresh or
+            // an add that still sees the old id updates the kept row instead of adding it again.
+            // MediaType is -1 for authors. Losing a row only means a merged duplicate can come back.
+            @"
+CREATE TABLE IF NOT EXISTS MergeRedirects (
+    EntityType TEXT NOT NULL,
+    MediaType  INTEGER NOT NULL,
+    ProviderId TEXT NOT NULL COLLATE NOCASE,
+    TargetId   INTEGER NOT NULL,
+    SourceId   INTEGER,
+    Title      TEXT,
+    CreatedAt  TEXT NOT NULL,
+    PRIMARY KEY (EntityType, MediaType, ProviderId)
+);
+
+CREATE INDEX IF NOT EXISTS IX_MergeRedirects_Target ON MergeRedirects (EntityType, TargetId);
+",
+
+            // 6: upgrade cooldowns (Talearr/QualityLadder/TalearrUpgradeCooldown). A book whose
+            // upgrade download was rejected at import by the upgrade guard is not upgraded again
+            // automatically until Until. Losing a row only ends that pause early.
+            @"
+CREATE TABLE IF NOT EXISTS UpgradeCooldowns (
+    BookId       INTEGER NOT NULL PRIMARY KEY,
+    Until        TEXT NOT NULL,
+    Reason       TEXT,
+    DownloadId   TEXT,
+    ReleaseTitle TEXT,
+    CreatedAt    TEXT NOT NULL
+);
 "
         };
 

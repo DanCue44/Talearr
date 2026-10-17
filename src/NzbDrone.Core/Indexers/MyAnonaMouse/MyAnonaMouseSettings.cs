@@ -153,6 +153,12 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         public DateTime? UnsatisfiedSnapshotUtc { get; set; }
         public DateTime? UnsatisfiedStatusRefreshedUtc { get; set; }
 
+        // TaleArr: freeleech wedge balance and bonus points from the same account refresh, for the
+        // test message and the wedge health notice. Null when MAM did not send them. Read only:
+        // TaleArr never spends bonus points (see README "MyAnonamouse").
+        public int? FreeleechWedges { get; set; }
+        public double? BonusPoints { get; set; }
+
         // Required by ITorrentIndexerSettings but hidden from UI
         public SeedCriteriaSettings SeedCriteria
         {

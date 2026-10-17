@@ -433,7 +433,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                     var slots = Settings.UnsatisfiedCount.HasValue && Settings.UnsatisfiedLimit.HasValue
                         ? $"; unsatisfied torrents: {Settings.UnsatisfiedCount}/{Settings.UnsatisfiedLimit}"
                         : string.Empty;
-                    var message = membership + slots;
+                    var message = membership + slots + MyAnonaMouseAccountStatus.DescribeWallet(Settings.FreeleechWedges, Settings.BonusPoints);
 
                     // Attach to the temporary definition used during Test so the controller can surface it
                     Definition.Message = new ProviderMessage(message, ProviderMessageType.Info);
@@ -505,6 +505,10 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 throw new InvalidOperationException("MAM user data response did not include a user class");
             }
 
+            // TaleArr: wedge balance and bonus points sit next to classname, outside snatch_summary.
+            var wedges = MyAnonaMouseUserDataResponse.ReadInt(userData.Wedges);
+            var bonusPoints = MyAnonaMouseUserDataResponse.ReadNumber(userData.SeedBonus);
+
             userData = userData.SnatchSummary ?? userData;
 
             if (userData.Unsatisfied == null || userData.Unsatisfied.Count < 0 || userData.Unsatisfied.Limit <= 0 || userData.Created <= 0)
@@ -530,6 +534,8 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             Settings.UnsatisfiedLimit = userData.Unsatisfied.Limit;
             Settings.UnsatisfiedSnapshotUtc = snapshotCreatedUtc;
             Settings.UnsatisfiedStatusRefreshedUtc = refreshedUtc;
+            Settings.FreeleechWedges = wedges;
+            Settings.BonusPoints = bonusPoints;
 
             _logger.Debug("MAM account status detected: {0} (VIP: {1}), unsatisfied {2}/{3}", className, isVip, userData.Unsatisfied.Count, userData.Unsatisfied.Limit);
 
@@ -540,7 +546,9 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 UnsatisfiedCount = userData.Unsatisfied.Count,
                 UnsatisfiedLimit = userData.Unsatisfied.Limit,
                 SnapshotCreatedUtc = snapshotCreatedUtc,
-                RefreshedUtc = refreshedUtc
+                RefreshedUtc = refreshedUtc,
+                FreeleechWedges = wedges,
+                BonusPoints = bonusPoints
             };
         }
 
@@ -635,6 +643,26 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         public int UnsatisfiedLimit { get; set; }
         public DateTime SnapshotCreatedUtc { get; set; }
         public DateTime RefreshedUtc { get; set; }
+
+        // TaleArr: null when MAM did not send them.
+        public int? FreeleechWedges { get; set; }
+        public double? BonusPoints { get; set; }
+
+        public static string DescribeWallet(int? wedges, double? bonusPoints)
+        {
+            var parts = new List<string>();
+            if (wedges.HasValue)
+            {
+                parts.Add($"freeleech wedges: {wedges.Value}");
+            }
+
+            if (bonusPoints.HasValue)
+            {
+                parts.Add($"bonus points: {Math.Floor(bonusPoints.Value).ToString("N0", System.Globalization.CultureInfo.InvariantCulture)}");
+            }
+
+            return parts.Count == 0 ? string.Empty : "; " + string.Join(", ", parts);
+        }
     }
 
     public class MyAnonaMouseUserDataResponse
@@ -650,6 +678,42 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
         [JsonProperty("unsat")]
         public MyAnonaMouseUnsatisfiedSummary Unsatisfied { get; set; }
+
+        // TaleArr: optional and loosely typed (number or string), never required.
+        [JsonProperty("wedges")]
+        public Newtonsoft.Json.Linq.JToken Wedges { get; set; }
+
+        [JsonProperty("seedbonus")]
+        public Newtonsoft.Json.Linq.JToken SeedBonus { get; set; }
+
+        public static double? ReadNumber(Newtonsoft.Json.Linq.JToken token)
+        {
+            if (token == null || token.Type is Newtonsoft.Json.Linq.JTokenType.Null or Newtonsoft.Json.Linq.JTokenType.Undefined)
+            {
+                return null;
+            }
+
+            if (token.Type is Newtonsoft.Json.Linq.JTokenType.Integer or Newtonsoft.Json.Linq.JTokenType.Float)
+            {
+                var value = token.ToObject<double>();
+                return value >= 0 ? value : null;
+            }
+
+            if (token.Type == Newtonsoft.Json.Linq.JTokenType.String &&
+                double.TryParse(token.ToObject<string>()?.Replace(",", string.Empty).Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsed) &&
+                parsed >= 0)
+            {
+                return parsed;
+            }
+
+            return null;
+        }
+
+        public static int? ReadInt(Newtonsoft.Json.Linq.JToken token)
+        {
+            var value = ReadNumber(token);
+            return value.HasValue && value.Value <= int.MaxValue ? (int)Math.Floor(value.Value) : null;
+        }
     }
 
     public class MyAnonaMouseUnsatisfiedSummary

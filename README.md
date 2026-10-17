@@ -58,7 +58,9 @@ TaleArr behavior changes so far (all without schema changes, new settings or `co
   one transaction. Files on disk are never moved or deleted. Ebook and audiobook rows of one
   book are siblings and are never merged. A preview shows exactly what moves. API:
   `GET /api/v1/talearr/merge/candidates`, `POST /api/v1/talearr/merge/authors|books`
-  (`targetId`, `sourceIds`, `dryRun`, `force`).
+  (`targetId`, `sourceIds`, `dryRun`, `force`). Merges stay merged: the provider ids of the
+  removed rows are kept in `talearr.db` pointing at the kept row, so a later refresh or add that
+  still sees an old id updates the kept row instead of adding the duplicate again.
 - **Large libraries.** Fewer full-library loads: the book index loads series links once with a
   single scan, Wanted, Cutoff Unmet, the calendar and author pages read statistics for their
   own authors only, and book routes by `titleSlug` (AllSeerr links) look the slug up instead
@@ -112,6 +114,11 @@ See [docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md).
 - **Upgrade guard.** An audiobook upgrade only replaces files of the same recording, never with
   fewer channels or a lower measured bitrate, and bitrate gains count only within one codec. An
   unabridged download for abridged files becomes its own recording (Keep both recordings).
+  When the guard rejects an upgrade download (the size estimate looked better, the real files
+  were not), the download is failed without a new search, which blocklists that release, and
+  automatic searches do not grab upgrades for that book for 7 days (an "Upgrade paused" soft
+  filter; interactive search can still grab). Explicit user grabs stay in the queue. The pause
+  is kept in `talearr.db`.
 - **Per-book abridged policy.** A book can have its own Abridged audiobooks value (unabridged
   only, abridged only, prefer unabridged, any), set by AllSeerr through
   `GET|PUT /api/v1/talearr/grabpolicy/book/{bookId}`. An abridged only book without files
@@ -301,6 +308,12 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
   settings.
 - **Unsatisfied limit warning.** System > Status warns at 80% of MAM's unsatisfied-torrent
   limit, and when automatic grabs are paused by the safety reserve.
+- **Freeleech wedge balance.** The hourly account refresh also reads your wedge count and
+  bonus points (`wedges`, `seedbonus` in `jsonLoad.php`, when MAM sends them). The indexer Test
+  shows them, and System > Status shows a notice when **Freeleech Wedges** is Prefer Wedge and
+  no wedges are left (grabs then download without one). TaleArr never spends bonus points:
+  MAM's purchase endpoint is not documented and automating it risks the account, so buying
+  wedges stays a manual step on MAM's Bonus page.
 
 Storage: new keys in the indexer's own settings JSON (stock Chaptarr ignores them) and one
 scheduled task row that Chaptarr drops on start.
@@ -555,8 +568,14 @@ request per second, a `TaleArr/<version>` user agent, responses cached for 6 hou
   recovery the normal refresh updates the author from the metadata server, and books added
   from Open Library are matched to the server's books by ISBN-13, then by exact title (same
   media type, one candidate only), so the existing rows are updated in place, not duplicated.
-- Limits: Open Library has no audiobook editions, narrators or series, so fallback books get
-  one print edition (audiobook rows search by title and author as usual). An author with no
+- Audiobooks: when Open Library lists an Audible ASIN for a work (`id_amazon`, B0...), TaleArr
+  asks Audnexus (`api.audnex.us`, no key, same user agent, one request per second, cached a day,
+  at most 20 lookups per author) for that product and, if its title and author match, adds an
+  audio edition with narrators, runtime and Unabridged/Abridged. Only fallback-built books are
+  enriched; metadata server data is never touched, and an Audnexus outage only skips this.
+- Limits: Open Library has no series, and Audnexus has no title search, so works without an
+  Audible ASIN on Open Library get one print edition (audiobook rows search by title and author
+  as usual). An author with no
   Goodreads or Amazon id on Open Library stays on Open Library data until it is re-added. A
   book that matches no server book, or more than one, is left to the normal refresh rules.
 - System > Status shows a notice while the fallback is active and for 24 hours after it was

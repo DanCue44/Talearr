@@ -101,6 +101,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
         private readonly ITalearrMetadataServerProbe _probe;
         private readonly IMetadataServerHealthGate _gate;
         private readonly IEventAggregator _eventAggregator;
+        private readonly IAudnexusClient _audnexus;
         private readonly Logger _logger;
         private readonly object _lock = new object();
 
@@ -115,7 +116,8 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
                                               ITalearrMetadataServerProbe probe,
                                               IMetadataServerHealthGate gate,
                                               IEventAggregator eventAggregator,
-                                              Logger logger)
+                                              Logger logger,
+                                              IAudnexusClient audnexus = null)
         {
             _settings = settings;
             _openLibrary = openLibrary;
@@ -123,6 +125,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
             _gate = gate;
             _eventAggregator = eventAggregator;
             _logger = logger;
+            _audnexus = audnexus;
         }
 
         // For tests.
@@ -224,6 +227,13 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
 
                 var works = _openLibrary.GetAuthorWorks(record.Key, 100);
                 var response = TalearrOpenLibraryMapper.BuildAuthorResponse(record, works, requestedProviderId, requestedWorkTitles);
+
+                // TaleArr: narrator, runtime and abridged flag for works Open Library has an Audible ASIN for.
+                var audiobooks = TalearrAudnexusEnricher.Enrich(response, works, _audnexus, _logger);
+                if (audiobooks > 0)
+                {
+                    _logger.Debug("TaleArr: added {0} audiobook edition(s) from {1} for '{2}'", audiobooks, TalearrAudnexusEnricher.SourceName, record.Name);
+                }
 
                 _logger.Info("TaleArr: the metadata server is unavailable; added author '{0}' ({1}) from Open Library with {2} book(s). A refresh after the server recovers updates it from the metadata server.",
                     record.Name,
