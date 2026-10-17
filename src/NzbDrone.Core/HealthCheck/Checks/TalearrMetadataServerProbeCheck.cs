@@ -49,7 +49,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
             switch (result.State)
             {
                 case MetadataServerProbeState.Down:
-                    return $"Metadata server {source} is not responding ({result.Error}). Your authors and books are kept as they are, but searching for, adding and refreshing books will fail until it recovers. {nextCheck}";
+                    return $"Metadata server {source} is not responding ({result.Error}). Your authors and books are kept as they are and refreshes are paused until it recovers. Searching and adding use Open Library while the metadata fallback is on (Settings > Metadata). {nextCheck}";
                 case MetadataServerProbeState.Slow:
                     return $"Metadata server {source} is responding slowly ({result.Latency?.TotalSeconds ?? 0:0.0}s). Searching for, adding and refreshing books may time out. {nextCheck}";
                 case MetadataServerProbeState.RateLimited:
