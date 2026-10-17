@@ -44,7 +44,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
         public static readonly TimeSpan RateLimit = TimeSpan.FromSeconds(1);
         public static readonly TimeSpan CacheLifetime = TimeSpan.FromHours(6);
 
-        private const string WorkFields = "key,title,subtitle,first_publish_year,isbn,cover_i,cover_edition_key,edition_key,edition_count,language,author_key,author_name,publisher,number_of_pages_median,ratings_average,ratings_count";
+        private const string WorkFields = "key,title,subtitle,first_publish_year,isbn,cover_i,cover_edition_key,edition_key,edition_count,language,author_key,author_name,publisher,number_of_pages_median,ratings_average,ratings_count,id_amazon";
 
         private readonly IHttpClient _httpClient;
         private readonly ICached<string> _cache;

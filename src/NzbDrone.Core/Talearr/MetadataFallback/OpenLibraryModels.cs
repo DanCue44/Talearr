@@ -126,6 +126,9 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
         public decimal RatingsAverage { get; set; }
         public int RatingsCount { get; set; }
 
+        // TaleArr: Amazon ids of the work's editions (id_amazon). Audible products are B0... ASINs.
+        public List<string> AmazonIds { get; set; } = new List<string>();
+
         public string EditionKey => !string.IsNullOrWhiteSpace(CoverEditionKey) ? CoverEditionKey : EditionKeys.FirstOrDefault();
 
         public IEnumerable<string> Isbn13s => Isbns.Select(OpenLibraryJson.NormalizeIsbn).Where(i => i?.Length == 13);
@@ -164,7 +167,8 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
                 Publishers = OpenLibraryJson.Strings(doc["publisher"]),
                 PageCountMedian = OpenLibraryJson.Int(doc["number_of_pages_median"]),
                 RatingsAverage = OpenLibraryJson.Decimal(doc["ratings_average"]) ?? 0m,
-                RatingsCount = OpenLibraryJson.Int(doc["ratings_count"]) ?? 0
+                RatingsCount = OpenLibraryJson.Int(doc["ratings_count"]) ?? 0,
+                AmazonIds = OpenLibraryJson.Strings(doc["id_amazon"])
             };
         }
     }

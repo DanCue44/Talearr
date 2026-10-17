@@ -373,8 +373,14 @@ request per second, a `TaleArr/<version>` user agent, responses cached for 6 hou
   recovery the normal refresh updates the author from the metadata server, and books added
   from Open Library are matched to the server's books by ISBN-13, then by exact title (same
   media type, one candidate only), so the existing rows are updated in place, not duplicated.
-- Limits: Open Library has no audiobook editions, narrators or series, so fallback books get
-  one print edition (audiobook rows search by title and author as usual). An author with no
+- Audiobooks: when Open Library lists an Audible ASIN for a work (`id_amazon`, B0...), TaleArr
+  asks Audnexus (`api.audnex.us`, no key, same user agent, one request per second, cached a day,
+  at most 20 lookups per author) for that product and, if its title and author match, adds an
+  audio edition with narrators, runtime and Unabridged/Abridged. Only fallback-built books are
+  enriched; metadata server data is never touched, and an Audnexus outage only skips this.
+- Limits: Open Library has no series, and Audnexus has no title search, so works without an
+  Audible ASIN on Open Library get one print edition (audiobook rows search by title and author
+  as usual). An author with no
   Goodreads or Amazon id on Open Library stays on Open Library data until it is re-added. A
   book that matches no server book, or more than one, is left to the normal refresh rules.
 - System > Status shows a notice while the fallback is active and for 24 hours after it was
