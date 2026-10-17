@@ -28,7 +28,9 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
 
         public AbridgedAudiobookPolicy AbridgedPolicy { get; set; } = AbridgedAudiobookPolicy.UnabridgedOnly;
 
-        // Off by default: series bundles, omnibuses and box sets are skipped.
+        // Off by default: series bundles, omnibuses and box sets are used only as a last resort,
+        // when a search finds no single copy (TalearrBundleFallback). On: they are treated like
+        // any other release.
         public bool AllowBundles { get; set; }
 
         // On by default: import rejections that will never succeed fail the download, which

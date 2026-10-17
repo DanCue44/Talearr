@@ -32,27 +32,18 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             switch (detection.Verdict)
             {
                 case ReleasePackDetectionVerdict.MultipleBooks:
-                    // TaleArr: bundles are opt-in, and a wanted omnibus is not a stray bundle.
+                    // TaleArr: a wanted omnibus is not a stray bundle.
                     if (IsWantedOmnibus(subject))
                     {
                         _logger.Trace("Release {0} looks like a pack but the wanted book is itself an omnibus", subject.Release?.Title);
                         return Decision.Accept();
                     }
 
-                    if (TalearrGrabPolicyService.Resolve(_grabPolicyService).AllowBundles)
-                    {
-                        _logger.Debug("Release {0} looks like a multi-book bundle ({1}: {2}); allowed by grab policy",
-                            subject.Release?.Title,
-                            detection.PackType,
-                            detection.MatchedValue);
-                        return Decision.Accept();
-                    }
-
-                    _logger.Trace("Release {0} rejected as multi-book pack. Type={1}, Match={2}",
-                        subject.Release?.Title,
-                        detection.PackType,
-                        detection.MatchedValue);
-                    return Decision.RejectHardFilter("Release appears to contain multiple books", "Pack");
+                    return EvaluateBundle(subject,
+                        _grabPolicyService,
+                        _logger,
+                        string.Format("{0}: {1}", detection.PackType, detection.MatchedValue),
+                        "Release appears to contain multiple books");
 
                 case ReleasePackDetectionVerdict.AudiobookFragment:
                     _logger.Trace("Release {0} soft-rejected as audiobook fragment. Type={1}, Match={2}",
@@ -64,6 +55,33 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 default:
                     return Decision.Accept();
             }
+        }
+
+        // TaleArr: with "Allow bundles" on a bundle is a normal release. Otherwise it is kept only
+        // as a last resort (flagged, so every other check still runs and the grab waits for the
+        // single copies), and rejected where no last resort applies (RSS, pushed releases, an
+        // automatic search whose bundle does not name the wanted book).
+        internal static Decision EvaluateBundle(RemoteBook subject, ITalearrGrabPolicyService grabPolicyService, Logger logger, string detail, string rejectionReason)
+        {
+            subject.IsBundle = true;
+
+            if (TalearrGrabPolicyService.Resolve(grabPolicyService).AllowBundles)
+            {
+                subject.IsBundleFallback = false;
+                logger.Debug("Release {0} looks like a multi-book bundle ({1}); allowed by grab policy", subject.Release?.Title, detail);
+                return Decision.Accept();
+            }
+
+            if (TalearrBundleFallback.CanFallBack(subject))
+            {
+                subject.IsBundleFallback = true;
+                logger.Debug("Release {0} looks like a multi-book bundle ({1}); kept as a last resort", subject.Release?.Title, detail);
+                return Decision.Accept();
+            }
+
+            subject.IsBundleFallback = false;
+            logger.Trace("Release {0} rejected as multi-book pack ({1})", subject.Release?.Title, detail);
+            return Decision.RejectHardFilter(rejectionReason, "Pack");
         }
 
         internal static bool IsWantedOmnibus(RemoteBook subject)

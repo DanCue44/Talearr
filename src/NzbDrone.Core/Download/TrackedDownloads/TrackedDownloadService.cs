@@ -15,6 +15,7 @@ using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.Download.TrackedDownloads
 {
@@ -148,6 +149,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                         {
                             downloadForced = IsForcedDownload(grabbedEvent);
                             existingItem.Added = grabbedEvent.Date;
+                            ApplyBundleFlags(existingItem.RemoteBook, grabbedEvent);
                         }
                     }
                     catch (Exception ex)
@@ -281,6 +283,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                     }
 
                     HydrateReleaseFromGrabHistory(trackedDownload.RemoteBook, grabbedEvent, downloadGrabHistory, trackedDownload.Indexer);
+                    ApplyBundleFlags(trackedDownload.RemoteBook, grabbedEvent);
 
                     if (trackedDownload.RemoteBook != null &&
                         Enum.TryParse(GetHistoryData(grabbedEvent, "indexerFlags"), true, out IndexerFlags flags))
@@ -427,6 +430,18 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             return history.Data
                 .FirstOrDefault(item => string.Equals(item.Key, key, StringComparison.OrdinalIgnoreCase))
                 .Value;
+        }
+
+        // TaleArr: a bundle grab carries its flag back so the import keeps only wanted books.
+        private static void ApplyBundleFlags(RemoteBook remoteBook, EntityHistory grabbedEvent)
+        {
+            if (remoteBook == null || grabbedEvent?.Data == null || !TalearrBundleFallback.IsBundleHistory(grabbedEvent.Data))
+            {
+                return;
+            }
+
+            remoteBook.IsBundle = true;
+            remoteBook.IsBundleFallback = TalearrBundleFallback.IsBundleFallbackHistory(grabbedEvent.Data);
         }
 
         private static bool IsForcedDownload(EntityHistory grabbedEvent)

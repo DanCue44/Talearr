@@ -16,6 +16,7 @@ using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.History
 {
@@ -236,6 +237,9 @@ namespace NzbDrone.Core.History
                 history.Data.Add("CustomFormatScore", message.Book.CustomFormatScore.ToString());
                 history.Data.Add("ReleaseSource", message.Book.ReleaseSource.ToString());
                 history.Data.Add("IndexerFlags", message.Book.Release.IndexerFlags.ToString());
+
+                // TaleArr: remember a bundle grab so the import keeps only wanted books from it.
+                TalearrBundleFallback.AddHistoryData(message.Book, history.Data);
 
                 if (!message.Book.ParsedBookInfo.ReleaseHash.IsNullOrWhiteSpace())
                 {

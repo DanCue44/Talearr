@@ -23,15 +23,18 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         {
             if (subject?.ParsedBookInfo?.Discography == true)
             {
-                // TaleArr: bundles are opt-in through the grab policy.
-                if (TalearrGrabPolicyService.Resolve(_grabPolicyService).AllowBundles ||
-                    MultiBookReleaseSpecification.IsWantedOmnibus(subject))
+                // TaleArr: a wanted omnibus is not a stray bundle; other discographies follow the
+                // same last-resort rule as bundles.
+                if (MultiBookReleaseSpecification.IsWantedOmnibus(subject))
                 {
                     return Decision.Accept();
                 }
 
-                _logger.Trace("Discography release {0} rejected as a multi-book pack.", subject.Release?.Title);
-                return Decision.RejectHardFilter("Release appears to contain multiple books (discography)", "Pack");
+                return MultiBookReleaseSpecification.EvaluateBundle(subject,
+                    _grabPolicyService,
+                    _logger,
+                    "discography",
+                    "Release appears to contain multiple books (discography)");
             }
 
             return Decision.Accept();
