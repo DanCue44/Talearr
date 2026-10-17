@@ -98,7 +98,45 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             }
 
             var normalizedRelease = " " + Normalize(releaseTitle) + " ";
-            return normalizedRelease.Contains(" " + primary + " ", StringComparison.Ordinal);
+            if (!normalizedRelease.Contains(" " + primary + " ", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            // TaleArr: "All-in-One Bundle" does not name the book "All In". The title must appear
+            // at least once outside a hyphenated compound, unless the release uses hyphens as its
+            // only word separator ("Poppy-War-Box-Set").
+            if (!HasHyphenCompound(releaseTitle))
+            {
+                return true;
+            }
+
+            var words = primary.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(Regex.Escape);
+            var pattern = @"(?<![\p{L}\p{N}])(?<!\p{L}-)" + string.Join(@"[^\p{L}\p{N}]+", words) + @"(?![\p{L}\p{N}])(?!-\p{L})";
+            return Regex.IsMatch(LowerWithoutMarks(releaseTitle), pattern);
+        }
+
+        private static readonly Regex HyphenCompoundRegex = new Regex(@"\p{L}-\p{L}", RegexOptions.Compiled);
+        private static readonly Regex OtherWordSeparatorRegex = new Regex(@"[\p{L}\p{N}][\s._]+[\p{L}\p{N}]", RegexOptions.Compiled);
+
+        private static bool HasHyphenCompound(string releaseTitle)
+        {
+            return HyphenCompoundRegex.IsMatch(releaseTitle) && OtherWordSeparatorRegex.IsMatch(releaseTitle);
+        }
+
+        private static string LowerWithoutMarks(string value)
+        {
+            var decomposed = value.ToLowerInvariant().Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder(decomposed.Length);
+            foreach (var c in decomposed)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark && c != '\'')
+                {
+                    builder.Append(c);
+                }
+            }
+
+            return builder.ToString();
         }
 
         // A release that lists the wanted book together with other books by the same author:

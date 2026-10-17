@@ -1664,7 +1664,8 @@ namespace Chaptarr.Core.Test.DecisionEngine
             });
 
             Assert.That(decision.Rejected, Is.True);
-            Assert.That(decision.Rejections.Select(r => r.Reason), Has.Some.EqualTo("Title/Author mismatch"));
+            // TaleArr: the release names its author, so the rejection says who it is by.
+            Assert.That(decision.Rejections.Select(r => r.Reason), Has.Some.EqualTo("Release is by Bethany McLean, not Louise Penny"));
         }
 
         [Test]

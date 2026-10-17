@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
@@ -51,9 +52,73 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 return false;
             }
 
-            var releaseTitle = remoteBook.Release?.Title;
-            return remoteBook.Books?.Any(book => book != null &&
-                                                 TalearrBundleDetector.ReleaseMentionsTitle(releaseTitle, book.Title)) == true;
+            return remoteBook.Books?.Any(book => book != null && BundleNamesBook(remoteBook, book)) == true;
+        }
+
+        // TaleArr: whether a bundle's name really names this book. The title must appear as a whole
+        // phrase (not inside "All-in-One"), the bundle must not credit another author, a short
+        // title ("All In", "Bride", "Deep End") also needs the author, a course or marketing pack
+        // needs the author, and a number in the wanted title must not be contradicted.
+        public static bool BundleNamesBook(RemoteBook remoteBook, Book book)
+        {
+            return WhyBundleDoesNotNameBook(remoteBook, book) == null;
+        }
+
+        public static string WhyBundleDoesNotNameBook(RemoteBook remoteBook, Book book)
+        {
+            var releaseTitle = remoteBook?.Release?.Title;
+            if (book == null || releaseTitle.IsNullOrWhiteSpace())
+            {
+                return "Bundle does not name the wanted book";
+            }
+
+            if (!TalearrBundleDetector.ReleaseMentionsTitle(releaseTitle, book.Title))
+            {
+                return "Bundle does not name the wanted book";
+            }
+
+            var numberMismatch = TalearrReleaseIdentityGuard.FindNumberMismatch(releaseTitle, book);
+            if (numberMismatch != null)
+            {
+                return $"Bundle names a different number: {numberMismatch}";
+            }
+
+            var author = remoteBook.Author ?? book.Author;
+            if (author?.Name.IsNullOrWhiteSpace() != false)
+            {
+                return null;
+            }
+
+            var releaseAuthor = remoteBook.Release.Author;
+            var namesAuthor = ReleaseIdentityEvidence.TextNamesAuthor(author, releaseTitle) ||
+                              ReleaseIdentityEvidence.NameMatchesAuthor(author, releaseAuthor);
+            if (namesAuthor)
+            {
+                return null;
+            }
+
+            if (releaseAuthor.IsNotNullOrWhiteSpace())
+            {
+                return $"Bundle is by {releaseAuthor}, not {author.Name}";
+            }
+
+            var otherAuthor = TalearrReleaseIdentityGuard.FindOtherAuthor(releaseTitle, author, new[] { book });
+            if (otherAuthor != null)
+            {
+                return $"Bundle is by {otherAuthor}, not {author.Name}";
+            }
+
+            if (TalearrReleaseIdentityGuard.FindNonBookPackWord(releaseTitle, book) != null)
+            {
+                return "Release looks like a course or marketing pack, not a book";
+            }
+
+            if (TalearrReleaseIdentityGuard.IsShortTitle(book.Title))
+            {
+                return $"Bundle does not name the author of the short title '{book.Title}'";
+            }
+
+            return null;
         }
 
         public static void AddHistoryData(RemoteBook remoteBook, IDictionary<string, string> data)

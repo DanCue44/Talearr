@@ -25,6 +25,7 @@ using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Talearr.GrabPolicy;
+using NzbDrone.Core.Talearr.Import;
 
 namespace NzbDrone.Core.MediaFiles
 {
@@ -806,6 +807,28 @@ namespace NzbDrone.Core.MediaFiles
             foreach (var decision in decisions.Where(decision => decision?.Approved == true))
             {
                 var matchedBook = decision.Item?.Book;
+
+                // TaleArr: a file that credits a different author is not the grabbed book, even
+                // when its title words matched ("Craig Rice - 45 Murderers ..." for Ryan Becker).
+                if (matchedBook != null && expectedBookIds.Contains(matchedBook.Id))
+                {
+                    var expectedAuthor = remoteBook.Author?.Name.IsNotNullOrWhiteSpace() == true
+                        ? remoteBook.Author
+                        : matchedBook.Author;
+                    var otherAuthor = TalearrImportAuthorCheck.FindOtherAuthor(decision.Item, expectedAuthor, matchedBook, downloadClientItem.Title);
+                    if (otherAuthor != null)
+                    {
+                        _logger.Warn("Not importing {0} into {1}: the download credits {2}, not {3}",
+                            decision.Item.Path,
+                            FormatBookLabel(matchedBook),
+                            otherAuthor,
+                            expectedAuthor.Name);
+                        decision.Reject(new Rejection(TalearrImportAuthorCheck.BuildRejection(otherAuthor, expectedAuthor, FormatBookLabel(matchedBook))));
+                    }
+
+                    continue;
+                }
+
                 if (matchedBook == null || !expectedBookIds.Contains(matchedBook.Id))
                 {
                     // TaleArr: other books in a bundle are imported only when they are wanted
