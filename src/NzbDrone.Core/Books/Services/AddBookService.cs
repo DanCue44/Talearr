@@ -497,6 +497,22 @@ namespace NzbDrone.Core.Books
             }
         }
 
+        private static Dictionary<string, string> BuildFallbackWorkTitles(List<string> requestedIds, string title)
+        {
+            if (requestedIds == null || string.IsNullOrWhiteSpace(title))
+            {
+                return null;
+            }
+
+            var titles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var id in requestedIds.Where(id => !string.IsNullOrWhiteSpace(id)))
+            {
+                titles[id.Trim()] = title;
+            }
+
+            return titles.Count > 0 ? titles : null;
+        }
+
         internal static MonitoringConfig BuildRequestedBookMonitoringConfig(Book book, List<string> requestedIds, bool searchRequested)
         {
             var author = book.Author ?? new Author();
@@ -540,7 +556,12 @@ namespace NzbDrone.Core.Books
                 AudiobookBooksToMonitor = isAudiobook ? requestedIds : null,
                 EbookBooksToMonitor = isAudiobook ? null : requestedIds,
                 AudiobookBooksToSearch = isAudiobook && searchRequested ? requestedIds : null,
-                EbookBooksToSearch = !isAudiobook && searchRequested ? requestedIds : null
+                EbookBooksToSearch = !isAudiobook && searchRequested ? requestedIds : null,
+
+                // TaleArr: an explicit single-book add may use the Open Library fallback during
+                // an outage; the title lets it find the same work there.
+                AllowMetadataFallback = true,
+                MetadataFallbackWorkTitles = BuildFallbackWorkTitles(requestedIds, book.Title)
             }, mediaType);
         }
 

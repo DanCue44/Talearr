@@ -347,6 +347,32 @@ natively; the Docker image bundles it along with m4b-tool and mp4v2.
 `python3 build-tools/talearr_brand_check.py` checks that the rebrand is intact and that the
 drop-in identifiers are unchanged. CI runs it on every push.
 
+## Metadata fallback
+
+Settings > Metadata > **Metadata fallback** keeps search and add working while the Chaptarr
+metadata server is down. Values: Off, When the metadata server is down (default), and the same
+with search results labelled "Open Library". It uses the public Open Library API (no key, one
+request per second, a `TaleArr/<version>` user agent, responses cached for 6 hours).
+
+- Search falls back when the metadata server is down or the search provider fails with a
+  server or network error. A missing Hardcover token is not treated as an outage.
+- Add falls back when fetching the author from the metadata server fails that way. A hc:/gr:
+  author keeps that id (Open Library is matched by exact name only), an Open Library author
+  gets `ol:` ids plus its Goodreads and Amazon ids from Open Library. Books get `ol:` work and
+  edition ids in the existing Open Library columns. An author already in the library is never
+  changed by fallback data.
+- Refresh never uses the fallback: during an outage it is skipped and nothing changes. After
+  recovery the normal refresh updates the author from the metadata server, and books added
+  from Open Library are matched to the server's books by ISBN-13, then by exact title (same
+  media type, one candidate only), so the existing rows are updated in place, not duplicated.
+- Limits: Open Library has no audiobook editions, narrators or series, so fallback books get
+  one print edition (audiobook rows search by title and author as usual). An author with no
+  Goodreads or Amazon id on Open Library stays on Open Library data until it is re-added. A
+  book that matches no server book, or more than one, is left to the normal refresh rules.
+- System > Status shows a notice while the fallback is active and for 24 hours after it was
+  last used. The setting and live status are at `/api/v1/config/talearrmetadatafallback`
+  (stored as a `talearr.metadatafallback.mode` row; no schema change).
+
 ## Keeping up with Chaptarr
 
 See [docs/TALEARR_UPSTREAM_SYNC.md](docs/TALEARR_UPSTREAM_SYNC.md).
@@ -356,6 +382,8 @@ See [docs/TALEARR_UPSTREAM_SYNC.md](docs/TALEARR_UPSTREAM_SYNC.md).
 Like Chaptarr, TaleArr uses `api2.chaptarr.com` for metadata and matching, and the update
 check contacts Chaptarr's update service. See the upstream README for what those requests
 contain.
+While the metadata server is unavailable, the metadata fallback (on by default) sends search
+terms and author names to `openlibrary.org`; turn it off under Settings > Metadata.
 
 ## License and credits
 

@@ -11,6 +11,7 @@ using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Talearr.MetadataFallback;
 
 namespace Chaptarr.Api.V1.Search
 {
@@ -24,9 +25,11 @@ namespace Chaptarr.Api.V1.Search
         private readonly IAuthorService _authorService;
         private readonly IBookService _bookService;
         private readonly IProviderAliasService _providerAliasService;
+        private readonly ITalearrMetadataFallback _metadataFallback;
 
-        public SearchController(ISearchForNewEntity searchProxy, IBuildFileNames fileNameBuilder, IMapCoversToLocal coverMapper, IMediaCoverProxy mediaCoverProxy, IAuthorService authorService, IBookService bookService, IProviderAliasService providerAliasService = null)
+        public SearchController(ISearchForNewEntity searchProxy, IBuildFileNames fileNameBuilder, IMapCoversToLocal coverMapper, IMediaCoverProxy mediaCoverProxy, IAuthorService authorService, IBookService bookService, IProviderAliasService providerAliasService = null, ITalearrMetadataFallback metadataFallback = null)
         {
+            _metadataFallback = metadataFallback;
             _searchProxy = searchProxy;
             _fileNameBuilder = fileNameBuilder;
             _coverMapper = coverMapper;
@@ -290,6 +293,12 @@ namespace Chaptarr.Api.V1.Search
                 else
                 {
                     throw new NotImplementedException($"Bad response from search all proxy - unknown type: {result?.GetType()?.Name ?? "null"}");
+                }
+
+                // TaleArr: label results that came from the Open Library fallback (setting "show source").
+                if (_metadataFallback?.ShowSource == true)
+                {
+                    resource.MetadataSource = TalearrMetadataFallbackMarker.GetSource(result);
                 }
 
                 yield return resource;

@@ -28,6 +28,7 @@ using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Books.Calibre;
 using NzbDrone.Core.Books.Services;
+using NzbDrone.Core.Talearr.MetadataFallback;
 
 namespace NzbDrone.Core.Books
 {
@@ -563,7 +564,7 @@ namespace NzbDrone.Core.Books
                         .Select(book => RefreshEntityCopy.CloneBook(book, includeEditions: true))
                         .ToList() ?? new List<Book>();
 
-                    return NormalizeRemoteBooks(
+                    var remoteChildren = NormalizeRemoteBooks(
                         local,
                         remote?.Books,
                         remote?.Series,
@@ -575,6 +576,29 @@ namespace NzbDrone.Core.Books
                         editionSelector: null,
                         retainEditions: true,
                         logContext: "GetRemoteChildren");
+
+                    AttachOpenLibraryFallbackBooks(local, remoteChildren);
+                    return remoteChildren;
+                }
+
+                // TaleArr: books added from the Open Library fallback during an outage carry only an
+                // ol: work id; give the matching server book that id so it updates them in place.
+                private void AttachOpenLibraryFallbackBooks(Author local, List<Book> remoteChildren)
+                {
+                    if (local == null || local.Id <= 0 || remoteChildren == null || remoteChildren.Count == 0 || _bookService == null)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        var localBooks = _bookService.GetBooksByAuthor(local.Id);
+                        TalearrFallbackReconciler.Attach(localBooks, remoteChildren, _logger, local.Name);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn(ex, "[TALEARR-FALLBACK] Unable to match Open Library books for author '{0}'; the normal refresh rules apply", local.Name);
+                    }
                 }
 
                 internal static List<Book> NormalizeRemoteBooks(

@@ -8,7 +8,7 @@ import HeartRating from 'Components/HeartRating';
 import Icon from 'Components/Icon';
 import Label from 'Components/Label';
 import Link from 'Components/Link/Link';
-import { icons, sizes } from 'Helpers/Props';
+import { icons, kinds, sizes } from 'Helpers/Props';
 import dimensions from 'Styles/Variables/dimensions';
 import fonts from 'Styles/Variables/fonts';
 import stripHtml from 'Utilities/String/stripHtml';
@@ -173,6 +173,7 @@ class AddNewBookSearchResult extends Component {
       narrator,
       durationMinutes,
       searchProvider,
+      metadataSource,
       localAudiobookBooks,
       localEbookBooks,
       isSmallScreen
@@ -316,6 +317,18 @@ class AddNewBookSearchResult extends Component {
               }
 
               {
+                metadataSource ?
+                  <Label
+                    kind={kinds.WARNING}
+                    size={sizes.LARGE}
+                    title="Found through the TaleArr metadata fallback while the metadata server is unavailable"
+                  >
+                    {metadataSource}
+                  </Label> :
+                  null
+              }
+
+              {
                 durationMinutes > 0 &&
                   <Label size={sizes.LARGE}>
                     {Math.floor(durationMinutes / 60)}h {Math.round(durationMinutes % 60)}m
@@ -374,6 +387,7 @@ AddNewBookSearchResult.propTypes = {
   narrator: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
   durationMinutes: PropTypes.number,
   searchProvider: PropTypes.string,
+  metadataSource: PropTypes.string,
   isExistingAuthor: PropTypes.bool.isRequired,
   localAudiobookBooks: PropTypes.arrayOf(PropTypes.object),
   localEbookBooks: PropTypes.arrayOf(PropTypes.object),

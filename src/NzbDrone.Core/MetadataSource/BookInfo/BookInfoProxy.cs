@@ -33,12 +33,13 @@ using NzbDrone.Core.MetadataSource.Audible.Resources;
 using NzbDrone.Core.MetadataSource.Hardcover;
 using NzbDrone.Core.MetadataSource.Goodreads;
 using NzbDrone.Core.Parser;
+using NzbDrone.Core.Talearr.MetadataFallback;
 using NzbDrone.Core.Validation;
 // using JsonSerializer = System.Text.Json.JsonSerializer; // Removed - using Newtonsoft.Json instead
 
 namespace NzbDrone.Core.MetadataSource.BookInfo
 {
-    public class BookInfoProxy : IProvideAuthorInfoAsync, IProvideBookInfo, ISearchForNewBook, ISearchForNewAuthor, ISearchForNewEntity
+    public class BookInfoProxy : IProvideAuthorInfoAsync, IProvideBookInfo, ISearchForNewBook, ISearchForNewAuthor, ISearchForNewEntity, ITalearrFallbackAuthorInfo
     {
         private static readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings
         {
@@ -67,6 +68,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         private readonly ICached<HashSet<string>> _cache;
         private readonly ICached<List<object>> _hardcoverSearchCache;
         private readonly CachingService _authorCache;
+        private readonly ITalearrMetadataFallback _metadataFallback;
         // private readonly IGoodreadsAutocompleteFallback _autocompleteFallback; // Removed - not used
 
         public BookInfoProxy(IHttpClient httpClient,
@@ -81,7 +83,8 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                              IMetadataRequestBuilder requestBuilder,
                              Logger logger,
                              ICacheManager cacheManager,
-                             IMetadataServerHealthGate metadataServerHealthGate)
+                             IMetadataServerHealthGate metadataServerHealthGate,
+                             ITalearrMetadataFallback metadataFallback = null)
         {
             _httpClient = httpClient;
             _cachedHttpClient = cachedHttpClient;
@@ -97,6 +100,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             _hardcoverSearchCache = cacheManager.GetCache<List<object>>(GetType(), "hardcoverSearch");
             _logger = logger;
             _metadataServerHealthGate = metadataServerHealthGate ?? throw new ArgumentNullException(nameof(metadataServerHealthGate));
+            _metadataFallback = metadataFallback;
 
             _authorCache = new CachingService(new MemoryCacheProvider(new MemoryCache(new MemoryCacheOptions { SizeLimit = 150 })));
             _authorCache.DefaultCachePolicy = new CacheDefaults
@@ -223,6 +227,36 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
 
             // Legacy Goodreads path - keep sync semantics (rare in Chaptarr/V5 flows)
             return GetAuthorInfo(foreignAuthorId, useCache);
+        }
+
+        // TaleArr: add-path fallback (Open Library) while the metadata server is unavailable.
+        // Never used by GetAuthorInfo or RefreshAuthorInfo, so refreshes cannot pick it up.
+        public bool ShouldUseMetadataFallback(string requestedProviderId, Exception primaryError)
+        {
+            return _metadataFallback?.ShouldUseForAdd(requestedProviderId, primaryError) == true;
+        }
+
+        public Author GetFallbackAuthorInfo(string requestedProviderId, string authorNameHint, IReadOnlyDictionary<string, string> requestedWorkTitles = null)
+        {
+            if (_metadataFallback == null || !_metadataFallback.IsEnabled)
+            {
+                return null;
+            }
+
+            var response = _metadataFallback.GetAuthor(requestedProviderId, authorNameHint, requestedWorkTitles);
+            if (response?.Author == null)
+            {
+                return null;
+            }
+
+            var author = ConvertV5AuthorToDomain(response, response.Author.Id);
+            TalearrMetadataFallbackMarker.Mark(author, TalearrOpenLibraryMapper.SourceName);
+            foreach (var book in author.Books ?? new List<Book>())
+            {
+                TalearrMetadataFallbackMarker.Mark(book, TalearrOpenLibraryMapper.SourceName);
+            }
+
+            return author;
         }
 
         private Author GetAuthorInfoFromV5(string authorId, bool useCache = true, bool importAllWorks = true)
@@ -2267,6 +2301,41 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
 
         public List<object> SearchForNewEntity(string title, string provider)
         {
+            // TaleArr: Open Library fallback when the metadata server is down or the search
+            // provider failed with a server or network error. The Audible provider is its own
+            // catalog and keeps its behaviour. A missing Hardcover token is a configuration
+            // problem, not an outage, so it only falls back while the metadata server is down.
+            if (_metadataFallback == null || provider?.Equals("audible", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return SearchForNewEntityFromProviders(title, provider);
+            }
+
+            var hardcoverNotConfigured = (string.IsNullOrWhiteSpace(provider) || string.Equals(provider, "hardcover", StringComparison.OrdinalIgnoreCase)) &&
+                                         (!_configService.HardcoverEnabled || string.IsNullOrWhiteSpace(_configService.HardcoverApiToken));
+
+            try
+            {
+                return SearchForNewEntityFromProviders(title, provider);
+            }
+            catch (Exception ex) when (_metadataFallback.ShouldUseForSearch(hardcoverNotConfigured ? null : ex))
+            {
+                _logger.Warn("[BookInfoProxy] Search for '{0}' failed ({1}); using the Open Library fallback", title, ex.Message);
+
+                try
+                {
+                    return _metadataFallback.Search(title);
+                }
+                catch (Exception fallbackEx)
+                {
+                    _logger.Debug(fallbackEx, "[BookInfoProxy] Open Library fallback search failed as well");
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex).Throw();
+                    throw;
+                }
+            }
+        }
+
+        private List<object> SearchForNewEntityFromProviders(string title, string provider)
+        {
             _logger.Debug($"[BookInfoProxy] SearchForNewEntity called with title: '{title}', provider: '{provider ?? "null"}'");
 
             // Route the explicit Audible search provider to the Audible catalog
@@ -2439,12 +2508,47 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
 
         public List<Author> SearchForNewAuthor(string title)
         {
-            var books = SearchForNewBook(title, null);
+            List<Author> authors;
+            try
+            {
+                var books = SearchForNewBook(title, null);
 
-            return books
-                .Select(x => x.Author)
-                .DistinctBy(x => GetAuthorMetadataKey(x))
-                .ToList();
+                authors = books
+                    .Select(x => x.Author)
+                    .DistinctBy(x => GetAuthorMetadataKey(x))
+                    .ToList();
+            }
+            catch (Exception ex) when (_metadataFallback?.ShouldUseForSearch(ex) == true)
+            {
+                _logger.Warn("[BookInfoProxy] Author lookup for '{0}' failed ({1}); using the Open Library fallback", title, ex.Message);
+
+                try
+                {
+                    return _metadataFallback.Search(title).OfType<Author>().ToList();
+                }
+                catch (Exception fallbackEx)
+                {
+                    _logger.Debug(fallbackEx, "[BookInfoProxy] Open Library fallback author lookup failed as well");
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex).Throw();
+                    throw;
+                }
+            }
+
+            // TaleArr: the Goodreads lookup swallows its own errors and returns nothing; while the
+            // metadata server is down, an empty lookup is answered from Open Library instead.
+            if (authors.Count == 0 && _metadataFallback?.ShouldUseForSearch(null) == true)
+            {
+                try
+                {
+                    return _metadataFallback.Search(title).OfType<Author>().ToList();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "[BookInfoProxy] Open Library fallback author lookup failed");
+                }
+            }
+
+            return authors;
         }
 
             public List<Book> SearchForNewBook(string title, string author, bool getAllEditions = true)
