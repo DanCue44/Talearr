@@ -11,6 +11,7 @@ import DownloadClientsConnector from './DownloadClients/DownloadClientsConnector
 import ManageDownloadClientsModal from './DownloadClients/Manage/ManageDownloadClientsModal';
 import DownloadClientOptionsConnector from './Options/DownloadClientOptionsConnector';
 import RemotePathMappingsConnector from './RemotePathMappings/RemotePathMappingsConnector';
+import TalearrSoulseek from './TalearrSoulseek';
 
 class DownloadClientSettings extends Component {
 
@@ -104,6 +105,9 @@ class DownloadClientSettings extends Component {
           />
 
           <RemotePathMappingsConnector />
+
+          {/* TaleArr: opt-in Soulseek through slskd (not a download client provider). */}
+          <TalearrSoulseek />
 
           <ManageDownloadClientsModal
             isOpen={isManageDownloadClientsOpen}

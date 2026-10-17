@@ -77,9 +77,22 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         public Version GetApiVersion(QBittorrentSettings settings)
         {
             var request = BuildRequest(settings).Resource("/api/v2/app/webapiVersion");
-            var response = Version.Parse(ProcessRequest(request, settings));
+            return ParseApiVersion(ProcessRequest(request, settings));
+        }
 
-            return response;
+        // TaleArr: qBittorrent answers "2.11.4"; qBittorrent-compatible debrid proxies (rdt-client,
+        // Decypharr) may answer "v2.8", "2.8.3-rdt" or a bare "2". Read the leading numbers and
+        // assume the oldest v2 API when there are none, instead of failing the client.
+        internal static Version ParseApiVersion(string value)
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(value ?? string.Empty, @"\d+(?:\.\d+){0,3}");
+            if (!match.Success)
+            {
+                return new Version(2, 0);
+            }
+
+            var text = match.Value.Contains('.') ? match.Value : match.Value + ".0";
+            return Version.TryParse(text, out var version) ? version : new Version(2, 0);
         }
 
         public string GetVersion(QBittorrentSettings settings)
