@@ -38,6 +38,11 @@ const links = [
         title: () => translate('Series'),
         to: '/talearr/series'
       },
+      // TaleArr: possible duplicates and merge.
+      {
+        title: () => 'Duplicates',
+        to: '/talearr/duplicates'
+      },
       {
         title: () => translate('AddNew'),
         to: '/add/search'
