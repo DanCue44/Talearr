@@ -10,7 +10,8 @@ using NzbDrone.Common.Serializer;
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
     // API https://github.com/qbittorrent/qBittorrent/wiki/Web-API-Documentation
-    public class QBittorrentProxyV2 : IQBittorrentProxy
+    // TaleArr: partial, the seeding report part is in QBittorrentProxyV2.Talearr.cs.
+    public partial class QBittorrentProxyV2 : IQBittorrentProxy
     {
         private static readonly HttpStatusCode[] AuthenticationFailureStatusCodes =
         {

@@ -85,6 +85,11 @@ const links = [
       {
         title: () => translate('IgnoredDownloads'),
         to: '/activity/ignored'
+      },
+      // TaleArr: seeding status and hit-and-run risk.
+      {
+        title: () => 'Seeding',
+        to: '/activity/seeding'
       }
     ]
   },

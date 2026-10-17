@@ -21,7 +21,8 @@ using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
-    public class QBittorrent : TorrentClientBase<QBittorrentSettings>, IPreserveDownloadClientItemAfterImport
+    // TaleArr: partial, the seeding report part is in QBittorrent.Talearr.cs.
+    public partial class QBittorrent : TorrentClientBase<QBittorrentSettings>, IPreserveDownloadClientItemAfterImport
     {
         private readonly IQBittorrentProxySelector _proxySelector;
         private readonly ICached<SeedingTimeCacheEntry> _seedingTimeCache;
