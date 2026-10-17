@@ -192,6 +192,54 @@ CREATE TABLE IF NOT EXISTS UpgradeCooldowns (
     ReleaseTitle TEXT,
     CreatedAt    TEXT NOT NULL
 );
+",
+
+            // 7: MAM bonus points auto-spend log (Indexers/MyAnonaMouse/MyAnonaMouseBonusPurchaseStore).
+            // Every purchase attempt and dry run. It drives the daily cap and the back-off, so
+            // losing it only resets those (MAM itself still refuses unaffordable purchases).
+            @"
+CREATE TABLE IF NOT EXISTS MamBonusPurchases (
+    Id            INTEGER PRIMARY KEY,
+    IndexerId     INTEGER NOT NULL,
+    AttemptedAt   TEXT NOT NULL,
+    SpendType     TEXT NOT NULL,
+    Parameters    TEXT,
+    EstimatedCost INTEGER NOT NULL DEFAULT 0,
+    PointsBefore  REAL,
+    DryRun        INTEGER NOT NULL DEFAULT 0,
+    Success       INTEGER NOT NULL DEFAULT 0,
+    Message       TEXT,
+    Response      TEXT,
+    Reason        TEXT
+);
+
+CREATE INDEX IF NOT EXISTS IX_MamBonusPurchases_Indexer ON MamBonusPurchases (IndexerId, AttemptedAt);
+",
+
+            // 8: MAM freeleech seeding filler (Talearr/MamFiller/TalearrMamFillerStore). Torrents the
+            // filler sent to the client, keyed by MAM torrent id (dedupe), plus its run state
+            // (last run, back-off, preview). Losing it only means the filler may skip its
+            // interval once and forgets which client torrents it added.
+            @"
+CREATE TABLE IF NOT EXISTS TalearrFillerTorrents (
+    TorrentId      TEXT NOT NULL PRIMARY KEY,
+    Title          TEXT,
+    Size           INTEGER NOT NULL DEFAULT 0,
+    IsAudiobook    INTEGER NOT NULL DEFAULT 0,
+    AddedAt        TEXT NOT NULL,
+    ClientHash     TEXT,
+    DownloadClient TEXT,
+    Category       TEXT,
+    State          TEXT NOT NULL,
+    UpdatedAt      TEXT
+);
+
+CREATE INDEX IF NOT EXISTS IX_TalearrFillerTorrents_ClientHash ON TalearrFillerTorrents (ClientHash);
+
+CREATE TABLE IF NOT EXISTS TalearrFillerState (
+    Key   TEXT NOT NULL PRIMARY KEY,
+    Value TEXT
+);
 "
         };
 

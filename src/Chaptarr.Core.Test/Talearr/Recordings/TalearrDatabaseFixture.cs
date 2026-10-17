@@ -35,7 +35,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             using (var connection = database.OpenConnection())
             {
                 var tables = connection.Query<string>("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").ToList();
-                Assert.That(tables, Is.EquivalentTo(new[] { "AbsItemBooks", "AbsItems", "AbsSyncState", "AudibleProducts", "BookGrabPolicies", "BookTags", "EditionAudibleLinks", "MergeRedirects", "RecordingRequests", "UpgradeCooldowns" }));
+                Assert.That(tables, Is.EquivalentTo(new[] { "AbsItemBooks", "AbsItems", "AbsSyncState", "AudibleProducts", "BookGrabPolicies", "BookTags", "EditionAudibleLinks", "MamBonusPurchases", "MergeRedirects", "RecordingRequests", "TalearrFillerState", "TalearrFillerTorrents", "UpgradeCooldowns" }));
                 Assert.That(connection.ExecuteScalar<string>("PRAGMA journal_mode;"), Is.EqualTo("wal"));
             }
 

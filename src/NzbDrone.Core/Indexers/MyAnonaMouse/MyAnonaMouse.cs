@@ -16,7 +16,7 @@ using NzbDrone.Core.ThingiProvider;
 
 namespace NzbDrone.Core.Indexers.MyAnonaMouse
 {
-    public class MyAnonaMouse : HttpIndexerBase<MyAnonaMouseSettings>
+    public partial class MyAnonaMouse : HttpIndexerBase<MyAnonaMouseSettings>
     {
         private readonly IMamUnsatisfiedSlotReservationRepository _slotReservationRepository;
 
@@ -509,6 +509,9 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             var wedges = MyAnonaMouseUserDataResponse.ReadInt(userData.Wedges);
             var bonusPoints = MyAnonaMouseUserDataResponse.ReadNumber(userData.SeedBonus);
 
+            // TaleArr: VIP expiry, ratio and seed-only for bonus auto-spend; all optional.
+            var extras = MyAnonaMouseAccountExtras.Read(userData);
+
             userData = userData.SnatchSummary ?? userData;
 
             if (userData.Unsatisfied == null || userData.Unsatisfied.Count < 0 || userData.Unsatisfied.Limit <= 0 || userData.Created <= 0)
@@ -536,6 +539,15 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             Settings.UnsatisfiedStatusRefreshedUtc = refreshedUtc;
             Settings.FreeleechWedges = wedges;
             Settings.BonusPoints = bonusPoints;
+            Settings.VipUntilUtc = extras.VipUntilUtc;
+            Settings.Ratio = extras.Ratio;
+            Settings.UploadedBytes = extras.UploadedBytes;
+            Settings.DownloadedBytes = extras.DownloadedBytes;
+            Settings.SeedOnly = extras.SeedOnly;
+
+            // TaleArr: ratio guard and Power User progress fill in what the extras above leave
+            // unknown (text upload/download totals, more seed-only flags, the join date).
+            MyAnonaMouseAccountStanding.Apply(Settings, response.Content);
 
             _logger.Debug("MAM account status detected: {0} (VIP: {1}), unsatisfied {2}/{3}", className, isVip, userData.Unsatisfied.Count, userData.Unsatisfied.Limit);
 
@@ -548,8 +560,52 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 SnapshotCreatedUtc = snapshotCreatedUtc,
                 RefreshedUtc = refreshedUtc,
                 FreeleechWedges = wedges,
-                BonusPoints = bonusPoints
+                BonusPoints = bonusPoints,
+                VipUntilUtc = extras.VipUntilUtc,
+                Ratio = extras.Ratio,
+                SeedOnly = extras.SeedOnly
             };
+        }
+
+        // TaleArr: one Bonus Points Store purchase (json/bonusBuy.php, on MAM's allowed automation
+        // list). The request is built only from MyAnonaMouseBonusSpendType, which has no gift or
+        // sendWedge value, so those spend types cannot be sent. Never retried here.
+        public async Task<MyAnonaMouseBonusPurchaseResult> BuyBonusAsync(MyAnonaMouseBonusPurchase purchase)
+        {
+            var url = MyAnonaMouseBonusRequestBuilder.BuildUrl(Settings.BaseUrl, purchase);
+            var request = new HttpRequestBuilder(url)
+                .Accept(HttpAccept.Json)
+                .SetHeader("User-Agent", $"{BuildInfo.AppName}/{BuildInfo.Version}")
+                .Build();
+
+            request.RateLimitKey = Definition?.Id > 0 ? Definition.Id.ToString() : null;
+            request.Cookies["mam_id"] = Settings.MamId;
+            if (Settings.MamSsl)
+            {
+                request.Cookies["mam_ssl"] = "1";
+            }
+
+            request.SuppressHttpError = true;
+            request.LogHttpError = false;
+            request.AllowAutoRedirect = false;
+
+            var sentMamId = Settings.MamId;
+            HttpResponse response;
+            try
+            {
+                response = await _httpClient.ExecuteAsync(request);
+            }
+            catch (Exception ex)
+            {
+                return MyAnonaMouseBonusPurchaseResult.Failed($"Request failed ({ex.GetType().Name})", null);
+            }
+
+            if (ObserveSessionResponse(response, sentMamId, MyAnonaMouseCookieField.MamId, "bonus purchase", true))
+            {
+                return MyAnonaMouseBonusPurchaseResult.Failed(SessionExpiredMessage, MyAnonaMouseBonusResponseParser.Truncate(SafeContent(response)));
+            }
+
+            return MyAnonaMouseBonusResponseParser.Parse(response.StatusCode, SafeContent(response));
         }
 
         private static bool IsVipClass(string className)
@@ -647,6 +703,9 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         // TaleArr: null when MAM did not send them.
         public int? FreeleechWedges { get; set; }
         public double? BonusPoints { get; set; }
+        public DateTime? VipUntilUtc { get; set; }
+        public double? Ratio { get; set; }
+        public bool? SeedOnly { get; set; }
 
         public static string DescribeWallet(int? wedges, double? bonusPoints)
         {
@@ -685,6 +744,22 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
         [JsonProperty("seedbonus")]
         public Newtonsoft.Json.Linq.JToken SeedBonus { get; set; }
+
+        // TaleArr: optional fields for bonus auto-spend (MyAnonaMouseAccountExtras), loosely typed.
+        [JsonProperty("vip_until")]
+        public Newtonsoft.Json.Linq.JToken VipUntil { get; set; }
+
+        [JsonProperty("ratio")]
+        public Newtonsoft.Json.Linq.JToken Ratio { get; set; }
+
+        [JsonProperty("uploaded_bytes")]
+        public Newtonsoft.Json.Linq.JToken UploadedBytes { get; set; }
+
+        [JsonProperty("downloaded_bytes")]
+        public Newtonsoft.Json.Linq.JToken DownloadedBytes { get; set; }
+
+        [JsonExtensionData]
+        public IDictionary<string, Newtonsoft.Json.Linq.JToken> Extra { get; set; }
 
         public static double? ReadNumber(Newtonsoft.Json.Linq.JToken token)
         {

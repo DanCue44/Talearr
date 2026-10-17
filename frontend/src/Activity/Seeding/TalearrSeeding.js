@@ -220,14 +220,172 @@ class TalearrSeeding extends Component {
 
     const bonus = mam.bonusPoints == null ? null : Math.floor(mam.bonusPoints).toLocaleString();
     const checked = mam.checkedAt ? new Date(mam.checkedAt).toLocaleString() : 'not yet';
+    const ratio = mam.ratio == null ? null : mam.ratio.toFixed(2);
+    const vipUntil = mam.vipUntil ? new Date(mam.vipUntil).toLocaleDateString() : null;
 
     return (
-      <div className={styles.mam} title={`MyAnonamouse account status, last checked ${checked}`}>
-        <Stat label="MAM class" value={mam.userClass ? `${mam.userClass}${mam.isVip ? ' (VIP)' : ''}` : null} />
-        <Stat label="Unsatisfied" value={unsatisfied} />
-        <Stat label="Wedges" value={mam.wedges} />
-        <Stat label="Bonus points" value={bonus} />
-        <Stat label="Checked" value={checked} />
+      <div>
+        <div className={styles.mam} title={`MyAnonamouse account status, last checked ${checked}`}>
+          <Stat label="MAM class" value={mam.userClass ? `${mam.userClass}${mam.isVip ? ' (VIP)' : ''}` : null} />
+          {vipUntil ? <Stat label="VIP until" value={vipUntil} /> : null}
+          {ratio ? <Stat label="Ratio" value={ratio} /> : null}
+          <Stat label="Unsatisfied" value={unsatisfied} />
+          <Stat label="Wedges" value={mam.wedges} />
+          <Stat label="Bonus points" value={bonus} />
+          <Stat label="Checked" value={checked} />
+        </div>
+
+        {
+          mam.restricted ?
+            <Alert kind={kinds.WARNING}>
+              {
+                'MAM limited this account (Mouse or seed-only) because the ratio is too low. Buy upload ' +
+                'credit in the Bonus Points Store (API minimum 50 GB = 25,000 points).'
+              }
+            </Alert> :
+            null
+        }
+
+        {this.renderBonusPurchases(mam)}
+
+        {this.renderPowerUser(mam)}
+      </div>
+    );
+  }
+
+  // TaleArr: MAM promotes to Power User after 4 weeks, over 25 GiB uploaded and ratio 2.0.
+  renderPowerUser(mam) {
+    const known = mam.daysUntilEligible != null || mam.uploadedRemainingBytes != null || mam.ratioOk != null;
+
+    if (!known || (mam.userClass && (/power user|vip|elite|star|staff|mod/i).test(mam.userClass))) {
+      return null;
+    }
+
+    let membership = 'Join date unknown';
+
+    if (mam.daysUntilEligible != null) {
+      membership = mam.daysUntilEligible === 0 ?
+        'Member 4 weeks: done' :
+        `Member 4 weeks: ${mam.daysUntilEligible} day${mam.daysUntilEligible === 1 ? '' : 's'} to go`;
+    }
+
+    let upload = 'Uploaded over 25 GiB: unknown';
+
+    if (mam.uploadedRemainingBytes != null) {
+      upload = mam.uploadedRemainingBytes === 0 ?
+        'Uploaded over 25 GiB: done' :
+        `Uploaded over 25 GiB: ${formatBytes(mam.uploadedRemainingBytes)} to go`;
+    }
+
+    let ratio = 'Ratio 2.0: unknown';
+
+    if (mam.ratioOk != null) {
+      ratio = mam.ratioOk ? 'Ratio 2.0: ok' : `Ratio 2.0: not yet${mam.ratio == null ? '' : ` (${mam.ratio.toFixed(2)})`}`;
+    }
+
+    return (
+      <div className={styles.bonus} title="MAM promotes to Power User automatically within 15 minutes of meeting all three; below ratio 2.0 it demotes again">
+        <div className={styles.bonusTitle}>{'Power User progress'}</div>
+        <ul className={styles.bonusList}>
+          <li>{membership}</li>
+          <li>{upload}</li>
+          <li>{ratio}</li>
+        </ul>
+      </div>
+    );
+  }
+
+  // TaleArr: the freeleech seeding filler's last run and what it would grab (or grabbed).
+  renderFiller(filler) {
+    if (!filler || (!filler.enabled && !(filler.preview || []).length)) {
+      return null;
+    }
+
+    const preview = filler.preview || [];
+    const lastRun = filler.lastRunAt ? new Date(filler.lastRunAt).toLocaleString() : 'not yet';
+
+    return (
+      <div className={styles.bonus}>
+        <div className={styles.bonusTitle}>
+          {'Filler preview'}
+          {filler.dryRun ? <Label kind={kinds.INFO} size={sizes.SMALL}>{'Dry run'}</Label> : null}
+        </div>
+
+        <div className={styles.bonusReason}>
+          {`Last run ${lastRun}: ${filler.lastResult || '-'}`}
+          {filler.target == null ? '' : ` Target ${filler.target}, free ${filler.freeSlots}, seeding ${filler.tracked}.`}
+        </div>
+
+        {
+          preview.length ?
+            <ul className={styles.bonusList}>
+              {
+                preview.map((p) => {
+                  let status = filler.previewIsDryRun ? 'Would grab' : 'Skipped';
+                  let kind = kinds.DEFAULT;
+
+                  if (p.grabbed) {
+                    status = 'Grabbed';
+                    kind = kinds.SUCCESS;
+                  }
+
+                  return (
+                    <li key={p.torrentId}>
+                      <Label kind={kind} size={sizes.SMALL}>{status}</Label>
+                      {` ${p.title} (${p.isAudiobook ? 'audiobook' : 'ebook'}, ${formatBytes(p.size)}, `}
+                      {`${p.leechers} leechers, ${p.seeders} seeders)`}
+                    </li>
+                  );
+                })
+              }
+            </ul> :
+            null
+        }
+      </div>
+    );
+  }
+
+  renderBonusPurchases(mam) {
+    const purchases = mam.bonusPurchases || [];
+
+    if (!mam.bonusAutoSpend && !purchases.length) {
+      return null;
+    }
+
+    return (
+      <div className={styles.bonus}>
+        <div className={styles.bonusTitle}>
+          {'Recent bonus purchases'}
+          {mam.bonusDryRun ? <Label kind={kinds.INFO} size={sizes.SMALL}>{'Dry run'}</Label> : null}
+        </div>
+
+        {
+          purchases.length ?
+            <ul className={styles.bonusList}>
+              {
+                purchases.map((p) => {
+                  let kind = p.success ? kinds.SUCCESS : kinds.DANGER;
+                  let status = p.success ? 'Bought' : 'Failed';
+
+                  if (p.dryRun) {
+                    kind = kinds.DEFAULT;
+                    status = 'Would buy';
+                  }
+
+                  return (
+                    <li key={`${p.attemptedAt}-${p.parameters}`} title={p.message || undefined}>
+                      <Label kind={kind} size={sizes.SMALL}>{status}</Label>
+                      {` ${new Date(p.attemptedAt).toLocaleString()}: ${p.parameters}`}
+                      {` (about ${p.estimatedCost.toLocaleString()} points)`}
+                      {p.reason ? <span className={styles.bonusReason}>{` ${p.reason}`}</span> : null}
+                      {!p.success && !p.dryRun && p.message ? <span className={styles.bonusReason}>{` - ${p.message}`}</span> : null}
+                    </li>
+                  );
+                })
+              }
+            </ul> :
+            <div className={styles.bonusReason}>{'None yet. Auto-spend is on for this indexer.'}</div>
+        }
       </div>
     );
   }
@@ -250,6 +408,13 @@ class TalearrSeeding extends Component {
         <TableRowCell>
           {torrent.indexer || '-'}
           {torrent.isPrivateTracker ? <Label kind={kinds.INVERSE} size={sizes.SMALL}>{'Private'}</Label> : null}
+          {
+            torrent.isFiller ?
+              <span title="Added by the MAM freeleech seeding filler">
+                <Label kind={kinds.INFO} size={sizes.SMALL}>{'Filler'}</Label>
+              </span> :
+              null
+          }
         </TableRowCell>
         <TableRowCell>
           <Label kind={stateKinds[torrent.state] || kinds.DEFAULT} title={torrent.downloadClient || undefined}>
@@ -298,6 +463,8 @@ class TalearrSeeding extends Component {
           </div>
 
           {report ? this.renderMam(report.mam) : null}
+
+          {report ? this.renderFiller(report.filler) : null}
 
           {error ? <Alert kind={kinds.DANGER}>{error}</Alert> : null}
 

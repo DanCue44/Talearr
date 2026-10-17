@@ -43,15 +43,20 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             RefreshIfDue("health cycle");
         }
 
+        // TaleArr: the task (scheduled hourly or run by hand) always refreshes. It used to share the
+        // one-hour throttle with the health-cycle trigger, so running it by hand right after any
+        // other refresh did nothing (a 3 ms "completed" run) and a class change on MAM (for
+        // example Mouse back to User after buying upload credit) stayed stale for up to an hour.
         public void Execute(RefreshMyAnonaMouseAccountStatusCommand message)
         {
-            RefreshIfDue("scheduled task");
+            RefreshIfDue(message?.Trigger == CommandTrigger.Manual ? "manual task" : "scheduled task", force: true);
         }
 
-        private void RefreshIfDue(string source)
+        private void RefreshIfDue(string source, bool force = false)
         {
-            if (!TryBeginRefresh())
+            if (!TryBeginRefresh(force))
             {
+                _logger.Debug("Skipping MAM account status refresh from {0}: {1}", source, force ? "a refresh is already running" : "refreshed less than an hour ago");
                 return;
             }
 
@@ -119,7 +124,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             _logger.Debug("Refreshed MAM account status for {0} indexers; {1} changed", refreshed, changed);
         }
 
-        private bool TryBeginRefresh()
+        private bool TryBeginRefresh(bool force)
         {
             lock (_refreshLock)
             {
@@ -128,7 +133,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                     return false;
                 }
 
-                if (DateTime.UtcNow - _lastRefreshAttemptUtc < RefreshInterval)
+                if (!force && DateTime.UtcNow - _lastRefreshAttemptUtc < RefreshInterval)
                 {
                     return false;
                 }

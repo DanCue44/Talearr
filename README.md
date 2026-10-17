@@ -329,9 +329,92 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
 - **Freeleech wedge balance.** The hourly account refresh also reads your wedge count and
   bonus points (`wedges`, `seedbonus` in `jsonLoad.php`, when MAM sends them). The indexer Test
   shows them, and System > Status shows a notice when **Freeleech Wedges** is Prefer Wedge and
-  no wedges are left (grabs then download without one). TaleArr never spends bonus points:
-  MAM's purchase endpoint is not documented and automating it risks the account, so buying
-  wedges stays a manual step on MAM's Bonus page.
+  no wedges are left (grabs then download without one). The refresh also reads VIP expiry
+  (`vip_until`), ratio (`ratio`, or `uploaded_bytes`/`downloaded_bytes`) and a seed-only flag
+  when MAM sends them. Nothing is bought unless you turn on bonus points auto-spend (below).
+- **Bonus points auto-spend** (every rule off by default; indexer settings, Advanced). Uses
+  MAM's Bonus Points Store API (`json/bonusBuy.php`), which is on MAM's list of allowed
+  automation, with the `mam_id` session. The hourly **Spend My Anona Mouse Bonus Points** task
+  (System > Tasks) checks the stored account status (refreshing it first when it is an hour
+  old) and buys at most one thing per run:
+  1. **Ratio Safety Net** (off): when the ratio is below **Minimum Ratio** (1.2), or MAM made
+     the account Mouse or seed-only, buys **Upload Credit to Buy** (50 GiB, the API minimum;
+     500 points per GiB, so 25,000 points) with `spendtype=upload&amount=50`.
+  2. **Auto-Keep VIP** (off): for Power User or VIP accounts only (the classes MAM's store
+     sells VIP to), when VIP is not active or has fewer than **VIP Renew Below** (14) days left,
+     buys `spendtype=VIP&duration=max` (fills to MAM's 90-day limit, at least 7 days). The
+     cost is estimated at 5,000 points per 4 weeks of missing days. A VIP account whose expiry
+     MAM does not report is left alone.
+  3. **Auto-Buy Wedges** (off): while you have fewer than **Minimum Wedges** (2), buys one
+     wedge (50,000 points) with `spendtype=wedges`.
+
+  Every rule keeps at least **Bonus Points Reserve** (10,000) points. **Bonus Purchases per
+  Day** (2) caps real purchases in any 24 hours, and after MAM refuses a purchase that kind is
+  not tried again for 24 hours (no retry storms). Every attempt is written to `talearr.db`
+  before it is sent (nothing is bought if that write fails), and the account status is
+  refreshed right after. MAM documents no reply format, so only an explicit `success` flag
+  counts as bought; anything else is a failure, logged with the raw reply (truncated).
+  **Bonus Spend Dry Run** (off) only logs and lists what would be bought. Activity > Seeding
+  shows **Recent bonus purchases** under the MAM summary; each real purchase or failure is
+  sent through On Health Issue + Include Health Warnings. System > Status warns when the
+  account is Mouse or seed-only: "Buy upload credit in the Bonus Points Store (API minimum
+  50 GB = 25,000 points)".
+
+  MAM policy: automating anything not on MAM's allowed list can cost you the account.
+  Auto-spend only calls two allowed endpoints (Bonus Points Store, Load User Data) and can
+  never send the `gift` or `sendWedge` spend types (MAM
+  forbids automating them; the code has no way to build them) or touch the Millionaire's
+  Vault. Cheese purchases are not in the API.
+- **Seed-only and ratio guard** (always on). A new account starts with 0 upload, so a few
+  normal grabs can push the ratio under 1.0, and MAM then demotes it to Mouse and makes it seed
+  only. TaleArr blocks every MAM grab (freeleech too, native and Prowlarr MAM results) while the
+  account is Mouse or reports a seed-only / download-disabled flag, with the System > Status
+  error "MAM account is seed-only: buy upload credit in the Bonus Points Store". A
+  non-freeleech grab only goes ahead when uploaded / (downloaded + release size) stays at or
+  above **Minimum Ratio After Grab** (2.0, the Power User line; Advanced). Freeleech, personal
+  freeleech, VIP freeleech for VIP members, and grabs that will request a wedge while wedges
+  are left are exempt. With no account status, or one older than 3 hours, only freeleech MAM
+  releases are grabbed. The check runs in the decision engine and again at grab time.
+- **Account refresh by hand.** Running **Refresh My Anona Mouse Account Status** in System >
+  Tasks always calls MAM now (it used to share the one-hour throttle of the health-cycle
+  refresh, so a manual run right after another refresh did nothing and a class change stayed
+  stale for up to an hour).
+- **Freeleech seeding filler** (off; indexer settings, section Freeleech Seeding Filler). MAM
+  counts a torrent as satisfied after 72 hours of seeding, and only satisfied torrents earn
+  bonus points. The filler uses free unsatisfied slots for popular freeleech torrents so more
+  torrents reach that point sooner. The **MAM Freeleech Filler** task (System > Tasks, can be
+  run by hand) checks hourly and runs every **Filler Run Interval** (6 hours):
+  1. Uses the stored account status (refreshed through `jsonLoad.php` when over an hour old).
+     It stops when the status is unknown or older than 3 hours, when the account is seed only,
+     when any MAM torrent on Activity > Seeding is at risk, and for 12 hours after any MAM
+     error.
+  2. Free slots = unsatisfied limit - **Filler Slot Margin** (2) - unsatisfied - pending slot
+     reservations, at most **Filler Max Grabs Per Run** (5). The unsatisfied-slot protection
+     still applies: every grab reserves a slot through it, so its Safety Reserve and User
+     Buffer win when they are stricter.
+  3. Searches MAM's JSON search for freeleech (`searchType=fl`) English audiobooks and ebooks
+     (up to 3 pages of 100), then keeps only torrents MAM itself flags as freeleech or
+     personal freeleech (never VIP-only torrents unless the account is VIP), up to **Filler
+     Max Size** (2048 MB), with at least **Filler Min Leechers** (1) and at most **Filler Max
+     Seeders** (30), and not grabbed before (by MAM torrent id), reserved, or already in the
+     client. Ranking: audiobooks first (**Filler Prefer Audiobooks**, on), then most leechers,
+     fewest seeders, smallest.
+  4. **Filler Dry Run** (on) only logs the picks and shows them on Activity > Seeding under
+     **Filler preview**. With it off, each pick is downloaded with `download.php` (never the
+     `fl` wedge parameter) and added straight to qBittorrent in **Filler Category**
+     (`mam-seed`) with a per-torrent seeding time of **Filler Seed Time** (30 days). No grab
+     history, queue entry or import is created; **Filler Import Into Library** (off) puts them
+     in the client's normal TaleArr category instead. **Filler Remove After Seed Time** (on)
+     removes them with their files once they have seeded that long (never under 72 hours).
+
+  Filler torrents show on Activity > Seeding with indexer MyAnonamouse, a **Filler** label
+  and the 72-hour requirement, so the hit-and-run risk check covers them. MAM policy: the
+  filler only uses MAM's allowed automation endpoints (Torrent Search JSON, Download Torrent,
+  Load User Data), through the indexer's proxy and session handling, and never spends wedges
+  or bonus points.
+- **Power User progress.** Activity > Seeding shows how far the account is from MAM's
+  automatic Power User promotion (member for 4 weeks, over 25 GiB uploaded, ratio 2.0) when
+  the account refresh reports the join date and upload totals. Unknown values stay blank.
 - **Seeding status.** Activity > Seeding lists what the torrent clients seed in TaleArr's
   categories (post-import categories included): book, format, indexer, state, seeded time
   against the requirement (72 hours for MAM; the indexer Seed Time is the goal), upload and
@@ -342,8 +425,16 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
   Read-only: nothing is changed in the client and MAM is not called. API:
   `GET /api/v1/talearr/seeding` (client reads cached for 30 seconds).
 
-Storage: new keys in the indexer's own settings JSON (stock Chaptarr ignores them) and one
-scheduled task row that Chaptarr drops on start.
+Storage: new keys in the indexer's own settings JSON (stock Chaptarr ignores them), scheduled
+task rows that Chaptarr drops on start, and the `MamBonusPurchases` table in `talearr.db`
+(schema 7; losing it only resets the daily cap and back-off). API: the
+`GET /api/v1/talearr/seeding` `mam` block gains `vipUntil`, `ratio`, `restricted`,
+`bonusAutoSpend`, `bonusDryRun` and `bonusPurchases`. The filler adds the
+`TalearrFillerTorrents` and `TalearrFillerState` tables (schema 8; losing them only forgets
+which client torrents the filler added and its last run), and the seeding API gains
+`isFiller` per torrent, a `filler` block (last run, result, back-off, preview) and, in `mam`,
+`memberSince`, `uploadedBytes`, `downloadedBytes`, `daysUntilEligible`,
+`uploadedRemainingBytes` and `ratioOk`.
 
 ## Drop-in compatibility with Chaptarr
 
@@ -379,6 +470,8 @@ type, because stock Chaptarr deletes types it does not know when it starts. Even
 | Manual interaction required | On Import Failure | a blocked import that waits for you; webhook `eventType: ManualInteractionRequired` |
 | Health issue / health restored | On Health Issue, On Health Restored | restored uses the existing `OnHealthRestored` column; webhook `eventType: HealthRestored` |
 | MAM session expired | On Health Issue | the MyAnonamouse session health check (error) |
+| MAM bonus purchase made or failed | On Health Issue + Include Health Warnings | bonus points auto-spend; a notice when bought, a warning when MAM refused |
+| MAM account is Mouse or seed-only | On Health Issue + Include Health Warnings | warning with the upload credit advice |
 | Private torrent at risk of a hit and run | On Health Issue + Include Health Warnings | the seeding risk check (warning); see MyAnonamouse > Seeding status |
 | Metadata fallback active | On Health Issue + Include Health Warnings | TaleArr's notice-level checks go out with warnings |
 | Application update, author/book added and deleted | as upstream | |

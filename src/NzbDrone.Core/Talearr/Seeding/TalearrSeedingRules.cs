@@ -270,7 +270,12 @@ namespace NzbDrone.Core.Talearr.Seeding
                 UnsatisfiedLimit = settings.UnsatisfiedLimit,
                 Wedges = settings.FreeleechWedges,
                 BonusPoints = settings.BonusPoints,
-                CheckedAt = checkedAt.HasValue ? DateTime.SpecifyKind(checkedAt.Value, DateTimeKind.Utc) : null
+                CheckedAt = checkedAt.HasValue ? DateTime.SpecifyKind(checkedAt.Value, DateTimeKind.Utc) : null,
+                VipUntil = settings.VipUntilUtc.HasValue ? DateTime.SpecifyKind(settings.VipUntilUtc.Value, DateTimeKind.Utc) : null,
+                Ratio = settings.Ratio,
+                Restricted = MyAnonaMouseBonusSpendRules.IsRestricted(settings),
+                BonusAutoSpend = MyAnonaMouseBonusSpendRules.AnyRuleEnabled(settings),
+                BonusDryRun = settings.BonusDryRun
             };
         }
 

@@ -45,7 +45,13 @@ namespace Chaptarr.Api.V1.System.Tasks
             return ConvertToResource(task);
         }
 
-        private static TaskResource ConvertToResource(ScheduledTask scheduledTask)
+        // TaleArr: names SplitCamelCase cannot spell (acronyms).
+        private static readonly Dictionary<string, string> TaskDisplayNames = new Dictionary<string, string>
+        {
+            ["MamFreeleechFiller"] = "MAM Freeleech Filler"
+        };
+
+                private static TaskResource ConvertToResource(ScheduledTask scheduledTask)
         {
             var taskName = scheduledTask.TypeName.Split('.').Last().Replace("Command", "");
             var lastStartTime = scheduledTask.LastStartTime == DateTime.MinValue ? scheduledTask.LastExecution : scheduledTask.LastStartTime;
@@ -63,7 +69,7 @@ namespace Chaptarr.Api.V1.System.Tasks
             return new TaskResource
             {
                 Id = scheduledTask.Id,
-                Name = taskName.SplitCamelCase(),
+                Name = TaskDisplayNames.TryGetValue(taskName, out var displayName) ? displayName : taskName.SplitCamelCase(),
                 TaskName = taskName,
                 Interval = scheduledTask.Interval,
                 LastExecution = scheduledTask.LastExecution,

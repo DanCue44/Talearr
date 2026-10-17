@@ -45,3 +45,23 @@
   color: var(--dangerColor);
   font-size: 12px;
 }
+
+.bonus {
+  margin-bottom: 15px;
+}
+
+.bonusTitle {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.bonusList {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.bonusReason {
+  color: var(--helpTextColor);
+  font-size: 12px;
+}

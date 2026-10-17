@@ -22,6 +22,29 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 .GreaterThanOrEqualTo(MyAnonaMouseSettings.MinimumDynamicSeedboxInterval)
                 .LessThanOrEqualTo(MyAnonaMouseSettings.MaximumDynamicSeedboxInterval)
                 .When(c => c.DynamicSeedboxEnabled);
+
+            // TaleArr: bonus points auto-spend (MyAnonaMouseBonusSpend). VIP renewal must leave room
+            // for MAM's minimum 7-day purchase under the 90-day cap; upload credit starts at 50 GiB.
+            RuleFor(c => c.BonusReservePoints).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.BonusVipRenewDays).InclusiveBetween(1, MyAnonaMouseBonusSpendRules.VipMaxDays - MyAnonaMouseBonusSpendRules.VipMinimumPurchaseDays);
+            RuleFor(c => c.BonusMinimumWedges).InclusiveBetween(1, 100);
+            RuleFor(c => c.BonusMinimumRatio).GreaterThan(0).LessThanOrEqualTo(100);
+            RuleFor(c => c.BonusUploadGiB).InclusiveBetween(MyAnonaMouseBonusSpendRules.MinimumUploadGiB, 10000);
+            RuleFor(c => c.BonusDailyPurchaseCap).InclusiveBetween(1, 10);
+
+            // TaleArr: ratio guard and freeleech seeding filler.
+            RuleFor(c => c.MinimumRatioAfterGrab).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.FillerSlotMargin).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.FillerMaxGrabsPerRun).InclusiveBetween(1, 20);
+            RuleFor(c => c.FillerIntervalHours).InclusiveBetween(1, 168);
+            RuleFor(c => c.FillerMaxSizeMb).GreaterThan(0);
+            RuleFor(c => c.FillerMinLeechers).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.FillerMaxSeeders).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.FillerSeedDays).InclusiveBetween(3, 365);
+            RuleFor(c => c.FillerCategory)
+                .NotEmpty()
+                .Matches(@"^([^\\\/](\/?[^\\\/])*)?$")
+                .When(c => c.FillerEnabled && !c.FillerImport);
         }
     }
 
@@ -50,6 +73,18 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             DynamicSeedboxEnabled = false;
             DynamicSeedboxInterval = DefaultDynamicSeedboxInterval;
             SeedboxProxyId = 0;
+
+            // TaleArr: bonus points auto-spend. Every rule is off by default.
+            BonusReservePoints = 10000;
+            BonusKeepVip = false;
+            BonusVipRenewDays = 14;
+            BonusKeepWedges = false;
+            BonusMinimumWedges = 2;
+            BonusRatioSafetyNet = false;
+            BonusMinimumRatio = 1.2;
+            BonusUploadGiB = MyAnonaMouseBonusSpendRules.MinimumUploadGiB;
+            BonusDailyPurchaseCap = 2;
+            BonusDryRun = false;
         }
 
         // TaleArr: dynamic seedbox interval bounds, in minutes.
@@ -147,6 +182,47 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         [FieldDefinition(20, Label = "Seedbox Proxy", Type = FieldType.Select, SelectOptionsProviderAction = "getSeedboxProxies", HelpText = "Proxy that exits through your torrent client's VPN (for example the Privoxy built into a qBittorrent VPN container). Same As Indexer uses this indexer's proxy setting.", Advanced = true)]
         public int SeedboxProxyId { get; set; }
 
+        // TaleArr: bonus points auto-spend through MAM's Bonus Points Store API (bonusBuy.php, on
+        // MAM's list of allowed automation). Only VIP, upload credit and wedges are ever bought; at
+        // most one purchase per run and BonusDailyPurchaseCap per 24 hours. See README.
+        [FieldDefinition(21, Type = FieldType.Number, Label = "Bonus Points Reserve", Unit = "points", HelpText = "Bonus points auto-spend never leaves fewer than this many points. Applies to every rule below.", Advanced = true)]
+        public int BonusReservePoints { get; set; }
+
+        [FieldDefinition(22, Type = FieldType.Checkbox, Label = "Auto-Keep VIP", HelpText = "Buy VIP (MAM's 'max', filling to 90 days) when it has fewer days left than VIP Renew Below, or when a Power User has no VIP. About 5,000 points per 4 weeks.", Advanced = true)]
+        public bool BonusKeepVip { get; set; }
+
+        [FieldDefinition(23, Type = FieldType.Number, Label = "VIP Renew Below", Unit = "days", HelpText = "Renew VIP once fewer days than this are left (1 to 83).", Advanced = true)]
+        public int BonusVipRenewDays { get; set; }
+
+        [FieldDefinition(24, Type = FieldType.Checkbox, Label = "Auto-Buy Wedges", HelpText = "Buy one freeleech wedge (50,000 points) per run while you have fewer than Minimum Wedges.", Advanced = true)]
+        public bool BonusKeepWedges { get; set; }
+
+        [FieldDefinition(25, Type = FieldType.Number, Label = "Minimum Wedges", HelpText = "Keep at least this many freeleech wedges.", Advanced = true)]
+        public int BonusMinimumWedges { get; set; }
+
+        [FieldDefinition(26, Type = FieldType.Checkbox, Label = "Ratio Safety Net", HelpText = "Buy upload credit when your ratio drops below Minimum Ratio, or when MAM has made the account Mouse or seed-only. 500 points per GiB.", Advanced = true)]
+        public bool BonusRatioSafetyNet { get; set; }
+
+        [FieldDefinition(27, Type = FieldType.Number, Label = "Minimum Ratio", HelpText = "Ratio below which the safety net buys upload credit.", Advanced = true)]
+        public double BonusMinimumRatio { get; set; }
+
+        [FieldDefinition(28, Type = FieldType.Number, Label = "Upload Credit to Buy", Unit = "GiB", HelpText = "Upload credit bought per safety net purchase (MAM minimum 50 GiB = 25,000 points).", Advanced = true)]
+        public int BonusUploadGiB { get; set; }
+
+        [FieldDefinition(29, Type = FieldType.Number, Label = "Bonus Purchases per Day", HelpText = "Most bonus purchases TaleArr makes for this account in any 24 hours (1 to 10).", Advanced = true)]
+        public int BonusDailyPurchaseCap { get; set; }
+
+        [FieldDefinition(30, Type = FieldType.Checkbox, Label = "Bonus Spend Dry Run", HelpText = "Only log and list what auto-spend would buy; nothing is sent to MAM.", Advanced = true)]
+        public bool BonusDryRun { get; set; }
+
+        // TaleArr: VIP expiry, ratio and seed-only state from the same account refresh (vip_until,
+        // ratio or uploaded_bytes/downloaded_bytes). Null when MAM did not send them.
+        public DateTime? VipUntilUtc { get; set; }
+        public double? Ratio { get; set; }
+        public long? UploadedBytes { get; set; }
+        public long? DownloadedBytes { get; set; }
+        public bool? SeedOnly { get; set; }
+
         // Persisted provider snapshot used by the grab guard. These are not user-editable.
         public int? UnsatisfiedCount { get; set; }
         public int? UnsatisfiedLimit { get; set; }
@@ -154,8 +230,8 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         public DateTime? UnsatisfiedStatusRefreshedUtc { get; set; }
 
         // TaleArr: freeleech wedge balance and bonus points from the same account refresh, for the
-        // test message and the wedge health notice. Null when MAM did not send them. Read only:
-        // TaleArr never spends bonus points (see README "MyAnonamouse").
+        // test message and the wedge health notice. Null when MAM did not send them. The
+        // refresh itself is read only; spending only happens through the opt-in auto-spend rules.
         public int? FreeleechWedges { get; set; }
         public double? BonusPoints { get; set; }
 
@@ -187,6 +263,54 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         {
             return new NzbDroneValidationResult(Validator.Validate(this));
         }
+
+        // TaleArr: account join date for the Power User progress card (Activity > Seeding). Null
+        // when MAM did not send one. Not user-editable.
+        public DateTime? MemberSinceUtc { get; set; }
+
+        // TaleArr: field orders start at 39, after the bonus auto-spend settings (21 to 30).
+        [FieldDefinition(39, Type = FieldType.Number, Label = "Minimum Ratio After Grab", HelpText = "A non-freeleech MAM grab only goes ahead when your share ratio after it (uploaded / (downloaded + release size)) stays at or above this. Freeleech and wedged grabs are exempt. A seed-only (Mouse) account gets no MAM grabs at all.", Advanced = true)]
+        public double MinimumRatioAfterGrab { get; set; } = MyAnonaMouseAccountStanding.DefaultMinimumRatioAfterGrab;
+
+        // TaleArr: freeleech seeding filler (Talearr/MamFiller). Off by default.
+        [FieldDefinition(40, Type = FieldType.Checkbox, Label = "Freeleech Seeding Filler", Section = "Freeleech Seeding Filler", HelpText = "Fill free unsatisfied-torrent slots with popular freeleech MAM torrents so more torrents reach the 72-hour seeding requirement and earn bonus points. Uses only MAM's JSON search and download.php, never wedges or bonus points. They go to the torrent client in their own category and are not imported.")]
+        public bool FillerEnabled { get; set; }
+
+        [FieldDefinition(41, Type = FieldType.Checkbox, Label = "Filler Dry Run", Section = "Freeleech Seeding Filler", HelpText = "Only log and show what the filler would grab (Activity > Seeding, Filler preview). Turn off to let it grab.")]
+        public bool FillerDryRun { get; set; } = true;
+
+        [FieldDefinition(42, Type = FieldType.Number, Label = "Filler Slot Margin", Unit = "slots", Section = "Freeleech Seeding Filler", HelpText = "The filler fills up to your unsatisfied limit minus this margin. Safety Reserve and User Buffer still apply.", Advanced = true)]
+        public int FillerSlotMargin { get; set; } = 2;
+
+        [FieldDefinition(43, Type = FieldType.Number, Label = "Filler Max Grabs Per Run", Section = "Freeleech Seeding Filler", Advanced = true)]
+        public int FillerMaxGrabsPerRun { get; set; } = 5;
+
+        [FieldDefinition(44, Type = FieldType.Number, Label = "Filler Run Interval", Unit = "hours", Section = "Freeleech Seeding Filler", HelpText = "How often the filler runs (System > Tasks, MAM Freeleech Filler, can also be run by hand).", Advanced = true)]
+        public int FillerIntervalHours { get; set; } = 6;
+
+        [FieldDefinition(45, Type = FieldType.Checkbox, Label = "Filler Prefer Audiobooks", Section = "Freeleech Seeding Filler", Advanced = true)]
+        public bool FillerPreferAudiobooks { get; set; } = true;
+
+        [FieldDefinition(46, Type = FieldType.Number, Label = "Filler Max Size", Unit = "MB", Section = "Freeleech Seeding Filler", Advanced = true)]
+        public int FillerMaxSizeMb { get; set; } = 2048;
+
+        [FieldDefinition(47, Type = FieldType.Number, Label = "Filler Min Leechers", Section = "Freeleech Seeding Filler", HelpText = "Only torrents with at least this many leechers (someone to upload to).", Advanced = true)]
+        public int FillerMinLeechers { get; set; } = 1;
+
+        [FieldDefinition(48, Type = FieldType.Number, Label = "Filler Max Seeders", Section = "Freeleech Seeding Filler", Advanced = true)]
+        public int FillerMaxSeeders { get; set; } = 30;
+
+        [FieldDefinition(49, Type = FieldType.Textbox, Label = "Filler Category", Section = "Freeleech Seeding Filler", HelpText = "Torrent client category for filler torrents. Keep it different from TaleArr's own categories so they are never imported.", Advanced = true)]
+        public string FillerCategory { get; set; } = "mam-seed";
+
+        [FieldDefinition(50, Type = FieldType.Number, Label = "Filler Seed Time", Unit = "days", Section = "Freeleech Seeding Filler", Advanced = true)]
+        public int FillerSeedDays { get; set; } = 30;
+
+        [FieldDefinition(51, Type = FieldType.Checkbox, Label = "Filler Remove After Seed Time", Section = "Freeleech Seeding Filler", HelpText = "Remove filler torrents and their files from the client once they have seeded for the seed time (never before 72 hours).", Advanced = true)]
+        public bool FillerRemoveAfterSeed { get; set; } = true;
+
+        [FieldDefinition(52, Type = FieldType.Checkbox, Label = "Filler Import Into Library", Section = "Freeleech Seeding Filler", HelpText = "Put filler torrents in the client's normal TaleArr category so completed download handling may import them. Off keeps them seed-only.", Advanced = true)]
+        public bool FillerImport { get; set; }
     }
 
     public enum MyAnonaMouseFreeleechWedgeAction
