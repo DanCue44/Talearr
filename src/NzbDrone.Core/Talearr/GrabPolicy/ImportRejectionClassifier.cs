@@ -55,6 +55,9 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 .Where(message => !string.IsNullOrWhiteSpace(message))
                 .Select(message => message.Trim())
                 .Where(message => !StatusCodeRegex.IsMatch(message))
+
+                // TaleArr: books a bundle holds besides the wanted one say nothing about the release.
+                .Where(message => !TalearrBundleFallback.IsBundleExtraReason(message))
                 .ToList();
 
             if (messages.Count == 0)

@@ -1074,6 +1074,164 @@ namespace Chaptarr.Core.Test.Download
             Assert.That(eventAggregator.Events, Has.None.InstanceOf<DownloadCompletedEvent>());
         }
 
+        // TaleArr: a bundle grabbed for one book imports when that book did; other wanted books
+        // imported from it and the bundle extras left out must not block or fail it.
+        private static TrackedDownload BundleTrackedDownload(string downloadId)
+        {
+            return new TrackedDownload
+            {
+                DownloadClient = 1,
+                DownloadItem = new DownloadClientItem
+                {
+                    DownloadId = downloadId,
+                    Title = "R.F. Kuang - The Poppy War Box Set",
+                    Status = DownloadItemStatus.Completed,
+                    DownloadClientInfo = new DownloadClientItemClientInfo
+                    {
+                        Id = 1,
+                        Name = "SABnzbd",
+                        Protocol = DownloadProtocol.Usenet
+                    }
+                },
+                RemoteBook = new RemoteBook
+                {
+                    Author = new Author { Id = 7, Name = "R.F. Kuang" },
+                    Books = new List<Book>
+                    {
+                        new() { Id = 10, AuthorId = 7, Title = "The Poppy War", AnyEditionOk = false }
+                    },
+                    IsBundle = true,
+                    IsBundleFallback = true
+                },
+                State = TrackedDownloadState.ImportPending
+            };
+        }
+
+        private static ImportResult CreateBundleExtraResult(int bookId, int authorId, string title)
+        {
+            var author = new Author { Id = authorId, Name = "R.F. Kuang" };
+            var book = new Book { Id = bookId, AuthorId = authorId, Author = author, Title = title, MediaType = BookMediaType.Audiobook };
+            var localBook = new LocalBook { Author = author, Book = book, Path = $"/tmp/{title}.m4b" };
+            var reason = NzbDrone.Core.Talearr.GrabPolicy.TalearrBundleFallback.BundleExtraReason($"'{title}' (BookId {bookId})");
+
+            return new ImportResult(new ImportDecision<LocalBook>(localBook, new Rejection(reason)), reason);
+        }
+
+        private static List<EntityHistory> BundleGrabHistory(string downloadId)
+        {
+            return new List<EntityHistory>
+            {
+                new EntityHistory
+                {
+                    EventType = EntityHistoryEventType.Grabbed,
+                    DownloadId = downloadId,
+                    BookId = 10,
+                    AuthorId = 7,
+                    Date = DateTime.UtcNow
+                }
+            };
+        }
+
+        [Test, Platform(Exclude = "Win", Reason = "Test uses Unix paths")]
+        public void bundle_import_completes_when_the_target_and_a_wanted_extra_imported()
+        {
+            var eventAggregator = new RecordingEventAggregator();
+            var historyService = DispatchProxy.Create<IHistoryService, HistoryServiceProxy>();
+            ((HistoryServiceProxy)(object)historyService).HistoryItems = BundleGrabHistory("bundle-ok");
+            var failed = new Talearr.GrabPolicy.FailedDownloadServiceRecorder();
+
+            var importService = new RecordingDownloadedBooksImportService
+            {
+                Results = new List<ImportResult>
+                {
+                    CreateImportedResult(10, 7, "The Poppy War"),
+                    CreateImportedResult(11, 7, "The Dragon Republic"),
+                    CreateBundleExtraResult(12, 7, "The Burning God")
+                }
+            };
+
+            var trackedDownload = BundleTrackedDownload("bundle-ok");
+            var subject = new CompletedDownloadService(
+                eventAggregator,
+                historyService,
+                new StubProvideImportItemService("/tmp/chaptarr-bundle-ok"),
+                importService,
+                new PassthroughDownloadImportModeResolver(),
+                new StubTrackedDownloadAlreadyImported { Result = false },
+                failed,
+                LogManager.GetCurrentClassLogger(),
+                NoopDownloadClientFileSnapshotService.Instance);
+
+            subject.Import(trackedDownload);
+
+            Assert.That(trackedDownload.State, Is.EqualTo(TrackedDownloadState.Imported));
+            Assert.That(eventAggregator.Events, Has.Some.InstanceOf<DownloadCompletedEvent>());
+            Assert.That(eventAggregator.Events, Has.None.InstanceOf<BookImportIncompleteEvent>());
+            Assert.That(failed.Failed, Is.Empty);
+        }
+
+        [Test, Platform(Exclude = "Win", Reason = "Test uses Unix paths")]
+        public void bundle_import_stays_blocked_when_the_target_did_not_import()
+        {
+            var eventAggregator = new RecordingEventAggregator();
+            var historyService = DispatchProxy.Create<IHistoryService, HistoryServiceProxy>();
+            ((HistoryServiceProxy)(object)historyService).HistoryItems = BundleGrabHistory("bundle-missing");
+
+            var importService = new RecordingDownloadedBooksImportService
+            {
+                Results = new List<ImportResult>
+                {
+                    CreateImportedResult(11, 7, "The Dragon Republic"),
+                    CreateBundleExtraResult(12, 7, "The Burning God")
+                }
+            };
+
+            var trackedDownload = BundleTrackedDownload("bundle-missing");
+            var subject = new CompletedDownloadService(
+                eventAggregator,
+                historyService,
+                new StubProvideImportItemService("/tmp/chaptarr-bundle-missing"),
+                importService,
+                new PassthroughDownloadImportModeResolver(),
+                new StubTrackedDownloadAlreadyImported { Result = false },
+                NoopFailedDownloadService.Instance,
+                LogManager.GetCurrentClassLogger(),
+                NoopDownloadClientFileSnapshotService.Instance);
+
+            subject.Import(trackedDownload);
+
+            Assert.That(trackedDownload.State, Is.EqualTo(TrackedDownloadState.ImportBlocked));
+            Assert.That(eventAggregator.Events, Has.None.InstanceOf<DownloadCompletedEvent>());
+        }
+
+        [Test]
+        public void verify_import_for_a_non_bundle_still_requires_exact_targets()
+        {
+            var historyService = DispatchProxy.Create<IHistoryService, HistoryServiceProxy>();
+            var trackedDownload = BundleTrackedDownload("not-a-bundle");
+            trackedDownload.RemoteBook.IsBundle = false;
+            trackedDownload.RemoteBook.IsBundleFallback = false;
+
+            var subject = new CompletedDownloadService(
+                new RecordingEventAggregator(),
+                historyService,
+                new StubProvideImportItemService("/tmp/chaptarr-not-a-bundle"),
+                new RecordingDownloadedBooksImportService(),
+                new PassthroughDownloadImportModeResolver(),
+                new StubTrackedDownloadAlreadyImported { Result = false },
+                NoopFailedDownloadService.Instance,
+                LogManager.GetCurrentClassLogger(),
+                NoopDownloadClientFileSnapshotService.Instance);
+
+            var verified = subject.VerifyImport(trackedDownload, new List<ImportResult>
+            {
+                CreateImportedResult(10, 7, "The Poppy War"),
+                CreateImportedResult(11, 7, "The Dragon Republic")
+            });
+
+            Assert.That(verified, Is.False);
+        }
+
         private static ImportResult CreateImportedResult(int bookId, int authorId, string title, BookMediaType mediaType = BookMediaType.Audiobook)
         {
             var author = new Author { Id = authorId, Name = "Test Author" };

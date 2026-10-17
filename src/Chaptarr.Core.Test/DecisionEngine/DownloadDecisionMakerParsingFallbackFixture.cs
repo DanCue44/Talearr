@@ -1123,7 +1123,7 @@ namespace Chaptarr.Core.Test.DecisionEngine
         }
 
         [Test]
-        public void should_defer_title_matching_rejection_to_explicit_pack_spec_for_multi_book_search_result()
+        public void should_defer_title_matching_to_explicit_pack_spec_for_multi_book_search_result()
         {
             var author = new Author
             {
@@ -1190,9 +1190,13 @@ namespace Chaptarr.Core.Test.DecisionEngine
 
             var decision = decisionMaker.GetSearchDecision(new List<ReleaseInfo> { report }, criteria)[0];
 
-            Assert.That(decision.Rejected, Is.True);
+            // TaleArr: the pack spec keeps the bundle as a last resort (visible and flagged in
+            // interactive search) instead of rejecting it; title matching still defers to it.
+            Assert.That(decision.Rejected, Is.False);
             Assert.That(decision.RemoteBook.PackDetection.Verdict, Is.EqualTo(ReleasePackDetectionVerdict.MultipleBooks));
-            Assert.That(decision.Rejections.Select(r => r.Reason), Is.EqualTo(new[] { "Release appears to contain multiple books" }));
+            Assert.That(decision.RemoteBook.IsBundle, Is.True);
+            Assert.That(decision.RemoteBook.IsBundleFallback, Is.True);
+            Assert.That(decision.Rejections, Is.Empty);
         }
 
         [Test]

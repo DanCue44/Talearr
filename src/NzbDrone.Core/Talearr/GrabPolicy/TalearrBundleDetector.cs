@@ -86,6 +86,21 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             return BundlePatterns.Any(pattern => pattern.Regex.IsMatch(title));
         }
 
+        // TaleArr: true when the release title names the book ("The Poppy War Box Set (Books 1-3)"
+        // names "The Poppy War"). Titles shorter than three characters never count: they appear
+        // inside too many unrelated release names.
+        public static bool ReleaseMentionsTitle(string releaseTitle, string bookTitle)
+        {
+            var primary = Normalize(GetPrimaryTitle(bookTitle));
+            if (primary.Length < 3 || string.IsNullOrWhiteSpace(releaseTitle))
+            {
+                return false;
+            }
+
+            var normalizedRelease = " " + Normalize(releaseTitle) + " ";
+            return normalizedRelease.Contains(" " + primary + " ", StringComparison.Ordinal);
+        }
+
         // A release that lists the wanted book together with other books by the same author:
         // "Great Innovators (Benjamin Franklin; Einstein; Steve Jobs)".
         private static ReleasePackDetection DetectCatalogTitleList(string releaseTitle, Book targetBook, IEnumerable<Book> authorCatalog)

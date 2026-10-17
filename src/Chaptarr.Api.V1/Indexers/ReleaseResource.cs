@@ -199,6 +199,11 @@ namespace Chaptarr.Api.V1.Indexers
         // Format type for grouping in UI (audiobook or ebook)
         [JsonPropertyName("formatType")]
         public string FormatType { get; set; }
+
+        // TaleArr: the release holds several books; a fallback bundle is only a last resort.
+        public bool IsBundle { get; set; }
+        public bool IsBundleFallback { get; set; }
+        public string BundleContents { get; set; }
     }
 
     public static class ReleaseResourceMapper
@@ -318,8 +323,29 @@ namespace Chaptarr.Api.V1.Indexers
                 BookId = resolvedBookId,
 
                 // Format type for UI grouping
-                FormatType = GetFormatType(parsedBookInfo?.Quality?.Quality, releaseInfo, torrentInfo)
+                FormatType = GetFormatType(parsedBookInfo?.Quality?.Quality, releaseInfo, torrentInfo),
+
+                IsBundle = remoteBook.IsBundle,
+                IsBundleFallback = remoteBook.IsBundleFallback,
+                BundleContents = GetBundleContents(remoteBook)
             };
+        }
+
+        // TaleArr: what made the release a bundle ("Trilogy", "Books 1-3", a list of titles).
+        private static string GetBundleContents(RemoteBook remoteBook)
+        {
+            if (remoteBook?.IsBundle != true)
+            {
+                return null;
+            }
+
+            var detection = remoteBook.PackDetection;
+            if (detection?.Verdict == ReleasePackDetectionVerdict.MultipleBooks)
+            {
+                return !string.IsNullOrWhiteSpace(detection.MatchedValue) ? detection.MatchedValue : detection.PackType;
+            }
+
+            return remoteBook.ParsedBookInfo?.Discography == true ? "discography" : null;
         }
 
         private static string GetMatchedTitle(RemoteBook remoteBook)

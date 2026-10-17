@@ -43,6 +43,10 @@ namespace NzbDrone.Core.Download
         {
             var qualifiedReports = GetQualifiedReports(decisions);
             var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisions(qualifiedReports);
+
+            // TaleArr: last-resort bundles wait until every single copy had its turn.
+            var bundleFallbacks = prioritizedDecisions.Where(IsBundleFallback).ToList();
+            prioritizedDecisions = prioritizedDecisions.Where(d => !IsBundleFallback(d)).ToList();
             var grabbed = new List<DownloadDecision>();
             var pending = new List<DownloadDecision>();
             var rejected = decisions.Where(d => d.Rejected).ToList();
@@ -129,6 +133,93 @@ namespace NzbDrone.Core.Download
                 }
             }
 
+            // TaleArr: a bundle is grabbed only for a book that nothing else covered in this pass.
+            if (bundleFallbacks.Any())
+            {
+                var coveredBookIds = qualifiedReports
+                    .Where(d => !IsBundleFallback(d))
+                    .SelectMany(d => d.RemoteBook.Books)
+                    .Where(b => b != null)
+                    .Select(b => b.Id)
+                    .ToHashSet();
+
+                foreach (var report in bundleFallbacks)
+                {
+                    var remoteBook = report.RemoteBook;
+                    var downloadProtocol = remoteBook.Release.DownloadProtocol;
+
+                    if (!TalearrBundleFallback.IsAutomaticSearchSource(remoteBook.ReleaseSource))
+                    {
+                        _logger.Debug("Not grabbing bundle {0} from {1}: bundles are a last resort for searches only", remoteBook.Release.Title, remoteBook.ReleaseSource);
+                        continue;
+                    }
+
+                    if (report.TemporarilyRejected)
+                    {
+                        _logger.Debug("Not grabbing bundle {0} yet: {1}", remoteBook.Release.Title, string.Join(", ", report.Rejections));
+                        continue;
+                    }
+
+                    var grabbedBookIds = grabbed.SelectMany(d => d.RemoteBook.Books).Where(b => b != null).Select(b => b.Id).ToHashSet();
+                    // Only books the bundle's title names: an author search maps an unmatched
+                    // release to every searched book, and those are not all in the bundle.
+                    var openBooks = remoteBook.Books
+                        .Where(b => b != null && b.Id > 0 && !grabbedBookIds.Contains(b.Id) && !coveredBookIds.Contains(b.Id))
+                        .Where(b => TalearrBundleDetector.ReleaseMentionsTitle(remoteBook.Release.Title, b.Title))
+                        .ToList();
+
+                    if (!openBooks.Any())
+                    {
+                        _logger.Debug("Not grabbing bundle {0}: its books are covered by a single copy or not named in it", remoteBook.Release.Title);
+                        continue;
+                    }
+
+                    if ((downloadProtocol == DownloadProtocol.Usenet && usenetFailed) ||
+                        (downloadProtocol == DownloadProtocol.Torrent && torrentFailed))
+                    {
+                        continue;
+                    }
+
+                    if (TalearrGrabRetryService.ShouldSkipAfterRateLimit(report, talearrFailures, _logger))
+                    {
+                        continue;
+                    }
+
+                    // Only the books still open are grab targets, so history and import expect just them.
+                    if (openBooks.Count != remoteBook.Books.Count)
+                    {
+                        remoteBook.Books = openBooks;
+                    }
+
+                    _logger.Info("No single copy of {0} found; grabbing bundle {1} as last resort",
+                        string.Join(", ", openBooks.Select(b => b.Title)),
+                        remoteBook.Release.Title);
+
+                    var result = await ProcessDecisionInternal(report, null, talearrFailures);
+
+                    switch (result)
+                    {
+                        case ProcessedDecisionResult.Grabbed:
+                            grabbed.Add(report);
+                            break;
+                        case ProcessedDecisionResult.Rejected:
+                            rejected.Add(report);
+                            break;
+                        case ProcessedDecisionResult.Failed:
+                            if (downloadProtocol == DownloadProtocol.Usenet)
+                            {
+                                usenetFailed = true;
+                            }
+                            else if (downloadProtocol == DownloadProtocol.Torrent)
+                            {
+                                torrentFailed = true;
+                            }
+
+                            break;
+                    }
+                }
+            }
+
             if (pendingAddQueue.Any())
             {
                 _pendingReleaseService.AddMany(pendingAddQueue);
@@ -192,6 +283,11 @@ namespace NzbDrone.Core.Download
         {
             // Process both approved and temporarily rejected
             return (decision.Approved || decision.TemporarilyRejected) && decision.RemoteBook.Books.Any();
+        }
+
+        private static bool IsBundleFallback(DownloadDecision decision)
+        {
+            return decision?.RemoteBook?.IsBundleFallback == true;
         }
 
         private bool IsBookProcessed(List<DownloadDecision> decisions, DownloadDecision report)
