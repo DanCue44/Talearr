@@ -24,6 +24,7 @@ import BookRecordings from '../Recordings/BookRecordings';
 import BookDetailsHeaderConnector from './BookDetailsHeaderConnector';
 import BookChaptersTable from './Chapters/BookChaptersTable';
 import BookMatchProvenanceTable from './Matching/BookMatchProvenanceTable';
+import TalearrSendToKindleButton from './TalearrSendToKindleButton';
 import styles from './BookDetails.css';
 
 class BookDetails extends Component {
@@ -190,6 +191,14 @@ class BookDetails extends Component {
                   isSpinning={isConvertingToM4b}
                   isDisabled={!canConvertToM4b || isConvertingToM4b}
                   onPress={onConvertToM4bPress}
+                />
+            }
+
+            {
+              mediaType === 'ebook' &&
+                <TalearrSendToKindleButton
+                  bookId={id}
+                  fileCount={(bookFiles || []).length}
                 />
             }
 
