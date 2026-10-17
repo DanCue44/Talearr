@@ -214,9 +214,16 @@ MUST_KEEP_MIGRATION = [
 ]
 
 # (folder, file glob, regex, why). No file under the folder may match.
+# Files listed here may use IMainDatabase: the duplicate merge tool reassigns foreign keys in
+# existing chaptarr.db tables. It never adds schema, so a rollback to Chaptarr stays safe.
+MAIN_DATABASE_ALLOWED = {
+    "src/NzbDrone.Core/Talearr/Catalog/TalearrDuplicateFinder.cs",
+    "src/NzbDrone.Core/Talearr/Catalog/TalearrMergeService.cs",
+}
 MUST_NOT_HAVE_IN_TREE = [
     ("src/NzbDrone.Core/Datastore/Migration", "*.cs", r"(?i)talearr", "TaleArr adds no chaptarr.db migrations"),
-    ("src/NzbDrone.Core/Talearr", "*.cs", r"IMainDatabase|\[Migration\(", "TaleArr code keeps its data out of the chaptarr.db schema"),
+    ("src/NzbDrone.Core/Talearr", "*.cs", r"\[Migration\(", "TaleArr code keeps its data out of the chaptarr.db schema"),
+    ("src/NzbDrone.Core/Talearr", "*.cs", r"IMainDatabase", "TaleArr code keeps its data out of the chaptarr.db schema"),
     ("src/NzbDrone.Core/Talearr", "*.cs", r"NotificationBase<|IProviderConfig\b", "TaleArr adds no provider implementation (stock Chaptarr deletes unknown ones on start)"),
     ("src/NzbDrone.Core/Talearr/Audiobookshelf", "*.cs", r"HttpMethod\.(Post|Put|Patch|Delete)", "TaleArr only reads Audiobookshelf; scans stay upstream's"),
     ("src/NzbDrone.Core/Talearr/Wishlists", "*.cs", r"ImportListBase<|IImportListSettings", "wishlists are not import list providers (stock Chaptarr deletes unknown ones on start)"),
@@ -259,6 +266,8 @@ def main() -> int:
             failures.append(f"missing folder {folder} ({why})")
             continue
         for path in sorted(base.rglob(glob)):
+            if pattern == r"IMainDatabase" and path.relative_to(ROOT).as_posix() in MAIN_DATABASE_ALLOWED:
+                continue
             if re.search(pattern, path.read_text(encoding="utf-8", errors="replace")):
                 failures.append(f"{path.relative_to(ROOT)}: found /{pattern}/ ({why})")
 
