@@ -10,6 +10,7 @@ using NLog;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Indexers.Exceptions;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.ThingiProvider;
 
@@ -19,6 +20,13 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
     {
         private readonly IMamUnsatisfiedSlotReservationRepository _slotReservationRepository;
 
+        // TaleArr: session health, rotated cookies and the seedbox proxy list. Optional so the
+        // existing fixtures that build the indexer by hand keep working.
+        private readonly IMyAnonaMouseSessionMonitor _sessionMonitor;
+        private readonly IProxyService _proxyService;
+
+        public const string SessionExpiredMessage = "MAM session expired: paste a new mam_id";
+
         public override string Name => "MyAnonaMouse";
 
         public override DownloadProtocol Protocol => DownloadProtocol.Torrent;
@@ -27,10 +35,13 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         public override int PageSize => 100;
 
         public MyAnonaMouse(IIndexerHttpClientFactory httpClientFactory, IIndexerStatusService indexerStatusService, IConfigService configService, IParsingService parsingService,
-                            IMamUnsatisfiedSlotReservationRepository slotReservationRepository, Logger logger)
+                            IMamUnsatisfiedSlotReservationRepository slotReservationRepository, Logger logger,
+                            IMyAnonaMouseSessionMonitor sessionMonitor = null, IProxyService proxyService = null)
             : base(httpClientFactory, indexerStatusService, configService, parsingService, logger)
         {
             _slotReservationRepository = slotReservationRepository;
+            _sessionMonitor = sessionMonitor;
+            _proxyService = proxyService;
         }
 
         public override IEnumerable<ProviderDefinition> DefaultDefinitions
@@ -135,9 +146,37 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             return request;
         }
 
+        // TaleArr: watch search replies for an expired session and for a rotated mam_id.
+        protected override async Task<IndexerResponse> FetchIndexerResponse(IndexerRequest request)
+        {
+            var sentMamId = Settings.MamId;
+            IndexerResponse response;
+
+            try
+            {
+                response = await base.FetchIndexerResponse(request);
+            }
+            catch (HttpException ex) when (ex.Response != null)
+            {
+                if (ObserveSessionResponse(ex.Response, sentMamId, MyAnonaMouseCookieField.MamId, "search", true))
+                {
+                    throw new IndexerException(new IndexerResponse(request, ex.Response), SessionExpiredMessage);
+                }
+
+                throw;
+            }
+
+            if (ObserveSessionResponse(response.HttpResponse, sentMamId, MyAnonaMouseCookieField.MamId, "search", true))
+            {
+                throw new IndexerException(response, SessionExpiredMessage);
+            }
+
+            return response;
+        }
+
         public override async Task<HttpResponse> ExecuteDownloadRequestAsync(HttpRequest request)
         {
-            var response = await base.ExecuteDownloadRequestAsync(request);
+            var response = await ExecuteDownloadAndObserveAsync(request);
             if (!HasFreeleechParameter(request?.Url?.FullUri) || IsTorrentResponse(response))
             {
                 ConfirmServedTorrent(request, response);
@@ -151,9 +190,184 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             fallbackRequest.RequestTimeout = request.RequestTimeout;
             fallbackRequest.Headers.Accept = request.Headers.Accept;
 
-            var fallbackResponse = await base.ExecuteDownloadRequestAsync(fallbackRequest);
+            var fallbackResponse = await ExecuteDownloadAndObserveAsync(fallbackRequest);
             ConfirmServedTorrent(fallbackRequest, fallbackResponse);
             return fallbackResponse;
+        }
+
+        private async Task<HttpResponse> ExecuteDownloadAndObserveAsync(HttpRequest request)
+        {
+            var sentMamId = Settings.MamId;
+
+            try
+            {
+                var response = await base.ExecuteDownloadRequestAsync(request);
+                ObserveSessionResponse(response, sentMamId, MyAnonaMouseCookieField.MamId, "download", false);
+                return response;
+            }
+            catch (HttpException ex) when (ex.Response != null)
+            {
+                ObserveSessionResponse(ex.Response, sentMamId, MyAnonaMouseCookieField.MamId, "download", false);
+                throw;
+            }
+        }
+
+        // TaleArr: returns true when MAM rejected the session. Records the outcome for the health
+        // check and keeps a rotated mam_id (Set-Cookie) both in memory and in the saved settings.
+        internal bool ObserveSessionResponse(HttpResponse response, string sentMamId, MyAnonaMouseCookieField field, string source, bool inspectBody)
+        {
+            if (response == null || string.IsNullOrWhiteSpace(sentMamId))
+            {
+                return false;
+            }
+
+            var indexerId = Definition?.Id ?? 0;
+
+            if (MyAnonaMouseSessionDetector.IsSessionRejected(response, inspectBody))
+            {
+                _sessionMonitor?.RecordSessionRejected(indexerId, sentMamId, source);
+                return true;
+            }
+
+            if (MyAnonaMouseSessionDetector.TryGetRotatedMamId(response, sentMamId, out var rotated))
+            {
+                if (field == MyAnonaMouseCookieField.SeedboxMamId)
+                {
+                    if (string.Equals(Settings.SeedboxMamId, sentMamId, StringComparison.Ordinal))
+                    {
+                        Settings.SeedboxMamId = rotated;
+                    }
+                }
+                else if (string.Equals(Settings.MamId, sentMamId, StringComparison.Ordinal))
+                {
+                    Settings.MamId = rotated;
+                }
+
+                _logger.Debug("MAM returned a new {0} during {1}", field == MyAnonaMouseCookieField.SeedboxMamId ? "seedbox mam_id" : "mam_id", source);
+                _sessionMonitor?.RecordRotatedCookie(indexerId, field, sentMamId, rotated);
+
+                if (field == MyAnonaMouseCookieField.MamId && response.StatusCode == HttpStatusCode.OK)
+                {
+                    _sessionMonitor?.RecordSessionAccepted(indexerId, sentMamId);
+                }
+
+                return false;
+            }
+
+            if (field == MyAnonaMouseCookieField.MamId && response.StatusCode == HttpStatusCode.OK)
+            {
+                _sessionMonitor?.RecordSessionAccepted(indexerId, sentMamId);
+            }
+
+            return false;
+        }
+
+        // TaleArr: tell MAM the torrent client's current public IP. The request has to leave from
+        // that IP, so it goes through the Seedbox Proxy (or the indexer's own proxy).
+        public async Task<MyAnonaMouseSeedboxResult> UpdateDynamicSeedboxAsync()
+        {
+            var mamId = string.IsNullOrWhiteSpace(Settings.SeedboxMamId) ? Settings.MamId : Settings.SeedboxMamId;
+            var field = string.IsNullOrWhiteSpace(Settings.SeedboxMamId) ? MyAnonaMouseCookieField.MamId : MyAnonaMouseCookieField.SeedboxMamId;
+            var now = DateTime.UtcNow;
+
+            if (string.IsNullOrWhiteSpace(mamId))
+            {
+                return new MyAnonaMouseSeedboxResult
+                {
+                    Outcome = MyAnonaMouseSeedboxOutcome.InvalidSession,
+                    Message = "No mam_id configured",
+                    CheckedUtc = now
+                };
+            }
+
+            var request = new HttpRequestBuilder(MyAnonaMouseDynamicSeedboxParser.Endpoint)
+                .Accept(HttpAccept.Json)
+                .SetHeader("User-Agent", $"{BuildInfo.AppName}/{BuildInfo.Version}")
+                .Build();
+
+            request.Cookies["mam_id"] = mamId;
+            request.SuppressHttpError = true;
+            request.LogHttpError = false;
+            request.AllowAutoRedirect = false;
+            request.StoreResponseCookie = false;
+            request.StoreRequestCookie = false;
+
+            // Own cookie jar scope: the search jar may hold a .myanonamouse.net mam_id that would
+            // otherwise ride along with the seedbox session's cookie.
+            request.RateLimitKey = $"mam-dynamic-seedbox-{Definition?.Id ?? 0}";
+
+            HttpResponse response;
+            try
+            {
+                response = await GetSeedboxHttpClient().ExecuteAsync(request);
+            }
+            catch (Exception ex)
+            {
+                return new MyAnonaMouseSeedboxResult
+                {
+                    Outcome = MyAnonaMouseSeedboxOutcome.Failed,
+                    Message = $"Request failed ({ex.GetType().Name}: {ex.Message})",
+                    CheckedUtc = now
+                };
+            }
+
+            var result = MyAnonaMouseDynamicSeedboxParser.Parse(response.StatusCode, SafeContent(response), now);
+
+            if (result.Outcome != MyAnonaMouseSeedboxOutcome.InvalidSession &&
+                MyAnonaMouseSessionDetector.TryGetRotatedMamId(response, mamId, out _))
+            {
+                // Only the rotation part applies here: a seedbox refusal is reported through the
+                // seedbox result, not as an expired search session.
+                ObserveSessionResponse(response, mamId, field, "dynamic seedbox update", false);
+            }
+
+            return result;
+        }
+
+        internal IIndexerHttpClient GetSeedboxHttpClient()
+        {
+            var proxyId = Settings.SeedboxProxyId;
+            if (proxyId == 0)
+            {
+                return _httpClient;
+            }
+
+            return _httpClientFactory.GetClient(proxyId < 0 ? IndexerDefinition.NoProxyOverride : proxyId);
+        }
+
+        private static string SafeContent(HttpResponse response)
+        {
+            try
+            {
+                return response?.Content;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public override object RequestAction(string action, IDictionary<string, string> query)
+        {
+            if (action == "getSeedboxProxies")
+            {
+                var options = new List<object>
+                {
+                    new { Value = 0, Name = "Same As Indexer" },
+                    new { Value = IndexerDefinition.NoProxyOverride, Name = "No Proxy (direct)" }
+                };
+
+                if (_proxyService != null)
+                {
+                    options.AddRange(_proxyService.All()
+                        .OrderBy(p => p.Name)
+                        .Select(p => (object)new { Value = p.Id, Name = $"{p.Name} ({p.Hostname}:{p.Port})" }));
+                }
+
+                return new { options };
+            }
+
+            return base.RequestAction(action, query);
         }
 
         protected override async Task<ValidationFailure> TestConnection()
@@ -256,7 +470,27 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 request.Cookies["mam_ssl"] = "1";
             }
 
-            var response = await _httpClient.ExecuteAsync(request);
+            var sentMamId = Settings.MamId;
+            HttpResponse response;
+            try
+            {
+                response = await _httpClient.ExecuteAsync(request);
+            }
+            catch (HttpException ex) when (ex.Response != null)
+            {
+                if (ObserveSessionResponse(ex.Response, sentMamId, MyAnonaMouseCookieField.MamId, "account status refresh", true))
+                {
+                    throw new InvalidOperationException(SessionExpiredMessage, ex);
+                }
+
+                throw;
+            }
+
+            // TaleArr: expired sessions and rotated cookies (see ObserveSessionResponse).
+            if (ObserveSessionResponse(response, sentMamId, MyAnonaMouseCookieField.MamId, "account status refresh", true))
+            {
+                throw new InvalidOperationException(SessionExpiredMessage);
+            }
 
             if (response.StatusCode != HttpStatusCode.OK)
             {

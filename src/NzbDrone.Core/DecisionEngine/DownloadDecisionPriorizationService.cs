@@ -3,6 +3,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Indexers.MyAnonaMouse;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Talearr.GrabPolicy;
@@ -24,9 +25,11 @@ namespace NzbDrone.Core.DecisionEngine
         private readonly ITalearrGrabPolicyService _grabPolicyService;
         private readonly ITalearrAbridgedResolver _abridgedResolver;
         private readonly ITalearrBookGrabPolicyService _bookGrabPolicyService;
+        private readonly IMyAnonaMouseReleasePolicy _mamReleasePolicy;
 
-        public DownloadDecisionPriorizationService(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, ITalearrGrabPolicyService grabPolicyService = null, ITalearrAbridgedResolver abridgedResolver = null, ITalearrBookGrabPolicyService bookGrabPolicyService = null)
+        public DownloadDecisionPriorizationService(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, ITalearrGrabPolicyService grabPolicyService = null, ITalearrAbridgedResolver abridgedResolver = null, ITalearrBookGrabPolicyService bookGrabPolicyService = null, IMyAnonaMouseReleasePolicy mamReleasePolicy = null)
         {
+            _mamReleasePolicy = mamReleasePolicy;
             _abridgedResolver = abridgedResolver;
             _bookGrabPolicyService = bookGrabPolicyService;
             _configService = configService;
@@ -39,7 +42,7 @@ namespace NzbDrone.Core.DecisionEngine
         public List<DownloadDecision> PrioritizeDecisions(List<DownloadDecision> decisions)
         {
             var comparerLogger = LogManager.GetLogger("DownloadDecisionComparer");
-            var comparer = new DownloadDecisionComparer(_configService, _delayProfileService, _qualityProfileService, comparerLogger, TalearrGrabPolicyService.Resolve(_grabPolicyService), _abridgedResolver, _bookGrabPolicyService);
+            var comparer = new DownloadDecisionComparer(_configService, _delayProfileService, _qualityProfileService, comparerLogger, TalearrGrabPolicyService.Resolve(_grabPolicyService), _abridgedResolver, _bookGrabPolicyService, _mamReleasePolicy);
 
             var acceptedDecisions = decisions.Where(c => c.Approved).ToList();
             _logger.Debug("PrioritizeDecisions - Total decisions: {0}, Accepted decisions: {1}", decisions.Count, acceptedDecisions.Count);

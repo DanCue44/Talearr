@@ -140,6 +140,16 @@ namespace NzbDrone.Core.Jobs
                         TypeName = typeof(RefreshMyAnonaMouseAccountStatusCommand).FullName
                     },
 
+                    // TaleArr: MAM dynamic seedbox IP. The service applies each indexer's own
+                    // interval and does nothing unless the update is enabled. Stock Chaptarr
+                    // drops this row on its next start.
+                    new ScheduledTask
+                    {
+                        Interval = MyAnonaMouseDynamicSeedboxService.SchedulerIntervalMinutes,
+                        TypeName = typeof(UpdateMyAnonaMouseDynamicSeedboxCommand).FullName,
+                        Priority = CommandPriority.Low
+                    },
+
                     new ScheduledTask
                     {
                         Interval = 24 * 60,

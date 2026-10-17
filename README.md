@@ -160,6 +160,31 @@ Storage: three extra keys in the connection's own settings JSON (stock Chaptarr 
 a cache in `talearr.db`. Chaptarr deletes connection types it does not know on start, so
 TaleArr adds none.
 
+## MyAnonamouse
+
+The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additions:
+
+- **Session health.** A `mam_id` that MAM rejects (search, download or account refresh) shows
+  "MAM session expired: paste a new mam_id" in System > Status until a new one is saved. When
+  MAM sends a new `mam_id` in Set-Cookie, TaleArr saves it to the indexer settings.
+- **Update Dynamic Seedbox IP** (off) tells MAM the torrent client's current IP on startup and
+  every **Dynamic Seedbox Interval** (30 minutes) via `t.myanonamouse.net/json/dynamicSeedbox.php`.
+  The call must leave from the torrent client's IP: pick a proxy that exits through the
+  client's VPN as **Seedbox Proxy** (for example the Privoxy in a qBittorrent VPN container),
+  or give the indexer itself that proxy. **Seedbox mam_id** is an optional separate session.
+  Refusals (invalid session, IP/ASN mismatch, session type not allowed) appear in System >
+  Status; "No change" and "Last change too recent" are only logged. The task is listed in
+  System > Tasks and can be run by hand.
+- **Prefer Freeleech** (on) ranks freeleech, personal freeleech and VIP freeleech releases
+  above otherwise equal ones (after the quality profile). **Freeleech Only** (off) rejects the
+  rest. Both also apply to MAM results that come through Prowlarr, using the native indexer's
+  settings.
+- **Unsatisfied limit warning.** System > Status warns at 80% of MAM's unsatisfied-torrent
+  limit, and when automatic grabs are paused by the safety reserve.
+
+Storage: new keys in the indexer's own settings JSON (stock Chaptarr ignores them) and one
+scheduled task row that Chaptarr drops on start.
+
 ## Drop-in compatibility with Chaptarr
 
 TaleArr is built so it can start on an existing Chaptarr config folder and database
