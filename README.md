@@ -175,6 +175,28 @@ nothing.
 Storage: book tag links in the `BookTags` table of `talearr.db` (lost only if that file is
 recreated), one `talearr.metadataprofile.<id>` row per profile in the `Config` table.
 
+## Migrating from Readarr, Bookshelf or LazyLibrarian
+
+See [docs/TALEARR_MIGRATION.md](docs/TALEARR_MIGRATION.md).
+
+- **System > Migrate** reads a running Readarr or Bookshelf over its API (URL and API key), a
+  `readarr.db` or a Readarr backup zip (uploaded or a path on the server), or LazyLibrarian over
+  its API (`getIndex`, `getAllBooks`).
+- **Preview** is a dry run: tags, root folders, quality and metadata profiles (matched by name),
+  download clients and indexers, then every monitored book matched to a metadata book
+  (Goodreads id, ASIN, ISBN, then title and author). It lists what will be created, what is
+  already there, what did not match and what conflicts. **Apply** carries out that plan:
+  authors are queued with only the source's monitored books monitored, and files on disk are
+  matched by the scan that runs when an author or root folder is added.
+- Imported clients and indexers start **disabled** unless asked, so the source and TaleArr do
+  not both grab. Prowlarr-synced indexers are skipped. The source is only read, never changed.
+- **API**: `GET /api/v1/talearr/migration`, `POST .../preview`, `POST .../upload`,
+  `POST .../apply`, `DELETE` (discard the preview).
+
+Storage: the plan and the last report are JSON files in `talearr-migration/` in the config
+folder (the plan, which holds the source's provider settings, is removed after apply). The API
+key is kept in memory only. No schema change, no new provider type.
+
 ## Audiobookshelf
 
 See [docs/TALEARR_AUDIOBOOKSHELF.md](docs/TALEARR_AUDIOBOOKSHELF.md).
@@ -471,6 +493,24 @@ docker run -d \
 The container starts as root only long enough to create the `PUID`/`PGID` user and fix
 ownership of `/config`, then drops to that user with `gosu`. If `PUID`/`PGID` are not set
 it defaults to `99:100`. `UMASK` is optional.
+
+### Unraid
+
+`unraid/talearr.xml` is a Community Applications style template (port 8789, `/config`,
+`/books`, `/audiobooks`, `/downloads`, `PUID` 99, `PGID` 100, `UMASK` 002). Until it is in
+Community Applications, copy it to `/boot/config/plugins/dockerMan/templates-user/my-TaleArr.xml`
+and pick it under Docker > Add Container > Template.
+
+Hardlinks (instant moves, no second copy while seeding) only work when the download and the
+library are on the **same share and the same mount inside the container**. Two separate mappings
+such as `/downloads` and `/books` are two mounts, even on one share, so imports fall back to a
+copy. For hardlinks, use one parent share, for example `/mnt/user/data` with `downloads/` and
+`media/books/`, `media/audiobooks/` inside it, and map it once (Add another Path:
+`/data` to `/mnt/user/data`, and clear the three separate paths). Give the download client the
+same `/data` mapping, set its completed folder under `/data/downloads`, and add
+`/data/media/books` and `/data/media/audiobooks` as root folders. Unraid can only hardlink within
+one disk or pool, so a hardlink fails (and TaleArr copies) when a download sits on the cache
+and its library folder already lives on an array disk.
 
 To move an existing Chaptarr container to TaleArr (and back), see
 [docs/TALEARR_UNRAID_SWAP.md](docs/TALEARR_UNRAID_SWAP.md).

@@ -39,6 +39,7 @@ import LogsTableConnector from 'System/Events/LogsTableConnector';
 import Logs from 'System/Logs/Logs';
 import QuickstartConnector from 'System/Quickstart/QuickstartConnector';
 import Status from 'System/Status/Status';
+import TalearrMigration from 'System/Talearr/TalearrMigration';
 import Tasks from 'System/Tasks/Tasks';
 import Updates from 'System/Updates/Updates';
 import UnmappedFilesTableConnector from 'UnmappedFiles/UnmappedFilesTableConnector';
@@ -293,6 +294,12 @@ function AppRoutes(props) {
       <Route
         path="/system/tasks"
         component={Tasks}
+      />
+
+      {/* TaleArr: migration from Readarr, Bookshelf or LazyLibrarian */}
+      <Route
+        path="/system/migrate"
+        component={TalearrMigration}
       />
 
       <Route

@@ -1,0 +1,11 @@
+{
+  "getIndex": [
+    { "AuthorID": "OL123A", "AuthorName": "Andy Weir", "Status": "Active", "HaveBooks": 1, "TotalBooks": 6 },
+    { "AuthorID": "OL456A", "AuthorName": "Ignored Person", "Status": "Ignored" }
+  ],
+  "getAllBooks": [
+    { "BookName": "Project Hail Mary", "BookID": "54493401", "BookIsbn": "9780593135204", "AuthorName": "Andy Weir", "AuthorID": "OL123A", "Status": "Have", "AudioStatus": "Wanted", "BookFile": "/books/Andy Weir/Project Hail Mary/phm.epub" },
+    { "BookName": "Artemis", "BookID": "OL999W", "BookIsbn": "0553448129", "AuthorName": "Andy Weir", "AuthorID": "OL123A", "Status": "Skipped", "AudioStatus": "Skipped" },
+    { "BookName": "Orphan Book", "BookID": "OL1W", "AuthorName": "Somebody Else", "AuthorID": "OL789A", "Status": "Wanted", "AudioStatus": "Skipped" }
+  ]
+}

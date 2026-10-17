@@ -179,6 +179,11 @@ const links = [
         title: () => translate('Backup'),
         to: '/system/backup'
       },
+      // TaleArr: migration from Readarr, Bookshelf or LazyLibrarian.
+      {
+        title: () => 'Migrate',
+        to: '/system/migrate'
+      },
       {
         title: () => translate('Updates'),
         to: '/system/updates'

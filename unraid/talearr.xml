@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!-- TaleArr Unraid template (Community Applications format). See README.md "Unraid". -->
+<!-- The repository and image are private for now: the Icon and TemplateURL raw GitHub links only -->
+<!-- resolve once DanCue44/TaleArr is public, and the image needs a docker login to ghcr.io until -->
+<!-- the talearr package is public. -->
+<Container version="2">
+  <Name>TaleArr</Name>
+  <Repository>ghcr.io/dancue44/talearr:latest</Repository>
+  <Registry>https://github.com/DanCue44/TaleArr/pkgs/container/talearr</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://talearr.com</Support>
+  <Project>https://talearr.com</Project>
+  <ReadMe>https://github.com/DanCue44/TaleArr#readme</ReadMe>
+  <Overview>TaleArr is an ebook and audiobook collection manager for Usenet and BitTorrent users, a drop-in fork of Chaptarr (itself a Readarr fork). It monitors authors and books, grabs the right edition and recording (unabridged by default, English editions by plain title), keeps abridged and unabridged recordings together, imports into tidy author and book folders and talks to Audiobookshelf. It reads the same /config as Chaptarr, so you can switch either way, and System &gt; Migrate brings a Readarr, Bookshelf or LazyLibrarian library over.[br][br]For hardlinks, keep downloads and the library on the same share and map one parent folder (see the README's Unraid section).</Overview>
+  <Category>MediaApp:Books Downloaders:</Category>
+  <WebUI>http://[IP]:[PORT:8789]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/DanCue44/TaleArr/main/unraid/talearr.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/DanCue44/TaleArr/main/Logo/talearr.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="WebUI" Target="8789" Default="8789" Mode="tcp" Description="Web interface and API port" Type="Port" Display="always" Required="true" Mask="false">8789</Config>
+  <Config Name="Appdata" Target="/config" Default="/mnt/user/appdata/talearr" Mode="rw" Description="Configuration, chaptarr.db and talearr.db. To move from Chaptarr, point this at Chaptarr's appdata folder." Type="Path" Display="advanced" Required="true" Mask="false">/mnt/user/appdata/talearr</Config>
+  <Config Name="Books" Target="/books" Default="/mnt/user/data/media/books" Mode="rw" Description="Ebook library (add it as an ebook root folder)" Type="Path" Display="always" Required="false" Mask="false">/mnt/user/data/media/books</Config>
+  <Config Name="Audiobooks" Target="/audiobooks" Default="/mnt/user/data/media/audiobooks" Mode="rw" Description="Audiobook library (add it as an audiobook root folder)" Type="Path" Display="always" Required="false" Mask="false">/mnt/user/data/media/audiobooks</Config>
+  <Config Name="Downloads" Target="/downloads" Default="/mnt/user/data/downloads" Mode="rw" Description="Download client's completed folder, mapped to the same path as in the download client container" Type="Path" Display="always" Required="false" Mask="false">/mnt/user/data/downloads</Config>
+  <Config Name="PUID" Target="PUID" Default="99" Description="User id the app runs as (99 is Unraid's nobody)" Type="Variable" Display="advanced" Required="true" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Description="Group id the app runs as (100 is Unraid's users)" Type="Variable" Display="advanced" Required="true" Mask="false">100</Config>
+  <Config Name="UMASK" Target="UMASK" Default="002" Description="File creation mask (002 keeps files group writable)" Type="Variable" Display="advanced" Required="false" Mask="false">002</Config>
+</Container>

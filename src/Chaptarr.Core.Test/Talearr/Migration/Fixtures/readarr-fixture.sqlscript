@@ -1,0 +1,42 @@
+-- A small Readarr 0.4 database: the tables and columns the migration reads, plus a few it ignores.
+CREATE TABLE "VersionInfo" ("Version" INTEGER NOT NULL, "AppliedOn" DATETIME, "Description" TEXT);
+INSERT INTO "VersionInfo" VALUES (39, '2024-01-01', 'add_monitor_new_items');
+CREATE TABLE "Tags" ("Id" INTEGER PRIMARY KEY, "Label" TEXT NOT NULL);
+INSERT INTO "Tags" VALUES (1, 'kids'), (2, 'fav');
+CREATE TABLE "QualityProfiles" ("Id" INTEGER PRIMARY KEY, "Name" TEXT NOT NULL, "Cutoff" INTEGER, "Items" TEXT, "UpgradeAllowed" INTEGER);
+INSERT INTO "QualityProfiles" VALUES (1, 'eBook', 3, '[]', 0), (2, 'Spoken', 13, '[]', 0);
+CREATE TABLE "MetadataProfiles" ("Id" INTEGER PRIMARY KEY, "Name" TEXT NOT NULL, "MinPopularity" REAL);
+INSERT INTO "MetadataProfiles" VALUES (1, 'Standard', 350), (2, 'None', 0);
+CREATE TABLE "RootFolders" ("Id" INTEGER PRIMARY KEY, "Path" TEXT NOT NULL, "Name" TEXT, "DefaultMetadataProfileId" INTEGER, "DefaultQualityProfileId" INTEGER,
+  "DefaultMonitorOption" INTEGER, "DefaultNewItemMonitorOption" INTEGER, "DefaultTags" TEXT, "IsCalibreLibrary" INTEGER, "CalibreSettings" TEXT);
+INSERT INTO "RootFolders" VALUES (1, '/books', 'Books', 1, 1, 0, 0, '[1]', 0, NULL), (2, '/audiobooks', 'Audiobooks', 1, 2, 6, 1, '[]', 0, NULL);
+CREATE TABLE "DownloadClients" ("Id" INTEGER PRIMARY KEY, "Enable" INTEGER NOT NULL, "Name" TEXT NOT NULL, "Implementation" TEXT NOT NULL, "Settings" TEXT,
+  "ConfigContract" TEXT NOT NULL, "Priority" INTEGER, "RemoveCompletedDownloads" INTEGER, "RemoveFailedDownloads" INTEGER, "Tags" TEXT);
+INSERT INTO "DownloadClients" VALUES (1, 1, 'SABnzbd', 'Sabnzbd', '{"host": "sabnzbd", "port": 8080, "apiKey": "sab-key-123", "musicCategory": "readarr"}', 'SabnzbdSettings', 1, 1, 1, '[]');
+CREATE TABLE "Indexers" ("Id" INTEGER PRIMARY KEY, "Name" TEXT NOT NULL, "Implementation" TEXT NOT NULL, "Settings" TEXT, "ConfigContract" TEXT,
+  "EnableRss" INTEGER, "EnableAutomaticSearch" INTEGER, "EnableInteractiveSearch" INTEGER, "Priority" INTEGER, "Tags" TEXT, "DownloadClientId" INTEGER);
+INSERT INTO "Indexers" VALUES (1, 'NZBgeek', 'Newznab', '{"baseUrl": "https://api.nzbgeek.info", "apiPath": "/api", "apiKey": "geek-key", "categories": [7020, 3030]}', 'NewznabSettings', 1, 1, 0, 25, '[2]', 0);
+CREATE TABLE "AuthorMetadata" ("Id" INTEGER PRIMARY KEY, "ForeignAuthorId" TEXT NOT NULL, "TitleSlug" TEXT, "Name" TEXT NOT NULL, "Overview" TEXT);
+INSERT INTO "AuthorMetadata" VALUES (1, '6540057', '6540057', 'Andy Weir', NULL), (2, '38550', '38550', 'Brandon Sanderson', NULL), (3, '999999999', '999999999', 'Zzz Nobody', NULL);
+CREATE TABLE "Authors" ("Id" INTEGER PRIMARY KEY, "CleanName" TEXT NOT NULL, "Path" TEXT NOT NULL, "Monitored" INTEGER NOT NULL, "LastInfoSync" DATETIME,
+  "SortName" TEXT, "QualityProfileId" INTEGER, "Tags" TEXT, "Added" DATETIME, "AddOptions" TEXT, "MetadataProfileId" INTEGER, "AuthorMetadataId" INTEGER NOT NULL, "MonitorNewItems" INTEGER);
+INSERT INTO "Authors" VALUES (1, 'andyweir', '/books/Andy Weir', 1, NULL, 'weir andy', 1, '[2]', '2024-01-01', NULL, 1, 1, 0),
+  (2, 'brandonsanderson', '/audiobooks/Brandon Sanderson', 1, NULL, NULL, 2, '[]', '2024-01-01', NULL, 1, 2, 1),
+  (3, 'zzznobody', '/books/Zzz Nobody', 0, NULL, NULL, 1, '[]', '2024-01-01', NULL, 2, 3, 1);
+CREATE TABLE "Books" ("Id" INTEGER PRIMARY KEY, "AuthorMetadataId" INTEGER NOT NULL, "ForeignBookId" TEXT NOT NULL, "TitleSlug" TEXT, "Title" TEXT NOT NULL,
+  "ReleaseDate" DATETIME, "CleanTitle" TEXT, "Monitored" INTEGER NOT NULL, "AnyEditionOk" INTEGER, "Added" DATETIME);
+INSERT INTO "Books" VALUES (10, 1, '54493401', '54493401', 'Project Hail Mary', NULL, 'projecthailmary', 1, 1, NULL),
+  (11, 1, '18007564', '18007564', 'The Martian', NULL, 'martian', 0, 1, NULL),
+  (20, 2, '68428', '68428', 'Mistborn: The Final Empire', NULL, 'mistborn', 1, 1, NULL),
+  (21, 2, '1', '1', 'A Book Nobody Has Heard Of', NULL, 'nobody', 1, 1, NULL),
+  (30, 3, '2', '2', 'Mystery Thing', NULL, 'mystery', 0, 1, NULL),
+  (40, 99, '3', '3', 'Orphan Row Without Author', NULL, 'orphan', 1, 1, NULL);
+CREATE TABLE "Editions" ("Id" INTEGER PRIMARY KEY, "BookId" INTEGER NOT NULL, "ForeignEditionId" TEXT NOT NULL, "Isbn13" TEXT, "Asin" TEXT, "Title" TEXT NOT NULL, "Monitored" INTEGER NOT NULL);
+INSERT INTO "Editions" VALUES (100, 10, '54493401', '9780593135204', 'B08FHBV4ZX', 'Project Hail Mary', 1),
+  (110, 11, '18007564', '9780804139021', NULL, 'The Martian', 1),
+  (201, 20, '68429', '9999999999999', NULL, 'Mistborn (other)', 0),
+  (200, 20, '68428', NULL, 'B002UZMLXM', 'Mistborn', 1),
+  (210, 21, '1', NULL, NULL, 'A Book Nobody Has Heard Of', 1);
+CREATE TABLE "BookFiles" ("Id" INTEGER PRIMARY KEY, "EditionId" INTEGER NOT NULL, "Path" TEXT, "Size" INTEGER, "Quality" TEXT);
+INSERT INTO "BookFiles" VALUES (1, 100, '/books/Andy Weir/Project Hail Mary (2021)/Project Hail Mary.epub', 1000, '{}'),
+  (2, 110, '/books/Andy Weir/The Martian (2014)/The Martian.epub', 1000, '{}');

@@ -203,6 +203,16 @@ MUST_KEEP_FORMAT_POLICY = [
     ("frontend/src/Settings/Indexers/IndexerSettings.js", r"<TalearrFormatPolicy />", "format policy: section on Settings > Indexers"),
 ]
 
+# Migration from Readarr, Bookshelf and LazyLibrarian (docs/TALEARR_MIGRATION.md). Pin the
+# promises: the source is only read, imported clients and indexers start disabled.
+MUST_KEEP_MIGRATION = [
+    ("src/NzbDrone.Core/Talearr/Migration/TalearrMigrationBackupReader.cs", r"Mode = SqliteOpenMode\.ReadOnly", "migration: the source database copy is opened read-only"),
+    ("src/NzbDrone.Core/Talearr/Migration/TalearrMigrationModels.cs", r"public bool EnableImportedProviders \{ get; set; \}\n", "migration: imported providers are disabled by default"),
+    ("src/NzbDrone.Core/Talearr/Migration/TalearrMigrationService.cs", r"_pendingAuthorImportService\.EnqueueAsync\(", "migration: authors go through upstream's pending author import"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrMigrationController.cs", r'V1ApiController\("talearr/migration"\)', "migration: additive API route"),
+    ("frontend/src/Components/Page/Sidebar/PageSidebar.js", r"to: '/system/migrate'", "migration: System > Migrate"),
+]
+
 # (folder, file glob, regex, why). No file under the folder may match.
 MUST_NOT_HAVE_IN_TREE = [
     ("src/NzbDrone.Core/Datastore/Migration", "*.cs", r"(?i)talearr", "TaleArr adds no chaptarr.db migrations"),
@@ -210,6 +220,7 @@ MUST_NOT_HAVE_IN_TREE = [
     ("src/NzbDrone.Core/Talearr", "*.cs", r"NotificationBase<|IProviderConfig\b", "TaleArr adds no provider implementation (stock Chaptarr deletes unknown ones on start)"),
     ("src/NzbDrone.Core/Talearr/Audiobookshelf", "*.cs", r"HttpMethod\.(Post|Put|Patch|Delete)", "TaleArr only reads Audiobookshelf; scans stay upstream's"),
     ("src/NzbDrone.Core/Talearr/Wishlists", "*.cs", r"ImportListBase<|IImportListSettings", "wishlists are not import list providers (stock Chaptarr deletes unknown ones on start)"),
+    ("src/NzbDrone.Core/Talearr/Migration", "*.cs", r"_httpClient\.(Post|Put|Execute)|HttpMethod\.(Post|Put|Patch|Delete)", "migration only reads the source (GET)"),
 ]
 
 # Visible strings that should not come back in UI shells after a merge.
@@ -230,7 +241,7 @@ def read(rel: str) -> str | None:
 def main() -> int:
     failures: list[str] = []
 
-    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS + MUST_KEEP_RECORDINGS + MUST_KEEP_AUDIOBOOKSHELF + MUST_KEEP_SERIES + MUST_KEEP_WISHLISTS + MUST_KEEP_FORMAT_POLICY:
+    for rel, pattern, why in MUST_HAVE_BRAND + MUST_KEEP_UPSTREAM + MUST_KEEP_TALEARR_HOOKS + MUST_KEEP_RECORDINGS + MUST_KEEP_AUDIOBOOKSHELF + MUST_KEEP_SERIES + MUST_KEEP_WISHLISTS + MUST_KEEP_FORMAT_POLICY + MUST_KEEP_MIGRATION:
         text = read(rel)
         if text is None:
             failures.append(f"missing file {rel} ({why})")
