@@ -16,7 +16,7 @@ using NzbDrone.Core.ThingiProvider;
 
 namespace NzbDrone.Core.Indexers.MyAnonaMouse
 {
-    public class MyAnonaMouse : HttpIndexerBase<MyAnonaMouseSettings>
+    public partial class MyAnonaMouse : HttpIndexerBase<MyAnonaMouseSettings>
     {
         private readonly IMamUnsatisfiedSlotReservationRepository _slotReservationRepository;
 
@@ -544,6 +544,10 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             Settings.UploadedBytes = extras.UploadedBytes;
             Settings.DownloadedBytes = extras.DownloadedBytes;
             Settings.SeedOnly = extras.SeedOnly;
+
+            // TaleArr: ratio guard and Power User progress fill in what the extras above leave
+            // unknown (text upload/download totals, more seed-only flags, the join date).
+            MyAnonaMouseAccountStanding.Apply(Settings, response.Content);
 
             _logger.Debug("MAM account status detected: {0} (VIP: {1}), unsatisfied {2}/{3}", className, isVip, userData.Unsatisfied.Count, userData.Unsatisfied.Limit);
 

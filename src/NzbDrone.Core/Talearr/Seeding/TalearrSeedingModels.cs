@@ -15,6 +15,10 @@ namespace NzbDrone.Core.Talearr.Seeding
 
         [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
         public TalearrSeedingMamStatus Mam { get; set; }
+
+        // TaleArr: MAM freeleech seeding filler, null when it was never turned on.
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public MamFiller.TalearrMamFillerStatus Filler { get; set; }
     }
 
     public class TalearrSeedingTorrent
@@ -81,6 +85,9 @@ namespace NzbDrone.Core.Talearr.Seeding
 
         [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
         public DateTime? CompletedAt { get; set; }
+
+        // TaleArr: added by the MAM freeleech seeding filler (not a library grab).
+        public bool IsFiller { get; set; }
     }
 
     public class TalearrSeedingSummary
@@ -124,6 +131,25 @@ namespace NzbDrone.Core.Talearr.Seeding
         public bool BonusAutoSpend { get; set; }
         public bool BonusDryRun { get; set; }
         public List<TalearrSeedingBonusPurchase> BonusPurchases { get; set; } = new List<TalearrSeedingBonusPurchase>();
+
+        // TaleArr: Power User progress (TalearrMamPowerUserProgress). Null when unknown.
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public DateTime? MemberSince { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public long? UploadedBytes { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public long? DownloadedBytes { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public int? DaysUntilEligible { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public long? UploadedRemainingBytes { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public bool? RatioOk { get; set; }
     }
 
     public class TalearrSeedingBonusPurchase

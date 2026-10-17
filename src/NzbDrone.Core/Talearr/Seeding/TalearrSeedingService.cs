@@ -9,6 +9,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.MyAnonaMouse;
+using NzbDrone.Core.Talearr.MamFiller;
 
 namespace NzbDrone.Core.Talearr.Seeding
 {
@@ -35,6 +36,7 @@ namespace NzbDrone.Core.Talearr.Seeding
         private readonly IAuthorService _authorService;
         private readonly IIndexerFactory _indexerFactory;
         private readonly IMyAnonaMouseBonusPurchaseStore _bonusPurchases;
+        private readonly ITalearrMamFillerStore _fillerStore;
         private readonly ICached<TalearrSeedingReport> _cache;
         private readonly Logger _logger;
         private readonly object _buildLock = new object();
@@ -46,8 +48,10 @@ namespace NzbDrone.Core.Talearr.Seeding
                                      IIndexerFactory indexerFactory,
                                      ICacheManager cacheManager,
                                      Logger logger,
-                                     IMyAnonaMouseBonusPurchaseStore bonusPurchases = null)
+                                     IMyAnonaMouseBonusPurchaseStore bonusPurchases = null,
+                                     ITalearrMamFillerStore fillerStore = null)
         {
+            _fillerStore = fillerStore;
             _bonusPurchases = bonusPurchases;
             _downloadClientProvider = downloadClientProvider;
             _historyService = historyService;
@@ -102,6 +106,10 @@ namespace NzbDrone.Core.Talearr.Seeding
                 }
             }
 
+            // TaleArr: MAM freeleech filler torrents sit in their own category.
+            var mam = indexers.FirstOrDefault(d => d.Enable && d.Settings is MyAnonaMouseSettings);
+            var filler = AddFillerRows(clientRows, mam);
+
             var grabs = LoadGrabs(clientRows.Select(r => r.Torrent.DownloadId), now - MissingLookback);
             var rows = new List<TalearrSeedingTorrent>();
 
@@ -114,8 +122,10 @@ namespace NzbDrone.Core.Talearr.Seeding
                     continue;
                 }
 
-                var indexer = ResolveIndexer(indexers, grab?.IndexerName);
+                var isFiller = grab == null && filler.Contains(torrent.DownloadId);
+                var indexer = isFiller ? ResolveIndexer(indexers, mam?.Name ?? "MyAnonaMouse") : ResolveIndexer(indexers, grab?.IndexerName);
                 var row = TalearrSeedingRules.BuildRow(torrent, client.Definition.Name, grab, indexer);
+                row.IsFiller = isFiller;
 
                 string trackerError = null;
                 if (client is ITalearrSeedingSource source && TalearrSeedingRules.NeedsTrackerCheck(row))
@@ -159,15 +169,83 @@ namespace NzbDrone.Core.Talearr.Seeding
                 .ThenByDescending(r => r.AddedAt ?? DateTime.MinValue)
                 .ToList();
 
-            var mam = indexers.FirstOrDefault(d => d.Enable && d.Settings is MyAnonaMouseSettings);
+            var mamStatus = TalearrSeedingRules.BuildMamStatus(mam?.Settings as MyAnonaMouseSettings);
+            TalearrMamPowerUserProgress.Apply(mamStatus, mam?.Settings as MyAnonaMouseSettings, now);
 
             return new TalearrSeedingReport
             {
                 GeneratedAt = now,
                 Torrents = rows,
                 Summary = TalearrSeedingRules.Summarize(rows),
-                Mam = WithBonusPurchases(TalearrSeedingRules.BuildMamStatus(mam?.Settings as MyAnonaMouseSettings), mam)
+                Mam = WithBonusPurchases(mamStatus, mam),
+                Filler = LoadFillerStatus()
             };
+        }
+
+        // TaleArr: reads the filler category from each client that supports it and returns the
+        // download ids the filler added (tracked in talearr.db or in the filler category).
+        private HashSet<string> AddFillerRows(List<(TalearrSeedingClientTorrent Torrent, IDownloadClient Client)> clientRows, IndexerDefinition mam)
+        {
+            var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (_fillerStore == null || mam?.Settings is not MyAnonaMouseSettings settings)
+            {
+                return ids;
+            }
+
+            List<TalearrFillerTorrent> tracked;
+            try
+            {
+                tracked = _fillerStore.All();
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Seeding report: unable to read filler torrents");
+                tracked = new List<TalearrFillerTorrent>();
+            }
+
+            if (!settings.FillerEnabled && tracked.Count == 0)
+            {
+                return ids;
+            }
+
+            ids.UnionWith(tracked.Where(t => t.ClientHash.IsNotNullOrWhiteSpace()).Select(t => t.ClientHash));
+
+            var present = new HashSet<string>(clientRows.Select(r => $"{r.Client.Definition.Name}|{r.Torrent.DownloadId}"), StringComparer.OrdinalIgnoreCase);
+
+            foreach (var client in _downloadClientProvider.GetDownloadClients().OfType<ITalearrMamFillerClient>().ToList())
+            {
+                var downloadClient = (IDownloadClient)client;
+                try
+                {
+                    foreach (var torrent in client.GetCategoryTorrents(settings.FillerCategory))
+                    {
+                        ids.Add(torrent.DownloadId);
+                        if (present.Add($"{downloadClient.Definition.Name}|{torrent.DownloadId}"))
+                        {
+                            clientRows.Add((torrent, downloadClient));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Seeding report: unable to read filler torrents from {0}", downloadClient.Definition.Name);
+                }
+            }
+
+            return ids;
+        }
+
+        private TalearrMamFillerStatus LoadFillerStatus()
+        {
+            try
+            {
+                return _fillerStore?.GetStatus();
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Seeding report: unable to read the filler status");
+                return null;
+            }
         }
 
         // TaleArr: the last bonus auto-spend attempts for the MAM summary ("Recent bonus purchases").

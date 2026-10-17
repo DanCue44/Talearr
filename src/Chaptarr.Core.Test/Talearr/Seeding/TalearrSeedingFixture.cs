@@ -405,7 +405,7 @@ namespace Chaptarr.Core.Test.Talearr.Seeding
             using var doc = JsonDocument.Parse(STJson.ToJson(report));
             var root = doc.RootElement;
 
-            Assert.That(root.EnumerateObject().Select(p => p.Name), Is.EqualTo(new[] { "generatedAt", "torrents", "summary", "mam" }));
+            Assert.That(root.EnumerateObject().Select(p => p.Name), Is.EqualTo(new[] { "generatedAt", "torrents", "summary", "mam", "filler" }));
             Assert.That(root.GetProperty("generatedAt").GetString(), Is.EqualTo("2026-10-17T20:00:00Z"));
             Assert.That(root.GetProperty("mam").ValueKind, Is.EqualTo(JsonValueKind.Null));
             Assert.That(root.GetProperty("summary").EnumerateObject().Select(p => p.Name), Is.EqualTo(new[] { "total", "seeding", "atRisk", "privateUnsatisfied" }));
@@ -416,7 +416,7 @@ namespace Chaptarr.Core.Test.Talearr.Seeding
                 "downloadId", "title", "bookId", "bookTitle", "authorName", "mediaType", "indexer",
                 "isPrivateTracker", "downloadClient", "state", "size", "uploaded", "ratio", "seedingSeconds",
                 "requiredSeedingSeconds", "seedGoalSeconds", "requirementMet", "atRisk", "riskReason",
-                "addedAt", "completedAt"
+                "addedAt", "completedAt", "isFiller"
             }));
             Assert.That(torrent.GetProperty("bookId").ValueKind, Is.EqualTo(JsonValueKind.Null));
             Assert.That(torrent.GetProperty("riskReason").ValueKind, Is.EqualTo(JsonValueKind.Null));
@@ -427,7 +427,8 @@ namespace Chaptarr.Core.Test.Talearr.Seeding
             Assert.That(withMam.RootElement.GetProperty("mam").EnumerateObject().Select(p => p.Name), Is.EquivalentTo(new[]
             {
                 "userClass", "isVip", "unsatisfied", "unsatisfiedLimit", "wedges", "bonusPoints", "checkedAt",
-                "vipUntil", "ratio", "restricted", "bonusAutoSpend", "bonusDryRun", "bonusPurchases"
+                "vipUntil", "ratio", "restricted", "bonusAutoSpend", "bonusDryRun", "bonusPurchases",
+                "memberSince", "uploadedBytes", "downloadedBytes", "daysUntilEligible", "uploadedRemainingBytes", "ratioOk"
             }));
         }
     }

@@ -31,6 +31,7 @@ namespace NzbDrone.Core.Download
         private readonly IEventAggregator _eventAggregator;
         private readonly ISeedConfigProvider _seedConfigProvider;
         private readonly IMamUnsatisfiedSlotGuard _mamUnsatisfiedSlotGuard;
+        private readonly IMyAnonaMouseStandingGuard _mamStandingGuard;
         private readonly Logger _logger;
 
         public DownloadService(IProvideDownloadClient downloadClientProvider,
@@ -41,7 +42,8 @@ namespace NzbDrone.Core.Download
                                IEventAggregator eventAggregator,
                                ISeedConfigProvider seedConfigProvider,
                                IMamUnsatisfiedSlotGuard mamUnsatisfiedSlotGuard,
-                               Logger logger)
+                               Logger logger,
+                               IMyAnonaMouseStandingGuard mamStandingGuard = null)
         {
             _downloadClientProvider = downloadClientProvider;
             _downloadClientStatusService = downloadClientStatusService;
@@ -51,6 +53,7 @@ namespace NzbDrone.Core.Download
             _eventAggregator = eventAggregator;
             _seedConfigProvider = seedConfigProvider;
             _mamUnsatisfiedSlotGuard = mamUnsatisfiedSlotGuard;
+            _mamStandingGuard = mamStandingGuard;
             _logger = logger;
         }
 
@@ -95,6 +98,13 @@ namespace NzbDrone.Core.Download
             if (remoteBook.Release.IndexerId > 0)
             {
                 indexer = _indexerFactory.GetInstance(_indexerFactory.Get(remoteBook.Release.IndexerId));
+            }
+
+            // TaleArr: MAM seed-only and ratio guard, before a slot is reserved.
+            var mamStanding = _mamStandingGuard?.GetRejection(remoteBook);
+            if (mamStanding != null)
+            {
+                throw new MamAccountStandingException(mamStanding);
             }
 
             var mamAvailability = _mamUnsatisfiedSlotGuard.TryReserve(remoteBook);

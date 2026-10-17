@@ -214,6 +214,32 @@ CREATE TABLE IF NOT EXISTS MamBonusPurchases (
 );
 
 CREATE INDEX IF NOT EXISTS IX_MamBonusPurchases_Indexer ON MamBonusPurchases (IndexerId, AttemptedAt);
+",
+
+            // 8: MAM freeleech seeding filler (Talearr/MamFiller/TalearrMamFillerStore). Torrents the
+            // filler sent to the client, keyed by MAM torrent id (dedupe), plus its run state
+            // (last run, back-off, preview). Losing it only means the filler may skip its
+            // interval once and forgets which client torrents it added.
+            @"
+CREATE TABLE IF NOT EXISTS TalearrFillerTorrents (
+    TorrentId      TEXT NOT NULL PRIMARY KEY,
+    Title          TEXT,
+    Size           INTEGER NOT NULL DEFAULT 0,
+    IsAudiobook    INTEGER NOT NULL DEFAULT 0,
+    AddedAt        TEXT NOT NULL,
+    ClientHash     TEXT,
+    DownloadClient TEXT,
+    Category       TEXT,
+    State          TEXT NOT NULL,
+    UpdatedAt      TEXT
+);
+
+CREATE INDEX IF NOT EXISTS IX_TalearrFillerTorrents_ClientHash ON TalearrFillerTorrents (ClientHash);
+
+CREATE TABLE IF NOT EXISTS TalearrFillerState (
+    Key   TEXT NOT NULL PRIMARY KEY,
+    Value TEXT
+);
 "
         };
 

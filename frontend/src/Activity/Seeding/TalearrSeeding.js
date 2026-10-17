@@ -247,6 +247,100 @@ class TalearrSeeding extends Component {
         }
 
         {this.renderBonusPurchases(mam)}
+
+        {this.renderPowerUser(mam)}
+      </div>
+    );
+  }
+
+  // TaleArr: MAM promotes to Power User after 4 weeks, over 25 GiB uploaded and ratio 2.0.
+  renderPowerUser(mam) {
+    const known = mam.daysUntilEligible != null || mam.uploadedRemainingBytes != null || mam.ratioOk != null;
+
+    if (!known || (mam.userClass && (/power user|vip|elite|star|staff|mod/i).test(mam.userClass))) {
+      return null;
+    }
+
+    let membership = 'Join date unknown';
+
+    if (mam.daysUntilEligible != null) {
+      membership = mam.daysUntilEligible === 0 ?
+        'Member 4 weeks: done' :
+        `Member 4 weeks: ${mam.daysUntilEligible} day${mam.daysUntilEligible === 1 ? '' : 's'} to go`;
+    }
+
+    let upload = 'Uploaded over 25 GiB: unknown';
+
+    if (mam.uploadedRemainingBytes != null) {
+      upload = mam.uploadedRemainingBytes === 0 ?
+        'Uploaded over 25 GiB: done' :
+        `Uploaded over 25 GiB: ${formatBytes(mam.uploadedRemainingBytes)} to go`;
+    }
+
+    let ratio = 'Ratio 2.0: unknown';
+
+    if (mam.ratioOk != null) {
+      ratio = mam.ratioOk ? 'Ratio 2.0: ok' : `Ratio 2.0: not yet${mam.ratio == null ? '' : ` (${mam.ratio.toFixed(2)})`}`;
+    }
+
+    return (
+      <div className={styles.bonus} title="MAM promotes to Power User automatically within 15 minutes of meeting all three; below ratio 2.0 it demotes again">
+        <div className={styles.bonusTitle}>{'Power User progress'}</div>
+        <ul className={styles.bonusList}>
+          <li>{membership}</li>
+          <li>{upload}</li>
+          <li>{ratio}</li>
+        </ul>
+      </div>
+    );
+  }
+
+  // TaleArr: the freeleech seeding filler's last run and what it would grab (or grabbed).
+  renderFiller(filler) {
+    if (!filler || (!filler.enabled && !(filler.preview || []).length)) {
+      return null;
+    }
+
+    const preview = filler.preview || [];
+    const lastRun = filler.lastRunAt ? new Date(filler.lastRunAt).toLocaleString() : 'not yet';
+
+    return (
+      <div className={styles.bonus}>
+        <div className={styles.bonusTitle}>
+          {'Filler preview'}
+          {filler.dryRun ? <Label kind={kinds.INFO} size={sizes.SMALL}>{'Dry run'}</Label> : null}
+        </div>
+
+        <div className={styles.bonusReason}>
+          {`Last run ${lastRun}: ${filler.lastResult || '-'}`}
+          {filler.target == null ? '' : ` Target ${filler.target}, free ${filler.freeSlots}, seeding ${filler.tracked}.`}
+        </div>
+
+        {
+          preview.length ?
+            <ul className={styles.bonusList}>
+              {
+                preview.map((p) => {
+                  let status = filler.previewIsDryRun ? 'Would grab' : 'Skipped';
+                  let kind = kinds.DEFAULT;
+
+                  if (p.grabbed) {
+                    status = 'Grabbed';
+                    kind = kinds.SUCCESS;
+                  }
+
+                  return (
+                    <li key={p.torrentId}>
+                      <Label kind={kind} size={sizes.SMALL}>{status}</Label>
+                      {` ${p.title} (${p.isAudiobook ? 'audiobook' : 'ebook'}, ${formatBytes(p.size)}, `}
+                      {`${p.leechers} leechers, ${p.seeders} seeders)`}
+                    </li>
+                  );
+                })
+              }
+            </ul> :
+            null
+        }
       </div>
     );
   }
@@ -314,6 +408,13 @@ class TalearrSeeding extends Component {
         <TableRowCell>
           {torrent.indexer || '-'}
           {torrent.isPrivateTracker ? <Label kind={kinds.INVERSE} size={sizes.SMALL}>{'Private'}</Label> : null}
+          {
+            torrent.isFiller ?
+              <span title="Added by the MAM freeleech seeding filler">
+                <Label kind={kinds.INFO} size={sizes.SMALL}>{'Filler'}</Label>
+              </span> :
+              null
+          }
         </TableRowCell>
         <TableRowCell>
           <Label kind={stateKinds[torrent.state] || kinds.DEFAULT} title={torrent.downloadClient || undefined}>
@@ -362,6 +463,8 @@ class TalearrSeeding extends Component {
           </div>
 
           {report ? this.renderMam(report.mam) : null}
+
+          {report ? this.renderFiller(report.filler) : null}
 
           {error ? <Alert kind={kinds.DANGER}>{error}</Alert> : null}
 

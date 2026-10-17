@@ -365,6 +365,56 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
   never send the `gift` or `sendWedge` spend types (MAM
   forbids automating them; the code has no way to build them) or touch the Millionaire's
   Vault. Cheese purchases are not in the API.
+- **Seed-only and ratio guard** (always on). A new account starts with 0 upload, so a few
+  normal grabs can push the ratio under 1.0, and MAM then demotes it to Mouse and makes it seed
+  only. TaleArr blocks every MAM grab (freeleech too, native and Prowlarr MAM results) while the
+  account is Mouse or reports a seed-only / download-disabled flag, with the System > Status
+  error "MAM account is seed-only: buy upload credit in the Bonus Points Store". A
+  non-freeleech grab only goes ahead when uploaded / (downloaded + release size) stays at or
+  above **Minimum Ratio After Grab** (2.0, the Power User line; Advanced). Freeleech, personal
+  freeleech, VIP freeleech for VIP members, and grabs that will request a wedge while wedges
+  are left are exempt. With no account status, or one older than 3 hours, only freeleech MAM
+  releases are grabbed. The check runs in the decision engine and again at grab time.
+- **Account refresh by hand.** Running **Refresh My Anona Mouse Account Status** in System >
+  Tasks always calls MAM now (it used to share the one-hour throttle of the health-cycle
+  refresh, so a manual run right after another refresh did nothing and a class change stayed
+  stale for up to an hour).
+- **Freeleech seeding filler** (off; indexer settings, section Freeleech Seeding Filler). MAM
+  counts a torrent as satisfied after 72 hours of seeding, and only satisfied torrents earn
+  bonus points. The filler uses free unsatisfied slots for popular freeleech torrents so more
+  torrents reach that point sooner. The **MAM Freeleech Filler** task (System > Tasks, can be
+  run by hand) checks hourly and runs every **Filler Run Interval** (6 hours):
+  1. Uses the stored account status (refreshed through `jsonLoad.php` when over an hour old).
+     It stops when the status is unknown or older than 3 hours, when the account is seed only,
+     when any MAM torrent on Activity > Seeding is at risk, and for 12 hours after any MAM
+     error.
+  2. Free slots = unsatisfied limit - **Filler Slot Margin** (2) - unsatisfied - pending slot
+     reservations, at most **Filler Max Grabs Per Run** (5). The unsatisfied-slot protection
+     still applies: every grab reserves a slot through it, so its Safety Reserve and User
+     Buffer win when they are stricter.
+  3. Searches MAM's JSON search for freeleech (`searchType=fl`) English audiobooks and ebooks
+     (up to 3 pages of 100), then keeps only torrents MAM itself flags as freeleech or
+     personal freeleech (never VIP-only torrents unless the account is VIP), up to **Filler
+     Max Size** (2048 MB), with at least **Filler Min Leechers** (1) and at most **Filler Max
+     Seeders** (30), and not grabbed before (by MAM torrent id), reserved, or already in the
+     client. Ranking: audiobooks first (**Filler Prefer Audiobooks**, on), then most leechers,
+     fewest seeders, smallest.
+  4. **Filler Dry Run** (on) only logs the picks and shows them on Activity > Seeding under
+     **Filler preview**. With it off, each pick is downloaded with `download.php` (never the
+     `fl` wedge parameter) and added straight to qBittorrent in **Filler Category**
+     (`mam-seed`) with a per-torrent seeding time of **Filler Seed Time** (30 days). No grab
+     history, queue entry or import is created; **Filler Import Into Library** (off) puts them
+     in the client's normal TaleArr category instead. **Filler Remove After Seed Time** (on)
+     removes them with their files once they have seeded that long (never under 72 hours).
+
+  Filler torrents show on Activity > Seeding with indexer MyAnonamouse, a **Filler** label
+  and the 72-hour requirement, so the hit-and-run risk check covers them. MAM policy: the
+  filler only uses MAM's allowed automation endpoints (Torrent Search JSON, Download Torrent,
+  Load User Data), through the indexer's proxy and session handling, and never spends wedges
+  or bonus points.
+- **Power User progress.** Activity > Seeding shows how far the account is from MAM's
+  automatic Power User promotion (member for 4 weeks, over 25 GiB uploaded, ratio 2.0) when
+  the account refresh reports the join date and upload totals. Unknown values stay blank.
 - **Seeding status.** Activity > Seeding lists what the torrent clients seed in TaleArr's
   categories (post-import categories included): book, format, indexer, state, seeded time
   against the requirement (72 hours for MAM; the indexer Seed Time is the goal), upload and
@@ -379,7 +429,12 @@ Storage: new keys in the indexer's own settings JSON (stock Chaptarr ignores the
 task rows that Chaptarr drops on start, and the `MamBonusPurchases` table in `talearr.db`
 (schema 7; losing it only resets the daily cap and back-off). API: the
 `GET /api/v1/talearr/seeding` `mam` block gains `vipUntil`, `ratio`, `restricted`,
-`bonusAutoSpend`, `bonusDryRun` and `bonusPurchases`.
+`bonusAutoSpend`, `bonusDryRun` and `bonusPurchases`. The filler adds the
+`TalearrFillerTorrents` and `TalearrFillerState` tables (schema 8; losing them only forgets
+which client torrents the filler added and its last run), and the seeding API gains
+`isFiller` per torrent, a `filler` block (last run, result, back-off, preview) and, in `mam`,
+`memberSince`, `uploadedBytes`, `downloadedBytes`, `daysUntilEligible`,
+`uploadedRemainingBytes` and `ratioOk`.
 
 ## Drop-in compatibility with Chaptarr
 

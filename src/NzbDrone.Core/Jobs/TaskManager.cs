@@ -163,6 +163,15 @@ namespace NzbDrone.Core.Jobs
                         Priority = CommandPriority.Low
                     },
 
+                    // TaleArr: MAM freeleech seeding filler. Checks hourly; the service applies the
+                    // indexer's own run interval and does nothing unless the filler is on.
+                    new ScheduledTask
+                    {
+                        Interval = 60,
+                        TypeName = typeof(NzbDrone.Core.Talearr.MamFiller.MamFreeleechFillerCommand).FullName,
+                        Priority = CommandPriority.Low
+                    },
+
                     new ScheduledTask
                     {
                         Interval = 24 * 60,

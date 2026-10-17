@@ -31,6 +31,20 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             RuleFor(c => c.BonusMinimumRatio).GreaterThan(0).LessThanOrEqualTo(100);
             RuleFor(c => c.BonusUploadGiB).InclusiveBetween(MyAnonaMouseBonusSpendRules.MinimumUploadGiB, 10000);
             RuleFor(c => c.BonusDailyPurchaseCap).InclusiveBetween(1, 10);
+
+            // TaleArr: ratio guard and freeleech seeding filler.
+            RuleFor(c => c.MinimumRatioAfterGrab).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.FillerSlotMargin).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.FillerMaxGrabsPerRun).InclusiveBetween(1, 20);
+            RuleFor(c => c.FillerIntervalHours).InclusiveBetween(1, 168);
+            RuleFor(c => c.FillerMaxSizeMb).GreaterThan(0);
+            RuleFor(c => c.FillerMinLeechers).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.FillerMaxSeeders).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.FillerSeedDays).InclusiveBetween(3, 365);
+            RuleFor(c => c.FillerCategory)
+                .NotEmpty()
+                .Matches(@"^([^\\\/](\/?[^\\\/])*)?$")
+                .When(c => c.FillerEnabled && !c.FillerImport);
         }
     }
 
@@ -249,6 +263,54 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         {
             return new NzbDroneValidationResult(Validator.Validate(this));
         }
+
+        // TaleArr: account join date for the Power User progress card (Activity > Seeding). Null
+        // when MAM did not send one. Not user-editable.
+        public DateTime? MemberSinceUtc { get; set; }
+
+        // TaleArr: field orders start at 39, after the bonus auto-spend settings (21 to 30).
+        [FieldDefinition(39, Type = FieldType.Number, Label = "Minimum Ratio After Grab", HelpText = "A non-freeleech MAM grab only goes ahead when your share ratio after it (uploaded / (downloaded + release size)) stays at or above this. Freeleech and wedged grabs are exempt. A seed-only (Mouse) account gets no MAM grabs at all.", Advanced = true)]
+        public double MinimumRatioAfterGrab { get; set; } = MyAnonaMouseAccountStanding.DefaultMinimumRatioAfterGrab;
+
+        // TaleArr: freeleech seeding filler (Talearr/MamFiller). Off by default.
+        [FieldDefinition(40, Type = FieldType.Checkbox, Label = "Freeleech Seeding Filler", Section = "Freeleech Seeding Filler", HelpText = "Fill free unsatisfied-torrent slots with popular freeleech MAM torrents so more torrents reach the 72-hour seeding requirement and earn bonus points. Uses only MAM's JSON search and download.php, never wedges or bonus points. They go to the torrent client in their own category and are not imported.")]
+        public bool FillerEnabled { get; set; }
+
+        [FieldDefinition(41, Type = FieldType.Checkbox, Label = "Filler Dry Run", Section = "Freeleech Seeding Filler", HelpText = "Only log and show what the filler would grab (Activity > Seeding, Filler preview). Turn off to let it grab.")]
+        public bool FillerDryRun { get; set; } = true;
+
+        [FieldDefinition(42, Type = FieldType.Number, Label = "Filler Slot Margin", Unit = "slots", Section = "Freeleech Seeding Filler", HelpText = "The filler fills up to your unsatisfied limit minus this margin. Safety Reserve and User Buffer still apply.", Advanced = true)]
+        public int FillerSlotMargin { get; set; } = 2;
+
+        [FieldDefinition(43, Type = FieldType.Number, Label = "Filler Max Grabs Per Run", Section = "Freeleech Seeding Filler", Advanced = true)]
+        public int FillerMaxGrabsPerRun { get; set; } = 5;
+
+        [FieldDefinition(44, Type = FieldType.Number, Label = "Filler Run Interval", Unit = "hours", Section = "Freeleech Seeding Filler", HelpText = "How often the filler runs (System > Tasks, MAM Freeleech Filler, can also be run by hand).", Advanced = true)]
+        public int FillerIntervalHours { get; set; } = 6;
+
+        [FieldDefinition(45, Type = FieldType.Checkbox, Label = "Filler Prefer Audiobooks", Section = "Freeleech Seeding Filler", Advanced = true)]
+        public bool FillerPreferAudiobooks { get; set; } = true;
+
+        [FieldDefinition(46, Type = FieldType.Number, Label = "Filler Max Size", Unit = "MB", Section = "Freeleech Seeding Filler", Advanced = true)]
+        public int FillerMaxSizeMb { get; set; } = 2048;
+
+        [FieldDefinition(47, Type = FieldType.Number, Label = "Filler Min Leechers", Section = "Freeleech Seeding Filler", HelpText = "Only torrents with at least this many leechers (someone to upload to).", Advanced = true)]
+        public int FillerMinLeechers { get; set; } = 1;
+
+        [FieldDefinition(48, Type = FieldType.Number, Label = "Filler Max Seeders", Section = "Freeleech Seeding Filler", Advanced = true)]
+        public int FillerMaxSeeders { get; set; } = 30;
+
+        [FieldDefinition(49, Type = FieldType.Textbox, Label = "Filler Category", Section = "Freeleech Seeding Filler", HelpText = "Torrent client category for filler torrents. Keep it different from TaleArr's own categories so they are never imported.", Advanced = true)]
+        public string FillerCategory { get; set; } = "mam-seed";
+
+        [FieldDefinition(50, Type = FieldType.Number, Label = "Filler Seed Time", Unit = "days", Section = "Freeleech Seeding Filler", Advanced = true)]
+        public int FillerSeedDays { get; set; } = 30;
+
+        [FieldDefinition(51, Type = FieldType.Checkbox, Label = "Filler Remove After Seed Time", Section = "Freeleech Seeding Filler", HelpText = "Remove filler torrents and their files from the client once they have seeded for the seed time (never before 72 hours).", Advanced = true)]
+        public bool FillerRemoveAfterSeed { get; set; } = true;
+
+        [FieldDefinition(52, Type = FieldType.Checkbox, Label = "Filler Import Into Library", Section = "Freeleech Seeding Filler", HelpText = "Put filler torrents in the client's normal TaleArr category so completed download handling may import them. Off keeps them seed-only.", Advanced = true)]
+        public bool FillerImport { get; set; }
     }
 
     public enum MyAnonaMouseFreeleechWedgeAction
