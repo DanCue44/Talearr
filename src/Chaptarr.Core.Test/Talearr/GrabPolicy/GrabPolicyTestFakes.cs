@@ -144,6 +144,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
     internal class FailedDownloadServiceRecorder : IFailedDownloadService
     {
         public List<(TrackedDownload TrackedDownload, string Reason)> Failed { get; } = new();
+        public List<bool> SkipRedownload { get; } = new();
 
         public void MarkAsFailed(int historyId, bool skipRedownload = false)
         {
@@ -158,6 +159,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
         public void MarkAsFailed(TrackedDownload trackedDownload, string reason, bool skipRedownload = false)
         {
             Failed.Add((trackedDownload, reason));
+            SkipRedownload.Add(skipRedownload);
             trackedDownload.State = TrackedDownloadState.DownloadFailed;
         }
 

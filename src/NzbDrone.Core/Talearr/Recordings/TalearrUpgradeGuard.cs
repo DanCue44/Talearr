@@ -48,6 +48,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly ITalearrRecordingsSettingsService _settingsService;
         private readonly ITalearrQualityLadderSettingsService _ladderSettings; // TaleArr
+        private readonly ITalearrUpgradeCooldown _upgradeCooldown; // TaleArr
         private readonly Logger _logger;
 
         public TalearrUpgradeGuard(IMediaInfoExtractor mediaInfoExtractor,
@@ -58,9 +59,11 @@ namespace NzbDrone.Core.Talearr.Recordings
                                    ICustomFormatCalculationService formatCalculator,
                                    ITalearrRecordingsSettingsService settingsService,
                                    Logger logger,
-                                   ITalearrQualityLadderSettingsService ladderSettings = null)
+                                   ITalearrQualityLadderSettingsService ladderSettings = null,
+                                   ITalearrUpgradeCooldown upgradeCooldown = null)
         {
             _ladderSettings = ladderSettings;
+            _upgradeCooldown = upgradeCooldown;
             _mediaInfoExtractor = mediaInfoExtractor;
             _abridgedResolver = abridgedResolver;
             _recordingsService = recordingsService;
@@ -107,6 +110,14 @@ namespace NzbDrone.Core.Talearr.Recordings
                 var verdict = TalearrUpgradeRules.Decide(oldFacts, newFacts, comparison, settings, TalearrQualityLadderSettingsService.Resolve(_ladderSettings).AudioUpgrades);
 
                 _logger.Debug("TaleArr: upgrade guard for '{0}' (book {1}): {2} ({3}): {4}", book.Title, book.Id, verdict.Kind, verdict.Rule, verdict.Reason);
+
+                // A rejected upgrade download: blocklist it and pause upgrades for the book, so the
+                // next search does not grab the same estimate-only "upgrade" again.
+                if (verdict.Kind == UpgradeVerdictKind.Reject && downloadClientItem != null)
+                {
+                    _upgradeCooldown?.RecordRejectedUpgrade(book, verdict.Reason, downloadClientItem);
+                }
+
                 return verdict;
             }
             catch (Exception ex)

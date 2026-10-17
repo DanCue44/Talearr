@@ -49,7 +49,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 return;
             }
 
-            if (IsUserGrab(trackedDownload))
+            if (IsUserGrab(trackedDownload, _historyService, _logger))
             {
                 _logger.Debug("Import of {0} was rejected but it was an explicit user grab; leaving it in the queue", trackedDownload.DownloadItem.Title);
                 return;
@@ -74,7 +74,8 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             }
         }
 
-        private bool IsUserGrab(TrackedDownload trackedDownload)
+        // Also used by TalearrUpgradeCooldownService.
+        internal static bool IsUserGrab(TrackedDownload trackedDownload, IHistoryService historyService, Logger logger)
         {
             if (trackedDownload.DownloadItem.DownloadForced)
             {
@@ -83,7 +84,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
 
             try
             {
-                var grab = _historyService
+                var grab = historyService
                     .Find(trackedDownload.DownloadItem.DownloadId, EntityHistoryEventType.Grabbed)
                     .OrderByDescending(h => h.Date)
                     .FirstOrDefault();
@@ -96,7 +97,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read grab history for {0}", trackedDownload.DownloadItem.Title);
+                logger.Debug(ex, "Unable to read grab history for {0}", trackedDownload.DownloadItem.Title);
                 return true;
             }
         }

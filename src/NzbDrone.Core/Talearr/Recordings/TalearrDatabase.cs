@@ -165,6 +165,20 @@ CREATE TABLE IF NOT EXISTS MergeRedirects (
 );
 
 CREATE INDEX IF NOT EXISTS IX_MergeRedirects_Target ON MergeRedirects (EntityType, TargetId);
+",
+
+            // 5: upgrade cooldowns (Talearr/QualityLadder/TalearrUpgradeCooldown). A book whose
+            // upgrade download was rejected at import by the upgrade guard is not upgraded again
+            // automatically until Until. Losing a row only ends that pause early.
+            @"
+CREATE TABLE IF NOT EXISTS UpgradeCooldowns (
+    BookId       INTEGER NOT NULL PRIMARY KEY,
+    Until        TEXT NOT NULL,
+    Reason       TEXT,
+    DownloadId   TEXT,
+    ReleaseTitle TEXT,
+    CreatedAt    TEXT NOT NULL
+);
 "
         };
 

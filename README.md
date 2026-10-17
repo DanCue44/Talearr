@@ -114,6 +114,11 @@ See [docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md).
 - **Upgrade guard.** An audiobook upgrade only replaces files of the same recording, never with
   fewer channels or a lower measured bitrate, and bitrate gains count only within one codec. An
   unabridged download for abridged files becomes its own recording (Keep both recordings).
+  When the guard rejects an upgrade download (the size estimate looked better, the real files
+  were not), the download is failed without a new search, which blocklists that release, and
+  automatic searches do not grab upgrades for that book for 7 days (an "Upgrade paused" soft
+  filter; interactive search can still grab). Explicit user grabs stay in the queue. The pause
+  is kept in `talearr.db`.
 - **Per-book abridged policy.** A book can have its own Abridged audiobooks value (unabridged
   only, abridged only, prefer unabridged, any), set by AllSeerr through
   `GET|PUT /api/v1/talearr/grabpolicy/book/{bookId}`. An abridged only book without files

@@ -22,6 +22,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
         private RecordingsWorld _world;
         private Dictionary<string, MediaInfoModel> _media;
         private TalearrUpgradeGuard _guard;
+        private IMediaInfoExtractor _extractor;
         private string _downloads;
 
         [SetUp]
@@ -32,6 +33,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             var (extractor, fake) = InterfaceFake<IMediaInfoExtractor>.Create();
             fake.On(nameof(IMediaInfoExtractor.ExtractMediaInfo), args => _media.TryGetValue((string)args[0], out var info) ? info : new MediaInfoModel());
 
+            _extractor = extractor;
             _guard = new TalearrUpgradeGuard(extractor, _world.Resolver, _world.Recordings, _world.BookService, _world.EditionService, null, _world.Settings, LogManager.GetCurrentClassLogger());
 
             _downloads = Path.Combine(_world.Folder.Folder, "downloads");
@@ -133,6 +135,39 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
 
             Assert.That(verdict.Kind, Is.EqualTo(UpgradeVerdictKind.Reject));
             Assert.That(verdict.Rule, Is.EqualTo(TalearrUpgradeRules.RuleNeverWorse));
+        }
+
+        private sealed class RecordingCooldown : NzbDrone.Core.Talearr.QualityLadder.ITalearrUpgradeCooldown
+        {
+            public List<(int BookId, string Reason, string DownloadId)> Recorded { get; } = new();
+
+            public void RecordRejectedUpgrade(Book book, string reason, DownloadClientItem downloadClientItem)
+            {
+                Recorded.Add((book.Id, reason, downloadClientItem.DownloadId));
+            }
+
+            public NzbDrone.Core.Talearr.QualityLadder.TalearrUpgradeCooldownEntry GetActive(int bookId) => null;
+        }
+
+        [Test]
+        public void a_rejected_upgrade_download_is_reported_for_the_cooldown()
+        {
+            var cooldown = new RecordingCooldown();
+            var guard = new TalearrUpgradeGuard(_extractor, _world.Resolver, _world.Recordings, _world.BookService, _world.EditionService, null, _world.Settings, LogManager.GetCurrentClassLogger(), upgradeCooldown: cooldown);
+            var (book, files) = AbridgedFirm();
+
+            var worse = Download("The Firm Abridged 32k", "The Firm.m4b", 360, 32);
+            var verdict = guard.Evaluate(book, null, files, new[] { worse }, new DownloadClientItem { DownloadId = "dl-1", Title = "The Firm Abridged 32k" }, null);
+
+            var better = Download("The Firm Abridged 128k", "The Firm 2.m4b", 361, 128);
+            guard.Evaluate(book, null, files, new[] { better }, new DownloadClientItem { DownloadId = "dl-2", Title = "The Firm Abridged 128k" }, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(verdict.Kind, Is.EqualTo(UpgradeVerdictKind.Reject));
+                Assert.That(cooldown.Recorded.Select(r => r.DownloadId), Is.EqualTo(new[] { "dl-1" }), "only the rejected download");
+                Assert.That(cooldown.Recorded[0].BookId, Is.EqualTo(book.Id));
+            });
         }
 
         [Test]
