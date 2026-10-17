@@ -77,7 +77,7 @@ function TalearrGrabPolicy(props) {
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="allowBundles"
-                helpText="Grab series bundles, omnibuses, box sets and collections when searching for a single book. Off by default."
+                helpText="Treat series bundles, omnibuses, box sets and collections like any other release. Off by default: bundles are used only when no single copy is available, and only the requested book (plus books on your wanted list) is kept."
                 onChange={onInputChange}
                 {...settings.allowBundles}
               />

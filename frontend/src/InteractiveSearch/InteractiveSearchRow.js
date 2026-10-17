@@ -161,6 +161,15 @@ function renderNarratorDisplay(narrator) {
   );
 }
 
+// TaleArr: bundles are kept visible and marked; automatic grabs use them only as a last resort.
+function getBundleTooltip(isBundleFallback, bundleContents) {
+  const text = isBundleFallback ?
+    'Last resort: only the requested book is kept; other books are removed unless they are on your wanted list' :
+    'Contains several books: only the requested book is kept; other books are removed unless they are on your wanted list';
+
+  return bundleContents ? `${text} (${bundleContents})` : text;
+}
+
 class InteractiveSearchRow extends Component {
 
   //
@@ -244,6 +253,9 @@ class InteractiveSearchRow extends Component {
       customFormats,
       indexerFlags = 0,
       isGraphicAudio,
+      isBundle,
+      isBundleFallback,
+      bundleContents,
       authorId,
       bookId,
       rejections,
@@ -303,6 +315,14 @@ class InteractiveSearchRow extends Component {
             </div>
             {isPreferredChoice ? (
               <span className={styles.preferredBadge}>{translate('Preferred')}</span>
+            ) : null}
+            {isBundle ? (
+              <Label
+                kind={kinds.WARNING}
+                title={getBundleTooltip(isBundleFallback, bundleContents)}
+              >
+                {'Bundle'}
+              </Label>
             ) : null}
           </div>
         </TableRowCell>
@@ -468,6 +488,9 @@ InteractiveSearchRow.propTypes = {
   customFormatScore: PropTypes.number.isRequired,
   indexerFlags: PropTypes.number.isRequired,
   isGraphicAudio: PropTypes.bool,
+  isBundle: PropTypes.bool,
+  isBundleFallback: PropTypes.bool,
+  bundleContents: PropTypes.string,
   authorId: PropTypes.number,
   bookId: PropTypes.number,
   rejections: PropTypes.arrayOf(PropTypes.string).isRequired,
@@ -493,7 +516,10 @@ InteractiveSearchRow.defaultProps = {
   isPreferredChoice: false,
   duration: null,
   narrator: null,
-  isGraphicAudio: false
+  isGraphicAudio: false,
+  isBundle: false,
+  isBundleFallback: false,
+  bundleContents: null
 };
 
 export default InteractiveSearchRow;
