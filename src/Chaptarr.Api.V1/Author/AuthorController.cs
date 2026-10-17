@@ -1264,14 +1264,29 @@ namespace Chaptarr.Api.V1.Author
 
         private void LinkNextPreviousBooks(params AuthorResource[] authors)
         {
-            var nextBooks = _bookService.GetNextBooksByAuthorId(authors.Select(x => x.Id));
-            var lastBooks = _bookService.GetLastBooksByAuthorId(authors.Select(x => x.Id));
+            // TaleArr: one lookup per author instead of scanning both lists for every author.
+            var nextBooks = FirstBookByAuthor(_bookService.GetNextBooksByAuthorId(authors.Select(x => x.Id)));
+            var lastBooks = FirstBookByAuthor(_bookService.GetLastBooksByAuthorId(authors.Select(x => x.Id)));
 
             foreach (var authorResource in authors)
             {
-                authorResource.NextBook = ToAuthorIndexBookResource(nextBooks.FirstOrDefault(x => x.AuthorId == authorResource.Id));
-                authorResource.LastBook = ToAuthorIndexBookResource(lastBooks.FirstOrDefault(x => x.AuthorId == authorResource.Id));
+                authorResource.NextBook = ToAuthorIndexBookResource(nextBooks.GetValueOrDefault(authorResource.Id));
+                authorResource.LastBook = ToAuthorIndexBookResource(lastBooks.GetValueOrDefault(authorResource.Id));
             }
+        }
+
+        private static Dictionary<int, Book> FirstBookByAuthor(IEnumerable<Book> books)
+        {
+            var result = new Dictionary<int, Book>();
+            foreach (var book in books ?? Enumerable.Empty<Book>())
+            {
+                if (book != null)
+                {
+                    result.TryAdd(book.AuthorId, book);
+                }
+            }
+
+            return result;
         }
 
         private static BookResource ToAuthorIndexBookResource(Book book)

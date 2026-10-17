@@ -78,13 +78,12 @@ namespace NzbDrone.Core.Books
 	            var links = new List<SeriesBookLink>();
 	            if (isSqlite && bookIdsArray.Length > SqliteVariableLimit.MaxParameters)
 	            {
-	                foreach (var batch in bookIdsArray.Chunk(SqliteVariableLimit.MaxParameters))
-	                {
-	                    links.AddRange(_database.Query<SeriesBookLink>(linksSql, new { BookIds = batch.ToArray() }));
-	                }
-
-	                // Deduplicate in case of repeated ids and to protect against future query changes.
-	                links = links.DistinctBy(l => l.Id).ToList();
+	                // TaleArr: a request this large (the book index asks for every book) is far cheaper
+	                // as one table scan filtered in memory than as dozens of 900-parameter IN queries.
+	                var wanted = bookIdsArray.ToHashSet();
+	                links = _database.Query<SeriesBookLink>(@"SELECT sbl.* FROM ""SeriesBookLink"" sbl")
+	                    .Where(l => wanted.Contains(l.BookId))
+	                    .ToList();
 	            }
 	            else
 	            {
@@ -98,26 +97,25 @@ namespace NzbDrone.Core.Books
 
             // Custom query to avoid loading the Books JSON column which causes serialization errors
             var seriesWhereClause = isPostgres ? @"= ANY(@SeriesIds)" : @"IN @SeriesIds";
-            var seriesSql = $@"SELECT
+            var seriesSelectSql = $@"SELECT
                 s.""Id"" AS ""Id"", s.""Title"" AS ""Title"", s.""TitleSlug"" AS ""TitleSlug"", s.""Description"" AS ""Description"", s.""Numbered"" AS ""Numbered"", s.""WorkCount"" AS ""WorkCount"", s.""PrimaryWorkCount"" AS ""PrimaryWorkCount"",
                 s.""GoodreadsSeriesId"" AS ""GoodreadsSeriesId"", s.""HardcoverSeriesId"" AS ""HardcoverSeriesId"", s.""OpenLibrarySeriesId"" AS ""OpenLibrarySeriesId"", s.""AmazonSeriesAsin"" AS ""AmazonSeriesAsin"", s.""SeriesType"" AS ""SeriesType"",
                 s.""ParentSeriesId"" AS ""ParentSeriesId"", s.""TotalBooks"" AS ""TotalBooks"", s.""PrimaryBooks"" AS ""PrimaryBooks"", s.""Narrator"" AS ""Narrator"", s.""BaseSeriesId"" AS ""BaseSeriesId"",
                 s.""MediaType"" AS ""MediaType"", s.""InstanceNumber"" AS ""InstanceNumber"", s.""PreferredNarratorId"" AS ""PreferredNarratorId"",
                 s.""ProviderUrls"" AS ""ProviderUrls"", s.""LastUpdated"" AS ""LastUpdated"", s.""Links"" AS ""Links""
-	                FROM ""Series"" s
+	                FROM ""Series"" s";
+	            var seriesSql = $@"{seriesSelectSql}
 	                WHERE s.""Id"" {seriesWhereClause}";
 
 	            var seriesIds = links.Select(l => l.SeriesId).Distinct().ToArray();
 	            var seriesById = new Dictionary<int, Series>();
 	            if (isSqlite && seriesIds.Length > SqliteVariableLimit.MaxParameters)
 	            {
-	                foreach (var batch in seriesIds.Chunk(SqliteVariableLimit.MaxParameters))
+	                // TaleArr: same as above, one scan instead of many IN batches.
+	                var wantedSeries = seriesIds.ToHashSet();
+	                foreach (var series in _database.Query<Series>(seriesSelectSql).Where(x => wantedSeries.Contains(x.Id)))
 	                {
-	                    var batchSeries = _database.Query<Series>(seriesSql, new { SeriesIds = batch.ToArray() });
-	                    foreach (var series in batchSeries)
-	                    {
-	                        seriesById.TryAdd(series.Id, series);
-	                    }
+	                    seriesById.TryAdd(series.Id, series);
 	                }
 	            }
 	            else
