@@ -332,6 +332,15 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
   no wedges are left (grabs then download without one). TaleArr never spends bonus points:
   MAM's purchase endpoint is not documented and automating it risks the account, so buying
   wedges stays a manual step on MAM's Bonus page.
+- **Seeding status.** Activity > Seeding lists what the torrent clients seed in TaleArr's
+  categories (post-import categories included): book, format, indexer, state, seeded time
+  against the requirement (72 hours for MAM; the indexer Seed Time is the goal), upload and
+  ratio, plus the stored MAM account status. A private-tracker torrent that has not met its
+  requirement and is paused, queued, errored, has a tracker error, or was removed from the
+  client counts as at risk, and System > Status shows a warning (sent with On Health Issue +
+  Include Health Warnings). qBittorrent reports full details; other clients are best effort.
+  Read-only: nothing is changed in the client and MAM is not called. API:
+  `GET /api/v1/talearr/seeding` (client reads cached for 30 seconds).
 
 Storage: new keys in the indexer's own settings JSON (stock Chaptarr ignores them) and one
 scheduled task row that Chaptarr drops on start.
@@ -370,6 +379,7 @@ type, because stock Chaptarr deletes types it does not know when it starts. Even
 | Manual interaction required | On Import Failure | a blocked import that waits for you; webhook `eventType: ManualInteractionRequired` |
 | Health issue / health restored | On Health Issue, On Health Restored | restored uses the existing `OnHealthRestored` column; webhook `eventType: HealthRestored` |
 | MAM session expired | On Health Issue | the MyAnonamouse session health check (error) |
+| Private torrent at risk of a hit and run | On Health Issue + Include Health Warnings | the seeding risk check (warning); see MyAnonamouse > Seeding status |
 | Metadata fallback active | On Health Issue + Include Health Warnings | TaleArr's notice-level checks go out with warnings |
 | Application update, author/book added and deleted | as upstream | |
 

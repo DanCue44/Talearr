@@ -4,7 +4,8 @@ using Newtonsoft.Json;
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
     // torrent properties from the list returned by /query/torrents
-    public class QBittorrentTorrent
+    // TaleArr: partial, the seeding report part is in QBittorrentTorrent.Talearr.cs.
+    public partial class QBittorrentTorrent
     {
         public string Hash { get; set; } // Torrent hash
 

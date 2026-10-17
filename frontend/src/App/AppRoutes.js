@@ -5,6 +5,7 @@ import BlocklistConnector from 'Activity/Blocklist/BlocklistConnector';
 import HistoryConnector from 'Activity/History/HistoryConnector';
 import IgnoredDownloadsConnector from 'Activity/Ignored/IgnoredDownloadsConnector';
 import QueueConnector from 'Activity/Queue/QueueConnector';
+import TalearrSeeding from 'Activity/Seeding/TalearrSeeding';
 import AuthorDetailsPageConnector from 'Author/Details/AuthorDetailsPageConnector';
 import AuthorIndexConnector from 'Author/Index/AuthorIndexConnector';
 import BookDetailsPageConnector from 'Book/Details/BookDetailsPageConnector';
@@ -186,6 +187,12 @@ function AppRoutes(props) {
       <Route
         path="/activity/ignored"
         component={IgnoredDownloadsConnector}
+      />
+
+      {/* TaleArr: seeding status and hit-and-run risk */}
+      <Route
+        path="/activity/seeding"
+        component={TalearrSeeding}
       />
 
       {/*

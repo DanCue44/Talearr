@@ -1,0 +1,47 @@
+.intro {
+  margin-bottom: 15px;
+  max-width: 900px;
+  color: var(--helpTextColor);
+}
+
+.mam {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-bottom: 15px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  color: var(--helpTextColor);
+  font-size: 12px;
+}
+
+.statValue {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.summary {
+  margin-bottom: 10px;
+}
+
+.release {
+  color: var(--helpTextColor);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.seeded {
+  min-width: 160px;
+}
+
+.reason {
+  margin-top: 3px;
+  color: var(--dangerColor);
+  font-size: 12px;
+}
