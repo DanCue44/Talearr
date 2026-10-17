@@ -14,6 +14,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.History;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.MediaFiles.BookImport;
 using NzbDrone.Core.MediaFiles.BookImport.Services;
 using NzbDrone.Core.MediaFiles.Events;
@@ -23,6 +24,7 @@ using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.MediaFiles
 {
@@ -440,10 +442,19 @@ namespace NzbDrone.Core.MediaFiles
                 ImportExtraFiles(importResults, directoryInfo, effectiveMode == ImportMode.Move, fileListScoped ? visibleFiles : null);
             }
 
-            if (!hasPendingConversion && effectiveMode == ImportMode.Move && importResults.Any(i => i.Result == ImportResultType.Imported) && ShouldDeleteFolder(directoryInfo))
+            if (!hasPendingConversion && effectiveMode == ImportMode.Move && importResults.Any(i => i.Result == ImportResultType.Imported))
             {
-                _logger.Debug("Deleting folder after importing valid files");
-                try { _diskProvider.DeleteFolder(directoryInfo.FullName, true); } catch (IOException e) { _logger.Debug(e, "Unable to delete folder after importing: {0}", e.Message); }
+                // TaleArr: a usenet bundle whose wanted books imported leaves only unwanted books behind.
+                if (ShouldDisposeBundleFolder(directoryInfo, remoteBook, downloadClientItem, importResults))
+                {
+                    _logger.Info("Removing the rest of bundle {0} after importing the wanted books", downloadClientItem.Title);
+                    try { _diskProvider.DeleteFolder(directoryInfo.FullName, true); } catch (IOException e) { _logger.Debug(e, "Unable to delete bundle folder after importing: {0}", e.Message); }
+                }
+                else if (ShouldDeleteFolder(directoryInfo))
+                {
+                    _logger.Debug("Deleting folder after importing valid files");
+                    try { _diskProvider.DeleteFolder(directoryInfo.FullName, true); } catch (IOException e) { _logger.Debug(e, "Unable to delete folder after importing: {0}", e.Message); }
+                }
             }
 
             return importResults;
@@ -797,6 +808,22 @@ namespace NzbDrone.Core.MediaFiles
                 var matchedBook = decision.Item?.Book;
                 if (matchedBook == null || !expectedBookIds.Contains(matchedBook.Id))
                 {
+                    // TaleArr: other books in a bundle are imported only when they are wanted
+                    // (monitored and missing); the rest are left out without failing the download.
+                    if (remoteBook.IsBundle)
+                    {
+                        if (TalearrBundleFallback.IsWantedExtra(matchedBook, decision.Item?.Quality))
+                        {
+                            _logger.Info("Importing {0} from bundle {1}: it is monitored and missing",
+                                FormatBookLabel(matchedBook),
+                                downloadClientItem.Title);
+                            continue;
+                        }
+
+                        decision.Reject(new Rejection(TalearrBundleFallback.BundleExtraReason(FormatBookLabel(matchedBook))));
+                        continue;
+                    }
+
                     decision.Reject(new Rejection($"Completed download was grabbed for {expectedLabel}, but import matched {FormatBookLabel(matchedBook)}."));
                 }
             }
@@ -1328,6 +1355,63 @@ namespace NzbDrone.Core.MediaFiles
                     }
                 }
             }
+        }
+
+        // TaleArr: the leftover books of a bundle are deleted with the download folder, but only
+        // for usenet (nothing seeds), only after every grabbed book imported, and only inside the
+        // download client's own output path. Torrents are left to the client removal path.
+        internal bool ShouldDisposeBundleFolder(IDirectoryInfo directoryInfo, RemoteBook remoteBook, DownloadClientItem downloadClientItem, List<ImportResult> importResults)
+        {
+            if (remoteBook?.IsBundle != true ||
+                downloadClientItem?.DownloadClientInfo?.Protocol != DownloadProtocol.Usenet ||
+                directoryInfo == null ||
+                downloadClientItem.OutputPath.IsEmpty)
+            {
+                return false;
+            }
+
+            var targetBookIds = remoteBook.GetBooksMatchingReleaseMediaType()
+                .Where(book => book != null && book.Id > 0)
+                .Select(book => book.Id)
+                .Distinct()
+                .ToList();
+
+            var importedBookIds = importResults?
+                .Where(result => result.Result == ImportResultType.Imported)
+                .Select(result => result.ImportDecision?.Item?.Book?.Id ?? 0)
+                .Where(id => id > 0)
+                .ToHashSet() ?? new HashSet<int>();
+
+            if (targetBookIds.Count == 0 || !targetBookIds.All(importedBookIds.Contains))
+            {
+                return false;
+            }
+
+            var folder = directoryInfo.FullName;
+            var outputPath = downloadClientItem.OutputPath.FullPath;
+            if (folder.IsNullOrWhiteSpace() || outputPath.IsNullOrWhiteSpace() ||
+                !(outputPath.PathEquals(folder) || outputPath.IsParentPath(folder)))
+            {
+                _logger.Debug("Not removing bundle folder {0}: it is outside the download output path {1}", folder, outputPath);
+                return false;
+            }
+
+            try
+            {
+                if (_rootFolderService.All().Any(root => !root.Path.IsNullOrWhiteSpace() &&
+                                                         (root.Path.PathEquals(folder) || folder.IsParentPath(root.Path))))
+                {
+                    _logger.Warn("Not removing bundle folder {0}: it holds a library root folder", folder);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to check root folders before removing bundle folder {0}", folder);
+                return false;
+            }
+
+            return true;
         }
 
         public bool ShouldDeleteFolder(IDirectoryInfo directoryInfo)

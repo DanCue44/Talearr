@@ -444,6 +444,16 @@ namespace NzbDrone.Core.Download
                 ? strictExpectedBookIds.All(importedBookIds.Contains) && importedBookIds.All(strictExpectedBookIds.Contains)
                 : importedBookIds.Count >= Math.Max(1, expectedBooks.Count);
 
+            // TaleArr: a bundle succeeds once every grabbed book imported; other wanted books
+            // imported from it are a bonus, not a mismatch.
+            if (!allItemsImported && trackedDownload.RemoteBook?.IsBundle == true)
+            {
+                var expectedBookIds = strictExpectedBookIds.Count > 0
+                    ? strictExpectedBookIds
+                    : expectedBooks.Select(book => book.Id).Distinct().ToList();
+                allItemsImported = expectedBookIds.Count > 0 && expectedBookIds.All(importedBookIds.Contains);
+            }
+
             if (allItemsImported)
             {
                 _logger.Debug("All books were imported for {0}", trackedDownload.DownloadItem.Title);

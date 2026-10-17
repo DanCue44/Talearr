@@ -21,6 +21,7 @@ using NzbDrone.Core.MediaFiles.BookImport;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace Chaptarr.Core.Test.MediaFiles
 {
@@ -203,7 +204,8 @@ namespace Chaptarr.Core.Test.MediaFiles
             public bool TryCreateHardLink(string source, string destination) => throw new NotImplementedException();
             public int? GetFileLinkCount(string path) => 1;
             public bool TryCreateRefLink(string source, string destination) => throw new NotImplementedException();
-            public void DeleteFolder(string path, bool recursive) => throw new NotImplementedException();
+            public List<string> DeletedFolders { get; } = new();
+            public void DeleteFolder(string path, bool recursive) => DeletedFolders.Add(path);
             public string ReadAllText(string filePath) => throw new NotImplementedException();
             public void WriteAllText(string filename, string contents) => throw new NotImplementedException();
             public void FolderSetLastWriteTime(string path, DateTime dateTime) => throw new NotImplementedException();
@@ -2762,6 +2764,279 @@ namespace Chaptarr.Core.Test.MediaFiles
                 BookTitle = bookTitle,
                 EditionId = editionId
             };
+        }
+
+        // TaleArr: a bundle grabbed for one book keeps that book, also imports other books from
+        // it that are monitored and missing, and leaves the rest out without failing.
+        private sealed class ResultImportApprovedBooks : IImportApprovedBooks
+        {
+            public List<ImportDecision<LocalBook>> Decisions { get; private set; } = new();
+
+            public List<ImportResult> Import(List<ImportDecision<LocalBook>> decisions, bool replaceExisting, DownloadClientItem downloadClientItem = null, ImportMode importMode = ImportMode.Auto, CancellationToken cancellationToken = default)
+            {
+                Decisions = decisions ?? new List<ImportDecision<LocalBook>>();
+                return Decisions
+                    .Select(decision => decision.Approved
+                        ? new ImportResult(decision)
+                        : new ImportResult(decision, decision.Rejections.Select(r => r.Reason).ToArray()))
+                    .ToList();
+            }
+        }
+
+        private sealed class BundleImportContext
+        {
+            public string Folder { get; init; }
+            public StubDiskProvider DiskProvider { get; init; }
+            public ResultImportApprovedBooks ImportApproved { get; init; }
+            public DownloadedBooksImportService Service { get; init; }
+            public Author Author { get; init; }
+            public Book Target { get; init; }
+            public Book WantedExtra { get; init; }
+            public Book UnwantedExtra { get; init; }
+
+            public ImportDecision<LocalBook> DecisionFor(Book book)
+            {
+                return ImportApproved.Decisions.Single(d => d.Item.Book?.Id == book.Id);
+            }
+        }
+
+        private static Book NewBundleBook(Author author, int id, string title, bool monitored)
+        {
+            return new Book
+            {
+                Id = id,
+                AuthorId = author.Id,
+                Title = title,
+                MediaType = BookMediaType.Ebook,
+                EbookMonitored = monitored,
+                AnyEditionOk = true,
+                Editions = new List<Edition> { new Edition { Id = id * 10, BookId = id, Title = title, Monitored = true, ReadingFormatId = 3 } }
+            };
+        }
+
+        private static BundleImportContext CreateBundleImportContext()
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "chaptarr-tests", Guid.NewGuid().ToString("N"), "R.F. Kuang - The Poppy War Box Set");
+            Directory.CreateDirectory(folder);
+
+            var author = new Author { Id = 12, Name = "R.F. Kuang" };
+            var target = NewBundleBook(author, 4050, "The Poppy War", true);
+            var wantedExtra = NewBundleBook(author, 4051, "The Dragon Republic", true);
+            var unwantedExtra = NewBundleBook(author, 4052, "The Burning God", false);
+            var books = new[] { target, wantedExtra, unwantedExtra };
+
+            var tagsService = new StubMetadataTagService();
+            var matches = books
+                .Select(book =>
+                {
+                    var path = Path.Combine(folder, book.Title + ".epub");
+                    File.WriteAllBytes(path, new byte[] { 1, 2, 3, 4 });
+                    return new FileMatch
+                    {
+                        File = new DiscoveredFileWithMetadata { Path = path, Size = 4, Modified = DateTime.UtcNow, AllTags = tagsService.Tags },
+                        AuthorId = author.Id,
+                        AuthorName = author.Name,
+                        BookId = book.Id,
+                        BookTitle = book.Title,
+                        EditionId = book.Editions[0].Id
+                    };
+                })
+                .ToArray();
+
+            var matchingService = new StubFileMatchingService
+            {
+                InitialResult = new FileMatchResult { MatchedFiles = matches, UnmatchedFiles = Array.Empty<UnmatchedFile>() }
+            };
+
+            var bookService = DispatchProxy.Create<IBookService, BookServiceProxy>();
+            var authorService = DispatchProxy.Create<IAuthorService, AuthorServiceProxy>();
+            var editionService = DispatchProxy.Create<IEditionService, EditionServiceProxy>();
+            ((AuthorServiceProxy)(object)authorService).Author = author;
+
+            foreach (var book in books)
+            {
+                ((BookServiceProxy)(object)bookService).BooksById[book.Id] = book;
+                ((EditionServiceProxy)(object)editionService).EditionsById[book.Editions[0].Id] = book.Editions[0];
+                ((EditionServiceProxy)(object)editionService).EditionsByBookId[book.Id] = book.Editions;
+            }
+
+            var diskProvider = new StubDiskProvider();
+            var importApproved = new ResultImportApprovedBooks();
+            var service = new DownloadedBooksImportService(
+                diskProvider,
+                new StubDiskScanService(),
+                matchingService,
+                tagsService,
+                importApproved,
+                bookService,
+                authorService,
+                editionService,
+                DispatchProxy.Create<IImportOrchestrator, ThrowingProxy<IImportOrchestrator>>(),
+                new StubAuthorLibraryService(),
+                new StubRootFolderService(),
+                ConfigServiceTestProxy.Create(),
+                DispatchProxy.Create<IHistoryService, HistoryServiceProxy>(),
+                DispatchProxy.Create<IEventAggregator, ThrowingProxy<IEventAggregator>>(),
+                DispatchProxy.Create<NzbDrone.Common.EnvironmentInfo.IRuntimeInfo, ThrowingProxy<NzbDrone.Common.EnvironmentInfo.IRuntimeInfo>>(),
+                DispatchProxy.Create<IMediaInfoExtractor, ThrowingProxy<IMediaInfoExtractor>>(),
+                LogManager.GetCurrentClassLogger());
+
+            return new BundleImportContext
+            {
+                Folder = folder,
+                DiskProvider = diskProvider,
+                ImportApproved = importApproved,
+                Service = service,
+                Author = author,
+                Target = target,
+                WantedExtra = wantedExtra,
+                UnwantedExtra = unwantedExtra
+            };
+        }
+
+        private static (RemoteBook RemoteBook, DownloadClientItem Item) BundleDownload(BundleImportContext context, bool isBundle, DownloadProtocol protocol)
+        {
+            var remoteBook = new RemoteBook
+            {
+                Author = context.Author,
+                Books = new List<Book> { context.Target },
+                IsBundle = isBundle,
+                IsBundleFallback = isBundle
+            };
+
+            var clientName = protocol == DownloadProtocol.Usenet ? "SABnzbd" : "qBittorrent";
+            var item = new DownloadClientItem
+            {
+                DownloadId = "bundle-1",
+                Title = "R.F. Kuang - The Poppy War Box Set",
+                CanMoveFiles = true,
+                OutputPath = new OsPath(context.Folder),
+                DownloadClientInfo = new DownloadClientItemClientInfo { Id = 1, Name = clientName, Type = clientName, Protocol = protocol }
+            };
+
+            return (remoteBook, item);
+        }
+
+        private static void DeleteBundleFolder(BundleImportContext context)
+        {
+            try
+            {
+                Directory.Delete(Path.GetDirectoryName(context.Folder), recursive: true);
+            }
+            catch
+            {
+            }
+        }
+
+        [Test]
+        public void bundle_import_keeps_the_target_and_wanted_books_and_removes_the_rest_of_a_usenet_download()
+        {
+            var context = CreateBundleImportContext();
+
+            try
+            {
+                var (remoteBook, item) = BundleDownload(context, isBundle: true, DownloadProtocol.Usenet);
+
+                var results = context.Service.ProcessPath(context.Folder, ImportMode.Auto, context.Author, item, remoteBook);
+
+                Assert.That(context.DecisionFor(context.Target).Approved, Is.True);
+                Assert.That(context.DecisionFor(context.WantedExtra).Approved, Is.True);
+
+                var unwanted = context.DecisionFor(context.UnwantedExtra);
+                Assert.That(unwanted.Approved, Is.False);
+                Assert.That(unwanted.Rejections.Select(r => r.Reason), Has.All.StartsWith(TalearrBundleFallback.BundleExtraPrefix));
+                Assert.That(unwanted.Rejections.Select(r => r.Reason), Has.Some.Contains("The Burning God"));
+
+                Assert.That(results.Count(r => r.Result == ImportResultType.Imported), Is.EqualTo(2));
+                Assert.That(context.DiskProvider.DeletedFolders, Is.EquivalentTo(new[] { context.Folder }));
+            }
+            finally
+            {
+                DeleteBundleFolder(context);
+            }
+        }
+
+        [Test]
+        public void bundle_import_leaves_out_a_wanted_book_that_already_has_a_file()
+        {
+            var context = CreateBundleImportContext();
+            context.WantedExtra.BookFiles = new List<BookFile> { new BookFile { Id = 1, Path = "/library/The Dragon Republic.epub" } };
+
+            try
+            {
+                var (remoteBook, item) = BundleDownload(context, isBundle: true, DownloadProtocol.Usenet);
+
+                _ = context.Service.ProcessPath(context.Folder, ImportMode.Auto, context.Author, item, remoteBook);
+
+                Assert.That(context.DecisionFor(context.Target).Approved, Is.True);
+                Assert.That(context.DecisionFor(context.WantedExtra).Approved, Is.False);
+            }
+            finally
+            {
+                DeleteBundleFolder(context);
+            }
+        }
+
+        [Test]
+        public void bundle_import_does_not_remove_a_torrent_download()
+        {
+            var context = CreateBundleImportContext();
+
+            try
+            {
+                var (remoteBook, item) = BundleDownload(context, isBundle: true, DownloadProtocol.Torrent);
+
+                _ = context.Service.ProcessPath(context.Folder, ImportMode.Auto, context.Author, item, remoteBook);
+
+                Assert.That(context.DecisionFor(context.WantedExtra).Approved, Is.True);
+                Assert.That(context.DiskProvider.DeletedFolders, Is.Empty);
+            }
+            finally
+            {
+                DeleteBundleFolder(context);
+            }
+        }
+
+        [Test]
+        public void bundle_import_keeps_a_usenet_download_when_the_target_did_not_import()
+        {
+            var context = CreateBundleImportContext();
+
+            try
+            {
+                var (remoteBook, item) = BundleDownload(context, isBundle: true, DownloadProtocol.Usenet);
+                remoteBook.Books = new List<Book> { new Book { Id = 4049, AuthorId = 12, Title = "Babel", MediaType = BookMediaType.Ebook } };
+
+                _ = context.Service.ProcessPath(context.Folder, ImportMode.Auto, context.Author, item, remoteBook);
+
+                Assert.That(context.DiskProvider.DeletedFolders, Is.Empty);
+            }
+            finally
+            {
+                DeleteBundleFolder(context);
+            }
+        }
+
+        [Test]
+        public void non_bundle_download_still_rejects_other_books_as_wrong_matches()
+        {
+            var context = CreateBundleImportContext();
+
+            try
+            {
+                var (remoteBook, item) = BundleDownload(context, isBundle: false, DownloadProtocol.Usenet);
+
+                _ = context.Service.ProcessPath(context.Folder, ImportMode.Auto, context.Author, item, remoteBook);
+
+                Assert.That(context.DecisionFor(context.Target).Approved, Is.True);
+                Assert.That(context.DecisionFor(context.WantedExtra).Rejections.Select(r => r.Reason), Has.Some.StartsWith("Completed download was grabbed for"));
+                Assert.That(context.DecisionFor(context.UnwantedExtra).Rejections.Select(r => r.Reason), Has.Some.StartsWith("Completed download was grabbed for"));
+                Assert.That(context.DiskProvider.DeletedFolders, Is.Empty);
+            }
+            finally
+            {
+                DeleteBundleFolder(context);
+            }
         }
 
         private static UnmatchedFile CreateUnmatchedFile(string path, Dictionary<string, List<string>> tags, string reason)
