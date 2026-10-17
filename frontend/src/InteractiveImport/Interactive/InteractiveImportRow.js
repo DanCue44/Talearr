@@ -25,6 +25,12 @@ import translate from 'Utilities/String/translate';
 import InteractiveImportRowCellPlaceholder from './InteractiveImportRowCellPlaceholder';
 import styles from './InteractiveImportRow.css';
 
+const talearrConfidenceLabels = {
+  high: { text: 'High', kind: kinds.SUCCESS },
+  medium: { text: 'Medium', kind: kinds.WARNING },
+  low: { text: 'Low', kind: kinds.DANGER }
+};
+
 class InteractiveImportRow extends Component {
 
   //
@@ -202,6 +208,8 @@ class InteractiveImportRow extends Component {
       indexerFlags,
       rejections,
       warnings = [],
+      talearrMatchConfidence,
+      talearrMatchNotes = [],
       columns,
       additionalFile,
       isSelected,
@@ -293,6 +301,19 @@ class InteractiveImportRow extends Component {
       <span className={styles.suggestedValue}>{bookTitle}</span> :
       bookTitle;
 
+    // TaleArr: how sure the match is; hover for the reasons.
+    const confidence = talearrConfidenceLabels[talearrMatchConfidence];
+    const showConfidence = !!confidence && !showBookNumberPlaceholder && !!(hasBook || suggestedBookLabel);
+    const confidenceLabel = showConfidence ? (
+      <Label
+        className={styles.confidence}
+        kind={confidence.kind}
+        title={[`Match confidence: ${confidence.text}`, ...(talearrMatchNotes || [])].join('\n')}
+      >
+        {confidence.text}
+      </Label>
+    ) : null;
+
     const editionCell = !hasBook && !edition && suggestedEditionLabel ?
       <span className={styles.suggestedValue}>{editionTitle}</span> :
       (editionTitle || (!hasBook ? releaseGroup : ''));
@@ -372,6 +393,7 @@ class InteractiveImportRow extends Component {
           {
             showBookNumberPlaceholder ? <InteractiveImportRowCellPlaceholder /> : bookCell
           }
+          {confidenceLabel}
         </TableRowCellButton>
 
         <TableRowCellButton
@@ -577,6 +599,8 @@ InteractiveImportRow.propTypes = {
   indexerFlags: PropTypes.number.isRequired,
   rejections: PropTypes.arrayOf(PropTypes.object).isRequired,
   warnings: PropTypes.arrayOf(PropTypes.string),
+  talearrMatchConfidence: PropTypes.string,
+  talearrMatchNotes: PropTypes.arrayOf(PropTypes.string),
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
   tags: PropTypes.object,
   additionalFile: PropTypes.bool.isRequired,

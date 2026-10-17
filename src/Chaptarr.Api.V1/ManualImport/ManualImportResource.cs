@@ -40,6 +40,10 @@ namespace Chaptarr.Api.V1.ManualImport
         public bool AdditionalFile { get; set; }
         public bool ReplaceExistingFiles { get; set; }
         public bool DisableReleaseSwitching { get; set; }
+
+        // TaleArr: additive, display-only match confidence; Chaptarr clients ignore it.
+        public string TalearrMatchConfidence { get; set; }
+        public List<string> TalearrMatchNotes { get; set; }
     }
 
     public static class ManualImportResourceMapper
@@ -88,7 +92,9 @@ namespace Chaptarr.Api.V1.ManualImport
 
                 AdditionalFile = model.AdditionalFile,
                 ReplaceExistingFiles = model.ReplaceExistingFiles,
-                DisableReleaseSwitching = model.DisableReleaseSwitching
+                DisableReleaseSwitching = model.DisableReleaseSwitching,
+                TalearrMatchConfidence = model.TalearrMatchConfidence,
+                TalearrMatchNotes = model.TalearrMatchNotes
             };
         }
 

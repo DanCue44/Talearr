@@ -25,6 +25,12 @@
   cursor: pointer;
 }
 
+.confidence {
+  composes: label from '~Components/Label.css';
+
+  margin-left: 6px;
+}
+
 .reprocessing {
   composes: loading from '~Components/Loading/LoadingIndicator.css';
 

@@ -13,7 +13,7 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import { icons, inputTypes, kinds, sizes } from 'Helpers/Props';
-import importModeOptions from 'InteractiveImport/importModeOptions';
+import importModeOptions, { normalizeImportMode } from 'InteractiveImport/importModeOptions';
 import translate from 'Utilities/String/translate';
 import RecentFolderRow from './RecentFolderRow';
 import styles from './InteractiveImportSelectFolderModalContent.css';
@@ -43,7 +43,7 @@ class InteractiveImportSelectFolderModalContent extends Component {
 
     this.state = {
       folder: '',
-      importMode: props.importMode === 'move' ? 'move' : 'copy'
+      importMode: normalizeImportMode(props.importMode)
     };
   }
 

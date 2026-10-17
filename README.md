@@ -287,6 +287,57 @@ requests key on it.
 
 `build-tools/talearr_versions.sh` prints both.
 
+## Hardlinks, seeding and manual import
+
+**Torrent imports never move the client's files.** With Settings > Media Management >
+Seeding-Safe Torrent Imports (advanced, on by default) every torrent import is a copy, and a
+copy is a hardlink when "Use Hardlinks instead of Copy" is on (also the default). The torrent
+keeps seeding from its own folder, the library gets its own link to the same data, and no disk
+space is used twice. Upstream moved a torrent once it reached its seed goal, and honoured Move
+in manual import even while a torrent was still seeding; both are now a hardlink. Usenet
+downloads are still moved, a torrent blackhole still follows its own "read only" setting, and
+the client still removes finished torrents and their data the usual way (the library copy
+stays). Turn the setting off for the upstream behaviour. TaleArr's own steps never touch the
+seeding data either: archives are unpacked into a separate work folder and only that folder is
+deleted, an M4B merge writes a new file and only removes the library's links, bundle leftovers
+are only deleted for usenet, and tag or date writes break a library hardlink first. Moving a
+still-hardlinked file to the recycle bin no longer changes the torrent copy's timestamp.
+
+**Post-import categories.** qBittorrent, Deluge, rTorrent, uTorrent and Flood can move an
+imported torrent to a category or label (Audiobook / Ebook Post-Import Category, advanced
+settings of the download client). Torrents in that category are kept by TaleArr and never
+removed.
+
+**Hardlinks need one filesystem.** A hardlink only works when the download folder and the
+library are on the same filesystem and reached through the same container volume. Map one
+parent folder that holds both (for example `-v /mnt/user/data:/data` with
+`/data/torrents` and `/data/media/audiobooks`) instead of separate `/downloads` and
+`/audiobooks` volumes. On Unraid, `/mnt/user` (the FUSE user share view) only hardlinks within
+one share, so the downloads and the library must be folders of the same share. When a
+hardlink is not possible the file is copied, and after 3 such copies in a row System > Status
+shows a warning naming the two paths (cleared by the next successful hardlink; the count is in
+memory and starts again after a restart).
+
+**Manual import (Wanted > Missing > Manual Import, or Manual Import on a queue item).** Point
+it at any folder, for example an old library: files are scanned and matched with the normal
+import matching, then shown in a review table where every row can be re-matched (author, book,
+edition). TaleArr adds:
+
+- A match confidence per row (High, Medium, Low; hover for why), from the match's own evidence
+  and whether the matched title appears in the file's tags, file name or folder. A Low row is
+  the one to check before importing. API: `talearrMatchConfidence` and `talearrMatchNotes` on
+  each `GET /api/v1/manualimport` item.
+- A language warning when the file's own language is not the wanted one (the completed
+  download check, as a warning only).
+- Three import modes: Move, Hardlink/Copy (hardlink when the setting is on) and Copy (no
+  hardlinks). The API takes `importMode` `copy` plus `talearrTransfer: "copy"` (or
+  `"hardlink"`) on the `ManualImport` and `DownloadedBooksScan` commands.
+- `foreignEditionId` is accepted when `editionId` is missing, and the error names the field.
+
+Authors that are not in the library yet show as "Will add from metadata" and are added on
+import, using the default root folder for the media type. Quick Import imports a folder
+without the review table and adds missing authors the same way.
+
 ## Docker
 
 Images are published to GitHub Container Registry by `.github/workflows/talearr-docker.yml`:

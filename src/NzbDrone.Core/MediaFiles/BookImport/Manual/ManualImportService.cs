@@ -26,6 +26,8 @@ using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.MediaFiles.TalearrImport;
+using NzbDrone.Core.Talearr.Import;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.BookImport.Identification;
 using NzbDrone.Core.MediaFiles.BookImport;
@@ -77,6 +79,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
 	        private readonly IProvideImportItemService _provideImportItemService;
 	        private readonly IDownloadImportModeResolver _downloadImportModeResolver;
 	        private readonly IEventAggregator _eventAggregator;
+	        private readonly IDownloadedFileLanguageVerifier _fileLanguageVerifier;
 	        private readonly Logger _logger;
 
         public ManualImportService(IDiskProvider diskProvider,
@@ -101,7 +104,8 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
 	                                   IProvideImportItemService provideImportItemService,
 	                                   IDownloadImportModeResolver downloadImportModeResolver,
 	                                   IEventAggregator eventAggregator,
-	                                   Logger logger)
+	                                   Logger logger,
+	                                   IDownloadedFileLanguageVerifier fileLanguageVerifier = null)
 	        {
 	            _diskProvider = diskProvider;
 	            _parsingService = parsingService;
@@ -125,6 +129,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
 	            _provideImportItemService = provideImportItemService;
 	            _downloadImportModeResolver = downloadImportModeResolver;
 	            _eventAggregator = eventAggregator;
+	            _fileLanguageVerifier = fileLanguageVerifier;
 	            _logger = logger;
 	        }
 
@@ -457,6 +462,10 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
                     item.Rejections = decision.Rejections;
                     item.Size = decision.Item.Size;
 
+                    // TaleArr: the row was edited by hand, so the match is the user's choice.
+                    item.TalearrMatchConfidence = TalearrMatchConfidence.High;
+                    item.TalearrMatchNotes = new List<string> { "Chosen by you" };
+
                     result.Add(item);
                 }
 
@@ -516,11 +525,29 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
             item.ReplaceExistingFiles = replaceExistingFiles;
             item.DisableReleaseSwitching = disableReleaseSwitching;
 
+            // TaleArr: show how sure the match is, so a wrong match stands out in the review table.
+            if (!item.AdditionalFile)
+            {
+                var confidence = TalearrMatchConfidence.Evaluate(item.Book?.Title ?? item.SuggestedBookTitle, decision.Item.MatchProvenance, actualPath, item.Tags);
+                item.TalearrMatchConfidence = confidence?.Level;
+                item.TalearrMatchNotes = confidence?.Notes;
+
+                // TaleArr: the completed-download language check, as a warning here.
+                var languageMismatch = decision.Item.Book != null ? _fileLanguageVerifier?.DescribeMismatch(decision.Item) : null;
+                if (languageMismatch != null)
+                {
+                    item.Warnings.Add(languageMismatch + " Import anyway only if you want this language.");
+                }
+            }
+
             return item;
         }
 
         public void Execute(ManualImportCommand message)
         {
+            // TaleArr: the review table's Hardlink / Copy choice applies to every file of this import.
+            using var talearrTransfer = TalearrTransferScope.Begin(TalearrTransferScope.Parse(message.TalearrTransfer));
+
             _logger.ProgressTrace("Manually importing {0} files using mode {1}", message.Files.Count, message.ImportMode);
 
             var imported = new List<ImportResult>();
@@ -992,6 +1019,22 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
                             _logger.Debug(ex, "Failed to load edition {0} for manual import file '{1}'", file.EditionId, actualPath);
                         }
                     }
+                    else if (book != null && !string.IsNullOrWhiteSpace(file.ForeignEditionId))
+                    {
+                        // TaleArr: accept a provider edition id when the numeric id is missing (Chaptarr #108).
+                        try
+                        {
+                            edition = TalearrManualImportSelection.FindEditionByForeignId(_editionService.GetEditionsByBook(book.Id), file.ForeignEditionId);
+                            if (edition != null)
+                            {
+                                file.EditionId = edition.Id;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Debug(ex, "Failed to resolve edition '{0}' for manual import file '{1}'", file.ForeignEditionId, actualPath);
+                        }
+                    }
                 }
                 else if (!string.IsNullOrWhiteSpace(file.ForeignAuthorId))
                 {
@@ -1074,7 +1117,10 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
                 if (isExplicitLocalSelection &&
                     !ManualEditionSelectionMatchesBook(edition, book, file.EditionId, out var manualEditionRejection))
                 {
-                    throw new InvalidOperationException(manualEditionRejection);
+                    // TaleArr: name the field that was missing or did not match.
+                    throw new InvalidOperationException(file.EditionId <= 0
+                        ? TalearrManualImportSelection.MissingEditionReason(book, file.ForeignEditionId)
+                        : manualEditionRejection);
                 }
 
                 if (!ManualSelectionMatchesAuthorBook(author, book, out var manualSelectionRejection))
