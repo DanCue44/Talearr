@@ -6,6 +6,7 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.QualityLadder;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
@@ -14,11 +15,14 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         private readonly UpgradableSpecification _upgradableSpecification;
         private readonly Logger _logger;
         private readonly ICustomFormatCalculationService _formatService;
+        private readonly ITalearrQualityLadder _talearrLadder; // TaleArr
 
         public CutoffSpecification(UpgradableSpecification upgradableSpecification,
                                    ICustomFormatCalculationService formatService,
-                                   Logger logger)
+                                   Logger logger,
+                                   ITalearrQualityLadder talearrLadder = null)
         {
+            _talearrLadder = talearrLadder;
             _upgradableSpecification = upgradableSpecification;
             _formatService = formatService;
             _logger = logger;
@@ -42,7 +46,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return Decision.Reject("No quality profile configured for {0} files", subject.ParsedBookInfo.Quality.Quality.Name);
             }
 
-            foreach (var file in subject.Books.SelectMany(b => b.BookFiles))
+            foreach (var (book, file) in subject.Books.SelectMany(b => b.BookFiles.Select(f => (b, f))))
             {
                 var currentQualities = new List<QualityModel> { file.Quality };
 
@@ -58,6 +62,17 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                                                            customFormats,
                                                            candidateQuality))
                 {
+                    // TaleArr: files below the Good audio tier (or in a less preferred ebook format)
+                    // have not met the cutoff for a clearly better copy, when ladder upgrades are on.
+                    var ladderReason = _talearrLadder?.UpgradeReason(subject, book, qualityProfile,
+                        qualityProfile.CalculateCustomFormatScore(subject.CustomFormats ?? new List<CustomFormat>()),
+                        qualityProfile.CalculateCustomFormatScore(customFormats ?? new List<CustomFormat>()));
+                    if (ladderReason != null)
+                    {
+                        _logger.Debug("{0}: {1}", ladderReason, subject.Release?.Title);
+                        continue;
+                    }
+
                     _logger.Trace("Cutoff already met by existing files, rejecting.");
 
                     var qualityCutoffIndex = qualityProfile.GetIndex(qualityProfile.Cutoff);

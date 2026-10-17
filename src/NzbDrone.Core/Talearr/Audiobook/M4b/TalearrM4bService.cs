@@ -30,7 +30,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
     // TaleArr: library side of the M4B merge. Runs the TalearrConvertToM4b command (the manual
     // "Convert to M4B" action and the optional after-import conversion), swaps the verified M4B
     // in for the original files and only then removes them (to the recycle bin when one is set).
-    public class TalearrM4bService : IExecute<TalearrConvertToM4bCommand>, IHandle<BookImportedEvent>
+    public class TalearrM4bService : IExecute<TalearrConvertToM4bCommand>, IExecute<TalearrConvertLibraryToM4bCommand>, IHandle<BookImportedEvent>
     {
         private static readonly string[] CoverNames = { "cover.jpg", "cover.jpeg", "cover.png", "folder.jpg", "folder.png" };
 
@@ -43,6 +43,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
         private readonly ITalearrM4bSettingsService _settingsService;
         private readonly ITalearrM4bConverter _converter;
         private readonly IManageCommandQueue _commandQueueManager;
+        private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
 
         public TalearrM4bService(IBookService bookService,
@@ -54,8 +55,10 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                                  ITalearrM4bSettingsService settingsService,
                                  ITalearrM4bConverter converter,
                                  IManageCommandQueue commandQueueManager,
-                                 Logger logger)
+                                 Logger logger,
+                                 IEventAggregator eventAggregator = null)
         {
+            _eventAggregator = eventAggregator;
             _bookService = bookService;
             _authorService = authorService;
             _editionService = editionService;
@@ -98,14 +101,100 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
         {
             var book = _bookService.GetBook(message.BookId);
             var author = book.Author ?? _authorService.GetAuthor(book.AuthorId);
+            var result = ConvertBook(book, author, string.Empty);
+
+            if (result.Errors.Any())
+            {
+                throw new TalearrM4bException("M4B conversion failed, the original files were kept. " + string.Join(" ", result.Errors));
+            }
+        }
+
+        // TaleArr: the existing library. Finds every audiobook with several mp3/m4a/m4b files of one
+        // edition and converts them one after another; a failed book keeps its files and the run
+        // goes on. Needs FFmpeg up front, so nothing is half done when it is missing.
+        public void Execute(TalearrConvertLibraryToM4bCommand message)
+        {
+            if (!_converter.IsAvailable())
+            {
+                throw new TalearrM4bException("FFmpeg and FFprobe are needed to convert to M4B and were not found. Nothing was changed.");
+            }
+
+            _logger.ProgressInfo("Looking for multi-file audiobooks to convert to M4B");
+
+            var candidates = FindLibraryCandidates(message.AuthorId);
+            if (candidates.Count == 0)
+            {
+                _logger.ProgressInfo("No multi-file audiobooks to convert to M4B");
+                return;
+            }
+
+            var converted = 0;
+            var failed = new List<string>();
+
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var (book, author) = candidates[i];
+                var prefix = string.Format(CultureInfo.InvariantCulture, "[{0}/{1}] ", i + 1, candidates.Count);
+
+                try
+                {
+                    var result = ConvertBook(book, author, prefix);
+                    converted += result.Converted;
+                    failed.AddRange(result.Errors);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(ex, "TaleArr: M4B conversion of '{0}' failed, original files kept", book.Title);
+                    failed.Add($"{book.Title}: {ex.Message}");
+                }
+            }
+
+            var summary = string.Format(CultureInfo.InvariantCulture, "Converted {0} of {1} audiobooks to M4B", converted, candidates.Count);
+            if (failed.Any())
+            {
+                throw new TalearrM4bException($"{summary}; {failed.Count} failed and kept their original files. " + string.Join(" ", failed));
+            }
+
+            _logger.ProgressInfo(summary);
+        }
+
+        internal List<(Book Book, Author Author)> FindLibraryCandidates(int authorId)
+        {
+            var authors = authorId > 0
+                ? new List<Author> { _authorService.GetAuthor(authorId) }
+                : _authorService.GetAllAuthors() ?? new List<Author>();
+
+            var candidates = new List<(Book, Author)>();
+            foreach (var author in authors.Where(a => a != null).OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                var books = (_bookService.GetBooksByAuthor(author.Id) ?? new List<Book>())
+                    .Where(b => b != null && b.MediaType == BookMediaType.Audiobook)
+                    .OrderBy(b => b.Title, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var book in books)
+                {
+                    if (M4bLibraryPlanner.Plan(_mediaFileService.GetFilesByBook(book.Id)).Any(p => p.CanConvert))
+                    {
+                        book.Author ??= author;
+                        candidates.Add((book, author));
+                    }
+                }
+            }
+
+            return candidates;
+        }
+
+        private (int Converted, List<string> Errors) ConvertBook(Book book, Author author, string prefix)
+        {
             var plans = M4bLibraryPlanner.Plan(_mediaFileService.GetFilesByBook(book.Id));
             var convertible = plans.Where(p => p.CanConvert).ToList();
+            var errors = new List<string>();
 
             if (convertible.Count == 0)
             {
                 var reason = plans.Select(p => p.SkipReason).FirstOrDefault() ?? "The book has no audio files.";
-                _logger.ProgressInfo("Nothing to convert for '{0}': {1}", book.Title, reason);
-                return;
+                _logger.ProgressInfo("{0}Nothing to convert for '{1}': {2}", prefix, book.Title, reason);
+                return (0, errors);
             }
 
             if (!_converter.IsAvailable())
@@ -113,7 +202,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                 throw new TalearrM4bException("FFmpeg and FFprobe are needed to convert to M4B and were not found.");
             }
 
-            var errors = new List<string>();
+            var converted = 0;
 
             foreach (var plan in convertible)
             {
@@ -122,16 +211,25 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                 var title = edition?.Title ?? book.Title;
                 var lastPercent = -10.0;
 
-                _logger.ProgressInfo("Converting '{0}' to M4B ({1} files)", title, plan.Files.Count);
+                _logger.ProgressInfo("{0}Converting '{1}' to M4B ({2} files)", prefix, title, plan.Files.Count);
 
                 var outcome = _converter.Convert(job, (percent, text) =>
                 {
                     if (percent - lastPercent >= 5 || percent >= 98)
                     {
                         lastPercent = percent;
-                        _logger.ProgressInfo("Converting '{0}' to M4B: {1}", title, text);
+                        _logger.ProgressInfo("{0}Converting '{1}' to M4B: {2}", prefix, title, text);
                     }
                 });
+
+                // TaleArr: the converter already checked the length; check its answer again before
+                // any original is touched, so a converter bug can never cost the library its files.
+                if (outcome.Success && !M4bFfmpegCommand.IsDurationWithinTolerance(outcome.ExpectedDurationSeconds, outcome.DurationSeconds))
+                {
+                    TryDelete(outcome.OutputPath);
+                    outcome = M4bConversionOutcome.Fail(string.Format(CultureInfo.InvariantCulture,
+                        "The M4B length ({0:0} s) does not match the source files ({1:0} s).", outcome.DurationSeconds, outcome.ExpectedDurationSeconds));
+                }
 
                 if (!outcome.Success)
                 {
@@ -140,14 +238,33 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                     continue;
                 }
 
-                ReplaceLibraryFiles(plan, outcome, author, edition);
+                var merged = ReplaceLibraryFiles(plan, outcome, author, edition);
+                converted++;
 
-                _logger.ProgressInfo("Converted '{0}' to M4B: {1} chapters, {2}", title, outcome.ChapterCount, FormatDuration(outcome.DurationSeconds));
+                _logger.ProgressInfo("{0}Converted '{1}' to M4B: {2} chapters, {3}", prefix, title, outcome.ChapterCount, FormatDuration(outcome.DurationSeconds));
+
+                PublishImported(author, book, merged, plan.Files);
             }
 
-            if (errors.Any())
+            return (converted, errors);
+        }
+
+        // TaleArr: tell the rest of TaleArr (book duration, statistics) and the notifications (media
+        // server rescans, "upgrade" messages) about the swap, like an import that replaced files.
+        private void PublishImported(Author author, Book book, BookFile merged, List<BookFile> oldFiles)
+        {
+            if (_eventAggregator == null)
             {
-                throw new TalearrM4bException("M4B conversion failed, the original files were kept. " + string.Join(" ", errors));
+                return;
+            }
+
+            try
+            {
+                _eventAggregator.PublishEvent(new BookImportedEvent(author, book, new List<BookFile> { merged }, oldFiles, true, null));
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "TaleArr: the M4B was imported but the import notifications failed for '{0}'", book.Title);
             }
         }
 
@@ -211,7 +328,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
             };
         }
 
-        private void ReplaceLibraryFiles(M4bLibraryPlan plan, M4bConversionOutcome outcome, Author author, Edition edition)
+        private BookFile ReplaceLibraryFiles(M4bLibraryPlan plan, M4bConversionOutcome outcome, Author author, Edition edition)
         {
             var first = plan.Files[0];
             var durationSeconds = (int)Math.Round(outcome.DurationSeconds);
@@ -267,6 +384,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
             }
 
             RemoveEmptyDiscFolders(plan);
+            return merged;
         }
 
         // Disc folders (CD1, Part 2) below the book folder that are empty after the merge.

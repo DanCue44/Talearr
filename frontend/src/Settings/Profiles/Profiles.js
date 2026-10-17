@@ -9,6 +9,7 @@ import DelayProfilesConnector from './Delay/DelayProfilesConnector';
 import MetadataProfilesConnector from './Metadata/MetadataProfilesConnector';
 import QualityProfilesConnector from './Quality/QualityProfilesConnector';
 import ReleaseProfilesConnector from './Release/ReleaseProfilesConnector';
+import TalearrQualityLadder from './TalearrQualityLadder';
 
 // Only a single DragDrop Context can exist so it's done here to allow editing
 // quality profiles and reordering delay profiles to work.
@@ -26,6 +27,8 @@ class Profiles extends Component {
         <PageContentBody>
           <DndProvider options={HTML5toTouch}>
             <QualityProfilesConnector />
+            {/* TaleArr: audio quality ladder and ebook format preference, saved with its own button */}
+            <TalearrQualityLadder />
             <MetadataProfilesConnector />
             <DelayProfilesConnector />
             <ReleaseProfilesConnector />

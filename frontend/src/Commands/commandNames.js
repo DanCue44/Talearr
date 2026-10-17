@@ -32,3 +32,4 @@ export const AUTHOR_SEARCH = 'AuthorSearch';
 export const SEND_MATCHING_LOGS = 'SendMatchingLogs';
 // TaleArr
 export const TALEARR_CONVERT_TO_M4B = 'TalearrConvertToM4b';
+export const TALEARR_CONVERT_LIBRARY_TO_M4B = 'TalearrConvertLibraryToM4b';

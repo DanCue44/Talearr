@@ -2,8 +2,11 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
+import * as commandNames from 'Commands/commandNames';
 import { clearPendingChanges } from 'Store/Actions/baseActions';
+import { executeCommand } from 'Store/Actions/commandActions';
 import { fetchTalearrM4b, saveTalearrM4b, setTalearrM4bValue } from 'Store/Actions/settingsActions';
+import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
 import createSettingsSectionSelector from 'Store/Selectors/createSettingsSectionSelector';
 import TalearrM4b from './TalearrM4b';
 
@@ -14,10 +17,12 @@ function createMapStateToProps() {
   return createSelector(
     (state) => state.settings.advancedSettings,
     createSettingsSectionSelector(SECTION),
-    (advancedSettings, sectionSettings) => {
+    createCommandExecutingSelector(commandNames.TALEARR_CONVERT_LIBRARY_TO_M4B),
+    (advancedSettings, sectionSettings, isConvertingLibrary) => {
       return {
         advancedSettings,
-        ...sectionSettings
+        ...sectionSettings,
+        isConvertingLibrary
       };
     }
   );
@@ -27,7 +32,8 @@ const mapDispatchToProps = {
   dispatchFetchTalearrM4b: fetchTalearrM4b,
   dispatchSetTalearrM4bValue: setTalearrM4bValue,
   dispatchSaveTalearrM4b: saveTalearrM4b,
-  dispatchClearPendingChanges: clearPendingChanges
+  dispatchClearPendingChanges: clearPendingChanges,
+  dispatchExecuteCommand: executeCommand
 };
 
 class TalearrM4bConnector extends Component {
@@ -75,6 +81,11 @@ class TalearrM4bConnector extends Component {
     this.props.dispatchSetTalearrM4bValue({ name, value });
   };
 
+  // TaleArr: merge every multi-file audiobook already in the library (manual only).
+  onConvertLibraryPress = () => {
+    this.props.dispatchExecuteCommand({ name: commandNames.TALEARR_CONVERT_LIBRARY_TO_M4B });
+  };
+
   //
   // Render
 
@@ -82,6 +93,7 @@ class TalearrM4bConnector extends Component {
     return (
       <TalearrM4b
         onInputChange={this.onInputChange}
+        onConvertLibraryPress={this.onConvertLibraryPress}
         {...this.props}
       />
     );
@@ -95,6 +107,7 @@ TalearrM4bConnector.propTypes = {
   dispatchSetTalearrM4bValue: PropTypes.func.isRequired,
   dispatchSaveTalearrM4b: PropTypes.func.isRequired,
   dispatchClearPendingChanges: PropTypes.func.isRequired,
+  dispatchExecuteCommand: PropTypes.func.isRequired,
   onChildMounted: PropTypes.func.isRequired,
   onChildStateChange: PropTypes.func.isRequired
 };

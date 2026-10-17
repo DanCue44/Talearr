@@ -9,7 +9,15 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
         // Shown in System > Tasks instead of the split class name ("Talearr Convert To M4b").
         public static string DisplayName(string commandName)
         {
-            return commandName == "TalearrConvertToM4b" ? "Convert to M4B" : null;
+            switch (commandName)
+            {
+                case "TalearrConvertToM4b":
+                    return "Convert to M4B";
+                case "TalearrConvertLibraryToM4b":
+                    return "Convert library to M4B";
+                default:
+                    return null;
+            }
         }
 
         public int BookId { get; set; }
