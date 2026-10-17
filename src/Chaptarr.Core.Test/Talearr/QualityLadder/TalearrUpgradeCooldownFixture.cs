@@ -122,7 +122,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
             {
                 Assert.That(decision.Accepted, Is.False);
                 Assert.That(decision.Reason, Does.Contain("paused until 2026-10-24"));
-                Assert.That(decision.Reason, Does.Not.Contain("—"));
+                Assert.That(decision.Reason, Does.Not.Contain("\u2014"));
             });
         }
 
