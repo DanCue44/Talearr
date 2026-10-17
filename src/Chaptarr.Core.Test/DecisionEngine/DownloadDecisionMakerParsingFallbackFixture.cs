@@ -1318,7 +1318,7 @@ namespace Chaptarr.Core.Test.DecisionEngine
         [TestCase("epub-preferred", nameof(Quality.EPUB))]
         public void should_promote_to_the_format_the_user_ranked_highest(string ranking, string expectedQualityName)
         {
-            // Same release, same allowed set — only the user's ordering differs, and it alone decides
+            // Same release, same allowed set - only the user's ordering differs, and it alone decides
             // which format is taken. Nothing in the pipeline may prefer a format on its own.
             var ebookProfile = ranking == "mobi-preferred"
                 ? CreateRankedEbookProfile(Quality.PDF, Quality.AZW3, Quality.EPUB, Quality.MOBI)
@@ -2070,7 +2070,7 @@ namespace Chaptarr.Core.Test.DecisionEngine
         }
 
         /// <summary>
-        /// An ebook profile whose ranking is exactly the order given, worst first — i.e. whatever the
+        /// An ebook profile whose ranking is exactly the order given, worst first - i.e. whatever the
         /// user dragged into place. Everything listed is allowed.
         /// </summary>
         private static QualityProfile CreateRankedEbookProfile(params Quality[] worstToBest)

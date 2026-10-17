@@ -22,7 +22,7 @@ namespace NzbDrone.Core.Parser
         public const int ShortTitleMaxSignificantWords = 3;
         public const int ShortTitleMinLength = 12;
 
-        private static readonly Regex AuthorSegmentSeparatorRegex = new Regex(@"\s+[-–—]\s+", RegexOptions.Compiled);
+        private static readonly Regex AuthorSegmentSeparatorRegex = new Regex("\\s+[-\u2013\u2014]\\s+", RegexOptions.Compiled);
         private static readonly Regex NameTokenRegex = new Regex(@"^(?:\p{L}\.?){1,3}$|^\p{L}[\p{L}'’.]*$", RegexOptions.Compiled);
         private static readonly Regex YearRegex = new Regex(@"^(?:18|19|20|21)\d{2}$", RegexOptions.Compiled);
 
