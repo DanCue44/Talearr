@@ -51,6 +51,18 @@ TaleArr behavior changes so far (all without schema changes, new settings or `co
   request sets `monitorNewItems` / `audiobookMonitorNewItems` / `ebookMonitorNewItems`.
   `addOptions.monitor = "all"` still monitors the whole catalog. The add-book modal defaults to
   "Only this book" and "None"; saved browser defaults from before TaleArr are switched once.
+- **Merge duplicates (Library > Duplicates).** Lists authors with the same name and book rows
+  of one author with the same title and media type, and merges them: the kept row keeps its
+  ids, everything else (editions, book files, history, queue and blocklist matches, series and
+  narrator links) moves onto it, monitoring is combined, and the duplicate rows are removed in
+  one transaction. Files on disk are never moved or deleted. Ebook and audiobook rows of one
+  book are siblings and are never merged. A preview shows exactly what moves. API:
+  `GET /api/v1/talearr/merge/candidates`, `POST /api/v1/talearr/merge/authors|books`
+  (`targetId`, `sourceIds`, `dryRun`, `force`).
+- **Large libraries.** Fewer full-library loads: the book index loads series links once with a
+  single scan, Wanted, Cutoff Unmet, the calendar and author pages read statistics for their
+  own authors only, and book routes by `titleSlug` (AllSeerr links) look the slug up instead
+  of loading every book.
 
 ## Audiobooks
 

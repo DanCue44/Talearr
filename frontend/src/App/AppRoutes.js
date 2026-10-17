@@ -9,6 +9,7 @@ import AuthorDetailsPageConnector from 'Author/Details/AuthorDetailsPageConnecto
 import AuthorIndexConnector from 'Author/Index/AuthorIndexConnector';
 import BookDetailsPageConnector from 'Book/Details/BookDetailsPageConnector';
 import BookIndexConnector from 'Book/Index/BookIndexConnector';
+import TalearrDuplicates from 'Book/Talearr/TalearrDuplicates';
 import BookshelfConnector from 'Bookshelf/BookshelfConnector';
 import CalendarPageConnector from 'Calendar/CalendarPageConnector';
 import NavigationErrorBoundary from 'Components/Error/NavigationErrorBoundary';
@@ -145,6 +146,12 @@ function AppRoutes(props) {
       <Route
         path="/talearr/series/:seriesId(\d+)"
         component={TalearrSeriesPage}
+      />
+
+      {/* TaleArr: possible duplicates and merge */}
+      <Route
+        path="/talearr/duplicates"
+        component={TalearrDuplicates}
       />
 
       {/*

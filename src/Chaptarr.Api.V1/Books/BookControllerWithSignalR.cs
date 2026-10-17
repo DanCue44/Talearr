@@ -77,26 +77,33 @@ namespace Chaptarr.Api.V1.Books
                                                    bool includeAuthor,
                                                    IReadOnlyDictionary<int, BookStatistics> statsByBookId,
                                                    bool includeOverview,
-                                                   bool includeLinks)
+                                                   bool includeLinks,
+                                                   bool seriesLinksLoaded = false)
         {
             var facadeContext = HttpContext?.GetReadarrFacadeContext();
-            var seriesLinks = _seriesBookLinkService.GetLinksByBook(books.Select(x => x.Id).ToList())
-                .GroupBy(x => x.BookId)
-                .ToDictionary(x => x.Key, y => y.ToList());
 
-            foreach (var book in books)
+            // TaleArr: the book index passes books whose series links were just loaded for the
+            // whole library; loading them a second time doubled the cost of GET /book.
+            if (!seriesLinksLoaded)
             {
-                if (seriesLinks.TryGetValue(book.Id, out var links))
+                var seriesLinks = _seriesBookLinkService.GetLinksByBook(books.Select(x => x.Id).ToList())
+                    .GroupBy(x => x.BookId)
+                    .ToDictionary(x => x.Key, y => y.ToList());
+
+                foreach (var book in books)
                 {
-                    book.SeriesLinks = links;
-                }
-                else
-                {
-                    book.SeriesLinks = new List<SeriesBookLink>();
+                    if (seriesLinks.TryGetValue(book.Id, out var links))
+                    {
+                        book.SeriesLinks = links;
+                    }
+                    else
+                    {
+                        book.SeriesLinks = new List<SeriesBookLink>();
+                    }
                 }
             }
 
-            var resolvedStatsByBookId = statsByBookId ?? BuildBookStatisticsById(_authorStatisticsService.AuthorStatistics());
+            var resolvedStatsByBookId = statsByBookId ?? BuildBookStatisticsById(GetStatisticsFor(books));
 
             // Convert books to resources. Statistics are passed before mapping so narrator gating can
             // use file counts even when lean list endpoints intentionally skip BookFiles hydration.
@@ -117,6 +124,22 @@ namespace Chaptarr.Api.V1.Books
             MapCoversToLocal(result.ToArray());
 
             return result;
+        }
+
+        // TaleArr: a page of books (wanted, cutoff, calendar) only needs the statistics of its
+        // own authors. The per-author entries are cached separately, so a cold cache costs a few
+        // small queries instead of the statistics of the whole library.
+        internal const int PerAuthorStatisticsLimit = 50;
+
+        private IEnumerable<AuthorStatistics> GetStatisticsFor(List<Book> books)
+        {
+            var authorIds = books.Where(b => b != null).Select(b => b.AuthorId).Distinct().ToList();
+            if (authorIds.Count <= PerAuthorStatisticsLimit)
+            {
+                return authorIds.Select(id => _authorStatisticsService.AuthorStatistics(id)).ToList();
+            }
+
+            return _authorStatisticsService.AuthorStatistics();
         }
 
         protected static IReadOnlyDictionary<int, BookStatistics> BuildBookStatisticsById(IEnumerable<AuthorStatistics> authorStatistics)

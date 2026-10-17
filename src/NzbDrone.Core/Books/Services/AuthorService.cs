@@ -72,7 +72,8 @@ namespace NzbDrone.Core.Books
         void ClearAuthorCache();
     }
 
-    public class AuthorService : IAuthorService
+    // TaleArr: also drops its caches on CachesClearedEvent (published after a catalog merge).
+    public class AuthorService : IAuthorService, IHandle<CachesClearedEvent>
     {
         private readonly IAuthorRepository _authorRepository;
         private readonly IEventAggregator _eventAggregator;
@@ -1230,6 +1231,13 @@ namespace NzbDrone.Core.Books
                 _currentAuthorBooks = null;
                 _logger.Debug("[CACHE-TRACE] AuthorService.ClearAuthorCache - Author book cache cleared successfully");
             }
+        }
+
+        public void Handle(CachesClearedEvent message)
+        {
+            _cache.Clear();
+            _authorByIdCache.Clear();
+            ClearAuthorCache();
         }
     }
 }

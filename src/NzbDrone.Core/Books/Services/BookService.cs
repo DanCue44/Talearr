@@ -33,6 +33,11 @@ namespace NzbDrone.Core.Books
         List<Book> GetBooksByFileIds(IEnumerable<int> fileIds);
         Book AddBook(Book newBook, bool doRefresh = true);
         Book FindBySlug(string titleSlug);
+        // TaleArr: slug lookup for routes. The default keeps the old full-library behavior for
+        // other implementations; BookService answers it with one indexed-column query.
+        List<Book> FindAllBySlug(string titleSlug) => (GetAllBooks() ?? new List<Book>())
+            .Where(book => book != null && string.Equals(book.TitleSlug, titleSlug, StringComparison.OrdinalIgnoreCase))
+            .ToList();
         Book FindByTitle(int authorId, string title);
         Book FindByTitleInexact(int authorId, string title);
             Book FindByGoodreadsId(string goodreadsId);
@@ -550,6 +555,11 @@ namespace NzbDrone.Core.Books
         public Book FindBySlug(string titleSlug)
         {
             return _bookRepository.FindBySlug(titleSlug);
+        }
+
+        public List<Book> FindAllBySlug(string titleSlug)
+        {
+            return _bookRepository.FindAllBySlug(titleSlug);
         }
 
         public Book FindByTitle(int authorId, string title)

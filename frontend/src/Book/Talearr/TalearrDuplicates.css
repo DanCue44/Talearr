@@ -1,0 +1,50 @@
+.intro {
+  margin-bottom: 15px;
+  max-width: 900px;
+  color: var(--helpTextColor);
+}
+
+.heading {
+  margin: 20px 0 10px;
+  font-weight: 300;
+  font-size: 22px;
+}
+
+.set {
+  margin-bottom: 20px;
+}
+
+.setHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.setTitle {
+  font-weight: bold;
+}
+
+.setMeta {
+  color: var(--helpTextColor);
+}
+
+.rowId {
+  margin: 0 6px;
+  color: var(--helpTextColor);
+  font-size: 12px;
+}
+
+.summary {
+  margin-bottom: 8px;
+}
+
+.changes {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+
+.note {
+  margin-top: 6px;
+  color: var(--helpTextColor);
+}

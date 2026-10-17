@@ -35,6 +35,8 @@ namespace NzbDrone.Core.Books
 		        Book FindByProviderIdAndMediaType(string provider, string providerId, BookMediaType mediaType);
 		        List<Book> FindAllByProviderIdAndMediaType(string provider, string providerId, BookMediaType mediaType);
 		        Book FindBySlug(string titleSlug);
+		        // TaleArr: every row with this slug (case-insensitive), without loading the library.
+		        List<Book> FindAllBySlug(string titleSlug) => throw new NotImplementedException();
 		        List<BookSearchTarget> GetMissingBookSearchTargets(BookMediaType? mediaType, int? authorId) => throw new NotImplementedException();
 		        List<BookSearchTarget> GetCutoffUnmetSearchTargets(List<QualitiesBelowCutoff> qualitiesBelowCutoff, BookMediaType? mediaType, int? authorId) => throw new NotImplementedException();
 		        PagingSpec<Book> BooksWithoutFiles(PagingSpec<Book> pagingSpec);
@@ -381,6 +383,16 @@ namespace NzbDrone.Core.Books
 	        public Book FindBySlug(string titleSlug)
 	        {
 	            return Query(s => s.TitleSlug == titleSlug).SingleOrDefault();
+	        }
+
+	        public List<Book> FindAllBySlug(string titleSlug)
+	        {
+	            if (string.IsNullOrWhiteSpace(titleSlug))
+	            {
+	                return new List<Book>();
+	            }
+
+	            return Query(Builder().Where(@"LOWER(""Books"".""TitleSlug"") = LOWER(@titleSlug)", new { titleSlug }));
 	        }
 
         //x.Id == null is converted to SQL, so warning incorrect

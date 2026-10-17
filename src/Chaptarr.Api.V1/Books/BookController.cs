@@ -658,7 +658,8 @@ namespace Chaptarr.Api.V1.Books
                     IncludeRequested(include, "author"),
                     statsByBookId,
                     includeOverview: IncludeRequested(include, "overview"),
-                    includeLinks: IncludeRequested(include, "links"));
+                    includeLinks: IncludeRequested(include, "links"),
+                    seriesLinksLoaded: true);
             }
 
             if (authorId.HasValue)
@@ -906,8 +907,8 @@ namespace Chaptarr.Api.V1.Books
             // Readarr-compatible browser links use /book/{titleSlug}. Seerr builds those links
             // from the titleSlug returned by POST /api/v1/book, so resolve slugs here without
             // changing the canonical Chaptarr route shape.
-            var allBooks = _bookService.GetAllBooks();
-            var slugMatches = allBooks
+            // TaleArr: look the slug up directly instead of loading every book in the library.
+            var slugMatches = (_bookService.FindAllBySlug(routeToken) ?? new List<Book>())
                 .Where(book => book != null &&
                                string.Equals(book.TitleSlug, routeToken, StringComparison.OrdinalIgnoreCase))
                 .ToList();
@@ -925,11 +926,25 @@ namespace Chaptarr.Api.V1.Books
                 // Seerr stores one titleSlug per Readarr instance, but Chaptarr stores separate
                 // audiobook/ebook rows. If the stored slug belongs to the sibling format, resolve
                 // through provider identity rather than inventing a string/title match.
-                matches = allBooks
-                    .Where(candidate => candidate != null &&
-                                        candidate.MediaType == scopedMediaType.Value &&
-                                        slugMatches.Any(slugMatch => WorkIdMatcher.WorkProviderIdMatches(slugMatch, candidate)))
+                // Siblings live under the same author row; only fall back to the whole library
+                // when the author has none (for example a duplicate author row).
+                bool IsSibling(Book candidate) => candidate != null &&
+                                                  candidate.MediaType == scopedMediaType.Value &&
+                                                  slugMatches.Any(slugMatch => WorkIdMatcher.WorkProviderIdMatches(slugMatch, candidate));
+
+                matches = slugMatches
+                    .Select(book => book.AuthorId)
+                    .Distinct()
+                    .SelectMany(authorId => _bookService.GetBooksByAuthorId(authorId) ?? new List<Book>())
+                    .Where(IsSibling)
+                    .GroupBy(book => book.Id)
+                    .Select(group => group.First())
                     .ToList();
+
+                if (!matches.Any())
+                {
+                    matches = _bookService.GetAllBooks().Where(IsSibling).ToList();
+                }
 
                 if (matches.Any())
                 {
