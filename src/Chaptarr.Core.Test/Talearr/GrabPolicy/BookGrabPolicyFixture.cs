@@ -88,8 +88,8 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
             var database = _world.Folder.CreateDatabase();
             using var connection = database.OpenConnection();
 
-            Assert.That(TalearrDatabase.CurrentSchemaVersion, Is.EqualTo(3));
-            Assert.That(connection.ExecuteScalar<int>("PRAGMA user_version;"), Is.EqualTo(3));
+            Assert.That(TalearrDatabase.CurrentSchemaVersion, Is.GreaterThanOrEqualTo(3));
+            Assert.That(connection.ExecuteScalar<int>("PRAGMA user_version;"), Is.EqualTo(TalearrDatabase.CurrentSchemaVersion));
             Assert.That(connection.ExecuteScalar<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'BookGrabPolicies'"), Is.EqualTo(1));
         }
 

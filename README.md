@@ -58,7 +58,9 @@ TaleArr behavior changes so far (all without schema changes, new settings or `co
   one transaction. Files on disk are never moved or deleted. Ebook and audiobook rows of one
   book are siblings and are never merged. A preview shows exactly what moves. API:
   `GET /api/v1/talearr/merge/candidates`, `POST /api/v1/talearr/merge/authors|books`
-  (`targetId`, `sourceIds`, `dryRun`, `force`).
+  (`targetId`, `sourceIds`, `dryRun`, `force`). Merges stay merged: the provider ids of the
+  removed rows are kept in `talearr.db` pointing at the kept row, so a later refresh or add that
+  still sees an old id updates the kept row instead of adding the duplicate again.
 - **Large libraries.** Fewer full-library loads: the book index loads series links once with a
   single scan, Wanted, Cutoff Unmet, the calendar and author pages read statistics for their
   own authors only, and book routes by `titleSlug` (AllSeerr links) look the slug up instead

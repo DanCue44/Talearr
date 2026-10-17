@@ -68,13 +68,15 @@ namespace NzbDrone.Core.Talearr.Catalog
 
         private readonly IMainDatabase _database;
         private readonly IEventAggregator _eventAggregator;
+        private readonly ITalearrMergeRedirectStore _redirects;
         private readonly Logger _logger;
         private readonly object _mergeLock = new object();
 
-        public TalearrMergeService(IMainDatabase database, IEventAggregator eventAggregator, Logger logger)
+        public TalearrMergeService(IMainDatabase database, IEventAggregator eventAggregator, Logger logger, ITalearrMergeRedirectStore redirects = null)
         {
             _database = database;
             _eventAggregator = eventAggregator;
+            _redirects = redirects;
             _logger = logger;
         }
 
@@ -89,6 +91,7 @@ namespace NzbDrone.Core.Talearr.Catalog
             {
                 var report = new TalearrMergeReport { Kind = "authors", DryRun = request.DryRun, TargetId = request.TargetId };
                 var removedBooks = new List<Book>();
+                var redirects = new List<(int SourceId, List<TalearrMergeRedirect> Ids)>();
                 AuthorRow target = null;
 
                 Run(report, (conn, tran, tables) =>
@@ -112,6 +115,7 @@ namespace NzbDrone.Core.Talearr.Catalog
                     {
                         removedBooks.AddRange(conn.Query<int>(@"SELECT ""Id"" FROM ""Books"" WHERE ""AuthorId"" = @Id", new { source.Id }, tran)
                             .Select(id => new Book { Id = id, AuthorId = target.Id }));
+                        redirects.Add((source.Id, AuthorRedirects(target, source)));
                         MergeAuthor(conn, tran, tables, target, source, report);
                         report.MergedIds.Add(source.Id);
                     }
@@ -121,6 +125,7 @@ namespace NzbDrone.Core.Talearr.Catalog
                 {
                     _logger.Info("TaleArr: merged authors {0} into {1} '{2}' ({3})",
                         string.Join(", ", report.MergedIds), target.Id, target.Name, Describe(report));
+                    RecordRedirects(TalearrMergeRedirect.Author, target.Id, redirects);
                     PublishAfterMerge(target.Id, removedBooks, new List<Book>());
                 }
 
@@ -137,6 +142,7 @@ namespace NzbDrone.Core.Talearr.Catalog
                 var report = new TalearrMergeReport { Kind = "books", DryRun = request.DryRun, TargetId = request.TargetId };
                 BookRow target = null;
                 var removed = new List<Book>();
+                var redirects = new List<(int SourceId, List<TalearrMergeRedirect> Ids)>();
 
                 Run(report, (conn, tran, tables) =>
                 {
@@ -152,6 +158,7 @@ namespace NzbDrone.Core.Talearr.Catalog
 
                     foreach (var source in sources)
                     {
+                        redirects.Add((source.Id, BookRedirects(target, source)));
                         MergeBook(conn, tran, tables, target, source, report);
                         report.MergedIds.Add(source.Id);
                         removed.Add(new Book { Id = source.Id, AuthorId = source.AuthorId, MediaType = (BookMediaType)source.MediaType });
@@ -162,10 +169,69 @@ namespace NzbDrone.Core.Talearr.Catalog
                 {
                     _logger.Info("TaleArr: merged books {0} into {1} '{2}' ({3})",
                         string.Join(", ", report.MergedIds), target.Id, target.Title, Describe(report));
+                    RecordRedirects(TalearrMergeRedirect.Book, target.Id, redirects);
                     PublishAfterMerge(target.AuthorId, removed, new List<Book> { new Book { Id = target.Id, AuthorId = target.AuthorId } });
                 }
 
                 return report;
+            }
+        }
+
+        // ---- redirects ----
+
+        // The source's provider ids the target does not have. A later refresh or add that still
+        // sees one of them resolves to the target (TalearrMergeRedirectStore).
+        internal static List<TalearrMergeRedirect> AuthorRedirects(AuthorRow target, AuthorRow source)
+        {
+            var own = new HashSet<string>(target.ProviderIds().Select(id => TalearrMergeRedirectStore.Canonical(id)).Where(id => id != null), StringComparer.OrdinalIgnoreCase);
+
+            return source.ProviderIds()
+                .Select(id => TalearrMergeRedirectStore.Canonical(id))
+                .Where(id => id != null && !own.Contains(id))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(id => new TalearrMergeRedirect { EntityType = TalearrMergeRedirect.Author, ProviderId = id, Title = source.Name })
+                .ToList();
+        }
+
+        internal static List<TalearrMergeRedirect> BookRedirects(BookRow target, BookRow source)
+        {
+            var result = new List<TalearrMergeRedirect>();
+            var targetBook = target.AsBook();
+            var sourceBook = source.AsBook();
+
+            var ownWork = BookIdentity.GetStableWorkProviderIdentityTokens(targetBook);
+            foreach (var token in BookIdentity.GetStableWorkProviderIdentityTokens(sourceBook).Where(t => !ownWork.Contains(t)))
+            {
+                result.Add(new TalearrMergeRedirect { EntityType = TalearrMergeRedirect.Book, MediaType = source.MediaType, ProviderId = token, Title = source.Title });
+            }
+
+            var ownEdition = BookIdentity.GetEditionProviderIdentityTokens(targetBook);
+            foreach (var token in BookIdentity.GetEditionProviderIdentityTokens(sourceBook).Where(t => !ownEdition.Contains(t)))
+            {
+                result.Add(new TalearrMergeRedirect { EntityType = TalearrMergeRedirect.Edition, MediaType = source.MediaType, ProviderId = token, Title = source.Title });
+            }
+
+            return result;
+        }
+
+        private void RecordRedirects(string entityType, int targetId, List<(int SourceId, List<TalearrMergeRedirect> Ids)> redirects)
+        {
+            if (_redirects == null)
+            {
+                return;
+            }
+
+            try
+            {
+                foreach (var (sourceId, ids) in redirects)
+                {
+                    _redirects.Record(entityType, sourceId, targetId, ids);
+                }
+            }
+            catch (Exception ex)
+            {
+                // The merge is committed; without the redirect a refresh may add the duplicate again.
+                _logger.Warn(ex, "TaleArr: merge committed but its redirects could not be recorded");
             }
         }
 
@@ -609,7 +675,8 @@ namespace NzbDrone.Core.Talearr.Catalog
         {
             return conn.Query<BookRow>(
                 @"SELECT ""Id"", ""AuthorId"", ""Title"", ""MediaType"", ""AudiobookMonitored"", ""EbookMonitored"", ""UnitKeyHash"",
-                         ""HardcoverBookId"", ""GoodreadsWorkId"", ""OpenLibraryWorkId""
+                         ""HardcoverBookId"", ""GoodreadsWorkId"", ""OpenLibraryWorkId"",
+                         ""GoodreadsBookId"", ""OpenLibraryEditionId"", ""GoogleBooksId"", ""ASIN"", ""AudibleASIN""
                   FROM ""Books"" WHERE ""Id"" = @Id",
                 new { Id = id },
                 tran).SingleOrDefault();
@@ -670,6 +737,29 @@ namespace NzbDrone.Core.Talearr.Catalog
             public string HardcoverBookId { get; set; }
             public string GoodreadsWorkId { get; set; }
             public string OpenLibraryWorkId { get; set; }
+            public string GoodreadsBookId { get; set; }
+            public string OpenLibraryEditionId { get; set; }
+            public string GoogleBooksId { get; set; }
+            public string ASIN { get; set; }
+            public string AudibleASIN { get; set; }
+
+            // The ids the refresh matches on (BookIdentity), as an unsaved Book.
+            public Book AsBook()
+            {
+                return new Book
+                {
+                    MediaType = (BookMediaType)MediaType,
+                    HardcoverBookId = HardcoverBookId,
+                    GoodreadsWorkId = GoodreadsWorkId,
+                    OpenLibraryWorkId = OpenLibraryWorkId,
+                    GoodreadsBookId = GoodreadsBookId,
+                    OpenLibraryEditionId = OpenLibraryEditionId,
+                    GoogleBooksId = GoogleBooksId,
+                    ASIN = ASIN,
+                    AudibleASIN = AudibleASIN,
+                    Editions = new List<Edition>()
+                };
+            }
 
             // Work-level ids in the format BlocklistService writes.
             public HashSet<string> WorkTokens()

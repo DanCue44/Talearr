@@ -146,6 +146,25 @@ CREATE TABLE IF NOT EXISTS BookGrabPolicies (
     Title            TEXT,
     UpdatedAt        TEXT NOT NULL
 );
+",
+
+            // 4: merge redirects (Talearr/Catalog/TalearrMergeRedirectStore). Provider ids of rows
+            // removed by the merge tool, pointing at the row they were merged into, so a refresh or
+            // an add that still sees the old id updates the kept row instead of adding it again.
+            // MediaType is -1 for authors. Losing a row only means a merged duplicate can come back.
+            @"
+CREATE TABLE IF NOT EXISTS MergeRedirects (
+    EntityType TEXT NOT NULL,
+    MediaType  INTEGER NOT NULL,
+    ProviderId TEXT NOT NULL COLLATE NOCASE,
+    TargetId   INTEGER NOT NULL,
+    SourceId   INTEGER,
+    Title      TEXT,
+    CreatedAt  TEXT NOT NULL,
+    PRIMARY KEY (EntityType, MediaType, ProviderId)
+);
+
+CREATE INDEX IF NOT EXISTS IX_MergeRedirects_Target ON MergeRedirects (EntityType, TargetId);
 "
         };
 

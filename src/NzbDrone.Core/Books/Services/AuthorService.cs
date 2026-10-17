@@ -15,6 +15,7 @@ using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.Catalog;
 
 namespace NzbDrone.Core.Books
 {
@@ -88,6 +89,7 @@ namespace NzbDrone.Core.Books
 	        private readonly IBookRepository _bookRepository;
 	        private readonly IMediaFileService _mediaFileService;
 	        private readonly IProviderAliasService _providerAliasService;
+	        private readonly ITalearrMergeRedirectStore _mergeRedirects;
 
         // Single-author cache fields
         private volatile int _currentAuthorId = -1;
@@ -103,7 +105,8 @@ namespace NzbDrone.Core.Books
 	                             IBookRepository bookRepository,
 	                             IMediaFileService mediaFileService,
 	                             Logger logger,
-	                             IProviderAliasService providerAliasService = null)
+	                             IProviderAliasService providerAliasService = null,
+	                             ITalearrMergeRedirectStore mergeRedirects = null)
 	        {
 	            _authorRepository = authorRepository;
 	            _eventAggregator = eventAggregator;
@@ -117,6 +120,7 @@ namespace NzbDrone.Core.Books
 	            _bookRepository = bookRepository;
 	            _mediaFileService = mediaFileService;
 	            _providerAliasService = providerAliasService;
+	            _mergeRedirects = mergeRedirects;
 	        }
 
         private void EnsureAuthorDbFields(Author author, bool ensurePaths, bool requirePath)
@@ -441,7 +445,19 @@ namespace NzbDrone.Core.Books
                 .OrderBy(id => id)
                 .FirstOrDefault();
 
-            return aliasAuthorId.GetValueOrDefault() > 0 ? CacheLookupAuthor(_authorRepository.Get(aliasAuthorId.Value)) : null;
+            if (aliasAuthorId.GetValueOrDefault() > 0)
+            {
+                return CacheLookupAuthor(_authorRepository.Get(aliasAuthorId.Value));
+            }
+
+            // TaleArr: an id of an author the merge tool merged away means the kept author.
+            var redirectId = _mergeRedirects?.FindAuthor(normalizedProviderId);
+            if (redirectId.GetValueOrDefault() > 0)
+            {
+                return CacheLookupAuthor(_authorRepository.Find(redirectId.Value));
+            }
+
+            return null;
         }
 
         public Author FindByName(string title)

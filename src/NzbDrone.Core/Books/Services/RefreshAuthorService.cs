@@ -28,6 +28,7 @@ using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Books.Calibre;
 using NzbDrone.Core.Books.Services;
+using NzbDrone.Core.Talearr.Catalog;
 using NzbDrone.Core.Talearr.MetadataFallback;
 
 namespace NzbDrone.Core.Books
@@ -63,6 +64,7 @@ namespace NzbDrone.Core.Books
         private readonly IRootFolderSettingsResolver _rootFolderSettingsResolver;
         private readonly IEditionSelector _editionSelector;
         private readonly IMainDatabase _mainDatabase;
+        private readonly ITalearrMergeRedirectStore _mergeRedirects;
         private readonly Logger _logger;
         private BookRefreshMatchingIndex _bookRefreshMatchingIndex;
         private List<Book> _authorRefreshRehomeBlueprint;
@@ -93,7 +95,8 @@ namespace NzbDrone.Core.Books
                                     IRootFolderSettingsResolver rootFolderSettingsResolver,
                                     Logger logger,
                                     IEditionSelector editionSelector = null,
-                                    IMainDatabase mainDatabase = null)
+                                    IMainDatabase mainDatabase = null,
+                                    ITalearrMergeRedirectStore mergeRedirects = null)
         : base(logger)
         {
             _authorInfo = authorInfo;
@@ -118,6 +121,7 @@ namespace NzbDrone.Core.Books
             _logger = logger;
             _editionSelector = editionSelector ?? new EditionSelector(logger);
             _mainDatabase = mainDatabase;
+            _mergeRedirects = mergeRedirects;
         }
 
         private IDisposable EnterAuthorMetadataRefreshGate(string context, CancellationToken cancellationToken)
@@ -1456,7 +1460,27 @@ namespace NzbDrone.Core.Books
             {
                 var books = _bookService.GetBooksForRefresh(entity.Id, foreignIds: null);
                 HydrateLocalChildrenForRefresh(entity, books);
+                ApplyMergeRedirects(entity, books, remoteChildren);
                 return books;
+            }
+
+            // TaleArr: ids of book rows removed by the merge tool point at the kept row, so the
+            // refresh does not add the merged-away book again (Talearr/Catalog/TalearrMergeRedirects).
+            private void ApplyMergeRedirects(Author entity, List<Book> localBooks, List<Book> remoteChildren)
+            {
+                if (_mergeRedirects == null || localBooks == null || localBooks.Count == 0 || remoteChildren == null || remoteChildren.Count == 0)
+                {
+                    return;
+                }
+
+                try
+                {
+                    TalearrMergeRedirects.Apply(localBooks, remoteChildren, _mergeRedirects.GetBookRedirects(), _logger, entity?.Name);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(ex, "[TALEARR-MERGE] Unable to apply merge redirects for author '{0}'; the normal refresh rules apply", entity?.Name);
+                }
             }
 
             private void HydrateLocalChildrenForRefresh(Author entity, List<Book> books)

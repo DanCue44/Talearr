@@ -17,6 +17,7 @@ using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.Catalog;
 
 namespace NzbDrone.Core.Books
 {
@@ -101,6 +102,7 @@ namespace NzbDrone.Core.Books
         private readonly ISeriesBookLinkRepository _seriesBookLinkRepository;
         private readonly IMultiCopySeriesService _multiCopySeriesService;
         private readonly IProviderAliasService _providerAliasService;
+        private readonly ITalearrMergeRedirectStore _mergeRedirects;
         private readonly IEditionSelector _editionSelector;
         private readonly Logger _logger;
 
@@ -126,7 +128,8 @@ namespace NzbDrone.Core.Books
                            IMultiCopySeriesService multiCopySeriesService,
                            Logger logger,
                            IEditionSelector editionSelector = null,
-                           IProviderAliasService providerAliasService = null)
+                           IProviderAliasService providerAliasService = null,
+                           ITalearrMergeRedirectStore mergeRedirects = null)
         {
             _bookRepository = bookRepository;
             _editionService = editionService;
@@ -139,6 +142,7 @@ namespace NzbDrone.Core.Books
             _logger = logger;
             _editionSelector = editionSelector ?? new EditionSelector(logger);
             _providerAliasService = providerAliasService;
+            _mergeRedirects = mergeRedirects;
         }
 
         private static bool IsSameProviderBackedBook(Book a, Book b)
@@ -666,7 +670,20 @@ namespace NzbDrone.Core.Books
 
                 return FindBooksByProviderAlias(normalizedProviderId, mediaType)
                     .OrderBy(book => book.Id)
-                    .FirstOrDefault();
+                    .FirstOrDefault() ?? FindByMergeRedirect(normalizedProviderId, mediaType);
+            }
+
+            // TaleArr: an id of a book row the merge tool merged away means the kept row.
+            private Book FindByMergeRedirect(string normalizedProviderId, BookMediaType mediaType)
+            {
+                var targetId = _mergeRedirects?.FindBook(normalizedProviderId, (int)mediaType);
+                if (targetId.GetValueOrDefault() <= 0)
+                {
+                    return null;
+                }
+
+                var book = _bookRepository.Find(targetId.Value);
+                return book != null && book.MediaType == mediaType ? HydrateLookupBook(book) : null;
             }
 
             public List<Book> FindAllByProviderId(string provider, string providerId, BookMediaType mediaType)
