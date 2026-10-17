@@ -6,6 +6,7 @@ using NLog;
 using NUnit.Framework;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Books.Events;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Talearr.Catalog;
 
 namespace Chaptarr.Core.Test.Talearr.Catalog
@@ -19,6 +20,16 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
         private TalearrMergeService _subject;
         private string _fileA;
         private string _fileB;
+
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
+        {
+            // Production type handlers (List<int> as JSON etc.) must be active, as in the app.
+            if (TableMapping.Mapper.TableMap.Count == 0)
+            {
+                TableMapping.Map();
+            }
+        }
 
         [SetUp]
         public void SetUp()

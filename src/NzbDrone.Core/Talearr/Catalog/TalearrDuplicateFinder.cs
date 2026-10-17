@@ -89,8 +89,10 @@ namespace NzbDrone.Core.Talearr.Catalog
                     @"SELECT e.""BookId"", COUNT(f.""Id"") FROM ""BookFiles"" f JOIN ""Editions"" e ON e.""Id"" = f.""EditionId"" GROUP BY e.""BookId""")
                 .ToDictionary(x => x.BookId, x => x.Count);
 
+            // Arrays, not List<int>: the mapper serializes List<int> parameters as JSON.
+            var inClause = _database.DatabaseType == DatabaseType.PostgreSQL ? @"= ANY(@Ids)" : @"IN @Ids";
             return Build(authors, books, filesByBook, ids => conn.Query<(int BookId, int Count)>(
-                    @"SELECT ""BookId"", COUNT(*) FROM ""Editions"" WHERE ""BookId"" IN @Ids GROUP BY ""BookId""", new { Ids = ids })
+                    $@"SELECT ""BookId"", COUNT(*) FROM ""Editions"" WHERE ""BookId"" {inClause} GROUP BY ""BookId""", new { Ids = ids.ToArray() })
                 .ToDictionary(x => x.BookId, x => x.Count));
         }
 

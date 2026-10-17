@@ -444,9 +444,9 @@ namespace NzbDrone.Core.Talearr.Catalog
                 var moved = sourceEditions.Where(se => !targetEditions.Any(t => se.ForeignEditionId.IsNotNullOrWhiteSpace() && string.Equals(t.ForeignEditionId, se.ForeignEditionId, StringComparison.OrdinalIgnoreCase)))
                     .Select(se => se.Id)
                     .ToList();
-                if (moved.Count > 0)
+                foreach (var editionId in moved)
                 {
-                    Count(report, "bookFiles", conn.ExecuteScalar<int>(@"SELECT COUNT(*) FROM ""BookFiles"" WHERE ""EditionId"" IN @Ids", new { Ids = moved }, tran));
+                    Count(report, "bookFiles", conn.ExecuteScalar<int>(@"SELECT COUNT(*) FROM ""BookFiles"" WHERE ""EditionId"" = @Id", new { Id = editionId }, tran));
                 }
             }
 
