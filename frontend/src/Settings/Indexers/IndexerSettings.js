@@ -12,6 +12,7 @@ import ManageIndexersModal from './Indexers/Manage/ManageIndexersModal';
 import IndexerOptionsConnector from './Options/IndexerOptionsConnector';
 import TalearrFormatPolicy from './Options/TalearrFormatPolicy';
 import TalearrGrabPolicyConnector from './Options/TalearrGrabPolicyConnector';
+import TalearrMissingSearch from './Options/TalearrMissingSearch';
 
 class IndexerSettings extends Component {
 
@@ -132,6 +133,9 @@ class IndexerSettings extends Component {
 
           {/* TaleArr: format policy (docs/TALEARR_FORMAT_POLICY.md), saved with its own button */}
           <TalearrFormatPolicy />
+
+          {/* TaleArr: scheduled missing-books search, saved with its own button */}
+          <TalearrMissingSearch />
 
           <ManageIndexersModal
             isOpen={isManageIndexersOpen}

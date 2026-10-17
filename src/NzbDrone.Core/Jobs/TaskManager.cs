@@ -19,6 +19,7 @@ using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.MediaCover.Commands;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Talearr.MissingSearch;
 using NzbDrone.Core.Update.Commands;
 
 namespace NzbDrone.Core.Jobs
@@ -30,17 +31,20 @@ namespace NzbDrone.Core.Jobs
         DateTime GetNextExecution(Type type);
     }
 
-    public class TaskManager : ITaskManager, IHandle<ApplicationStartedEvent>, IHandle<CommandExecutedEvent>, IHandleAsync<ConfigSavedEvent>
+    public class TaskManager : ITaskManager, IHandle<ApplicationStartedEvent>, IHandle<CommandExecutedEvent>, IHandleAsync<ConfigSavedEvent>,
+                               IHandle<TalearrMissingSearchSettingsSavedEvent>
     {
         private readonly IScheduledTaskRepository _scheduledTaskRepository;
         private readonly IConfigService _configService;
+        private readonly ITalearrMissingSearchSettingsService _talearrMissingSearch;
         private readonly Logger _logger;
         private readonly ICached<ScheduledTask> _cache;
 
-        public TaskManager(IScheduledTaskRepository scheduledTaskRepository, IConfigService configService, ICacheManager cacheManager, Logger logger)
+        public TaskManager(IScheduledTaskRepository scheduledTaskRepository, IConfigService configService, ICacheManager cacheManager, Logger logger, ITalearrMissingSearchSettingsService talearrMissingSearch = null)
         {
             _scheduledTaskRepository = scheduledTaskRepository;
             _configService = configService;
+            _talearrMissingSearch = talearrMissingSearch;
             _cache = cacheManager.GetCache<ScheduledTask>(GetType());
             _logger = logger;
         }
@@ -240,6 +244,15 @@ namespace NzbDrone.Core.Jobs
                         Interval = 12 * 60,
                         TypeName = typeof(NzbDrone.Core.Talearr.Wishlists.SyncWishlistsCommand).FullName,
                         Priority = CommandPriority.Low
+                    },
+
+                    // TaleArr: scheduled missing-books search (Settings > Indexers). Off (interval 0)
+                    // by default. Stock Chaptarr drops this row on its next start.
+                    new ScheduledTask
+                    {
+                        Interval = GetTalearrMissingSearchInterval(),
+                        TypeName = typeof(ScheduledMissingBookSearchCommand).FullName,
+                        Priority = CommandPriority.Low
                     }
                 };
 
@@ -292,6 +305,39 @@ namespace NzbDrone.Core.Jobs
                 _cache.Set(currentDefinition.TypeName, currentDefinition);
                 _scheduledTaskRepository.Upsert(currentDefinition);
             }
+        }
+
+        private int GetTalearrMissingSearchInterval()
+        {
+            return TalearrMissingSearchSettingsService.Resolve(_talearrMissingSearch).IntervalMinutes;
+        }
+
+        // TaleArr: apply a new missing-search schedule. Turning it on starts the clock now, so the
+        // first run is one interval away instead of immediately.
+        public void Handle(TalearrMissingSearchSettingsSavedEvent message)
+        {
+            var task = GetScheduledTask(typeof(ScheduledMissingBookSearchCommand));
+            if (task == null)
+            {
+                return;
+            }
+
+            var interval = message?.Settings?.IntervalMinutes ?? 0;
+            if (task.Interval == interval)
+            {
+                return;
+            }
+
+            task.Interval = interval;
+
+            if (interval > 0 && message.WasOff)
+            {
+                task.LastExecution = DateTime.UtcNow;
+                task.LastStartTime = task.LastExecution;
+            }
+
+            _scheduledTaskRepository.Update(task);
+            _cache.Set(task.TypeName, task);
         }
 
         private int GetBackupInterval()
