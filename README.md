@@ -160,6 +160,24 @@ Storage: three extra keys in the connection's own settings JSON (stock Chaptarr 
 a cache in `talearr.db`. Chaptarr deletes connection types it does not know on start, so
 TaleArr adds none.
 
+## Reader hand-off
+
+Settings > Conversion > **Reader hand-off** (off by default) copies each ebook imported from a
+download to a watch folder, for example the ingest folder of Calibre-Web-Automated:
+
+- Always a copy: the library file is never moved or changed. Audiobooks are skipped, and so
+  are disk scans and manual imports of files without a download.
+- **Author subfolder** (off) puts each copy under a folder named after the author.
+- **Convert EPUB to KEPUB** (off) converts the copy for Kobo with
+  [kepubify](https://pgaskin.net/kepubify/) when it is on PATH in the container (not bundled).
+  Without it, or if a conversion fails, the plain EPUB is copied and System > Status warns.
+- Files are written under a hidden `.part` name and renamed when complete, so a watcher never
+  picks up half a file. **Test** checks that the folder exists and is writable.
+- **API**: `GET|PUT /api/v1/config/talearrreaderhandoff`, `POST .../test`.
+
+Storage: `talearr.readerhandoff.*` rows in the `Config` table. Not a connection type, so a
+rollback to Chaptarr only stops the copies.
+
 ## Drop-in compatibility with Chaptarr
 
 TaleArr is built so it can start on an existing Chaptarr config folder and database
