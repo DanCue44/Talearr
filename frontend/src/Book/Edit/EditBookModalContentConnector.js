@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import { saveBook, setBookValue } from 'Store/Actions/bookActions';
 import { saveEditions } from 'Store/Actions/editionActions';
+import { saveTalearrBookTags } from 'Store/Actions/talearrBookTagActions';
 import createAuthorSelector from 'Store/Selectors/createAuthorSelector';
 import createBookSelector from 'Store/Selectors/createBookSelector';
 import selectSettings from 'Store/Selectors/selectSettings';
@@ -16,7 +17,8 @@ function createMapStateToProps() {
     (state) => state.editions,
     createBookSelector(),
     createAuthorSelector(),
-    (bookState, editionState, book, author) => {
+    (state, { bookId }) => state.talearrBookTags.byBookId[bookId],
+    (bookState, editionState, book, author, talearrTags) => {
       const {
         isSaving,
         saveError,
@@ -48,6 +50,7 @@ function createMapStateToProps() {
         isSaving,
         saveError,
         item: settings.settings,
+        savedTalearrTags: talearrTags || [],
         ...settings
       };
     }
@@ -57,13 +60,23 @@ function createMapStateToProps() {
 const mapDispatchToProps = {
   dispatchSetBookValue: setBookValue,
   dispatchSaveBook: saveBook,
-  dispatchSaveEditions: saveEditions
+  dispatchSaveEditions: saveEditions,
+  dispatchSaveTalearrBookTags: saveTalearrBookTags
 };
 
 class EditBookModalContentConnector extends Component {
 
   //
   // Lifecycle
+
+  constructor(props, context) {
+    super(props, context);
+
+    // TaleArr: book tags are saved on their own route; null means unchanged.
+    this.state = {
+      talearrTags: null
+    };
+  }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevProps.isSaving && !this.props.isSaving && !this.props.saveError) {
@@ -78,7 +91,20 @@ class EditBookModalContentConnector extends Component {
     this.props.dispatchSetBookValue({ name, value });
   };
 
+  onTalearrTagsChange = ({ value }) => {
+    this.setState({ talearrTags: value });
+  };
+
   onSavePress = () => {
+    const { talearrTags } = this.state;
+
+    if (talearrTags && !_.isEqual(_.sortBy(talearrTags), _.sortBy(this.props.savedTalearrTags))) {
+      this.props.dispatchSaveTalearrBookTags({
+        bookId: this.props.bookId,
+        tags: talearrTags
+      });
+    }
+
     this.props.dispatchSaveBook({
       id: this.props.bookId
     });
@@ -94,7 +120,9 @@ class EditBookModalContentConnector extends Component {
     return (
       <EditBookModalContent
         {...this.props}
+        talearrTags={this.state.talearrTags || this.props.savedTalearrTags}
         onInputChange={this.onInputChange}
+        onTalearrTagsChange={this.onTalearrTagsChange}
         onSavePress={this.onSavePress}
       />
     );
@@ -108,6 +136,8 @@ EditBookModalContentConnector.propTypes = {
   dispatchSetBookValue: PropTypes.func.isRequired,
   dispatchSaveBook: PropTypes.func.isRequired,
   dispatchSaveEditions: PropTypes.func.isRequired,
+  savedTalearrTags: PropTypes.arrayOf(PropTypes.number).isRequired,
+  dispatchSaveTalearrBookTags: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired
 };
 

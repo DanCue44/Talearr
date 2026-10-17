@@ -6,6 +6,7 @@ import { toggleBooksMonitored } from 'Store/Actions/bookActions';
 import createBookSelector from 'Store/Selectors/createBookSelector';
 import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
 import createQueueItemSelector from 'Store/Selectors/createQueueItemSelector';
+import createTagsSelector from 'Store/Selectors/createTagsSelector';
 import createUISettingsSelector from 'Store/Selectors/createUISettingsSelector';
 import BookDetailsHeader from './BookDetailsHeader';
 
@@ -30,7 +31,15 @@ function createMapStateToProps() {
     selectQueueItem,
     createUISettingsSelector(),
     createDimensionsSelector(),
-    (book, bookDetails, queueItem, uiSettings, dimensions) => {
+    (state) => state.talearrBookTags.byBookId,
+    createTagsSelector(),
+    (book, bookDetails, queueItem, uiSettings, dimensions, talearrBookTags, tagList) => {
+      // TaleArr: book tags from talearr.db, shown by label.
+      const talearrTagLabels = (talearrBookTags[book.id] || [])
+        .map((tagId) => tagList.find((t) => t.id === tagId))
+        .filter(Boolean)
+        .map((t) => t.label);
+
       const images = (bookDetails.images && bookDetails.images.length) ? bookDetails.images : (book.images || []);
 
       // Use book's own properties if available, fallback to edition details
@@ -41,7 +50,8 @@ function createMapStateToProps() {
         queueItem,
         ratings: bookDetails.ratings || book.ratings || {}, // Prioritize edition's ratings over book's ratings
         shortDateFormat: uiSettings.shortDateFormat,
-        isSmallScreen: dimensions.isSmallScreen
+        isSmallScreen: dimensions.isSmallScreen,
+        talearrTagLabels
       };
     }
   );

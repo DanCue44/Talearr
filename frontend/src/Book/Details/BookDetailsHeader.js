@@ -171,6 +171,7 @@ class BookDetailsHeader extends Component {
       author,
       queueItem,
       isSmallScreen,
+      talearrTagLabels,
       onMonitorTogglePress
     } = this.props;
 
@@ -363,6 +364,24 @@ class BookDetailsHeader extends Component {
               </Label>
 
               {
+                // TaleArr: book tags (set them in Edit).
+                !!talearrTagLabels.length &&
+                  <Label
+                    className={styles.detailsLabel}
+                    size={sizes.LARGE}
+                  >
+                    <Icon
+                      name={icons.TAGS}
+                      size={17}
+                    />
+
+                    <span className={styles.qualityProfileName}>
+                      {talearrTagLabels.join(', ')}
+                    </span>
+                  </Label>
+              }
+
+              {
                 // TaleArr: the book is already in Audiobookshelf; links to the item there.
                 <TalearrAbsBadge
                   bookId={id}
@@ -417,6 +436,7 @@ class BookDetailsHeader extends Component {
 
 BookDetailsHeader.propTypes = {
   id: PropTypes.number.isRequired,
+  talearrTagLabels: PropTypes.arrayOf(PropTypes.string).isRequired,
   width: PropTypes.number.isRequired,
   titleSlug: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,

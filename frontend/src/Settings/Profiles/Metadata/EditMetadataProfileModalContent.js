@@ -15,6 +15,7 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import Tooltip from 'Components/Tooltip/Tooltip';
 import { icons, inputTypes, kinds, tooltipPositions } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
+import TalearrContentFilterFields from './TalearrContentFilterFields';
 import styles from './EditMetadataProfileModalContent.css';
 
 function fieldWithDefault(field, value) {
@@ -55,7 +56,8 @@ function EditMetadataProfileModalContent(props) {
     skipOmnibus,
     allowedLanguages,
     ignored,
-    minPages
+    minPages,
+    talearrContentFilter
   } = item;
   const nameField = fieldWithDefault(name, '');
   const minPopularityField = fieldWithDefault(minPopularity, 0);
@@ -276,6 +278,11 @@ function EditMetadataProfileModalContent(props) {
                   onChange={onInputChange}
                 />
               </FormGroup>
+
+              <TalearrContentFilterFields
+                field={talearrContentFilter}
+                onInputChange={onInputChange}
+              />
 
             </Form>
         }

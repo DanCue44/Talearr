@@ -9,24 +9,29 @@ import { executeCommand } from 'Store/Actions/commandActions';
 import { clearQueueDetails, fetchQueueDetails } from 'Store/Actions/queueActions';
 import * as wantedActions from 'Store/Actions/wantedActions';
 import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
+import createCustomFiltersSelector from 'Store/Selectors/createCustomFiltersSelector';
 import hasDifferentItems from 'Utilities/Object/hasDifferentItems';
 import selectUniqueIds from 'Utilities/Object/selectUniqueIds';
 import { registerPagePopulator, unregisterPagePopulator } from 'Utilities/pagePopulator';
+import { customFilterTypes } from 'Wanted/talearrWantedFilters';
 import CutoffUnmet from './CutoffUnmet';
 
 function createMapStateToProps() {
   return createSelector(
     (state) => state.wanted.cutoffUnmet,
     (state) => state.authors,
+    createCustomFiltersSelector(customFilterTypes.cutoffUnmet),
     createCommandExecutingSelector(commandNames.CUTOFF_UNMET_BOOK_SEARCH),
-    (cutoffUnmet, authors, isSearchingForCutoffUnmetBooks) => {
+    (cutoffUnmet, authors, customFilters, isSearchingForCutoffUnmetBooks) => {
 
       return {
         isAuthorFetching: authors.isFetching,
         isAuthorPopulated: authors.isPopulated,
         isSearchingForCutoffUnmetBooks,
         isSaving: cutoffUnmet.items.filter((m) => m.isSaving).length > 1,
-        ...cutoffUnmet
+        ...cutoffUnmet,
+        // TaleArr: custom filters for this page.
+        customFilters
       };
     }
   );

@@ -2,12 +2,13 @@ import { createAction } from 'redux-actions';
 import { filterTypes, sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
 import serverSideCollectionHandlers from 'Utilities/serverSideCollectionHandlers';
+import { addTalearrCustomFilter, customFilterTypes, filterBuilderProps } from 'Wanted/talearrWantedFilters';
+import { set } from './baseActions';
 import createBatchToggleBookMonitoredHandler from './Creators/createBatchToggleBookMonitoredHandler';
 import createHandleActions from './Creators/createHandleActions';
 import createServerSideCollectionHandlers from './Creators/createServerSideCollectionHandlers';
 import createClearReducer from './Creators/Reducers/createClearReducer';
 import createSetTableOptionReducer from './Creators/Reducers/createSetTableOptionReducer';
-import { set } from './baseActions';
 
 //
 // Variables
@@ -98,7 +99,10 @@ export const defaultState = {
           }
         ]
       }
-    ]
+    ],
+
+    // TaleArr: custom filters (book tags, author tags, genres, narrator).
+    filterBuilderProps
   },
 
   cutoffUnmet: {
@@ -180,7 +184,10 @@ export const defaultState = {
           }
         ]
       }
-    ]
+    ],
+
+    // TaleArr: custom filters (book tags, author tags, genres, narrator).
+    filterBuilderProps
   }
 };
 
@@ -289,6 +296,8 @@ export const actionHandlers = handleThunks({
       if (selectedMediaType !== 'all') {
         data.mediaType = selectedMediaType;
       }
+
+      addTalearrCustomFilter(state, state?.wanted?.missing, customFilterTypes.missing, data);
     }
   ),
 
@@ -323,6 +332,8 @@ export const actionHandlers = handleThunks({
       if (selectedMediaType !== 'all') {
         data.mediaType = selectedMediaType;
       }
+
+      addTalearrCustomFilter(state, state?.wanted?.cutoffUnmet, customFilterTypes.cutoffUnmet, data);
     }
   ),
 

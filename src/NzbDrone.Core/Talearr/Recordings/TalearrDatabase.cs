@@ -146,6 +146,19 @@ CREATE TABLE IF NOT EXISTS BookGrabPolicies (
     Title            TEXT,
     UpdatedAt        TEXT NOT NULL
 );
+",
+
+            // 4: book tags (Talearr/Tags/TalearrBookTagStore). Chaptarr only tags authors; these
+            // rows tag single book rows with ids from Chaptarr's own Tags table. Losing a row only
+            // drops that tag from the book.
+            @"
+CREATE TABLE IF NOT EXISTS BookTags (
+    BookId INTEGER NOT NULL,
+    TagId  INTEGER NOT NULL,
+    PRIMARY KEY (BookId, TagId)
+);
+
+CREATE INDEX IF NOT EXISTS IX_BookTags_TagId ON BookTags (TagId);
 "
         };
 
@@ -200,7 +213,7 @@ CREATE TABLE IF NOT EXISTS BookGrabPolicies (
         {
             lock (_lock)
             {
-                _logger.Warn("TaleArr: recreating {0} ({1}). It holds cached data (Audible facts, the Audiobookshelf library), which is fetched again, and per-book abridged overrides, which fall back to the global grab policy.", FileName, reason);
+                _logger.Warn("TaleArr: recreating {0} ({1}). It holds cached data (Audible facts, the Audiobookshelf library), which is fetched again, per-book abridged overrides, which fall back to the global grab policy, and book tags.", FileName, reason);
                 MoveAside();
                 _initialized = false;
                 InitializeCore(allowRecreate: false);
@@ -271,7 +284,7 @@ CREATE TABLE IF NOT EXISTS BookGrabPolicies (
             }
             catch (Exception ex) when (allowRecreate && (ex is TalearrDatabaseUnusableException || IsCorruption(ex)))
             {
-                _logger.Warn("TaleArr: {0} is unusable ({1}); recreating it. It holds cached data (Audible facts, the Audiobookshelf library) and per-book abridged overrides (books fall back to the global grab policy).", FileName, ex.Message);
+                _logger.Warn("TaleArr: {0} is unusable ({1}); recreating it. It holds cached data (Audible facts, the Audiobookshelf library), per-book abridged overrides (books fall back to the global grab policy) and book tags.", FileName, ex.Message);
                 MoveAside();
                 InitializeCore(allowRecreate: false);
             }

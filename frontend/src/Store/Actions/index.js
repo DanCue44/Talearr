@@ -33,6 +33,7 @@ import * as series from './seriesActions';
 import * as settings from './settingsActions';
 import * as system from './systemActions';
 import * as tags from './tagActions';
+import * as talearrBookTags from './talearrBookTagActions';
 import * as wanted from './wantedActions';
 
 export default [
@@ -71,5 +72,6 @@ export default [
   settings,
   system,
   tags,
+  talearrBookTags,
   wanted
 ];

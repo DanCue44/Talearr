@@ -90,6 +90,10 @@ MUST_KEEP_TALEARR_HOOKS = [
     ("src/NzbDrone.Core/Talearr/Audiobook/M4b/TalearrM4bService.cs", r"Narrator = TalearrSidecarText\.Name\(narrator\)", "sidecars: merged M4B narrator tag has whitespace collapsed"),
     ("src/NzbDrone.Core/Talearr/Catalog/TalearrDuplicateBookCleanupService.cs", r"public bool DryRun \{ get; set; \} = true;", "catalog: duplicate cleanup command is a dry run by default"),
     ("src/Chaptarr.Api.V1/Talearr/TalearrDuplicatesController.cs", r"request\?\.DryRun \?\? true", "catalog: duplicate cleanup route is a dry run by default"),
+    ("src/NzbDrone.Core/Talearr/Recordings/TalearrDatabase.cs", r"CREATE TABLE IF NOT EXISTS BookTags", "book tags: links live in talearr.db, not chaptarr.db"),
+    ("src/Chaptarr.Api.V1/Talearr/TalearrBookTagsController.cs", r'V1ApiController\("talearr/booktags"\)', "book tags: additive API route (BookResource unchanged)"),
+    ("src/NzbDrone.Core/Profiles/Metadata/MetadataProfileService.cs", r"TalearrContentFilterRules\.Rejection\(", "metadata profiles: genre and content type rules are applied"),
+    ("src/NzbDrone.Core/Talearr/ContentFilter/TalearrContentFilterStore.cs", r'KeyPrefix = "talearr\.metadataprofile\."', "metadata profiles: genre rules are talearr.* Config rows"),
 ]
 
 # Phase 2 recordings wiring (docs/TALEARR_RECORDINGS_DESIGN.md). TaleArr-only files, but the

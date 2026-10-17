@@ -6,7 +6,7 @@ import sortByName from 'Utilities/Array/sortByName';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 import translate from 'Utilities/String/translate';
 import { set, updateItem } from './baseActions';
-import { filterPredicates, filters, sortPredicates } from './bookActions';
+import { filterPredicates, filters, getAuthorTagsForBook, sortPredicates } from './bookActions';
 import createHandleActions from './Creators/createHandleActions';
 import createSetClientSideCollectionFilterReducer from './Creators/Reducers/createSetClientSideCollectionFilterReducer';
 import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
@@ -214,6 +214,42 @@ export const defaultState = {
       const predicate = filterTypePredicates[type];
 
       return predicate(item.anyEditionOk, filterValue);
+    },
+
+    // TaleArr: book tags come from talearr.db, merged in by the collection selector.
+    tags: function(item, filterValue, type, state) {
+      const predicate = filterTypePredicates[type];
+      const byBookId = (state && state.talearrBookTagsByBookId) || {};
+
+      return predicate(byBookId[item.id] || [], filterValue);
+    },
+
+    // TaleArr: the author's tags for this book's format.
+    authorTags: function(item, filterValue, type) {
+      const predicate = filterTypePredicates[type];
+
+      return predicate(getAuthorTagsForBook(item), filterValue);
+    },
+
+    mediaType: function(item, filterValue, type) {
+      const predicate = filterTypePredicates[type];
+
+      return predicate([item.mediaType || 'audiobook'], filterValue);
+    },
+
+    hasFile: function(item, filterValue, type) {
+      const predicate = filterTypePredicates[type];
+      const bookFileCount = item.statistics ? item.statistics.bookFileCount : 0;
+
+      return predicate(bookFileCount > 0, filterValue);
+    },
+
+    // TaleArr: any narrator of any recording, also when the index hides the narrator.
+    narrators: function(item, filterValue, type) {
+      const predicate = filterTypePredicates[type];
+      const names = [item.narrator, ...(item.availableNarrators || [])].filter(Boolean);
+
+      return predicate(names.join(', '), filterValue);
     }
   },
 
@@ -305,9 +341,37 @@ export const defaultState = {
     },
     {
       name: 'tags',
-      label: () => translate('Tags'),
+      label: () => 'Book Tags',
       type: filterBuilderTypes.ARRAY,
       valueType: filterBuilderValueTypes.TAG
+    },
+    {
+      name: 'authorTags',
+      label: () => 'Author Tags',
+      type: filterBuilderTypes.ARRAY,
+      valueType: filterBuilderValueTypes.TAG
+    },
+    {
+      name: 'mediaType',
+      label: () => 'Format',
+      type: filterBuilderTypes.ARRAY,
+      optionsSelector: function() {
+        return [
+          { id: 'audiobook', name: 'Audiobook' },
+          { id: 'ebook', name: 'Ebook' }
+        ];
+      }
+    },
+    {
+      name: 'hasFile',
+      label: () => 'Has File',
+      type: filterBuilderTypes.EXACT,
+      valueType: filterBuilderValueTypes.BOOL
+    },
+    {
+      name: 'narrators',
+      label: () => 'Any Recording Narrator',
+      type: filterBuilderTypes.STRING
     }
   ]
 };

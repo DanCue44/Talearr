@@ -42,7 +42,9 @@ class EditBookModalContent extends Component {
       isPopulated,
       error,
       isSaving,
+      talearrTags,
       onInputChange,
+      onTalearrTagsChange,
       onModalClose,
       ...otherProps
     } = this.props;
@@ -91,6 +93,20 @@ class EditBookModalContent extends Component {
                 helpText={translate('AnyEditionOkHelpText')}
                 {...anyEditionOk}
                 onChange={onInputChange}
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <FormLabel>
+                {translate('Tags')}
+              </FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.TAG}
+                name="talearrTags"
+                helpText="Book tags. Use them in custom filters on the book index and the Wanted pages."
+                value={talearrTags}
+                onChange={onTalearrTagsChange}
               />
             </FormGroup>
 
@@ -154,7 +170,9 @@ EditBookModalContent.propTypes = {
   error: PropTypes.object,
   isPopulated: PropTypes.bool.isRequired,
   isSaving: PropTypes.bool.isRequired,
+  talearrTags: PropTypes.arrayOf(PropTypes.number).isRequired,
   onInputChange: PropTypes.func.isRequired,
+  onTalearrTagsChange: PropTypes.func.isRequired,
   onSavePress: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired
 };

@@ -14,6 +14,7 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Profiles.Releases;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.ContentFilter;
 
 namespace NzbDrone.Core.Profiles.Metadata
 {
@@ -47,6 +48,9 @@ namespace NzbDrone.Core.Profiles.Metadata
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
 
+        // TaleArr: genre and content type rules per profile (Talearr/ContentFilter).
+        private readonly ITalearrContentFilterStore _talearrContentFilters;
+
         public MetadataProfileService(IMetadataProfileRepository profileRepository,
                                       IAuthorService authorService,
                                       IBookService bookService,
@@ -56,8 +60,10 @@ namespace NzbDrone.Core.Profiles.Metadata
                                       IRootFolderService rootFolderService,
                                       ITermMatcherService termMatcherService,
                                       IEventAggregator eventAggregator,
-                                      Logger logger)
+                                      Logger logger,
+                                      ITalearrContentFilterStore talearrContentFilters = null)
         {
+            _talearrContentFilters = talearrContentFilters;
             _profileRepository = profileRepository;
             _authorService = authorService;
             _bookService = bookService;
@@ -238,6 +244,14 @@ namespace NzbDrone.Core.Profiles.Metadata
                 FilterByPredicate(hash, GetBookKey, localHash, profile, (x, p) => !p.SkipSeriesSecondary || !seriesLinks.ContainsKey(x) || seriesLinks[x].Any(y => y.IsPrimary), "book is a secondary series item");
                 FilterByPredicate(hash, GetBookKey, localHash, profile, OmnibusAllowedByProfile, "book is an omnibus/collection");
                 FilterByPredicate(hash, GetBookKey, localHash, profile, (x, p) => !p.Ignored.Any(i => MatchesTerms(x.Title, i)), "contains ignored terms");
+
+                // TaleArr: genre allow/deny lists and content types (short stories, novellas,
+                // anthologies, graphic novels). Manual adds and books with files stay protected.
+                var talearrContentFilter = _talearrContentFilters?.Get(profile.Id);
+                if (talearrContentFilter?.IsActive == true)
+                {
+                    FilterByPredicate(hash, GetBookKey, localHash, profile, (x, p) => TalearrContentFilterRules.Rejection(x, talearrContentFilter) == null, "of the TaleArr genre or content type rules");
+                }
 
                 foreach (var book in hash)
                 {
