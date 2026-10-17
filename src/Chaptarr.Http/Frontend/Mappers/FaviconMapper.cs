@@ -20,9 +20,9 @@ namespace Chaptarr.Http.Frontend.Mappers
 
         public override string Map(string resourceUrl)
         {
-            // The tab favicon stays on the SVG logo for now; consumers that request
-            // /favicon.ico by convention get the SVG asset with the correct content type.
-            var path = Path.Combine("Content", "Images", "Icons", "favicon.svg");
+            // TaleArr: serve the real transparent ICO. Safari falls back to /favicon.ico when it
+            // cannot use the SVG tab icon, and an SVG here showed up as a blank white tile.
+            var path = Path.Combine("Content", "Images", "Icons", "favicon.ico");
 
             return Path.Combine(_appFolderInfo.StartUpFolder, _configFileProvider.UiFolder, path);
         }
