@@ -23,6 +23,12 @@ namespace NzbDrone.Core.Notifications
         protected const string BOOK_RETAGGED_TITLE = "Book File Tags Updated";
         protected const string APPLICATION_UPDATE_TITLE = "Application Updated";
 
+        // TaleArr: Sonarr/Radarr parity events.
+        protected const string HEALTH_RESTORED_TITLE = "Health Check Restored";
+        protected const string BOOK_UPGRADED_TITLE = "Book Upgraded";
+        protected const string MANUAL_INTERACTION_REQUIRED_TITLE = "Manual Interaction Required";
+        protected const string BUNDLE_GRABBED_TITLE = "Bundle Grabbed (last resort)";
+
         protected const string BOOK_GRABBED_TITLE_BRANDED = "TaleArr - " + BOOK_GRABBED_TITLE;
         protected const string BOOK_DOWNLOADED_TITLE_BRANDED = "TaleArr - " + BOOK_DOWNLOADED_TITLE;
         protected const string AUTHOR_ADDED_TITLE_BRANDED = "TaleArr - " + AUTHOR_ADDED_TITLE;
@@ -35,6 +41,8 @@ namespace NzbDrone.Core.Notifications
         protected const string IMPORT_FAILURE_TITLE_BRANDED = "TaleArr - " + IMPORT_FAILURE_TITLE;
         protected const string BOOK_RETAGGED_TITLE_BRANDED = "TaleArr - " + BOOK_RETAGGED_TITLE;
         protected const string APPLICATION_UPDATE_TITLE_BRANDED = "TaleArr - " + APPLICATION_UPDATE_TITLE;
+        protected const string HEALTH_RESTORED_TITLE_BRANDED = "TaleArr - " + HEALTH_RESTORED_TITLE;
+        protected const string MANUAL_INTERACTION_REQUIRED_TITLE_BRANDED = "TaleArr - " + MANUAL_INTERACTION_REQUIRED_TITLE;
 
         public abstract string Name { get; }
 
@@ -85,6 +93,10 @@ namespace NzbDrone.Core.Notifications
         {
         }
 
+        public virtual void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
+        {
+        }
+
         public virtual void OnDownloadFailure(DownloadFailedMessage message)
         {
         }
@@ -118,6 +130,7 @@ namespace NzbDrone.Core.Notifications
         public bool SupportsOnReleaseImport => HasConcreteImplementation("OnReleaseImport");
         public bool SupportsOnUpgrade => SupportsOnReleaseImport;
         public bool SupportsOnHealthIssue => HasConcreteImplementation("OnHealthIssue");
+        public bool SupportsOnHealthRestored => HasConcreteImplementation("OnHealthRestored");
         public bool SupportsOnDownloadFailure => HasConcreteImplementation("OnDownloadFailure");
         public bool SupportsOnImportFailure => HasConcreteImplementation("OnImportFailure");
         public bool SupportsOnBookRetag => HasConcreteImplementation("OnBookRetag");

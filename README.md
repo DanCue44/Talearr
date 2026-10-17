@@ -302,6 +302,46 @@ Changed for users: the product name in the UI, page titles, login page, PWA mani
 notifications, startup logs, the logo and icons, and the Docker image name. New native
 installs use a `TaleArr` data folder; an existing `Chaptarr` data folder is reused.
 
+## Notifications
+
+TaleArr uses Chaptarr's existing connection types (Webhook, Discord, Pushover, Apprise,
+Notifiarr, Telegram, Slack, ntfy, Gotify, email and the rest); it adds no new connection
+type, because stock Chaptarr deletes types it does not know when it starts. Events:
+
+| Event | Trigger flag | Notes |
+| --- | --- | --- |
+| Grab, import, upgrade | On Grab, On Release Import, On Upgrade | Discord and Pushover show the cover, format (e.g. `Audiobook (M4B)`), narrator and series; upgrades are titled "Book Upgraded" |
+| Bundle grabbed as last resort | On Grab | title "Bundle Grabbed (last resort)"; webhook `release.isBundle` / `release.isBundleFallback` |
+| Download failed | On Download Failure | now also sent by Webhook and Notifiarr (`eventType: DownloadFailure`) |
+| Import failed | On Import Failure | webhook `eventType: ImportFailure`, with `statusMessages` |
+| Manual interaction required | On Import Failure | a blocked import that waits for you; webhook `eventType: ManualInteractionRequired` |
+| Health issue / health restored | On Health Issue, On Health Restored | restored uses the existing `OnHealthRestored` column; webhook `eventType: HealthRestored` |
+| MAM session expired | On Health Issue | the MyAnonamouse session health check (error) |
+| Metadata fallback active | On Health Issue + Include Health Warnings | TaleArr's notice-level checks go out with warnings |
+| Application update, author/book added and deleted | as upstream | |
+
+Webhook payloads stay Readarr compatible: existing fields and `eventType` names are
+unchanged, and new data is added as extra fields (`books[].coverUrl`, `mediaType`,
+`narrator`, `series`). Rolling back to Chaptarr keeps every flag (they are existing columns).
+
+## Prowlarr and Readarr API clients
+
+- **Prowlarr**: add TaleArr as a **Readarr** application (URL `http://<host>:8789`, API key
+  from Settings > General). Prowlarr syncs its indexers as Newznab/Torznab through
+  `/api/v1/indexer`, `/indexer/schema` and `/indexer/test`. Sync categories 3030
+  (audiobook) and 7000-7999 (7020 ebook); at search time TaleArr sends audiobook searches only
+  the 3xxx categories and ebook searches only the 7xxx ones, so keep both in the app's
+  sync categories. MAM results (native indexer or through Prowlarr) carry 3030/7020 plus
+  the site category as `100000 + id`, like Prowlarr reports them.
+- **Readarr clients** (AllSeerr, dashboards, mobile apps): `/api/v1/system/status`, `/book`,
+  `/book/lookup`, `/author`, `/author/lookup`, `/queue`, `/queue/status`, `/wanted/missing`,
+  `/wanted/cutoff`, `/calendar`, `/command`, `/history` answer with Readarr-shaped resources
+  plus Chaptarr's per-format fields. `appName` stays `Chaptarr`. Clients that expect one
+  quality profile and root folder per author can use the scoped base URLs
+  `/readarr/hc/audiobook`, `/readarr/hc/ebook` (or `/audiobook`, `/ebook`).
+- `src/Chaptarr.Core.Test/Api/TalearrApiCompatibilityFixture.cs` pins the routes, fields and
+  enum strings these clients read; a change that breaks one fails the build.
+
 ## Grab policy
 
 Settings > Indexers > Grab policy controls what TaleArr grabs and what it does when a grab

@@ -19,6 +19,7 @@ namespace Chaptarr.Api.V1.Notifications
         public bool OnBookFileDelete { get; set; }
         public bool OnBookFileDeleteForUpgrade { get; set; }
         public bool OnHealthIssue { get; set; }
+        public bool OnHealthRestored { get; set; }
         public bool OnDownloadFailure { get; set; }
         public bool OnImportFailure { get; set; }
         public bool OnBookRetag { get; set; }
@@ -34,6 +35,7 @@ namespace Chaptarr.Api.V1.Notifications
         public bool SupportsOnBookFileDelete { get; set; }
         public bool SupportsOnBookFileDeleteForUpgrade { get; set; }
         public bool SupportsOnHealthIssue { get; set; }
+        public bool SupportsOnHealthRestored { get; set; }
         public bool IncludeHealthWarnings { get; set; }
         public bool SupportsOnDownloadFailure { get; set; }
         public bool SupportsOnImportFailure { get; set; }
@@ -69,6 +71,7 @@ namespace Chaptarr.Api.V1.Notifications
             resource.OnBookFileDelete = definition.OnBookFileDelete;
             resource.OnBookFileDeleteForUpgrade = definition.OnBookFileDeleteForUpgrade;
             resource.OnHealthIssue = definition.OnHealthIssue;
+            resource.OnHealthRestored = definition.OnHealthRestored;
             resource.OnDownloadFailure = definition.OnDownloadFailure;
             resource.OnImportFailure = definition.OnImportFailure;
             resource.OnBookRetag = definition.OnBookRetag;
@@ -84,6 +87,7 @@ namespace Chaptarr.Api.V1.Notifications
             resource.SupportsOnBookFileDelete = definition.SupportsOnBookFileDelete;
             resource.SupportsOnBookFileDeleteForUpgrade = definition.SupportsOnBookFileDeleteForUpgrade;
             resource.SupportsOnHealthIssue = definition.SupportsOnHealthIssue;
+            resource.SupportsOnHealthRestored = definition.SupportsOnHealthRestored;
             resource.IncludeHealthWarnings = definition.IncludeHealthWarnings;
             resource.SupportsOnDownloadFailure = definition.SupportsOnDownloadFailure;
             resource.SupportsOnImportFailure = definition.SupportsOnImportFailure;
@@ -122,6 +126,7 @@ namespace Chaptarr.Api.V1.Notifications
             definition.OnBookFileDelete = resource.OnBookFileDelete;
             definition.OnBookFileDeleteForUpgrade = resource.OnBookFileDeleteForUpgrade;
             definition.OnHealthIssue = resource.OnHealthIssue;
+            definition.OnHealthRestored = resource.OnHealthRestored;
             definition.OnDownloadFailure = resource.OnDownloadFailure;
             definition.OnImportFailure = resource.OnImportFailure;
             definition.OnBookRetag = resource.OnBookRetag;
@@ -137,6 +142,7 @@ namespace Chaptarr.Api.V1.Notifications
             definition.SupportsOnBookFileDelete = resource.SupportsOnBookFileDelete;
             definition.SupportsOnBookFileDeleteForUpgrade = resource.SupportsOnBookFileDeleteForUpgrade;
             definition.SupportsOnHealthIssue = resource.SupportsOnHealthIssue;
+            definition.SupportsOnHealthRestored = resource.SupportsOnHealthRestored;
             definition.IncludeHealthWarnings = resource.IncludeHealthWarnings;
             definition.SupportsOnDownloadFailure = resource.SupportsOnDownloadFailure;
             definition.SupportsOnImportFailure = resource.SupportsOnImportFailure;

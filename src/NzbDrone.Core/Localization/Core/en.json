@@ -1393,6 +1393,8 @@
   "OnGrabHelpText": "On Grab",
   "OnHealthIssue": "On Health Issue",
   "OnHealthIssueHelpText": "On Health Issue",
+  "OnHealthRestored": "On Health Restored",
+  "OnHealthRestoredHelpText": "On Health Restored",
   "OnImportFailure": "On Import Failure",
   "OnImportFailureHelpText": "On Import Failure",
   "OnLatestVersion": "The latest version of {appName} is already installed",

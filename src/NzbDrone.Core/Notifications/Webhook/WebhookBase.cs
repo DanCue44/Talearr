@@ -153,6 +153,63 @@ namespace NzbDrone.Core.Notifications.Webhook
             };
         }
 
+        // TaleArr: Sonarr/Radarr "HealthRestored" uses the health payload shape.
+        protected WebhookHealthPayload BuildHealthRestoredPayload(HealthCheck.HealthCheck previousCheck)
+        {
+            var payload = BuildHealthPayload(previousCheck);
+            payload.EventType = WebhookEventType.HealthRestored;
+            return payload;
+        }
+
+        // TaleArr: download failure webhook with book context when the download is still tracked.
+        public WebhookDownloadFailedPayload BuildOnDownloadFailurePayload(DownloadFailedMessage message)
+        {
+            return new WebhookDownloadFailedPayload
+            {
+                EventType = WebhookEventType.DownloadFailure,
+                InstanceName = _configFileProvider.InstanceName,
+                Author = message.Author == null ? null : new WebhookAuthor(message.Author),
+                Books = (message.Books ?? new List<Book>()).ConvertAll(x => new WebhookBook(x)),
+                Release = BuildRelease(message.Quality, message.RemoteBook),
+                Quality = message.Quality?.Quality?.Name,
+                QualityVersion = message.Quality?.Revision?.Version ?? 1,
+                ReleaseTitle = message.SourceTitle,
+                DownloadClient = message.DownloadClientInfo?.Name ?? message.DownloadClient,
+                DownloadClientType = message.DownloadClientInfo?.Type,
+                DownloadId = message.DownloadId,
+                Message = message.Message
+            };
+        }
+
+        // TaleArr: import failure webhook; a blocked import is sent as ManualInteractionRequired.
+        public WebhookImportFailedPayload BuildOnImportFailurePayload(BookDownloadMessage message)
+        {
+            return new WebhookImportFailedPayload
+            {
+                EventType = message.ManualInteractionRequired ? WebhookEventType.ManualInteractionRequired : WebhookEventType.ImportFailure,
+                InstanceName = _configFileProvider.InstanceName,
+                Author = message.Author == null ? null : new WebhookAuthor(message.Author),
+                Books = (message.Books ?? new List<Book>()).ConvertAll(x => new WebhookBook(x)),
+                Release = BuildRelease(message.RemoteBook?.ParsedBookInfo?.Quality, message.RemoteBook),
+                SourceTitle = message.SourceTitle,
+                DownloadClient = message.DownloadClientInfo?.Name,
+                DownloadClientType = message.DownloadClientInfo?.Type,
+                DownloadId = message.DownloadId,
+                Message = message.Message,
+                StatusMessages = message.StatusMessages ?? new List<string>()
+            };
+        }
+
+        private static WebhookRelease BuildRelease(Qualities.QualityModel quality, Parser.Model.RemoteBook remoteBook)
+        {
+            if (quality?.Quality == null || remoteBook?.Release == null || remoteBook.ParsedBookInfo == null)
+            {
+                return null;
+            }
+
+            return new WebhookRelease(quality, remoteBook);
+        }
+
         protected WebhookApplicationUpdatePayload BuildApplicationUpdatePayload(ApplicationUpdateMessage updateMessage)
         {
             return new WebhookApplicationUpdatePayload

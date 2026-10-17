@@ -15,6 +15,13 @@ namespace NzbDrone.Core.Notifications
         public DownloadClientItemClientInfo DownloadClientInfo { get; set; }
         public string DownloadId { get; set; }
 
+        // TaleArr: import failure / manual interaction details (unset on a successful import).
+        public List<Book> Books { get; set; }
+        public Parser.Model.RemoteBook RemoteBook { get; set; }
+        public string SourceTitle { get; set; }
+        public bool ManualInteractionRequired { get; set; }
+        public List<string> StatusMessages { get; set; } = new List<string>();
+
         public override string ToString()
         {
             return Message;

@@ -271,7 +271,9 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
                 // Set basic metadata if available
                 Author = authorInfo,
-                Categories = categoryId.HasValue ? new List<int> { categoryId.Value } : null,
+                // TaleArr: Newznab categories like Prowlarr reports for MAM (3030 audiobook, 7020 ebook,
+                // site category as 100000 + id), so category-based format and media type checks work.
+                Categories = ToNewznabCategories(mainCategory, categoryId),
                 CommentUrl = commentCount > 0 ? $"{_settings.BaseUrl.TrimEnd('/')}/t/{id}#comments" : null,
 
                 // Set enhanced metadata properties
@@ -560,6 +562,32 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             }
 
             return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
+        }
+
+        // TaleArr: MAM main categories: 13 AudioBooks, 14 E-Books, 15 Musicology, 16 Radio.
+        public static List<int> ToNewznabCategories(int? mainCategory, int? categoryId)
+        {
+            var categories = new List<int>();
+
+            switch (mainCategory)
+            {
+                case 13:
+                    categories.Add(3030);
+                    break;
+                case 14:
+                    categories.Add(7020);
+                    break;
+                case 16:
+                    categories.Add(3000);
+                    break;
+            }
+
+            if (categoryId.HasValue && categoryId.Value > 0)
+            {
+                categories.Add(100000 + categoryId.Value);
+            }
+
+            return categories.Count > 0 ? categories : null;
         }
 
         private static int? ReadNullableInt(JToken torrent, string fieldName)

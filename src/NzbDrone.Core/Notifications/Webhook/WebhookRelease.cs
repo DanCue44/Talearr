@@ -21,6 +21,10 @@ namespace NzbDrone.Core.Notifications.Webhook
             Size = remoteBook.Release.Size;
             CustomFormats = remoteBook.CustomFormats?.Select(x => x.Name).ToList();
             CustomFormatScore = remoteBook.CustomFormatScore;
+
+            // TaleArr: additive bundle flags (a box set grabbed when no single copy was found).
+            IsBundle = remoteBook.IsBundle;
+            IsBundleFallback = TalearrNotificationDetails.IsBundleFallback(remoteBook);
         }
 
         public string Quality { get; set; }
@@ -31,5 +35,7 @@ namespace NzbDrone.Core.Notifications.Webhook
         public long Size { get; set; }
         public int CustomFormatScore { get; set; }
         public List<string> CustomFormats { get; set; }
+        public bool IsBundle { get; set; }
+        public bool IsBundleFallback { get; set; }
     }
 }
