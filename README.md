@@ -406,6 +406,27 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
      history, queue entry or import is created; **Filler Import Into Library** (off) puts them
      in the client's normal TaleArr category instead. **Filler Remove After Seed Time** (on)
      removes them with their files once they have seeded that long (never under 72 hours).
+  5. **Taste preferences.** Picks that match a preferred category or author go first (then the
+     ranking above); the rest only fill the remaining slots, or none with **Filler Only Grab
+     Preferred** (off). **Filler Preferred Categories** (`True Crime`) and **Filler Excluded
+     Categories** (`Religion, Spirituality, Christian, Pol/Soc/Relig`) are comma separated MAM
+     category names matched by whole words in any case against MAM's `catname` (so True Crime
+     covers Audiobooks - True Crime and Ebooks - True Crime); an exclusion always wins.
+     Pol/Soc/Relig is MAM's combined politics, society and religion category. Authors count
+     when they are in the library (**Filler Prefer Authors in My Library**, on) or listed in
+     **Filler Preferred Authors** (empty); names ignore case, accents, dots and spacing. One
+     extra freeleech search per run (up to 2 pages) is limited to the preferred categories'
+     MAM ids (`cat`), so they are found even when the general pages miss them. Filler preview
+     shows a **Preferred** badge with the reason.
+  6. **Filler Import Preferred Picks** (on) puts preferred picks into the library while they
+     keep seeding in the filler category: once the download has finished, the book is matched
+     in the metadata and added like a wishlist book (author added with only that book
+     monitored for that format, no search; an author already in the library just gets that
+     book monitored), then the finished download is imported with copy mode (hardlink or copy
+     per Use Hardlinks, never a move), so Audiobookshelf picks it up. A book that already has
+     files, has no metadata match or is on the import list exclusions stays seed-only. Other
+     picks stay seed-only. The torrent stays a filler row on Activity > Seeding and counts as
+     before for slots and the seed time. Ignored when **Filler Import Into Library** is on.
 
   Filler torrents show on Activity > Seeding with indexer MyAnonamouse, a **Filler** label
   and the 72-hour requirement, so the hit-and-run risk check covers them. MAM policy: the
@@ -431,8 +452,10 @@ task rows that Chaptarr drops on start, and the `MamBonusPurchases` table in `ta
 `GET /api/v1/talearr/seeding` `mam` block gains `vipUntil`, `ratio`, `restricted`,
 `bonusAutoSpend`, `bonusDryRun` and `bonusPurchases`. The filler adds the
 `TalearrFillerTorrents` and `TalearrFillerState` tables (schema 8; losing them only forgets
-which client torrents the filler added and its last run), and the seeding API gains
-`isFiller` per torrent, a `filler` block (last run, result, back-off, preview) and, in `mam`,
+which client torrents the filler added and its last run; preferred picks' library state is
+kept there as `pick:<id>` rows, no schema change), and the seeding API gains `isFiller` per
+torrent, a `filler` block (last run, result, back-off, preview with `preferred`,
+`preferredReason`, `category`, `author`, `libraryState`, `libraryMessage`) and, in `mam`,
 `memberSince`, `uploadedBytes`, `downloadedBytes`, `daysUntilEligible`,
 `uploadedRemainingBytes` and `ratioOk`.
 

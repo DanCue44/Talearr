@@ -36,12 +36,18 @@ namespace Chaptarr.Core.Test.Talearr.Mam
         public TalearrMamFillerStatus GetStatus() => Status;
 
         public void SaveStatus(TalearrMamFillerStatus status) => Status = status;
+
+        public Dictionary<string, TalearrFillerPick> Picks { get; } = new Dictionary<string, TalearrFillerPick>();
+
+        public List<TalearrFillerPick> AllPicks() => Picks.Values.ToList();
+
+        public void SavePick(TalearrFillerPick pick) => Picks[pick.TorrentId] = pick;
     }
 
     // TaleArr: MAM freeleech seeding filler. MAM replies are recorded shapes served by the fake
     // HTTP client; nothing touches the network.
     [TestFixture]
-    public class MamFreeleechFillerFixture
+    public partial class MamFreeleechFillerFixture
     {
         private const long MiB = 1024L * 1024;
 
@@ -56,6 +62,8 @@ namespace Chaptarr.Core.Test.Talearr.Mam
         private List<(string Category, string Hash, TimeSpan? SeedTime)> _added;
         private List<RemoteBook> _reserved;
         private DateTime _now;
+        private SeedingFake<ITalearrMamFillerLibrary> _library;
+        private List<string> _libraryAuthors;
 
         [SetUp]
         public void SetUp()
@@ -70,7 +78,11 @@ namespace Chaptarr.Core.Test.Talearr.Mam
                 UnsatisfiedSnapshotUtc = _now.AddMinutes(-10),
                 UnsatisfiedStatusRefreshedUtc = _now.AddMinutes(-10),
                 FillerEnabled = true,
-                FillerDryRun = false
+                FillerDryRun = false,
+
+                // The 0.18.0 tests count MAM requests; the preferred category search has its own
+                // tests (MamFillerTasteFixture.cs).
+                FillerPreferredCategories = string.Empty
             };
 
             _http = FakeMamHttpClient.Create(out var client);
@@ -118,7 +130,10 @@ namespace Chaptarr.Core.Test.Talearr.Mam
                 .On("GetHashFromTorrentFile", args => "HASH" + Encoding.UTF8.GetString((byte[])args[0]));
 
             _store = new InMemoryFillerStore();
-            Service = new TalearrMamFillerService(indexerFactory, provider, (IMamUnsatisfiedSlotGuard)(object)_slotGuard, repository, seeding, _store, reader, LogManager.GetCurrentClassLogger())
+            _library = SeedingFake<ITalearrMamFillerLibrary>.Create(out var library);
+            _libraryAuthors = new List<string>();
+            _library.On("LibraryAuthorNames", _ => _libraryAuthors);
+            Service = new TalearrMamFillerService(indexerFactory, provider, (IMamUnsatisfiedSlotGuard)(object)_slotGuard, repository, seeding, _store, reader, LogManager.GetCurrentClassLogger(), library)
             {
                 UtcNow = () => _now
             };

@@ -27,6 +27,8 @@ namespace NzbDrone.Core.Talearr.MamFiller
     // and, when the stored status is old, jsonLoad.php), all through the indexer's own HTTP client,
     // proxy and session handling. No wedges, no bonus points. Filler torrents go straight to the
     // torrent client in their own category: no grab history, no tracked download, no import.
+    // Taste preferences (TalearrMamFillerTaste) rank preferred picks first; those can also be
+    // copied into the library (TalearrMamFillerLibraryService) while they keep seeding.
     //
     // Safety: never above limit minus margin (and the slot guard's Safety Reserve and User Buffer
     // still apply through TryReserve); stops when the account status is unknown or older than 3
@@ -35,6 +37,9 @@ namespace NzbDrone.Core.Talearr.MamFiller
     public class TalearrMamFillerService : ITalearrMamFillerService, IExecute<MamFreeleechFillerCommand>
     {
         public const int MaxSearchPages = 3;
+
+        // TaleArr: pages of the extra search limited to the preferred categories.
+        public const int MaxPreferredSearchPages = 2;
         private static readonly TimeSpan RefreshStatusAfter = TimeSpan.FromHours(1);
 
         private readonly IIndexerFactory _indexerFactory;
@@ -44,6 +49,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
         private readonly ITalearrSeedingService _seedingService;
         private readonly ITalearrMamFillerStore _store;
         private readonly ITorrentFileInfoReader _torrentFileInfoReader;
+        private readonly ITalearrMamFillerLibrary _library;
         private readonly Logger _logger;
         private readonly object _runLock = new object();
 
@@ -54,8 +60,10 @@ namespace NzbDrone.Core.Talearr.MamFiller
                                        ITalearrSeedingService seedingService,
                                        ITalearrMamFillerStore store,
                                        ITorrentFileInfoReader torrentFileInfoReader,
-                                       Logger logger)
+                                       Logger logger,
+                                       ITalearrMamFillerLibrary library = null)
         {
+            _library = library;
             _indexerFactory = indexerFactory;
             _downloadClientProvider = downloadClientProvider;
             _slotGuard = slotGuard;
@@ -111,6 +119,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
             if (client != null)
             {
                 Housekeep(client, settings, now);
+                AdvancePicks(client, settings, status, now);
             }
 
             if (!manual && !TalearrMamFillerRules.IsRunDue(status.LastRunAt, settings.FillerIntervalHours, now))
@@ -209,6 +218,42 @@ namespace NzbDrone.Core.Talearr.MamFiller
             var eligible = new List<TalearrMamFillerCandidate>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
             var skipped = new Dictionary<string, int>();
+            var taste = BuildTaste(settings);
+            var seenCategories = new Dictionary<int, string>();
+
+            void Consider(List<Newtonsoft.Json.Linq.JToken> results)
+            {
+                foreach (var candidate in results.Select(TalearrMamFillerRules.Parse).Where(c => c != null))
+                {
+                    if (!seen.Add(candidate.TorrentId))
+                    {
+                        continue;
+                    }
+
+                    if (candidate.CategoryId > 0 && !string.IsNullOrWhiteSpace(candidate.CategoryName))
+                    {
+                        seenCategories[candidate.CategoryId.Value] = candidate.CategoryName;
+                    }
+
+                    var reason = TalearrMamFillerRules.Reject(candidate, settings);
+                    if (reason == null && (knownIds.Contains(candidate.TorrentId) || clientNames.Contains(candidate.Title)))
+                    {
+                        reason = "already grabbed or in the client";
+                    }
+
+                    // TaleArr: taste preferences (excluded categories, Only Grab Preferred).
+                    reason ??= TalearrMamFillerTaste.Reject(candidate, taste);
+
+                    if (reason != null)
+                    {
+                        skipped[reason] = skipped.TryGetValue(reason, out var count) ? count + 1 : 1;
+                        continue;
+                    }
+
+                    candidate.PreferredReason = TalearrMamFillerTaste.PreferredReason(candidate, taste);
+                    eligible.Add(candidate);
+                }
+            }
 
             for (var page = 0; page < MaxSearchPages; page++)
             {
@@ -222,27 +267,30 @@ namespace NzbDrone.Core.Talearr.MamFiller
                     return BackOff(status, now, $"MAM freeleech search failed ({ex.Message})");
                 }
 
-                foreach (var candidate in results.Select(TalearrMamFillerRules.Parse).Where(c => c != null))
+                Consider(results);
+
+                if (results.Count < MyAnonaMouse.FillerPageSize)
                 {
-                    if (!seen.Add(candidate.TorrentId))
-                    {
-                        continue;
-                    }
-
-                    var reason = TalearrMamFillerRules.Reject(candidate, settings);
-                    if (reason == null && (knownIds.Contains(candidate.TorrentId) || clientNames.Contains(candidate.Title)))
-                    {
-                        reason = "already grabbed or in the client";
-                    }
-
-                    if (reason != null)
-                    {
-                        skipped[reason] = skipped.TryGetValue(reason, out var count) ? count + 1 : 1;
-                        continue;
-                    }
-
-                    eligible.Add(candidate);
+                    break;
                 }
+            }
+
+            // TaleArr: the general search only sees the first pages of freeleech torrents, so the
+            // preferred categories get a search of their own (MAM filters by site category id).
+            var preferredIds = TalearrMamFillerTaste.PreferredCategoryIds(taste.PreferredCategories, seenCategories);
+            for (var page = 0; preferredIds.Count > 0 && page < MaxPreferredSearchPages; page++)
+            {
+                List<Newtonsoft.Json.Linq.JToken> results;
+                try
+                {
+                    results = await indexer.SearchFillerFreeleechAsync(page, preferredIds);
+                }
+                catch (Exception ex)
+                {
+                    return BackOff(status, now, $"MAM preferred category search failed ({ex.Message})");
+                }
+
+                Consider(results);
 
                 if (results.Count < MyAnonaMouse.FillerPageSize)
                 {
@@ -257,6 +305,12 @@ namespace NzbDrone.Core.Talearr.MamFiller
             var skippedText = skipped.Count == 0
                 ? string.Empty
                 : " (skipped: " + string.Join(", ", skipped.OrderByDescending(s => s.Value).Select(s => $"{s.Value} {s.Key}")) + ")";
+
+            var preferredCount = picked.Count(c => c.IsPreferred);
+            if (preferredCount > 0)
+            {
+                skippedText = $"; {preferredCount} preferred" + skippedText;
+            }
 
             if (settings.FillerDryRun)
             {
@@ -335,6 +389,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
 
                 _store.Save(record);
                 grabbed++;
+                SavePick(candidate, record, settings);
                 _logger.Info("MAM freeleech filler grabbed {0} '{1}' ({2} leechers, {3} seeders, {4}) into category {5}",
                     candidate.TorrentId, candidate.Title, candidate.Leechers, candidate.Seeders, candidate.Size.SizeSuffix(), record.Category);
             }
@@ -391,6 +446,124 @@ namespace NzbDrone.Core.Talearr.MamFiller
             catch (Exception ex)
             {
                 _logger.Warn(ex, "MAM freeleech filler: could not check filler torrents in the download client");
+            }
+        }
+
+        // TaleArr: taste preferences. Library authors only when that option is on; a library read
+        // failure just means no author preferences this run.
+        private TalearrMamFillerTasteProfile BuildTaste(MyAnonaMouseSettings settings)
+        {
+            List<string> authors = null;
+            if (settings.FillerPreferLibraryAuthors && _library != null)
+            {
+                try
+                {
+                    authors = _library.LibraryAuthorNames();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "MAM freeleech filler: could not read the library authors");
+                }
+            }
+
+            return TalearrMamFillerTaste.Build(settings, authors);
+        }
+
+        // Only preferred picks that stay in the filler category are put into the library; with
+        // Filler Import Into Library the normal category already handles every pick.
+        internal static bool ShouldImport(TalearrMamFillerCandidate candidate, TalearrFillerTorrent record, MyAnonaMouseSettings settings)
+        {
+            return candidate.IsPreferred &&
+                   settings.FillerImportPreferred &&
+                   !settings.FillerImport &&
+                   record.ClientHash.IsNotNullOrWhiteSpace() &&
+                   string.Equals(record.Category, settings.FillerCategory, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void SavePick(TalearrMamFillerCandidate candidate, TalearrFillerTorrent record, MyAnonaMouseSettings settings)
+        {
+            if (_library == null || !ShouldImport(candidate, record, settings))
+            {
+                return;
+            }
+
+            _store.SavePick(new TalearrFillerPick
+            {
+                TorrentId = candidate.TorrentId,
+                Title = candidate.Title,
+                Author = candidate.Authors?.FirstOrDefault(),
+                IsAudiobook = candidate.IsAudiobook,
+                PreferredReason = candidate.PreferredReason,
+                LibraryState = TalearrFillerPick.StateWaiting,
+                LibraryMessage = "Waiting for the download to finish",
+                UpdatedAt = record.AddedAt
+            });
+        }
+
+        // Moves open library picks along once their filler torrent has finished. Runs every hour
+        // with the housekeeping, not only when the filler itself is due.
+        internal void AdvancePicks(ITalearrMamFillerClient client, MyAnonaMouseSettings settings, TalearrMamFillerStatus status, DateTime now)
+        {
+            if (_library == null || !settings.FillerImportPreferred)
+            {
+                return;
+            }
+
+            try
+            {
+                var open = _store.AllPicks().Where(p => p.IsOpen).ToList();
+                if (open.Count == 0)
+                {
+                    return;
+                }
+
+                var records = _store.All().ToDictionary(t => t.TorrentId, StringComparer.Ordinal);
+                var changed = false;
+
+                foreach (var pick in open)
+                {
+                    TalearrFillerDownload download = null;
+                    if (records.TryGetValue(pick.TorrentId, out var record) &&
+                        record.State != TalearrFillerTorrent.StateRemoved &&
+                        record.ClientHash.IsNotNullOrWhiteSpace())
+                    {
+                        download = client.GetFillerDownload(record.ClientHash, record.Category);
+                    }
+
+                    if (_library.Advance(pick, download, now))
+                    {
+                        _store.SavePick(pick);
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                {
+                    ApplyPicks(status);
+                    _store.SaveStatus(status);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "MAM freeleech filler: could not import preferred picks into the library");
+            }
+        }
+
+        private void ApplyPicks(TalearrMamFillerStatus status)
+        {
+            if (status?.Preview == null || status.Preview.Count == 0)
+            {
+                return;
+            }
+
+            var picks = _store.AllPicks().ToDictionary(p => p.TorrentId, StringComparer.Ordinal);
+            foreach (var item in status.Preview)
+            {
+                if (item.TorrentId != null && picks.TryGetValue(item.TorrentId, out var pick))
+                {
+                    item.LibraryState = pick.LibraryState;
+                    item.LibraryMessage = pick.LibraryMessage;
+                }
             }
         }
 
@@ -455,7 +628,11 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 Size = candidate.Size,
                 Seeders = candidate.Seeders,
                 Leechers = candidate.Leechers,
-                IsAudiobook = candidate.IsAudiobook
+                IsAudiobook = candidate.IsAudiobook,
+                Preferred = candidate.IsPreferred,
+                PreferredReason = candidate.PreferredReason,
+                Category = TalearrMamFillerTaste.CategoryNameOf(candidate),
+                Author = candidate.Authors == null || candidate.Authors.Count == 0 ? null : string.Join(", ", candidate.Authors)
             };
         }
 
@@ -487,6 +664,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
             try
             {
                 status.Tracked = _store.All().Count(t => t.State == TalearrFillerTorrent.StateAdded);
+                ApplyPicks(status);
             }
             catch (Exception)
             {

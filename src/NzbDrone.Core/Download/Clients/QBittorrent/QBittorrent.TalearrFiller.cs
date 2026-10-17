@@ -64,6 +64,34 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             Proxy.RemoveTorrent(hash.ToLowerInvariant(), true, Settings);
         }
 
+        // TaleArr: filler taste preferences. Completed once qBittorrent has the whole payload and is
+        // seeding (or stopped after seeding); the path is the torrent's own folder or file.
+        public TalearrFillerDownload GetFillerDownload(string hash, string category)
+        {
+            if (hash.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
+
+            var torrent = Proxy.GetTorrents(Settings, category.IsNullOrWhiteSpace() ? null : category)
+                .FirstOrDefault(t => string.Equals(t.Hash, hash, StringComparison.OrdinalIgnoreCase));
+
+            if (torrent == null)
+            {
+                return null;
+            }
+
+            var completed = torrent.Progress >= 1.0 &&
+                            torrent.State is "pausedUP" or "stoppedUP" or "uploading" or "stalledUP" or "queuedUP" or "forcedUP";
+            var contentPath = completed ? ResolveContentPath(torrent) : null;
+
+            return new TalearrFillerDownload
+            {
+                Completed = completed && contentPath.HasValue,
+                OutputPath = contentPath.HasValue ? RemapRemoteToLocal(contentPath.Value).FullPath : null
+            };
+        }
+
         private void EnsureCategory(IQBittorrentProxy proxy, string category)
         {
             if (category.IsNullOrWhiteSpace() || ProxyApiVersion < new Version(2, 0))

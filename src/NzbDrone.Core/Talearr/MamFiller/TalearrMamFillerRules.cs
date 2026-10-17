@@ -56,8 +56,40 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 Free = ReadFlag(torrent, "free"),
                 PersonalFreeleech = ReadFlag(torrent, "personal_freeleech"),
                 VipFreeleech = ReadFlag(torrent, "fl_vip"),
-                Vip = ReadFlag(torrent, "vip")
+                Vip = ReadFlag(torrent, "vip"),
+                CategoryId = ReadInt(torrent, "category"),
+                CategoryName = ReadString(torrent, "catname"),
+                Authors = ReadAuthors(torrent["author_info"])
             };
+        }
+
+        // TaleArr: author_info is a JSON string like {"7640": "J K Rowling"} (sometimes an object).
+        internal static List<string> ReadAuthors(JToken token)
+        {
+            var authors = new List<string>();
+            if (token == null || token.Type is JTokenType.Null or JTokenType.Undefined)
+            {
+                return authors;
+            }
+
+            try
+            {
+                var map = token.Type == JTokenType.Object ? (JObject)token : JObject.Parse(token.ToObject<string>() ?? string.Empty);
+                foreach (var property in map.Properties())
+                {
+                    var name = property.Value?.Type == JTokenType.String ? property.Value.ToObject<string>()?.Trim() : null;
+                    if (!string.IsNullOrEmpty(name) && !authors.Contains(name, StringComparer.OrdinalIgnoreCase))
+                    {
+                        authors.Add(name);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Not JSON: no authors, the torrent can still match by category.
+            }
+
+            return authors;
         }
 
         // Strictly from MAM's own flags (no title text guessing): global freeleech, or personal
@@ -126,11 +158,13 @@ namespace NzbDrone.Core.Talearr.MamFiller
             return null;
         }
 
-        // Audiobooks first when preferred, then most leechers, fewest seeders, smallest.
+        // TaleArr: preferred picks (taste preferences) first, then audiobooks when preferred, then
+        // most leechers, fewest seeders, smallest. Without preferences this is the 0.18.0 order.
         public static List<TalearrMamFillerCandidate> Rank(IEnumerable<TalearrMamFillerCandidate> candidates, bool preferAudiobooks)
         {
             return candidates
-                .OrderByDescending(c => preferAudiobooks && c.IsAudiobook)
+                .OrderByDescending(c => c.IsPreferred)
+                .ThenByDescending(c => preferAudiobooks && c.IsAudiobook)
                 .ThenByDescending(c => c.Leechers)
                 .ThenBy(c => c.Seeders)
                 .ThenBy(c => c.Size)

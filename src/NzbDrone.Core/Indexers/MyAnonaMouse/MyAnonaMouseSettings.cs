@@ -273,7 +273,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         public double MinimumRatioAfterGrab { get; set; } = MyAnonaMouseAccountStanding.DefaultMinimumRatioAfterGrab;
 
         // TaleArr: freeleech seeding filler (Talearr/MamFiller). Off by default.
-        [FieldDefinition(40, Type = FieldType.Checkbox, Label = "Freeleech Seeding Filler", Section = "Freeleech Seeding Filler", HelpText = "Fill free unsatisfied-torrent slots with popular freeleech MAM torrents so more torrents reach the 72-hour seeding requirement and earn bonus points. Uses only MAM's JSON search and download.php, never wedges or bonus points. They go to the torrent client in their own category and are not imported.")]
+        [FieldDefinition(40, Type = FieldType.Checkbox, Label = "Freeleech Seeding Filler", Section = "Freeleech Seeding Filler", HelpText = "Fill free unsatisfied-torrent slots with popular freeleech MAM torrents so more torrents reach the 72-hour seeding requirement and earn bonus points. Uses only MAM's JSON search and download.php, never wedges or bonus points. They go to the torrent client in their own category; only preferred picks are imported (Filler Import Preferred Picks).")]
         public bool FillerEnabled { get; set; }
 
         [FieldDefinition(41, Type = FieldType.Checkbox, Label = "Filler Dry Run", Section = "Freeleech Seeding Filler", HelpText = "Only log and show what the filler would grab (Activity > Seeding, Filler preview). Turn off to let it grab.")]
@@ -311,6 +311,26 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
         [FieldDefinition(52, Type = FieldType.Checkbox, Label = "Filler Import Into Library", Section = "Freeleech Seeding Filler", HelpText = "Put filler torrents in the client's normal TaleArr category so completed download handling may import them. Off keeps them seed-only.", Advanced = true)]
         public bool FillerImport { get; set; }
+
+        // TaleArr: filler taste preferences (Talearr/MamFiller/TalearrMamFillerTaste). Preferred
+        // picks are grabbed first; empty lists keep the plain leecher/seeder ranking.
+        [FieldDefinition(53, Type = FieldType.Textbox, Label = "Filler Preferred Categories", Section = "Freeleech Seeding Filler", HelpText = "Comma separated MAM category names to grab first, matched by whole words in any case: True Crime matches Audiobooks - True Crime and Ebooks - True Crime. Also runs one extra MAM search limited to these categories.", Advanced = true)]
+        public string FillerPreferredCategories { get; set; } = Talearr.MamFiller.TalearrMamFillerTaste.DefaultPreferredCategories;
+
+        [FieldDefinition(54, Type = FieldType.Checkbox, Label = "Filler Prefer Authors in My Library", Section = "Freeleech Seeding Filler", HelpText = "Torrents by an author already in your library count as preferred.", Advanced = true)]
+        public bool FillerPreferLibraryAuthors { get; set; } = true;
+
+        [FieldDefinition(55, Type = FieldType.Textbox, Label = "Filler Preferred Authors", Section = "Freeleech Seeding Filler", HelpText = "Comma separated extra author names to grab first. Spacing, dots and case do not matter.", Advanced = true)]
+        public string FillerPreferredAuthors { get; set; } = string.Empty;
+
+        [FieldDefinition(56, Type = FieldType.Textbox, Label = "Filler Excluded Categories", Section = "Freeleech Seeding Filler", HelpText = "Comma separated MAM category names the filler never grabs (whole words, any case). Pol/Soc/Relig is MAM's combined politics, society and religion category.", Advanced = true)]
+        public string FillerExcludedCategories { get; set; } = Talearr.MamFiller.TalearrMamFillerTaste.DefaultExcludedCategories;
+
+        [FieldDefinition(57, Type = FieldType.Checkbox, Label = "Filler Only Grab Preferred", Section = "Freeleech Seeding Filler", HelpText = "Leave slots empty rather than fill them with torrents that match no preferred category or author.", Advanced = true)]
+        public bool FillerOnlyPreferred { get; set; }
+
+        [FieldDefinition(58, Type = FieldType.Checkbox, Label = "Filler Import Preferred Picks", Section = "Freeleech Seeding Filler", HelpText = "Add preferred picks to the library (only that book monitored, no search) and copy or hardlink the finished download in, while the torrent keeps seeding in the filler category. Other picks stay seed-only.", Advanced = true)]
+        public bool FillerImportPreferred { get; set; } = true;
     }
 
     public enum MyAnonaMouseFreeleechWedgeAction
