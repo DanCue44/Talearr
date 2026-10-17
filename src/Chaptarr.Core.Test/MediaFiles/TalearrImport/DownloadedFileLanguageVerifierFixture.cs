@@ -304,6 +304,36 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
             }
         }
 
+        [Test]
+        public void manual_import_should_describe_a_language_mismatch_without_rejecting()
+        {
+            _reader.Evidence["/old/book.epub"] = new FileLanguageEvidence(new[] { "swe" }, "EPUB dc:language");
+            var decision = Decision("/old/book.epub", _book, _book.Editions[0]);
+
+            var mismatch = Subject().DescribeMismatch(decision.Item);
+
+            Assert.That(mismatch, Does.Contain("Swedish (swe)"));
+            Assert.That(mismatch, Does.Contain("English (eng)"));
+            Assert.That(mismatch, Does.Not.Contain("rejected"));
+            Assert.That(decision.Approved, Is.True);
+        }
+
+        [Test]
+        public void manual_import_should_not_describe_a_file_in_the_wanted_language()
+        {
+            _reader.Evidence["/old/book.epub"] = new FileLanguageEvidence(new[] { "eng" }, "EPUB dc:language");
+
+            Assert.That(Subject().DescribeMismatch(Decision("/old/book.epub", _book, _book.Editions[0]).Item), Is.Null);
+        }
+
+        [Test]
+        public void manual_import_should_not_describe_when_the_check_is_off()
+        {
+            _reader.Evidence["/old/book.epub"] = new FileLanguageEvidence(new[] { "swe" }, "EPUB dc:language");
+
+            Assert.That(Subject(enabled: false).DescribeMismatch(Decision("/old/book.epub", _book, _book.Editions[0]).Item), Is.Null);
+        }
+
         public class MetadataProfileServiceProxy : DispatchProxy
         {
             public Dictionary<int, MetadataProfile> Profiles { get; } = new Dictionary<int, MetadataProfile>();

@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import * as commandNames from 'Commands/commandNames';
+import { getImportCommandMode } from 'InteractiveImport/importModeOptions';
 import { executeCommand } from 'Store/Actions/commandActions';
 import { addRecentFolder, removeRecentFolder, setInteractiveImportMode } from 'Store/Actions/interactiveImportActions';
 import { fetchMediaManagementSettings, saveMediaManagementSettings, setMediaManagementSettingsValue } from 'Store/Actions/settingsActions';
@@ -67,7 +68,7 @@ class InteractiveImportSelectFolderModalContentConnector extends Component {
     this.props.executeCommand({
       name: commandNames.DOWNLOADED_BOOKS_SCAN,
       path: folder,
-      importMode,
+      ...getImportCommandMode(importMode),
       requireDefaultRootFolderForMissingAuthors: true
     });
 

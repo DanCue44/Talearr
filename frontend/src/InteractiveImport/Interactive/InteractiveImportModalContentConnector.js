@@ -4,6 +4,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import * as commandNames from 'Commands/commandNames';
+import { getImportCommandMode, normalizeImportMode } from 'InteractiveImport/importModeOptions';
 import { executeCommand } from 'Store/Actions/commandActions';
 import {
   cancelFetchInteractiveImportItems,
@@ -23,7 +24,7 @@ function createMapStateToProps() {
     createClientSideCollectionSelector('interactiveImport'),
     createSettingsSectionSelector('mediaManagement'),
     (interactiveImport, mediaManagementSettings) => {
-      const importMode = interactiveImport.importMode === 'move' ? 'move' : 'copy';
+      const importMode = normalizeImportMode(interactiveImport.importMode);
 
       return {
         ...interactiveImport,
@@ -295,7 +296,7 @@ class InteractiveImportModalContentConnector extends Component {
       name: commandNames.INTERACTIVE_IMPORT,
       files,
       previewFiles,
-      importMode,
+      ...getImportCommandMode(importMode),
       replaceExistingFiles: this.state.replaceExistingFiles,
       commandFinished: this.props.onImportComplete
     });

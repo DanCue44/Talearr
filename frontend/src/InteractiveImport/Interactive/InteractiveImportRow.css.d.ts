@@ -3,6 +3,7 @@
 interface CssExports {
   'action': string;
   'additionalFile': string;
+  'confidence': string;
   'customFormatTooltip': string;
   'label': string;
   'path': string;

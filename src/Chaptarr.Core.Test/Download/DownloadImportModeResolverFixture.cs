@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using NLog;
 using NUnit.Framework;
+using Chaptarr.Core.Test.MediaFiles.TalearrImport;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.History;
@@ -91,7 +93,8 @@ namespace Chaptarr.Core.Test.Download
         private static DownloadImportModeResolver BuildResolver(
             StubDownloadHistoryService downloadHistory,
             Func<int, IndexerDefinition> findIndexer,
-            Func<int, DownloadClientDefinition> findClient)
+            Func<int, DownloadClientDefinition> findClient,
+            bool seedingSafeImports = true)
         {
             var indexerFactory = DispatchProxy.Create<IIndexerFactory, IndexerFactoryProxy>();
             ((IndexerFactoryProxy)(object)indexerFactory).Find = findIndexer;
@@ -101,7 +104,10 @@ namespace Chaptarr.Core.Test.Download
 
             var logger = LogManager.GetLogger("DownloadImportModeResolverFixture");
 
-            return new DownloadImportModeResolver(downloadHistory, indexerFactory, downloadClientFactory, logger);
+            var config = TalearrConfigProxy.Create();
+            ((TalearrConfigProxy)(object)config).Values[nameof(IConfigService.TalearrSeedingSafeImports)] = seedingSafeImports;
+
+            return new DownloadImportModeResolver(downloadHistory, indexerFactory, downloadClientFactory, logger, config);
         }
 
         [Test]
@@ -181,7 +187,7 @@ namespace Chaptarr.Core.Test.Download
                 CopyUnmanagedDownloads = false
             };
 
-            var resolver = BuildResolver(history, _ => null, id => id == 5 ? clientDefinition : null);
+            var resolver = BuildResolver(history, _ => null, id => id == 5 ? clientDefinition : null, seedingSafeImports: false);
             var item = DownloadItem("ABC", downloadClientId: 5, protocol: DownloadProtocol.Torrent, canMove: true);
 
             Assert.That(resolver.Resolve(ImportMode.Auto, item), Is.EqualTo(ImportMode.Move));
@@ -227,10 +233,77 @@ namespace Chaptarr.Core.Test.Download
                 RemoveCompletedDownloads = false
             };
 
-            var resolver = BuildResolver(history, _ => null, id => id == 5 ? clientDefinition : null);
+            var resolver = BuildResolver(history, _ => null, id => id == 5 ? clientDefinition : null, seedingSafeImports: false);
             var item = DownloadItem("ABC", downloadClientId: 5, protocol: DownloadProtocol.Torrent, canMove: true);
 
             Assert.That(resolver.Resolve(ImportMode.Auto, item), Is.EqualTo(ImportMode.Move));
+        }
+
+        // TaleArr: seeding-safe imports.
+        [Test]
+        public void should_copy_a_torrent_that_reached_its_seed_goal_when_seeding_safe()
+        {
+            var history = new StubDownloadHistoryService { LatestGrab = _ => null };
+            var resolver = BuildResolver(history, _ => null, _ => null);
+            var item = DownloadItem("ABC", downloadClientId: 5, protocol: DownloadProtocol.Torrent, canMove: true);
+
+            Assert.That(resolver.Resolve(ImportMode.Auto, item), Is.EqualTo(ImportMode.Copy));
+            Assert.That(resolver.ShouldPreserveDownloadClientItem(item), Is.False);
+        }
+
+        [Test]
+        public void should_copy_a_seeding_torrent_even_when_move_is_requested()
+        {
+            var history = new StubDownloadHistoryService { LatestGrab = _ => null };
+            var resolver = BuildResolver(history, _ => null, _ => null);
+            var item = DownloadItem("ABC", downloadClientId: 5, protocol: DownloadProtocol.Torrent, canMove: false);
+
+            Assert.That(resolver.Resolve(ImportMode.Move, item), Is.EqualTo(ImportMode.Copy));
+        }
+
+        [Test]
+        public void should_copy_a_torrent_kept_in_a_post_import_category()
+        {
+            var history = new StubDownloadHistoryService { LatestGrab = _ => null };
+            var resolver = BuildResolver(history, _ => null, _ => null);
+            var item = DownloadItem("ABC", downloadClientId: 5, protocol: DownloadProtocol.Torrent, canMove: true);
+            item.DownloadClientInfo.HasPostImportCategory = true;
+
+            var policy = resolver.ResolvePolicy(ImportMode.Auto, item);
+
+            Assert.That(policy.ImportMode, Is.EqualTo(ImportMode.Copy));
+        }
+
+        [Test]
+        public void should_still_move_usenet_downloads_when_seeding_safe()
+        {
+            var history = new StubDownloadHistoryService { LatestGrab = _ => null };
+            var resolver = BuildResolver(history, _ => null, _ => null);
+            var item = DownloadItem("ABC", downloadClientId: 5, protocol: DownloadProtocol.Usenet, canMove: true);
+
+            Assert.That(resolver.Resolve(ImportMode.Auto, item), Is.EqualTo(ImportMode.Move));
+            Assert.That(resolver.Resolve(ImportMode.Move, item), Is.EqualTo(ImportMode.Move));
+        }
+
+        [Test]
+        public void should_leave_a_torrent_blackhole_to_its_read_only_setting()
+        {
+            var history = new StubDownloadHistoryService { LatestGrab = _ => null };
+            var resolver = BuildResolver(history, _ => null, _ => null);
+            var item = DownloadItem("ABC", downloadClientId: 5, protocol: DownloadProtocol.Torrent, canMove: true);
+            item.DownloadClientInfo.Type = "Torrent Blackhole";
+
+            Assert.That(resolver.Resolve(ImportMode.Auto, item), Is.EqualTo(ImportMode.Move));
+        }
+
+        [Test]
+        public void should_keep_an_explicit_copy_for_a_torrent()
+        {
+            var history = new StubDownloadHistoryService { LatestGrab = _ => null };
+            var resolver = BuildResolver(history, _ => null, _ => null);
+            var item = DownloadItem("ABC", downloadClientId: 5, protocol: DownloadProtocol.Torrent, canMove: true);
+
+            Assert.That(resolver.Resolve(ImportMode.Copy, item), Is.EqualTo(ImportMode.Copy));
         }
 
         [Test]

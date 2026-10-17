@@ -1,9 +1,11 @@
 using System;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.MediaFiles.BookImport;
+using NzbDrone.Core.Talearr.Import;
 
 namespace NzbDrone.Core.Download
 {
@@ -33,16 +35,19 @@ namespace NzbDrone.Core.Download
         private readonly IDownloadHistoryService _downloadHistoryService;
         private readonly IIndexerFactory _indexerFactory;
         private readonly IDownloadClientFactory _downloadClientFactory;
+        private readonly IConfigService _configService;
         private readonly Logger _logger;
 
         public DownloadImportModeResolver(IDownloadHistoryService downloadHistoryService,
                                           IIndexerFactory indexerFactory,
                                           IDownloadClientFactory downloadClientFactory,
-                                          Logger logger)
+                                          Logger logger,
+                                          IConfigService configService = null)
         {
             _downloadHistoryService = downloadHistoryService;
             _indexerFactory = indexerFactory;
             _downloadClientFactory = downloadClientFactory;
+            _configService = configService;
             _logger = logger;
         }
 
@@ -52,6 +57,41 @@ namespace NzbDrone.Core.Download
         }
 
         public DownloadImportPolicy ResolvePolicy(ImportMode requestedMode, DownloadClientItem downloadClientItem)
+        {
+            return ApplySeedingSafeImport(ResolveUpstreamPolicy(requestedMode, downloadClientItem), downloadClientItem);
+        }
+
+        // TaleArr: a torrent the client still owns is copied (hardlinked), never moved.
+        private DownloadImportPolicy ApplySeedingSafeImport(DownloadImportPolicy policy, DownloadClientItem downloadClientItem)
+        {
+            var mode = TalearrSeedingSafeImport.Apply(policy.ImportMode, downloadClientItem, IsSeedingSafeImportsEnabled(), out var reason);
+            if (mode == policy.ImportMode)
+            {
+                return policy;
+            }
+
+            _logger.Debug("[IMPORT-MODE] Using copy/hardlink instead of move for download '{0}' ({1}) because {2}",
+                downloadClientItem?.Title ?? "<unknown>",
+                downloadClientItem?.DownloadId ?? "<unknown>",
+                reason);
+
+            return new DownloadImportPolicy(mode, policy.PreserveDownloadClientItem, policy.PreserveReason);
+        }
+
+        private bool IsSeedingSafeImportsEnabled()
+        {
+            try
+            {
+                return _configService?.TalearrSeedingSafeImports ?? true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Cannot read TalearrSeedingSafeImports, using the default");
+                return true;
+            }
+        }
+
+        private DownloadImportPolicy ResolveUpstreamPolicy(ImportMode requestedMode, DownloadClientItem downloadClientItem)
         {
             if (requestedMode != ImportMode.Auto || downloadClientItem == null)
             {

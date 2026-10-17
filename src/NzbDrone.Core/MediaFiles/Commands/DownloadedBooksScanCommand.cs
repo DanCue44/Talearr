@@ -13,5 +13,8 @@ namespace NzbDrone.Core.MediaFiles.Commands
         public string DownloadClientId { get; set; }
         public ImportMode ImportMode { get; set; }
         public bool RequireDefaultRootFolderForMissingAuthors { get; set; }
+
+        // TaleArr: optional "hardlink" or "copy" for a copy-mode import (see ManualImportCommand).
+        public string TalearrTransfer { get; set; }
     }
 }

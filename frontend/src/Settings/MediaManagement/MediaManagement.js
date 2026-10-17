@@ -194,6 +194,24 @@ class MediaManagement extends Component {
                         />
                       </FormGroup>
 
+                      <FormGroup
+                        advancedSettings={advancedSettings}
+                        isAdvanced={true}
+                        size={sizes.MEDIUM}
+                      >
+                        <FormLabel>
+                          {'Seeding-Safe Torrent Imports'}
+                        </FormLabel>
+
+                        <FormInputGroup
+                          type={inputTypes.CHECK}
+                          name="talearrSeedingSafeImports"
+                          helpText="Never move a torrent's files out of the download client, even after its seed goal or when Move is chosen in manual import. Torrents are hardlinked (or copied when hardlinks are not possible); usenet downloads are still moved."
+                          onChange={onInputChange}
+                          {...settings.talearrSeedingSafeImports}
+                        />
+                      </FormGroup>
+
                       <FormGroup size={sizes.MEDIUM}>
                         <FormLabel>
                           {'Unpack Archives'}

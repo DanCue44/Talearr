@@ -22,6 +22,12 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
         /// reason, so a foreign release that also failed to match is still recognised as foreign.
         /// </summary>
         void Verify(List<ImportDecision<LocalBook>> decisions, RemoteBook remoteBook, DownloadClientItem downloadClientItem);
+
+        /// <summary>
+        /// TaleArr: the language mismatch sentence for one matched file, or null. Used by manual
+        /// import as a warning, never as a rejection.
+        /// </summary>
+        string DescribeMismatch(LocalBook localBook);
     }
 
     public class DownloadedFileLanguageVerifier : IDownloadedFileLanguageVerifier
@@ -106,52 +112,83 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
             foreach (var decision in decisions)
             {
                 var localBook = decision?.Item;
-                if (localBook == null || string.IsNullOrWhiteSpace(localBook.Path) ||
-                    !MediaFileExtensions.AllExtensions.Contains(Path.GetExtension(localBook.Path)))
+                if (localBook == null || decision.Rejections?.Any(r => r.IsLanguageFilter) == true)
                 {
                     continue;
                 }
 
-                if (decision.Rejections?.Any(r => r.IsLanguageFilter) == true)
+                var mismatch = FindMismatch(localBook, remoteBook, releaseNames, wantedCache);
+                if (mismatch == null)
                 {
                     continue;
                 }
 
-                var targetBook = ResolveTargetBook(localBook, remoteBook);
-                if (targetBook == null)
-                {
-                    continue;
-                }
-
-                if (!wantedCache.TryGetValue(targetBook.Id, out var wanted))
-                {
-                    wanted = ResolveWantedLanguages(targetBook, localBook, remoteBook);
-                    wantedCache[targetBook.Id] = wanted;
-                }
-
-                if (wanted.Languages.Count == 0)
-                {
-                    continue;
-                }
-
-                var evidence = ReadEvidence(localBook, targetBook, remoteBook, releaseNames);
-                if (!evidence.HasLanguage || evidence.Languages.Overlaps(wanted.Languages))
-                {
-                    _logger.Trace("Language check passed for {0}: file [{1}], wanted [{2}]",
-                        localBook.Path,
-                        string.Join(", ", evidence.Languages),
-                        string.Join(", ", wanted.Languages));
-                    continue;
-                }
-
-                var reason = $"File language is {FormatLanguages(evidence.Languages)} (from {evidence.Source}), " +
-                             $"but {FormatLanguages(wanted.Languages)} is wanted ({wanted.Source}). " +
-                             "TaleArr rejected this release so another one can be tried.";
+                var reason = mismatch + " TaleArr rejected this release so another one can be tried.";
 
                 _logger.Info("Rejecting {0} from {1}: {2}", Path.GetFileName(localBook.Path), downloadClientItem.Title, reason);
 
                 decision.Reject(new Rejection(reason, RejectionType.Permanent, canBypass: false, category: RejectionCategory, severity: 3));
             }
+        }
+
+        public string DescribeMismatch(LocalBook localBook)
+        {
+            // TaleArr: manual import only warns; importing a translation on purpose is the user's call.
+            if (localBook == null || !IsEnabled())
+            {
+                return null;
+            }
+
+            try
+            {
+                return FindMismatch(localBook, null, new List<string>(), new Dictionary<int, WantedLanguages>());
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Language check failed for {0}", localBook.Path);
+                return null;
+            }
+        }
+
+        // The "File language is X (from Y), but Z is wanted (W)." sentence, or null when the file
+        // is in a wanted language, says nothing about its language, or has no book to compare with.
+        private string FindMismatch(LocalBook localBook, RemoteBook remoteBook, List<string> releaseNames, Dictionary<int, WantedLanguages> wantedCache)
+        {
+            if (string.IsNullOrWhiteSpace(localBook.Path) ||
+                !MediaFileExtensions.AllExtensions.Contains(Path.GetExtension(localBook.Path)))
+            {
+                return null;
+            }
+
+            var targetBook = ResolveTargetBook(localBook, remoteBook);
+            if (targetBook == null)
+            {
+                return null;
+            }
+
+            if (!wantedCache.TryGetValue(targetBook.Id, out var wanted))
+            {
+                wanted = ResolveWantedLanguages(targetBook, localBook, remoteBook);
+                wantedCache[targetBook.Id] = wanted;
+            }
+
+            if (wanted.Languages.Count == 0)
+            {
+                return null;
+            }
+
+            var evidence = ReadEvidence(localBook, targetBook, remoteBook, releaseNames);
+            if (!evidence.HasLanguage || evidence.Languages.Overlaps(wanted.Languages))
+            {
+                _logger.Trace("Language check passed for {0}: file [{1}], wanted [{2}]",
+                    localBook.Path,
+                    string.Join(", ", evidence.Languages),
+                    string.Join(", ", wanted.Languages));
+                return null;
+            }
+
+            return $"File language is {FormatLanguages(evidence.Languages)} (from {evidence.Source}), " +
+                   $"but {FormatLanguages(wanted.Languages)} is wanted ({wanted.Source}).";
         }
 
         public static string FormatLanguages(IEnumerable<string> codes)
