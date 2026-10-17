@@ -2978,6 +2978,36 @@ namespace Chaptarr.Core.Test.MediaFiles
         }
 
         [Test]
+        public void bundle_import_does_not_remove_an_output_path_that_is_not_the_download_job_folder()
+        {
+            var context = CreateBundleImportContext();
+
+            try
+            {
+                var (remoteBook, item) = BundleDownload(context, isBundle: true, DownloadProtocol.Usenet);
+                item.Title = "Some Other Download";
+
+                _ = context.Service.ProcessPath(context.Folder, ImportMode.Auto, context.Author, item, remoteBook);
+
+                Assert.That(context.DecisionFor(context.Target).Approved, Is.True);
+                Assert.That(context.DiskProvider.DeletedFolders, Is.Empty);
+            }
+            finally
+            {
+                DeleteBundleFolder(context);
+            }
+        }
+
+        [TestCase("/downloads/completed/Books/The.Poppy.War.Trilogy-GRP", "The.Poppy.War.Trilogy-GRP", true)]
+        [TestCase("/downloads/completed/Books/The Poppy War Trilogy by R.F.#1/", "The Poppy War Trilogy by R.F", true)]
+        [TestCase("/downloads/completed/Books", "The Poppy War Trilogy by R.F", false)]
+        [TestCase("/downloads/completed/Books/Box", "Box", false)]
+        public void download_job_folder_must_carry_the_download_name(string outputPath, string title, bool expected)
+        {
+            Assert.That(DownloadedBooksImportService.IsDownloadJobFolder(outputPath, title), Is.EqualTo(expected));
+        }
+
+        [Test]
         public void bundle_import_does_not_remove_a_torrent_download()
         {
             var context = CreateBundleImportContext();

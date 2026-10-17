@@ -1396,6 +1396,14 @@ namespace NzbDrone.Core.MediaFiles
                 return false;
             }
 
+            // TaleArr: the leftovers are deleted even though book files remain, so the output path must
+            // be this download's own job folder, never a shared category folder a client reported by mistake.
+            if (!IsDownloadJobFolder(outputPath, downloadClientItem.Title))
+            {
+                _logger.Warn("Not removing bundle folder {0}: the output path {1} is not named after download {2}", folder, outputPath, downloadClientItem.Title);
+                return false;
+            }
+
             try
             {
                 if (_rootFolderService.All().Any(root => !root.Path.IsNullOrWhiteSpace() &&
@@ -1412,6 +1420,20 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             return true;
+        }
+
+        // Clients name the job folder after the download and may add a suffix such as ".#1".
+        internal static bool IsDownloadJobFolder(string outputPath, string title)
+        {
+            var expected = NormalizeJobName(title);
+            var jobFolderName = NormalizeJobName(Path.GetFileName((outputPath ?? string.Empty).TrimEnd('/', '\\')));
+
+            return expected.Length >= 6 && jobFolderName.StartsWith(expected, StringComparison.Ordinal);
+        }
+
+        private static string NormalizeJobName(string value)
+        {
+            return new string((value ?? string.Empty).Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
         }
 
         public bool ShouldDeleteFolder(IDirectoryInfo directoryInfo)
