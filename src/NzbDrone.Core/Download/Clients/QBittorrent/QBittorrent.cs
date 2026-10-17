@@ -375,9 +375,13 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
                 if (version >= new Version("2.6.1") && item.Status == DownloadItemStatus.Completed)
                 {
-                    if (torrent.ContentPath != torrent.SavePath)
+                    // TaleArr: compare normalized paths (a trailing slash is not a different folder) and
+                    // fall back to save path + name when a qBittorrent-compatible debrid proxy
+                    // (rdt-client, Decypharr) leaves content_path empty.
+                    var contentPath = ResolveContentPath(torrent);
+                    if (contentPath.HasValue)
                     {
-                        item.OutputPath = RemapRemoteToLocal(new OsPath(torrent.ContentPath));
+                        item.OutputPath = RemapRemoteToLocal(contentPath.Value);
                     }
                     else
                     {
@@ -390,6 +394,38 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             }
 
             return queueItems;
+        }
+
+        // TaleArr: the torrent's own folder or file, or null when it is the client's base folder.
+        internal static OsPath? ResolveContentPath(QBittorrentTorrent torrent)
+        {
+            if (torrent == null)
+            {
+                return null;
+            }
+
+            var savePath = torrent.SavePath.IsNullOrWhiteSpace() ? (OsPath?)null : new OsPath(torrent.SavePath);
+
+            OsPath contentPath;
+            if (torrent.ContentPath.IsNotNullOrWhiteSpace())
+            {
+                contentPath = new OsPath(torrent.ContentPath);
+            }
+            else if (savePath.HasValue && torrent.Name.IsNotNullOrWhiteSpace())
+            {
+                contentPath = savePath.Value + new OsPath(torrent.Name);
+            }
+            else
+            {
+                return null;
+            }
+
+            if (savePath.HasValue && contentPath.AsDirectory() == savePath.Value.AsDirectory())
+            {
+                return null;
+            }
+
+            return contentPath;
         }
 
         public override void RemoveItem(DownloadClientItem item, bool deleteData)

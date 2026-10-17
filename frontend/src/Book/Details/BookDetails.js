@@ -21,6 +21,7 @@ import OrganizePreviewModalConnector from 'Organize/OrganizePreviewModalConnecto
 import RetagPreviewModalConnector from 'Retag/RetagPreviewModalConnector';
 import translate from 'Utilities/String/translate';
 import BookRecordings from '../Recordings/BookRecordings';
+import BookSoulseek from '../Soulseek/BookSoulseek';
 import BookDetailsHeaderConnector from './BookDetailsHeaderConnector';
 import BookChaptersTable from './Chapters/BookChaptersTable';
 import BookMatchProvenanceTable from './Matching/BookMatchProvenanceTable';
@@ -295,6 +296,11 @@ class BookDetails extends Component {
                   bookId={id}
                   authorId={author.id}
                 />
+            }
+
+            {
+              // TaleArr: opt-in Soulseek search and grab through slskd (hidden unless turned on).
+              <BookSoulseek bookId={id} />
             }
 
             <Tabs selectedIndex={selectedTabIndex} onSelect={this.onTabSelect}>

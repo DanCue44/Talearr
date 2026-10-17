@@ -230,6 +230,24 @@ Storage: three extra keys in the connection's own settings JSON (stock Chaptarr 
 a cache in `talearr.db`. Chaptarr deletes connection types it does not know on start, so
 TaleArr adds none.
 
+## Soulseek and download clients
+
+See [docs/TALEARR_SOULSEEK.md](docs/TALEARR_SOULSEEK.md) and
+[docs/TALEARR_DOWNLOAD_CLIENTS.md](docs/TALEARR_DOWNLOAD_CLIENTS.md).
+
+- **Soulseek through slskd** (Settings > Download Clients > Soulseek, off by default): Search
+  Soulseek on a book page, judged by the normal matching, language, bundle and quality rules;
+  Grab downloads the whole folder through your slskd and imports it for that book. Etiquette
+  settings (free upload slot only, maximum peer queue, one download per peer) are on by default.
+  Manual only, no automatic search.
+- **Debrid** works through qBittorrent-compatible proxies (rdt-client, Decypharr) added as a
+  qBittorrent client; TaleArr reads their API versions and empty content paths correctly.
+- **API**: `/api/v1/config/talearrsoulseek`, `/api/v1/talearr/soulseek` (search, grab, grabs).
+
+Storage: `talearr.soulseek.*` rows in the `Config` table. Not a download client or indexer
+provider and no new download protocol value, so a rollback deletes nothing and History,
+Blocklist and pending releases only ever hold values Chaptarr knows.
+
 ## Reader hand-off
 
 Settings > Conversion > **Reader hand-off** (off by default) copies each ebook imported from a

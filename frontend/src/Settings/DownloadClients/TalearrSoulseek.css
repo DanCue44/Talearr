@@ -1,0 +1,18 @@
+.help {
+  margin: 6px 0 12px;
+  max-width: 900px;
+  color: var(--helpTextColor);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.saved {
+  color: var(--helpTextColor);
+  font-size: 13px;
+}

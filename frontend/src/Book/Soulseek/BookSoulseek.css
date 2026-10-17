@@ -1,0 +1,33 @@
+.container {
+  margin: 20px 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.help {
+  margin-bottom: 8px;
+  color: var(--helpTextColor);
+  font-size: 13px;
+}
+
+.path {
+  color: var(--helpTextColor);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
