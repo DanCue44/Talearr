@@ -40,6 +40,7 @@ function createMapStateToProps() {
   
   // Stable empty result to avoid prop shape changes
   const EMPTY_RESULT = {};
+  const EMPTY_TAGS = [];
 
   const extractAuthorName = (authorTitle, title) => {
     if (!authorTitle) {
@@ -102,6 +103,8 @@ function createMapStateToProps() {
     return {
       ...book,
       author,
+      // TaleArr: book tags (Tags column) from the TaleArr book tags store.
+      tags: state.talearrBookTags.byBookId[book.id] || EMPTY_TAGS,
       qualityProfile,
       showSearchAction,
       isRefreshingBook,

@@ -18,6 +18,7 @@ import {
 } from 'Store/Actions/settingsActions';
 import { fetchStatus } from 'Store/Actions/systemActions';
 import { fetchTags } from 'Store/Actions/tagActions';
+import { fetchTalearrBookTags } from 'Store/Actions/talearrBookTagActions';
 import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
 import createSystemStatusSelector from 'Store/Selectors/createSystemStatusSelector';
 import ErrorPage from './ErrorPage';
@@ -217,6 +218,9 @@ function createMapDispatchToProps(dispatch, props) {
     dispatchFetchHardcoverConfig() {
       dispatch(fetchHardcoverConfig());
     },
+    dispatchFetchTalearrBookTags() {
+      dispatch(fetchTalearrBookTags());
+    },
     onResize(dimensions) {
       dispatch(saveDimensions(dimensions));
     },
@@ -241,6 +245,9 @@ class PageConnector extends Component {
 
   componentDidMount() {
     this.props.dispatchFetchHardcoverConfig();
+
+    // TaleArr: book tags load alongside, but the UI never waits for them.
+    this.props.dispatchFetchTalearrBookTags();
 
     if (!this.props.isPopulated) {
       this.props.dispatchFetchAuthor();
@@ -328,6 +335,7 @@ class PageConnector extends Component {
   dispatchFetchStatus: PropTypes.func.isRequired,
   dispatchFetchTranslations: PropTypes.func.isRequired,
   dispatchFetchHardcoverConfig: PropTypes.func.isRequired,
+  dispatchFetchTalearrBookTags: PropTypes.func.isRequired,
   onSidebarVisibleChange: PropTypes.func.isRequired
 };
 

@@ -1,12 +1,15 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import SelectInput from 'Components/Form/SelectInput';
 import SpinnerButton from 'Components/Link/SpinnerButton';
 import PageContentFooter from 'Components/Page/PageContentFooter';
 import { kinds } from 'Helpers/Props';
+import { saveTalearrBookTagsEditor } from 'Store/Actions/talearrBookTagActions';
 import translate from 'Utilities/String/translate';
 import BookEditorFooterLabel from './BookEditorFooterLabel';
 import DeleteBookModal from './Delete/DeleteBookModal';
+import BookTagsModal from './Tags/BookTagsModal';
 import styles from './BookEditorFooter.css';
 
 const NO_CHANGE = 'noChange';
@@ -64,6 +67,25 @@ class BookEditorFooter extends Component {
     }
   };
 
+  // TaleArr: book tags (stored by TaleArr, Chaptarr only tags authors).
+  onTagsPress = () => {
+    this.setState({ isTagsModalOpen: true });
+  };
+
+  onTagsModalClose = () => {
+    this.setState({ isTagsModalOpen: false });
+  };
+
+  onApplyTagsPress = (tags, applyTags) => {
+    this.setState({ isTagsModalOpen: false });
+
+    this.props.dispatchSaveTalearrBookTagsEditor({
+      bookIds: this.props.bookIds,
+      tags,
+      applyTags
+    });
+  };
+
   onDeleteSelectedPress = () => {
     this.setState({ isDeleteBookModalOpen: true });
   };
@@ -80,12 +102,14 @@ class BookEditorFooter extends Component {
       bookIds,
       selectedCount,
       isSaving,
-      isDeleting
+      isDeleting,
+      isSavingTags
     } = this.props;
 
     const {
       monitored,
-      isDeleteBookModalOpen
+      isDeleteBookModalOpen,
+      isTagsModalOpen
     } = this.state;
 
     const monitoredOptions = [
@@ -120,6 +144,15 @@ class BookEditorFooter extends Component {
 
             <div className={styles.buttons}>
               <SpinnerButton
+                className={styles.tagsButton}
+                isSpinning={isSavingTags}
+                isDisabled={!selectedCount || isSavingTags}
+                onPress={this.onTagsPress}
+              >
+                {'Set Book Tags'}
+              </SpinnerButton>
+
+              <SpinnerButton
                 className={styles.deleteSelectedButton}
                 kind={kinds.DANGER}
                 isSpinning={isDeleting}
@@ -138,6 +171,13 @@ class BookEditorFooter extends Component {
           onModalClose={this.onDeleteBookModalClose}
         />
 
+        <BookTagsModal
+          isOpen={isTagsModalOpen}
+          bookIds={bookIds}
+          onApplyTagsPress={this.onApplyTagsPress}
+          onModalClose={this.onTagsModalClose}
+        />
+
       </PageContentFooter>
     );
   }
@@ -150,7 +190,19 @@ BookEditorFooter.propTypes = {
   saveError: PropTypes.object,
   isDeleting: PropTypes.bool.isRequired,
   deleteError: PropTypes.object,
-  onSaveSelected: PropTypes.func.isRequired
+  onSaveSelected: PropTypes.func.isRequired,
+  isSavingTags: PropTypes.bool.isRequired,
+  dispatchSaveTalearrBookTagsEditor: PropTypes.func.isRequired
 };
 
-export default BookEditorFooter;
+function mapStateToProps(state) {
+  return {
+    isSavingTags: state.talearrBookTags.isSaving
+  };
+}
+
+const mapDispatchToProps = {
+  dispatchSaveTalearrBookTagsEditor: saveTalearrBookTagsEditor
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(BookEditorFooter);

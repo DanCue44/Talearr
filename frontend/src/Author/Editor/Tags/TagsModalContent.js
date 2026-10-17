@@ -98,7 +98,7 @@ class TagsModalContent extends Component {
                 value={applyTags}
                 values={applyTagsOptions}
                 helpTexts={[
-                  translate('ApplyTagsHelpTextHowToApplyAuthors'),
+                  this.props.howToApplyHelpText || translate('ApplyTagsHelpTextHowToApplyAuthors'),
                   translate('ApplyTagsHelpTextAdd'),
                   translate('ApplyTagsHelpTextRemove'),
                   translate('ApplyTagsHelpTextReplace')
@@ -186,6 +186,8 @@ class TagsModalContent extends Component {
 
 TagsModalContent.propTypes = {
   authorTags: PropTypes.arrayOf(PropTypes.number).isRequired,
+  // TaleArr: the book editor reuses this modal with its own wording.
+  howToApplyHelpText: PropTypes.string,
   tagList: PropTypes.arrayOf(PropTypes.object).isRequired,
   onModalClose: PropTypes.func.isRequired,
   onApplyTagsPress: PropTypes.func.isRequired

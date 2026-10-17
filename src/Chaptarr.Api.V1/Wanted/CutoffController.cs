@@ -1,3 +1,4 @@
+using System.Linq;
 using Chaptarr.Api.V1.Books;
 using Chaptarr.Api.V1.MediaTypes;
 using Chaptarr.Http;
@@ -8,6 +9,7 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.MediaCover;
+using NzbDrone.Core.Talearr.Tags;
 using NzbDrone.SignalR;
 
 namespace Chaptarr.Api.V1.Wanted
@@ -15,6 +17,7 @@ namespace Chaptarr.Api.V1.Wanted
     [V1ApiController("wanted/cutoff")]
     public class CutoffController : BookControllerWithSignalR
     {
+        private readonly ITalearrBookFilterService _talearrBookFilter;
         private readonly IBookCutoffService _bookCutoffService;
 
         public CutoffController(IBookCutoffService bookCutoffService,
@@ -23,14 +26,16 @@ namespace Chaptarr.Api.V1.Wanted
                             IAuthorStatisticsService authorStatisticsService,
                             IMapCoversToLocal coverMapper,
                             IUpgradableSpecification upgradableSpecification,
-                            IBroadcastSignalRMessage signalRBroadcaster)
+                            IBroadcastSignalRMessage signalRBroadcaster,
+                            ITalearrBookFilterService talearrBookFilter = null)
         : base(bookService, seriesBookLinkService, authorStatisticsService, coverMapper, upgradableSpecification, signalRBroadcaster)
         {
             _bookCutoffService = bookCutoffService;
+            _talearrBookFilter = talearrBookFilter;
         }
 
         [HttpGet]
-        public PagingResource<BookResource> GetCutoffUnmetBooks([FromQuery] PagingRequestResource paging, bool includeAuthor = false, bool monitored = true, [FromQuery] string mediaType = null)
+        public PagingResource<BookResource> GetCutoffUnmetBooks([FromQuery] PagingRequestResource paging, bool includeAuthor = false, bool monitored = true, [FromQuery] string mediaType = null, [FromQuery] string talearrFilter = null)
         {
             var requestedMediaType = MediaTypeParameterParser.ParseOptional(mediaType);
             var pagingResource = new PagingResource<BookResource>(paging);
@@ -43,6 +48,14 @@ namespace Chaptarr.Api.V1.Wanted
             };
 
             pagingSpec.FilterExpressions.Add(AuthorExtensions.GetBookMonitoringFilter(requestedMediaType, monitored));
+
+            // TaleArr: custom filters on book tags, author tags, genres and narrator (JSON list of
+            // { key, value, type }). Absent for stock clients, so the page is unchanged.
+            var talearrIds = _talearrBookFilter?.MatchingBookIds(talearrFilter)?.ToList();
+            if (talearrIds != null)
+            {
+                pagingSpec.FilterExpressions.Add(talearrIds.Any() ? b => talearrIds.Contains(b.Id) : b => b.Id < 0);
+            }
 
             return pagingSpec.ApplyToPage(_bookCutoffService.BooksWhereCutoffUnmet, v => MapToResource(v, includeAuthor));
         }

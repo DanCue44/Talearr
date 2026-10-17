@@ -105,6 +105,20 @@ export const filters = [
   }
 ];
 
+// TaleArr: an author's tags for one book, by the book's format (the author editor keeps
+// audiobook and ebook tags apart; older authors only have the shared list).
+export function getAuthorTagsForBook(book) {
+  const author = book && book.author;
+
+  if (!author) {
+    return [];
+  }
+
+  const perFormat = book.mediaType === 'ebook' ? author.ebookTags : author.audiobookTags;
+
+  return perFormat || author.tags || [];
+}
+
 export const filterPredicates = {
   missing: function(item) {
     const { statistics = {} } = item;

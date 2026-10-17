@@ -15,6 +15,7 @@ import TableBody from 'Components/Table/TableBody';
 import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
 import TablePager from 'Components/Table/TablePager';
 import { align, icons, kinds } from 'Helpers/Props';
+import { setCutoffUnmetFilter } from 'Store/Actions/wantedActions';
 import UnmappedFilesMediaTypeToggle from 'UnmappedFiles/UnmappedFilesMediaTypeToggle';
 import getFilterValue from 'Utilities/Filter/getFilterValue';
 import hasDifferentItems from 'Utilities/Object/hasDifferentItems';
@@ -23,7 +24,11 @@ import getSelectedIds from 'Utilities/Table/getSelectedIds';
 import removeOldSelectedState from 'Utilities/Table/removeOldSelectedState';
 import selectAll from 'Utilities/Table/selectAll';
 import toggleSelected from 'Utilities/Table/toggleSelected';
+import createWantedFilterModalConnector from 'Wanted/createWantedFilterModalConnector';
 import CutoffUnmetRowConnector from './CutoffUnmetRowConnector';
+
+// TaleArr: custom filter editor for this page.
+const CutoffUnmetFilterModalConnector = createWantedFilterModalConnector('cutoffUnmet', setCutoffUnmetFilter);
 
 function getMonitoredValue(props) {
   const {
@@ -124,6 +129,7 @@ class CutoffUnmet extends Component {
       isAuthorFetching,
       isAuthorPopulated,
       selectedFilterKey,
+      customFilters,
       selectedMediaType,
       filters,
       columns,
@@ -199,7 +205,8 @@ class CutoffUnmet extends Component {
               alignMenu={align.RIGHT}
               selectedFilterKey={selectedFilterKey}
               filters={filters}
-              customFilters={[]}
+              customFilters={customFilters}
+              filterModalConnectorComponent={CutoffUnmetFilterModalConnector}
               onFilterSelect={onFilterSelect}
             />
           </PageToolbarSection>
@@ -292,7 +299,8 @@ CutoffUnmet.propTypes = {
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
   isAuthorFetching: PropTypes.bool.isRequired,
   isAuthorPopulated: PropTypes.bool.isRequired,
-  selectedFilterKey: PropTypes.string.isRequired,
+  selectedFilterKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  customFilters: PropTypes.arrayOf(PropTypes.object).isRequired,
   selectedMediaType: PropTypes.oneOf(['all', 'audiobook', 'ebook']).isRequired,
   filters: PropTypes.arrayOf(PropTypes.object).isRequired,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,

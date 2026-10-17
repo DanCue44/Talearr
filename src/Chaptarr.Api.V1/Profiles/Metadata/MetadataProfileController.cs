@@ -12,6 +12,7 @@ using NzbDrone.Core.Books.Services;
 using NzbDrone.Core.Books.Commands;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Profiles.Metadata;
+using NzbDrone.Core.Talearr.ContentFilter;
 using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Profiles.Metadata
@@ -23,12 +24,15 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
         private readonly IMetadataProfileService _profileService;
         private readonly IAuthorService _authorService;
         private readonly IManageCommandQueue _commandQueueManager;
+        private readonly ITalearrContentFilterStore _talearrContentFilters;
 
         public MetadataProfileController(IMetadataProfileService profileService,
                                        IAuthorService authorService,
-                                       IManageCommandQueue commandQueueManager)
+                                       IManageCommandQueue commandQueueManager,
+                                       ITalearrContentFilterStore talearrContentFilters = null)
         {
             _profileService = profileService;
+            _talearrContentFilters = talearrContentFilters;
             _authorService = authorService;
             _commandQueueManager = commandQueueManager;
 
@@ -68,6 +72,7 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
         {
             var model = resource.ToModel();
             model = _profileService.Add(model);
+            SaveTalearrContentFilter(model.Id, resource.TalearrContentFilter);
             return Created(model.Id);
         }
 
@@ -75,6 +80,7 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
         public void DeleteProfile(int id)
         {
             _profileService.Delete(id);
+            _talearrContentFilters?.Remove(id);
         }
 
         [RestPutById]
@@ -98,6 +104,14 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
             var model = resource.ToModel();
             var shouldRefreshAuthors = previousProfile != null && ShouldRefreshAuthorsForProfileFilterChange(previousProfile, model);
             _profileService.Update(model);
+
+            // TaleArr: a change to the genre or content type rules refreshes like any other filter.
+            if (resource.TalearrContentFilter != null && _talearrContentFilters != null)
+            {
+                var previousContentFilter = _talearrContentFilters.Get(model.Id);
+                SaveTalearrContentFilter(model.Id, resource.TalearrContentFilter);
+                shouldRefreshAuthors |= previousProfile != null && !previousContentFilter.SameRulesAs(resource.TalearrContentFilter);
+            }
             
             // Refresh only when filter-affecting fields change; avoid expensive refreshes for name-only edits.
             // When refreshing, include both per-media profile references and the legacy MetadataProfileId.
@@ -122,7 +136,7 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
 
         protected override MetadataProfileResource GetResourceById(int id)
         {
-            return _profileService.Get(id).ToResource();
+            return WithTalearrContentFilter(_profileService.Get(id).ToResource());
         }
 
         [HttpGet]
@@ -139,7 +153,26 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
                     .ToList();
             }
             
-            return profiles.ToResource();
+            return profiles.ToResource().Select(WithTalearrContentFilter).ToList();
+        }
+
+        private MetadataProfileResource WithTalearrContentFilter(MetadataProfileResource resource)
+        {
+            if (resource != null && _talearrContentFilters != null)
+            {
+                resource.TalearrContentFilter = _talearrContentFilters.Get(resource.Id);
+            }
+
+            return resource;
+        }
+
+        // Null means the client did not send the field (stock Chaptarr UI, AllSeerr): keep the rules.
+        private void SaveTalearrContentFilter(int profileId, TalearrContentFilter filter)
+        {
+            if (filter != null)
+            {
+                _talearrContentFilters?.Save(profileId, filter);
+            }
         }
 
         [HttpGet("languages")]

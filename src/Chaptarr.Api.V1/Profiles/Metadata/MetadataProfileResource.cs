@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Chaptarr.Http.REST;
 using NzbDrone.Core.Profiles.Metadata;
+using NzbDrone.Core.Talearr.ContentFilter;
 
 namespace Chaptarr.Api.V1.Profiles.Metadata
 {
@@ -26,6 +27,10 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
         public string AllowedLanguages { get; set; }
         public int MinPages { get; set; }
         public List<string> Ignored { get; set; }
+
+        // TaleArr: genre and content type rules, stored as a talearr.* Config row (additive field;
+        // stock Chaptarr clients leave it out and keep the stored rules).
+        public TalearrContentFilter TalearrContentFilter { get; set; }
 
         public MetadataProfileResource()
         {

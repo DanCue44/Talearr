@@ -8,24 +8,29 @@ import { executeCommand } from 'Store/Actions/commandActions';
 import { clearQueueDetails, fetchQueueDetails } from 'Store/Actions/queueActions';
 import * as wantedActions from 'Store/Actions/wantedActions';
 import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
+import createCustomFiltersSelector from 'Store/Selectors/createCustomFiltersSelector';
 import hasDifferentItems from 'Utilities/Object/hasDifferentItems';
 import selectUniqueIds from 'Utilities/Object/selectUniqueIds';
 import { registerPagePopulator, unregisterPagePopulator } from 'Utilities/pagePopulator';
+import { customFilterTypes } from 'Wanted/talearrWantedFilters';
 import Missing from './Missing';
 
 function createMapStateToProps() {
   return createSelector(
     (state) => state.wanted.missing,
     (state) => state.authors,
+    createCustomFiltersSelector(customFilterTypes.missing),
     createCommandExecutingSelector(commandNames.MISSING_BOOK_SEARCH),
-    (missing, authors, isSearchingForMissingBooks) => {
+    (missing, authors, customFilters, isSearchingForMissingBooks) => {
 
       return {
         isAuthorFetching: authors.isFetching,
         isAuthorPopulated: authors.isPopulated,
         isSearchingForMissingBooks,
         isSaving: missing.items.filter((m) => m.isSaving).length > 1,
-        ...missing
+        ...missing,
+        // TaleArr: custom filters for this page.
+        customFilters
       };
     }
   );

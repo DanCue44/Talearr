@@ -155,6 +155,26 @@ Storage: one `talearr.wishlist.*` row per wishlist in the `Config` table and upl
 `talearr-wishlists/` in the config folder. Not an import list provider, so a rollback deletes
 nothing.
 
+## Book tags and genre filters
+
+- **Book tags.** Tag single books with the same tags as authors (Settings > Tags): in the book's
+  Edit dialog or in bulk with Set Book Tags in the book index editor. Shown on the book page and
+  in the index Tags column.
+- **Custom filters.** The book index adds Book Tags, Author Tags (for the book's format),
+  Format, Has File and Any Recording Narrator to the existing filters (genres, narrator,
+  monitored). Wanted > Missing and Cutoff Unmet get custom filters on book tags, author tags,
+  genres, narrator and monitored.
+- **Metadata profile genres and content types.** Allowed and blocked genre lists, and Skip Short
+  Stories, Skip Novellas, Skip Anthologies and Skip Graphic Novels, applied on author add and
+  refresh like the other profile rules (manual adds and books with files are kept; books the
+  metadata has no genres for always pass). All off by default.
+- **API**: `GET /api/v1/talearr/booktags`, `GET|PUT .../booktags/{bookId}`,
+  `PUT .../booktags/editor`, `GET /api/v1/talearr/genres`; `talearrContentFilter` on
+  `/api/v1/metadataprofile`; `talearrFilter` (JSON) on `/api/v1/wanted/missing` and `.../cutoff`.
+
+Storage: book tag links in the `BookTags` table of `talearr.db` (lost only if that file is
+recreated), one `talearr.metadataprofile.<id>` row per profile in the `Config` table.
+
 ## Audiobookshelf
 
 See [docs/TALEARR_AUDIOBOOKSHELF.md](docs/TALEARR_AUDIOBOOKSHELF.md).

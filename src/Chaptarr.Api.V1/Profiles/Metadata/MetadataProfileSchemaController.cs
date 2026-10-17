@@ -1,6 +1,7 @@
 using Chaptarr.Http;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Profiles.Metadata;
+using NzbDrone.Core.Talearr.ContentFilter;
 
 namespace Chaptarr.Api.V1.Profiles.Metadata
 {
@@ -15,7 +16,11 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
                 AllowedLanguages = ""
             };
 
-            return profile.ToResource();
+            var resource = profile.ToResource();
+
+            // TaleArr: new profiles start with no genre or content type rules.
+            resource.TalearrContentFilter = new TalearrContentFilter();
+            return resource;
         }
     }
 }
