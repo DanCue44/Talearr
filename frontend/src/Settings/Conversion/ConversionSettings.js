@@ -13,6 +13,7 @@ import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
 import translate from 'Utilities/String/translate';
 import TalearrM4bConnector from './TalearrM4bConnector';
+import TalearrReaderHandoff from './TalearrReaderHandoff';
 
 const bitrateOptions = [
   { key: 32, value: '32 kbps' },
@@ -195,6 +196,8 @@ class ConversionSettings extends Component {
             onChildMounted={onTalearrChildMounted}
             onChildStateChange={onTalearrChildStateChange}
           />
+
+          <TalearrReaderHandoff />
         </PageContentBody>
       </PageContent>
     );
