@@ -26,7 +26,8 @@ namespace NzbDrone.Core.Parser
 
         // TaleArr: loose title matching guards (see ReleaseTitleMatchScorer.Talearr.cs).
         SeriesNameOnly = 7,
-        SubtitleMismatch = 8
+        SubtitleMismatch = 8,
+        HyphenatedCompound = 9
     }
 
     public sealed class TitleMatchProblem
@@ -180,6 +181,9 @@ namespace NzbDrone.Core.Parser
             {
                 return null;
             }
+
+            // TaleArr: remember which tokens were joined by a hyphen ("All-in-One").
+            RegisterTalearrHyphenJoins(releaseTokens, cleanedReleaseTitle);
 
             var authorCatalog = (authorCatalogBooks ?? books)
                 .Where(book => book != null)

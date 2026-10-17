@@ -165,7 +165,7 @@ namespace NzbDrone.Core.Download
                     // release to every searched book, and those are not all in the bundle.
                     var openBooks = remoteBook.Books
                         .Where(b => b != null && b.Id > 0 && !grabbedBookIds.Contains(b.Id) && !coveredBookIds.Contains(b.Id))
-                        .Where(b => TalearrBundleDetector.ReleaseMentionsTitle(remoteBook.Release.Title, b.Title))
+                        .Where(b => TalearrBundleFallback.BundleNamesBook(remoteBook, b))
                         .ToList();
 
                     if (!openBooks.Any())

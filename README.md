@@ -415,6 +415,27 @@ upstream behaviour), Prefer audiobook (accept the ebook after the audiobook has 
 the policy is a soft filter on grabs, stored as `talearr.formatpolicy.*` rows through
 `/api/v1/config/talearrformatpolicy`.
 
+Settings > Indexers > **Scheduled missing search** searches monitored missing books again on a
+schedule: Off (default), Weekly or Daily, with "Books per run" (default 20) and a wait between
+books (default 30 seconds). Readarr and Chaptarr only search a book when it is added, so a book
+requested before an indexer was added is otherwise only found by RSS. Each run takes the books
+searched longest ago first (the existing `LastSearchTime` every search records, so nothing new is
+stored), skips books already in the queue, and shows its next run in System > Tasks as "Scheduled
+Missing Book Search". It is an automatic search, also when started from System > Tasks, so delay
+profiles and every grab protection apply. Wanted > Search All Missing is a manual
+(user-invoked) search and skips delay profiles. Settings are `talearr.missingsearch.*` rows
+through `/api/v1/config/talearrmissingsearch`.
+
+Release matching also guards against generic titles and other authors: a short title ("All In",
+"Bride", "Deep End") found only inside a hyphenated compound ("All-in-One") does not match, a
+bundle must name the book as a whole phrase, must not credit another author, needs the author for
+a short title or a course or marketing pack, and must not contradict a number in the wanted title
+("45 Murderers" is not "48 ... Murder Cases"). A release that leads with a different author
+("Craig Rice - ...") is rejected, a series-named book ("The Naturals", #1) does not match another
+position of its series ("[The Naturals 04.5] - Twelve"), and an import whose ebook author tag,
+file name or release name credits a different author is rejected ("Completed download is by X,
+not Y"), which fails the download like a wrong-book import.
+
 Automatic redownload itself is the existing Download Clients > Failed Download Handling
 setting, which is on by default. A replacement search covers every indexer with automatic
 search enabled, Usenet and torrent. Grabs you made yourself (interactive or a manual search)

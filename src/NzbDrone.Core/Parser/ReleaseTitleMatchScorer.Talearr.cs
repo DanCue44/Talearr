@@ -217,23 +217,204 @@ namespace NzbDrone.Core.Parser
                 problems.Add(seriesProblem);
             }
 
+            var compoundProblem = GetTalearrHyphenatedCompoundProblem(releaseTokens, matchedStart, matchedEnd);
+            if (compoundProblem != null && !problems.Any(p => p.Code == compoundProblem.Code))
+            {
+                problems.Add(compoundProblem);
+            }
+
             if (context?.LooseVariants == null || !context.LooseVariants.TryGetValue(variant ?? string.Empty, out var dropped))
             {
                 return;
             }
 
-            var mismatch = GetTalearrSubtitleMismatch(releaseTokens, matchedEnd, dropped, authorName, context);
+            var mismatch = GetTalearrSubtitleMismatch(releaseTokens, matchedEnd, dropped, authorName, context) ??
+                           GetTalearrLeadingNumberMismatch(releaseTokens, matchedStart, dropped, context);
             if (mismatch != null && !problems.Any(p => p.Code == mismatch.Code))
             {
                 problems.Add(mismatch);
             }
         }
 
+        // TaleArr: token lists whose neighbours were joined by a hyphen in the release title. Keyed
+        // by the token list FindBestMatch builds, so the scoring helpers need no extra parameter.
+        private static readonly ConditionalWeakTable<object, bool[]> TalearrHyphenJoins = new ConditionalWeakTable<object, bool[]>();
+
+        // joined[i] is true when token i was attached to token i - 1 by a hyphen with no space
+        // ("All-in-One"). Releases that use hyphens as their only word separator
+        // ("Jennifer-Lynn-Barnes-All-In-epub") have no compounds to protect.
+        private static void RegisterTalearrHyphenJoins(List<string> releaseTokens, string cleanedReleaseTitle)
+        {
+            if (releaseTokens == null || string.IsNullOrWhiteSpace(cleanedReleaseTitle) || !cleanedReleaseTitle.Contains('-'))
+            {
+                return;
+            }
+
+            var spans = TokenizeWithSpans(cleanedReleaseTitle);
+            if (spans.Count != releaseTokens.Count)
+            {
+                return;
+            }
+
+            var joined = new bool[spans.Count];
+            var hasOtherSeparator = false;
+            var any = false;
+
+            for (var index = 1; index < spans.Count; index++)
+            {
+                var gapStart = spans[index - 1].End;
+                var gapLength = spans[index].Start - gapStart;
+                if (gapLength <= 0 || gapStart < 0 || spans[index].Start > cleanedReleaseTitle.Length)
+                {
+                    continue;
+                }
+
+                var gap = cleanedReleaseTitle.Substring(gapStart, gapLength);
+                var previousWord = cleanedReleaseTitle.Substring(spans[index - 1].Start, spans[index - 1].End - spans[index - 1].Start);
+                var nextWord = cleanedReleaseTitle.Substring(spans[index].Start, spans[index].End - spans[index].Start);
+
+                // "All-in-One" is a compound (a lowercase word sits inside it); "Viserion-Fire and
+                // Blood-EP" uses hyphens between capitalised segments as separators.
+                if (gap == "-" &&
+                    char.IsLetter(previousWord[^1]) && char.IsLetter(nextWord[0]) &&
+                    (IsLowercaseWord(previousWord) || IsLowercaseWord(nextWord)))
+                {
+                    joined[index] = true;
+                    any = true;
+                }
+                else if (gap.Any(c => char.IsWhiteSpace(c) || c == '.' || c == '_'))
+                {
+                    hasOtherSeparator = true;
+                }
+            }
+
+            if (any && hasOtherSeparator && cleanedReleaseTitle.Any(char.IsUpper))
+            {
+                TalearrHyphenJoins.AddOrUpdate(releaseTokens, joined);
+            }
+        }
+
+        private static bool IsLowercaseWord(string word)
+        {
+            return word.Length > 0 && word.All(char.IsLower);
+        }
+
+        // "Boost Your Marketing Game with This All-in-One Bundle" names no book called "All In": the
+        // matched words are only part of a hyphenated compound.
+        private static TitleMatchProblem GetTalearrHyphenatedCompoundProblem(IReadOnlyList<string> releaseTokens, int matchedStart, int matchedEnd)
+        {
+            if (releaseTokens == null || !TalearrHyphenJoins.TryGetValue(releaseTokens, out var joined))
+            {
+                return null;
+            }
+
+            var joinedBefore = matchedStart > 0 && matchedStart < joined.Length && joined[matchedStart];
+            var joinedAfter = matchedEnd + 1 < joined.Length && joined[matchedEnd + 1];
+            if (!joinedBefore && !joinedAfter)
+            {
+                return null;
+            }
+
+            var start = matchedStart;
+            while (start > 0 && joined[start])
+            {
+                start--;
+            }
+
+            var end = matchedEnd;
+            while (end + 1 < joined.Length && joined[end + 1])
+            {
+                end++;
+            }
+
+            return new TitleMatchProblem
+            {
+                Code = TitleMatchProblemCode.HyphenatedCompound,
+                Value = string.Join("-", releaseTokens.Skip(start).Take(end - start + 1))
+            };
+        }
+
+        // "Craig Rice - 45 Murderers- A Collection of True Crime Stories" is not "True Crime Stories:
+        // 48 Terrifying True Crime Murder Cases": when the dropped subtitle carries a number, a
+        // different number in front of the short title counts against the match.
+        private static TitleMatchProblem GetTalearrLeadingNumberMismatch(IReadOnlyList<string> releaseTokens, int matchedStart, string dropped, BookTitleMatchContext context)
+        {
+            var droppedNumbers = Tokenize(dropped)
+                .Where(token => IsNumericToken(token) && !YearTokenRegex.IsMatch(token))
+                .ToList();
+            if (droppedNumbers.Count == 0)
+            {
+                return null;
+            }
+
+            foreach (var token in releaseTokens.Take(Math.Max(0, matchedStart)))
+            {
+                if (!IsNumericToken(token) || YearTokenRegex.IsMatch(token) || SeriesPositionMatches(context, token))
+                {
+                    continue;
+                }
+
+                if (droppedNumbers.Any(number => TokensMatch(number, token)))
+                {
+                    return null;
+                }
+
+                return CreateSubtitleMismatch(token);
+            }
+
+            return null;
+        }
+
+        // The series label, a different position, then another title: "[The Naturals 04.5] - Twelve".
+        // A bare number ("Dungeon Crawler Carl 2"), a part range ("Red Rising (2 of 2)",
+        // "American Gods.11-14.mp3") or a bitrate is left to the series position checks.
+        private static bool IsTalearrOtherPositionOfSeriesNamedBook(IReadOnlyList<string> releaseTokens, int numberIndex, string variant, BookTitleMatchContext context)
+        {
+            var nextToken = releaseTokens[numberIndex];
+            if (string.IsNullOrWhiteSpace(context?.SeriesName) ||
+                !HasSeriesPositionNumber(context) ||
+                !TokenizedEquals(variant, context.SeriesName) ||
+                !IsNumericToken(nextToken) ||
+                YearTokenRegex.IsMatch(nextToken) ||
+                SeriesPositionMatches(context, nextToken))
+            {
+                return false;
+            }
+
+            var after = numberIndex + 1;
+            if (after < releaseTokens.Count &&
+                (string.Equals(releaseTokens[after], "of", StringComparison.OrdinalIgnoreCase) ||
+                 NumericMetadataTailTokens.Contains(releaseTokens[after])))
+            {
+                return false;
+            }
+
+            return releaseTokens.Skip(after).Any(token => token.All(char.IsLetter) &&
+                                                         !MetadataTokens.Contains(token) &&
+                                                         !TalearrStopwords.Contains(token) &&
+                                                         !YearTokenRegex.IsMatch(token));
+        }
+
         private static TitleMatchProblem GetTalearrSeriesNameOnlyProblem(IReadOnlyList<string> releaseTokens, int matchedEnd, string variant, BookTitleMatchContext context)
         {
             var next = matchedEnd + 1;
-            if (next >= releaseTokens.Count ||
-                !string.Equals(releaseTokens[next], "series", StringComparison.OrdinalIgnoreCase))
+            if (next >= releaseTokens.Count)
+            {
+                return null;
+            }
+
+            // "Jennifer Lynn Barnes - [The Naturals 04.5] - Twelve" for the book "The Naturals" (#1):
+            // the title is only the series label of another position in that series.
+            if (IsTalearrOtherPositionOfSeriesNamedBook(releaseTokens, next, variant, context))
+            {
+                return new TitleMatchProblem
+                {
+                    Code = TitleMatchProblemCode.SeriesNameOnly,
+                    Value = $"{variant} {releaseTokens[next]}"
+                };
+            }
+
+            if (!string.Equals(releaseTokens[next], "series", StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }

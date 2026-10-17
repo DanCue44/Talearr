@@ -18,6 +18,12 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             @"Completed download was grabbed for (?<expected>.+?), but import matched '(?<matched>.+?)' \(BookId \d+",
             RegexOptions.Compiled | RegexOptions.Singleline);
 
+        // "Completed download is by Craig Rice, not Ryan Becker (grabbed for 'True Crime Stories: ...'
+        //  (BookId 3653, ...))." (TalearrImportAuthorCheck)
+        private static readonly Regex WrongAuthorRegex = new Regex(
+            @"^Completed download is by (?<found>.+?), not (?<expected>.+?) \(grabbed for ",
+            RegexOptions.Compiled | RegexOptions.Singleline);
+
         private static readonly Regex QuotedTitleRegex = new Regex(@"'(?<title>.+?)' \(BookId \d+", RegexOptions.Compiled);
 
         // "No supported audio or ebook files were found in ... Unsupported extension(s): .diz, .nfo, .zip."
@@ -104,6 +110,15 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 }
 
                 return string.Format("release contains '{0}', not the wanted book", matched);
+            }
+
+            // TaleArr: a different author is a different book, the same as a wrong-book match.
+            var wrongAuthor = WrongAuthorRegex.Match(message);
+            if (wrongAuthor.Success)
+            {
+                return string.Format("release is by {0}, not {1}, so it is not the wanted book",
+                    wrongAuthor.Groups["found"].Value,
+                    wrongAuthor.Groups["expected"].Value);
             }
 
             var wrongLanguage = WrongLanguageRegex.Match(message);

@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
@@ -31,15 +33,25 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return Decision.Accept();
             }
 
+            var context = GetMatchContext(subject, searchCriteria);
+
             if (subject.PackDetection?.Verdict == ReleasePackDetectionVerdict.MultipleBooks)
+            {
+                // TaleArr: a bundle skips title scoring, but outside interactive search it must
+                // still name a wanted book ("All-in-One Bundle" is not "All In").
+                return EvaluateBundle(subject, context);
+            }
+
+            if (context == null)
             {
                 return Decision.Accept();
             }
 
-            var context = GetMatchContext(subject, searchCriteria);
-            if (context == null)
+            // TaleArr: identity checks the title scorer cannot see.
+            var identityRejection = GetTalearrIdentityRejection(subject, context);
+            if (identityRejection != null)
             {
-                return Decision.Accept();
+                return identityRejection;
             }
 
             var authorHint = subject.Release.Author;
@@ -113,6 +125,59 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 problem.Code == TitleMatchProblemCode.SuspiciousAdjacentNumber);
         }
 
+        private Decision EvaluateBundle(RemoteBook subject, TitleMatchContext context)
+        {
+            if (context == null || subject.ReleaseSource == ReleaseSourceType.InteractiveSearch)
+            {
+                return Decision.Accept();
+            }
+
+            var probe = new RemoteBook { Release = subject.Release, Author = context.Author };
+            string firstReason = null;
+
+            foreach (var book in context.Books)
+            {
+                var reason = TalearrBundleFallback.WhyBundleDoesNotNameBook(probe, book);
+                if (reason == null)
+                {
+                    return Decision.Accept();
+                }
+
+                firstReason ??= reason;
+            }
+
+            _logger.Debug("[TITLE-MATCH] Bundle {0} rejected: {1}", subject.Release.Title, firstReason);
+            return Decision.RejectSoftFilter(firstReason ?? "Bundle does not name the wanted book", "Matching");
+        }
+
+        private static Decision GetTalearrIdentityRejection(RemoteBook subject, TitleMatchContext context)
+        {
+            var release = subject.Release;
+            if (context.Author?.Name.IsNullOrWhiteSpace() != false)
+            {
+                return null;
+            }
+
+            // A structured author field is judged by ReleaseIdentityEvidence below.
+            if (release.Author.IsNullOrWhiteSpace())
+            {
+                var otherAuthor = TalearrReleaseIdentityGuard.FindOtherAuthor(release.Title, context.Author, context.Books);
+                if (otherAuthor != null)
+                {
+                    return Decision.RejectSoftFilter($"Release is by {otherAuthor}, not {context.Author.Name}", "Matching");
+                }
+            }
+
+            if (!ReleaseIdentityEvidence.TextNamesAuthor(context.Author, release.Title) &&
+                !ReleaseIdentityEvidence.NameMatchesAuthor(context.Author, release.Author) &&
+                context.Books.All(book => TalearrReleaseIdentityGuard.FindNonBookPackWord(release.Title, book) != null))
+            {
+                return Decision.RejectSoftFilter("Release looks like a course or marketing pack, not a book", "Matching");
+            }
+
+            return null;
+        }
+
         private static TitleMatchContext GetMatchContext(RemoteBook subject, SearchCriteriaBase searchCriteria)
         {
             if (searchCriteria?.Author != null && searchCriteria.Books?.Any() == true)
@@ -159,6 +224,9 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
                 case TitleMatchProblemCode.SiblingTitleContradiction:
                     return Decision.RejectHardFilter("Release appears to match a different book by this author", "Matching");
+
+                case TitleMatchProblemCode.SeriesNameOnly:
+                    return Decision.RejectHardFilter("Release names the series, not this book", "Matching");
 
                 case TitleMatchProblemCode.SuspiciousAdjacentNumber:
                     return Decision.RejectSoftFilter("Unexplained number after matched title", "Matching");
