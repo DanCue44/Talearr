@@ -79,6 +79,7 @@ class AddNewAuthorSearchResult extends Component {
       status,
       overview,
       metadataBookCount,
+      metadataSource,
       ratings,
       folder,
       images,
@@ -206,6 +207,18 @@ class AddNewAuthorSearchResult extends Component {
               }
 
               {
+                metadataSource ?
+                  <Label
+                    kind={kinds.WARNING}
+                    size={sizes.LARGE}
+                    title="Found through the TaleArr metadata fallback while the metadata server is unavailable"
+                  >
+                    {metadataSource}
+                  </Label> :
+                  null
+              }
+
+              {
                 status === 'ended' ?
                   <Label
                     kind={kinds.DANGER}
@@ -258,6 +271,7 @@ AddNewAuthorSearchResult.propTypes = {
   status: PropTypes.string.isRequired,
   overview: PropTypes.string,
   metadataBookCount: PropTypes.number,
+  metadataSource: PropTypes.string,
   ratings: PropTypes.object.isRequired,
   folder: PropTypes.string.isRequired,
   images: PropTypes.arrayOf(PropTypes.object).isRequired,

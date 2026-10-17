@@ -476,6 +476,9 @@ namespace Chaptarr.Api.V1.Author
                 SearchForMissingBooks = authorResource.AddOptions?.SearchForMissingBooks,
                 RequestedBy = "ApiV1AuthorAdd",
                 AuthorName = authorResource.AuthorName,
+
+                // TaleArr: an explicit add may use the Open Library fallback during an outage.
+                AllowMetadataFallback = true,
                 MonitorMode = addOptions?.Monitor,
                 AudiobookBooksToMonitor = audiobookSpecificBookProviderIds?.ToList(),
                 EbookBooksToMonitor = ebookSpecificBookProviderIds?.ToList(),

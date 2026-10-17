@@ -107,6 +107,15 @@ namespace NzbDrone.Core.Books.Services
         public HashSet<string> SpecificBookProviderIds { get; set; }  // e.g., ["hc:495645", "hc:495646"]
         public BookMediaType? SpecificBookMediaType { get; set; }
 
+        // TaleArr: the add may use the Open Library fallback when the metadata server is
+        // unavailable. Set only by explicit user adds (author and single-book add), never by
+        // pending-queue retries, re-adds or imports. Not persisted with pending imports.
+        public bool AllowMetadataFallback { get; set; }
+
+        // TaleArr: requested work id -> title, so a single-book add of a hc:/gr: result can find
+        // the same work in the Open Library catalog by title. Not persisted.
+        public Dictionary<string, string> MetadataFallbackWorkTitles { get; set; }
+
         public void MergeTagsForMediaType(BookMediaType mediaType, IEnumerable<int> tags)
         {
             if (tags == null)
@@ -220,6 +229,39 @@ namespace NzbDrone.Core.Books.Services
             }
         }
 
+        // TaleArr: fetch from the metadata server; when that fails because the server is
+        // unavailable (and the add allows it), build the author from the Open Library fallback.
+        private async Task<(Author Author, bool UsedFallback)> FetchAuthorBlobOrFallbackAsync(string providerId, MonitoringConfig config)
+        {
+            try
+            {
+                return (await FetchAuthorBlobAsync(providerId), false);
+            }
+            catch (Exception ex) when (config?.AllowMetadataFallback == true &&
+                                       !config.IsFromQueue &&
+                                       _authorInfo is ITalearrFallbackAuthorInfo fallbackInfo &&
+                                       fallbackInfo.ShouldUseMetadataFallback(providerId, ex))
+            {
+                Author fallbackAuthor = null;
+                try
+                {
+                    fallbackAuthor = ((ITalearrFallbackAuthorInfo)_authorInfo).GetFallbackAuthorInfo(providerId, config.AuthorName, config.MetadataFallbackWorkTitles);
+                }
+                catch (Exception fallbackEx)
+                {
+                    _logger.Warn(fallbackEx, "Open Library fallback failed for author {0}", providerId);
+                }
+
+                if (fallbackAuthor == null)
+                {
+                    throw;
+                }
+
+                _logger.Warn("Metadata server unavailable for author {0} ({1}); added from Open Library instead", providerId, ex.Message);
+                return (fallbackAuthor, true);
+            }
+        }
+
         public async Task<Author> AddAuthorAsync(string providerId, MonitoringConfig config = null)
         {
             _logger.Debug("AddAuthorAsync called with provider ID: {0}", providerId);
@@ -234,13 +276,14 @@ namespace NzbDrone.Core.Books.Services
             }
 
             Author author;
+            var usedMetadataFallback = false;
 
             try
             {
                 // Fetch author info from metadata server
                 _logger.Debug("Calling GetAuthorInfo with provider ID: {0}", providerId);
                 var apiStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                author = await FetchAuthorBlobAsync(providerId);
+                (author, usedMetadataFallback) = await FetchAuthorBlobOrFallbackAsync(providerId, config);
                 apiStopwatch.Stop();
                 _logger.Debug("GetAuthorInfo returned author: {0} (ID: {1}) in {2}ms", 
                     author?.Name, author?.Id, apiStopwatch.ElapsedMilliseconds);
@@ -349,6 +392,15 @@ namespace NzbDrone.Core.Books.Services
             {
                 // Provider IDs are identity. Display names are not: distinct authors can share one.
                 var existingAuthor = FindExistingAuthor(providerId, author);
+                if (existingAuthor != null && usedMetadataFallback)
+                {
+                    // TaleArr: never merge sparser fallback data into an author already in the
+                    // library; it is updated by a normal refresh once the server is back. A
+                    // requested book it does not have yet stays queued as a pending request.
+                    _logger.Info("Author {0} is already in the library; keeping it unchanged while the metadata server is unavailable", existingAuthor.Name);
+                    return await QueueMissingRequestedWorks(existingAuthor, providerId, config);
+                }
+
                 if (existingAuthor != null)
                 {
                     var handledAuthor = await HandleExistingAuthorAsync(existingAuthor, author, config);

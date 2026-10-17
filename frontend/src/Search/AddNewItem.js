@@ -317,6 +317,7 @@ class AddNewItem extends Component {
                             key={item.id}
                             {...author}
                             metadataBookCount={item.metadataBookCount}
+                            metadataSource={item.metadataSource}
                             searchProvider={selectedProvider}
                           />
                         );
@@ -327,6 +328,7 @@ class AddNewItem extends Component {
                             key={item.id}
                             isExistingAuthor={'id' in book.author && book.author.id !== 0}
                             {...book}
+                            metadataSource={item.metadataSource}
                             searchProvider={selectedProvider}
                           />
                         );
