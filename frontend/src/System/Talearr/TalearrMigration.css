@@ -1,0 +1,41 @@
+.intro {
+  margin-bottom: 15px;
+  max-width: 900px;
+  color: var(--helpTextColor);
+}
+
+.heading {
+  margin: 20px 0 10px;
+  font-weight: 300;
+  font-size: 22px;
+}
+
+.summary {
+  margin-bottom: 10px;
+}
+
+.filters {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0 15px;
+}
+
+.fileInput {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sub {
+  color: var(--helpTextColor);
+}
+
+.detail {
+  white-space: normal;
+}

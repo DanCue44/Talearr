@@ -1,0 +1,56 @@
+{
+  "/api/v1/system/status": { "appName": "Readarr", "instanceName": "Readarr", "version": "0.4.18.2805", "isDocker": true },
+  "/api/v1/rootfolder": [
+    { "id": 1, "name": "Books", "path": "/books", "defaultMetadataProfileId": 1, "defaultQualityProfileId": 1, "defaultMonitorOption": "all", "defaultNewItemMonitorOption": "all", "defaultTags": [1], "isCalibreLibrary": false, "accessible": true },
+    { "id": 2, "name": "Audiobooks", "path": "/audiobooks", "defaultMetadataProfileId": 1, "defaultQualityProfileId": 2, "defaultMonitorOption": "none", "defaultNewItemMonitorOption": "none", "defaultTags": [], "isCalibreLibrary": false, "accessible": true }
+  ],
+  "/api/v1/qualityprofile": [
+    { "id": 1, "name": "eBook", "upgradeAllowed": false, "cutoff": 3, "items": [] },
+    { "id": 2, "name": "Spoken", "upgradeAllowed": false, "cutoff": 13, "items": [] }
+  ],
+  "/api/v1/metadataprofile": [
+    { "id": 1, "name": "Standard", "minPopularity": 350, "skipMissingDate": true },
+    { "id": 2, "name": "None", "minPopularity": 0 }
+  ],
+  "/api/v1/tag": [ { "id": 1, "label": "kids" }, { "id": 2, "label": "fav" } ],
+  "/api/v1/downloadclient": [
+    { "enable": true, "protocol": "usenet", "priority": 1, "removeCompletedDownloads": true, "removeFailedDownloads": true, "name": "SABnzbd",
+      "fields": [ { "order": 0, "name": "host", "value": "sabnzbd" }, { "order": 1, "name": "port", "value": 8080 }, { "order": 2, "name": "useSsl", "value": false },
+                  { "order": 4, "name": "apiKey", "value": "sab-key-123" }, { "order": 7, "name": "musicCategory", "value": "readarr" } ],
+      "implementationName": "SABnzbd", "implementation": "Sabnzbd", "configContract": "SabnzbdSettings", "tags": [], "id": 1 },
+    { "enable": true, "protocol": "torrent", "priority": 1, "name": "rqbit", "fields": [ { "name": "host", "value": "rqbit" } ],
+      "implementationName": "rqbit", "implementation": "RQBit", "configContract": "RQBitSettings", "tags": [], "id": 2 }
+  ],
+  "/api/v1/indexer": [
+    { "enableRss": true, "enableAutomaticSearch": true, "enableInteractiveSearch": true, "supportsRss": true, "supportsSearch": true, "protocol": "usenet", "priority": 25, "downloadClientId": 0, "name": "NZBgeek",
+      "fields": [ { "name": "baseUrl", "value": "https://api.nzbgeek.info" }, { "name": "apiPath", "value": "/api" }, { "name": "apiKey", "value": "geek-key" }, { "name": "categories", "value": [7020, 3030] } ],
+      "implementationName": "Newznab", "implementation": "Newznab", "configContract": "NewznabSettings", "tags": [2], "id": 1 },
+    { "enableRss": true, "enableAutomaticSearch": true, "enableInteractiveSearch": true, "protocol": "torrent", "priority": 10, "name": "Jackett Books",
+      "fields": [ { "name": "baseUrl", "value": "http://jackett:9117/api/v2.0/indexers/all/results/torznab" }, { "name": "apiKey", "value": "jk" }, { "name": "categories", "value": [7000] },
+                  { "name": "minimumSeeders", "value": 3 }, { "name": "seedCriteria.seedRatio", "value": 1.5 }, { "name": "seedCriteria.seedTime", "value": 60 } ],
+      "implementationName": "Torznab", "implementation": "Torznab", "configContract": "TorznabSettings", "tags": [], "id": 2 },
+    { "enableRss": true, "enableAutomaticSearch": true, "enableInteractiveSearch": true, "protocol": "torrent", "priority": 25, "name": "MyAnonamouse (Prowlarr)",
+      "fields": [ { "name": "baseUrl", "value": "http://prowlarr:9696/3/" } ], "implementation": "Torznab", "configContract": "TorznabSettings", "tags": [], "id": 3 }
+  ],
+  "/api/v1/author": [
+    { "id": 1, "authorMetadataId": 1, "status": "continuing", "authorName": "Andy Weir", "foreignAuthorId": "6540057", "titleSlug": "6540057", "monitored": true, "monitorNewItems": "all",
+      "path": "/books/Andy Weir", "rootFolderPath": "/books", "qualityProfileId": 1, "metadataProfileId": 1, "tags": [2], "statistics": { "bookFileCount": 2 } },
+    { "id": 2, "authorMetadataId": 2, "authorName": "Brandon Sanderson", "foreignAuthorId": "38550", "monitored": true, "monitorNewItems": "none",
+      "path": "/audiobooks/Brandon Sanderson", "qualityProfileId": 2, "metadataProfileId": 1, "tags": [] },
+    { "id": 3, "authorMetadataId": 3, "authorName": "Zzz Nobody", "foreignAuthorId": "999999999", "monitored": false, "monitorNewItems": "none",
+      "path": "/books/Zzz Nobody", "qualityProfileId": 1, "metadataProfileId": 2, "tags": [] }
+  ],
+  "/api/v1/book": [
+    { "id": 10, "title": "Project Hail Mary", "authorId": 1, "foreignBookId": "54493401", "foreignEditionId": "54493401", "monitored": true, "anyEditionOk": true, "statistics": { "bookFileCount": 1 } },
+    { "id": 11, "title": "The Martian", "authorId": 1, "foreignBookId": "18007564", "foreignEditionId": "18007564", "monitored": false, "statistics": { "bookFileCount": 1 } },
+    { "id": 20, "title": "Mistborn: The Final Empire", "authorId": 2, "foreignBookId": "68428", "foreignEditionId": "68428", "monitored": true, "statistics": { "bookFileCount": 0 } },
+    { "id": 21, "title": "A Book Nobody Has Heard Of", "authorId": 2, "foreignBookId": "1", "foreignEditionId": "1", "monitored": true, "statistics": { "bookFileCount": 0 } },
+    { "id": 30, "title": "Mystery Thing", "authorId": 3, "foreignBookId": "2", "monitored": false, "statistics": { "bookFileCount": 0 } }
+  ],
+  "/api/v1/edition?bookId=10&bookId=11&bookId=20&bookId=21": [
+    { "id": 100, "bookId": 10, "foreignEditionId": "54493401", "title": "Project Hail Mary", "isbn13": "9780593135204", "asin": "B08FHBV4ZX", "monitored": true, "isEbook": true },
+    { "id": 110, "bookId": 11, "foreignEditionId": "18007564", "title": "The Martian", "isbn13": "9780804139021", "monitored": true },
+    { "id": 200, "bookId": 20, "foreignEditionId": "68428", "title": "Mistborn", "asin": "B002UZMLXM", "monitored": true },
+    { "id": 201, "bookId": 20, "foreignEditionId": "68429", "title": "Mistborn (other)", "isbn13": "9999999999999", "monitored": false }
+  ]
+}
