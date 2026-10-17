@@ -106,7 +106,7 @@ MUST_KEEP_RECORDINGS = [
     ("src/NzbDrone.Core/Talearr/GrabPolicy/TalearrAbridgedRules.cs", r"AbridgedReleaseDetector\.WantsAbridged\(subject, resolver\)", "recordings: abridged rules use the resolved wanted edition"),
     ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionComparer.cs", r"TalearrAbridgedRules\.Rank\(decision\.RemoteBook, target, _abridgedResolver\)", "recordings: abridged ranking uses the resolved value"),
     ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionPriorizationService.cs", r"_abridgedResolver, _bookGrabPolicyService[,)]", "recordings: ranking gets the abridged resolver and the per-book policies"),
-    ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionPriorizationService.cs", r"_bookGrabPolicyService, _qualityLadder\);", "quality ladder: ranking gets the audio ladder and ebook order"),
+    ("src/NzbDrone.Core/DecisionEngine/DownloadDecisionPriorizationService.cs", r"_bookGrabPolicyService, _mamReleasePolicy, _qualityLadder\);", "quality ladder: ranking gets the audio ladder and ebook order"),
     ("src/NzbDrone.Core/DecisionEngine/Specifications/UpgradeDiskSpecification.cs", r"_talearrLadder\?\.UpgradeReason", "quality ladder: same-quality upgrades"),
     ("src/NzbDrone.Core/DecisionEngine/Specifications/CutoffSpecification.cs", r"_talearrLadder\?\.UpgradeReason", "quality ladder: Good tier is the audio cutoff"),
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"TalearrNamingTokens\.Add\(tokenHandlers, edition, _abridgedResolver\)", "recordings: {Abridged} naming uses the resolved value"),
