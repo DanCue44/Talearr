@@ -329,9 +329,42 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
 - **Freeleech wedge balance.** The hourly account refresh also reads your wedge count and
   bonus points (`wedges`, `seedbonus` in `jsonLoad.php`, when MAM sends them). The indexer Test
   shows them, and System > Status shows a notice when **Freeleech Wedges** is Prefer Wedge and
-  no wedges are left (grabs then download without one). TaleArr never spends bonus points:
-  MAM's purchase endpoint is not documented and automating it risks the account, so buying
-  wedges stays a manual step on MAM's Bonus page.
+  no wedges are left (grabs then download without one). The refresh also reads VIP expiry
+  (`vip_until`), ratio (`ratio`, or `uploaded_bytes`/`downloaded_bytes`) and a seed-only flag
+  when MAM sends them. Nothing is bought unless you turn on bonus points auto-spend (below).
+- **Bonus points auto-spend** (every rule off by default; indexer settings, Advanced). Uses
+  MAM's Bonus Points Store API (`json/bonusBuy.php`), which is on MAM's list of allowed
+  automation, with the `mam_id` session. The hourly **Spend My Anona Mouse Bonus Points** task
+  (System > Tasks) checks the stored account status (refreshing it first when it is an hour
+  old) and buys at most one thing per run:
+  1. **Ratio Safety Net** (off): when the ratio is below **Minimum Ratio** (1.2), or MAM made
+     the account Mouse or seed-only, buys **Upload Credit to Buy** (50 GiB, the API minimum;
+     500 points per GiB, so 25,000 points) with `spendtype=upload&amount=50`.
+  2. **Auto-Keep VIP** (off): for Power User or VIP accounts only (the classes MAM's store
+     sells VIP to), when VIP is not active or has fewer than **VIP Renew Below** (14) days left,
+     buys `spendtype=VIP&duration=max` (fills to MAM's 90-day limit, at least 7 days). The
+     cost is estimated at 5,000 points per 4 weeks of missing days. A VIP account whose expiry
+     MAM does not report is left alone.
+  3. **Auto-Buy Wedges** (off): while you have fewer than **Minimum Wedges** (2), buys one
+     wedge (50,000 points) with `spendtype=wedges`.
+
+  Every rule keeps at least **Bonus Points Reserve** (10,000) points. **Bonus Purchases per
+  Day** (2) caps real purchases in any 24 hours, and after MAM refuses a purchase that kind is
+  not tried again for 24 hours (no retry storms). Every attempt is written to `talearr.db`
+  before it is sent (nothing is bought if that write fails), and the account status is
+  refreshed right after. MAM documents no reply format, so only an explicit `success` flag
+  counts as bought; anything else is a failure, logged with the raw reply (truncated).
+  **Bonus Spend Dry Run** (off) only logs and lists what would be bought. Activity > Seeding
+  shows **Recent bonus purchases** under the MAM summary; each real purchase or failure is
+  sent through On Health Issue + Include Health Warnings. System > Status warns when the
+  account is Mouse or seed-only: "Buy upload credit in the Bonus Points Store (API minimum
+  50 GB = 25,000 points)".
+
+  MAM policy: automating anything not on MAM's allowed list can cost you the account.
+  Auto-spend only calls two allowed endpoints (Bonus Points Store, Load User Data) and can
+  never send the `gift` or `sendWedge` spend types (MAM
+  forbids automating them; the code has no way to build them) or touch the Millionaire's
+  Vault. Cheese purchases are not in the API.
 - **Seeding status.** Activity > Seeding lists what the torrent clients seed in TaleArr's
   categories (post-import categories included): book, format, indexer, state, seeded time
   against the requirement (72 hours for MAM; the indexer Seed Time is the goal), upload and
@@ -342,8 +375,11 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
   Read-only: nothing is changed in the client and MAM is not called. API:
   `GET /api/v1/talearr/seeding` (client reads cached for 30 seconds).
 
-Storage: new keys in the indexer's own settings JSON (stock Chaptarr ignores them) and one
-scheduled task row that Chaptarr drops on start.
+Storage: new keys in the indexer's own settings JSON (stock Chaptarr ignores them), scheduled
+task rows that Chaptarr drops on start, and the `MamBonusPurchases` table in `talearr.db`
+(schema 7; losing it only resets the daily cap and back-off). API: the
+`GET /api/v1/talearr/seeding` `mam` block gains `vipUntil`, `ratio`, `restricted`,
+`bonusAutoSpend`, `bonusDryRun` and `bonusPurchases`.
 
 ## Drop-in compatibility with Chaptarr
 
@@ -379,6 +415,8 @@ type, because stock Chaptarr deletes types it does not know when it starts. Even
 | Manual interaction required | On Import Failure | a blocked import that waits for you; webhook `eventType: ManualInteractionRequired` |
 | Health issue / health restored | On Health Issue, On Health Restored | restored uses the existing `OnHealthRestored` column; webhook `eventType: HealthRestored` |
 | MAM session expired | On Health Issue | the MyAnonamouse session health check (error) |
+| MAM bonus purchase made or failed | On Health Issue + Include Health Warnings | bonus points auto-spend; a notice when bought, a warning when MAM refused |
+| MAM account is Mouse or seed-only | On Health Issue + Include Health Warnings | warning with the upload credit advice |
 | Private torrent at risk of a hit and run | On Health Issue + Include Health Warnings | the seeding risk check (warning); see MyAnonamouse > Seeding status |
 | Metadata fallback active | On Health Issue + Include Health Warnings | TaleArr's notice-level checks go out with warnings |
 | Application update, author/book added and deleted | as upstream | |

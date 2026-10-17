@@ -426,7 +426,8 @@ namespace Chaptarr.Core.Test.Talearr.Seeding
             using var withMam = JsonDocument.Parse(STJson.ToJson(report));
             Assert.That(withMam.RootElement.GetProperty("mam").EnumerateObject().Select(p => p.Name), Is.EquivalentTo(new[]
             {
-                "userClass", "isVip", "unsatisfied", "unsatisfiedLimit", "wedges", "bonusPoints", "checkedAt"
+                "userClass", "isVip", "unsatisfied", "unsatisfiedLimit", "wedges", "bonusPoints", "checkedAt",
+                "vipUntil", "ratio", "restricted", "bonusAutoSpend", "bonusDryRun", "bonusPurchases"
             }));
         }
     }

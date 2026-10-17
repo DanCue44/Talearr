@@ -112,6 +112,30 @@ namespace NzbDrone.Core.Talearr.Seeding
 
         [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
         public DateTime? CheckedAt { get; set; }
+
+        // TaleArr: bonus auto-spend additions (null when MAM did not send them).
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public DateTime? VipUntil { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public double? Ratio { get; set; }
+
+        public bool Restricted { get; set; }
+        public bool BonusAutoSpend { get; set; }
+        public bool BonusDryRun { get; set; }
+        public List<TalearrSeedingBonusPurchase> BonusPurchases { get; set; } = new List<TalearrSeedingBonusPurchase>();
+    }
+
+    public class TalearrSeedingBonusPurchase
+    {
+        public DateTime AttemptedAt { get; set; }
+        public string SpendType { get; set; }
+        public string Parameters { get; set; }
+        public int EstimatedCost { get; set; }
+        public bool DryRun { get; set; }
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public string Reason { get; set; }
     }
 
     // One torrent as a download client reports it, before it is matched to TaleArr's history.

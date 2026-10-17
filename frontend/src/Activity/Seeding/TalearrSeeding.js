@@ -220,14 +220,78 @@ class TalearrSeeding extends Component {
 
     const bonus = mam.bonusPoints == null ? null : Math.floor(mam.bonusPoints).toLocaleString();
     const checked = mam.checkedAt ? new Date(mam.checkedAt).toLocaleString() : 'not yet';
+    const ratio = mam.ratio == null ? null : mam.ratio.toFixed(2);
+    const vipUntil = mam.vipUntil ? new Date(mam.vipUntil).toLocaleDateString() : null;
 
     return (
-      <div className={styles.mam} title={`MyAnonamouse account status, last checked ${checked}`}>
-        <Stat label="MAM class" value={mam.userClass ? `${mam.userClass}${mam.isVip ? ' (VIP)' : ''}` : null} />
-        <Stat label="Unsatisfied" value={unsatisfied} />
-        <Stat label="Wedges" value={mam.wedges} />
-        <Stat label="Bonus points" value={bonus} />
-        <Stat label="Checked" value={checked} />
+      <div>
+        <div className={styles.mam} title={`MyAnonamouse account status, last checked ${checked}`}>
+          <Stat label="MAM class" value={mam.userClass ? `${mam.userClass}${mam.isVip ? ' (VIP)' : ''}` : null} />
+          {vipUntil ? <Stat label="VIP until" value={vipUntil} /> : null}
+          {ratio ? <Stat label="Ratio" value={ratio} /> : null}
+          <Stat label="Unsatisfied" value={unsatisfied} />
+          <Stat label="Wedges" value={mam.wedges} />
+          <Stat label="Bonus points" value={bonus} />
+          <Stat label="Checked" value={checked} />
+        </div>
+
+        {
+          mam.restricted ?
+            <Alert kind={kinds.WARNING}>
+              {
+                'MAM limited this account (Mouse or seed-only) because the ratio is too low. Buy upload ' +
+                'credit in the Bonus Points Store (API minimum 50 GB = 25,000 points).'
+              }
+            </Alert> :
+            null
+        }
+
+        {this.renderBonusPurchases(mam)}
+      </div>
+    );
+  }
+
+  renderBonusPurchases(mam) {
+    const purchases = mam.bonusPurchases || [];
+
+    if (!mam.bonusAutoSpend && !purchases.length) {
+      return null;
+    }
+
+    return (
+      <div className={styles.bonus}>
+        <div className={styles.bonusTitle}>
+          {'Recent bonus purchases'}
+          {mam.bonusDryRun ? <Label kind={kinds.INFO} size={sizes.SMALL}>{'Dry run'}</Label> : null}
+        </div>
+
+        {
+          purchases.length ?
+            <ul className={styles.bonusList}>
+              {
+                purchases.map((p) => {
+                  let kind = p.success ? kinds.SUCCESS : kinds.DANGER;
+                  let status = p.success ? 'Bought' : 'Failed';
+
+                  if (p.dryRun) {
+                    kind = kinds.DEFAULT;
+                    status = 'Would buy';
+                  }
+
+                  return (
+                    <li key={`${p.attemptedAt}-${p.parameters}`} title={p.message || undefined}>
+                      <Label kind={kind} size={sizes.SMALL}>{status}</Label>
+                      {` ${new Date(p.attemptedAt).toLocaleString()}: ${p.parameters}`}
+                      {` (about ${p.estimatedCost.toLocaleString()} points)`}
+                      {p.reason ? <span className={styles.bonusReason}>{` ${p.reason}`}</span> : null}
+                      {!p.success && !p.dryRun && p.message ? <span className={styles.bonusReason}>{` - ${p.message}`}</span> : null}
+                    </li>
+                  );
+                })
+              }
+            </ul> :
+            <div className={styles.bonusReason}>{'None yet. Auto-spend is on for this indexer.'}</div>
+        }
       </div>
     );
   }

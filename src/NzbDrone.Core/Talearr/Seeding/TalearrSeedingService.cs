@@ -34,6 +34,7 @@ namespace NzbDrone.Core.Talearr.Seeding
         private readonly IBookService _bookService;
         private readonly IAuthorService _authorService;
         private readonly IIndexerFactory _indexerFactory;
+        private readonly IMyAnonaMouseBonusPurchaseStore _bonusPurchases;
         private readonly ICached<TalearrSeedingReport> _cache;
         private readonly Logger _logger;
         private readonly object _buildLock = new object();
@@ -44,8 +45,10 @@ namespace NzbDrone.Core.Talearr.Seeding
                                      IAuthorService authorService,
                                      IIndexerFactory indexerFactory,
                                      ICacheManager cacheManager,
-                                     Logger logger)
+                                     Logger logger,
+                                     IMyAnonaMouseBonusPurchaseStore bonusPurchases = null)
         {
+            _bonusPurchases = bonusPurchases;
             _downloadClientProvider = downloadClientProvider;
             _historyService = historyService;
             _bookService = bookService;
@@ -163,8 +166,40 @@ namespace NzbDrone.Core.Talearr.Seeding
                 GeneratedAt = now,
                 Torrents = rows,
                 Summary = TalearrSeedingRules.Summarize(rows),
-                Mam = TalearrSeedingRules.BuildMamStatus(mam?.Settings as MyAnonaMouseSettings)
+                Mam = WithBonusPurchases(TalearrSeedingRules.BuildMamStatus(mam?.Settings as MyAnonaMouseSettings), mam)
             };
+        }
+
+        // TaleArr: the last bonus auto-spend attempts for the MAM summary ("Recent bonus purchases").
+        private TalearrSeedingMamStatus WithBonusPurchases(TalearrSeedingMamStatus status, IndexerDefinition mam)
+        {
+            if (status == null || _bonusPurchases == null || mam == null)
+            {
+                return status;
+            }
+
+            try
+            {
+                status.BonusPurchases = _bonusPurchases.GetRecent(mam.Id, 10)
+                    .Select(r => new TalearrSeedingBonusPurchase
+                    {
+                        AttemptedAt = DateTime.SpecifyKind(r.AttemptedAt, DateTimeKind.Utc),
+                        SpendType = r.SpendType,
+                        Parameters = r.Parameters,
+                        EstimatedCost = r.EstimatedCost,
+                        DryRun = r.DryRun,
+                        Success = r.Success,
+                        Message = r.Message,
+                        Reason = r.Reason
+                    })
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Could not read MAM bonus purchases for the seeding report");
+            }
+
+            return status;
         }
 
         private static TalearrSeedingClientTorrent FromQueueItem(DownloadClientItem item)
