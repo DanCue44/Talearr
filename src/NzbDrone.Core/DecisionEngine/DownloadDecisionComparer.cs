@@ -12,6 +12,7 @@ using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Talearr.GrabPolicy;
+using NzbDrone.Core.Talearr.QualityLadder;
 using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.DecisionEngine
@@ -28,11 +29,18 @@ namespace NzbDrone.Core.DecisionEngine
         private readonly ITalearrAbridgedResolver _abridgedResolver;
         private readonly ITalearrBookGrabPolicyService _bookGrabPolicyService;
 
+        // TaleArr: audio quality ladder and ebook format preference (ties the profile leaves).
+        private readonly ITalearrQualityLadder _qualityLadder;
+        private readonly TalearrQualityLadderSettings _ladderSettings;
+        private readonly Dictionary<RemoteBook, AudioQualityEstimate> _audioEstimates = new Dictionary<RemoteBook, AudioQualityEstimate>(ReferenceEqualityComparer.Instance);
+
         public delegate int CompareDelegate(DownloadDecision x, DownloadDecision y);
         public delegate int CompareDelegate<TSubject, TValue>(DownloadDecision x, DownloadDecision y);
 
-        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, TalearrGrabPolicy grabPolicy = null, ITalearrAbridgedResolver abridgedResolver = null, ITalearrBookGrabPolicyService bookGrabPolicyService = null)
+        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, TalearrGrabPolicy grabPolicy = null, ITalearrAbridgedResolver abridgedResolver = null, ITalearrBookGrabPolicyService bookGrabPolicyService = null, ITalearrQualityLadder qualityLadder = null)
         {
+            _qualityLadder = qualityLadder;
+            _ladderSettings = qualityLadder?.GetSettings() ?? TalearrQualityLadderSettings.Default;
             _abridgedResolver = abridgedResolver;
             _bookGrabPolicyService = bookGrabPolicyService;
             _configService = configService;
@@ -56,7 +64,10 @@ namespace NzbDrone.Core.DecisionEngine
                 ("Native Category", CompareNativeCategory),
                 ("Format Type", CompareFormatType),
                 ("Unabridged", CompareUnabridged), // TaleArr
+                ("Audio Floor", CompareAudioFloor), // TaleArr
                 ("Profile Preference", CompareProfilePreference),
+                ("Audio Quality", CompareAudioTier), // TaleArr
+                ("Ebook Format", CompareEbookFormat), // TaleArr
                 ("Protocol", CompareProtocol),
                 ("Indexer Priority", CompareIndexerPriority),
                 ("Size", CompareSize),
@@ -96,7 +107,10 @@ namespace NzbDrone.Core.DecisionEngine
                 ("Native Category", CompareNativeCategory),
                 ("Format Type", CompareFormatType),
                 ("Unabridged", CompareUnabridged), // TaleArr
+                ("Audio Floor", CompareAudioFloor), // TaleArr
                 ("Profile Preference", CompareProfilePreference),
+                ("Audio Quality", CompareAudioTier), // TaleArr
+                ("Ebook Format", CompareEbookFormat), // TaleArr
                 ("Protocol Preference", CompareProtocol),
                 ("Indexer Priority", CompareIndexerPriority),
                 ("File Size", CompareSize),
@@ -148,6 +162,17 @@ namespace NzbDrone.Core.DecisionEngine
                     return AbridgedReleaseDetector.Detect(winner.RemoteBook?.Release?.Title) == AbridgedMarker.Abridged
                         ? "Abridged audiobook preferred (abridged policy)"
                         : "Unabridged audiobook preferred over abridged";
+
+                // TaleArr: audio quality ladder and ebook format preference.
+                case "Audio Floor":
+                    var floorLoser = ReferenceEquals(winner, x) ? y : x;
+                    return $"Better audio than an implausibly small or very low bitrate release ({AudioEstimate(floorLoser.RemoteBook).Describe()})";
+
+                case "Audio Quality":
+                    return $"Better audio quality tier ({AudioEstimate(winner.RemoteBook).Describe()})";
+
+                case "Ebook Format":
+                    return $"Preferred ebook format ({winner.RemoteBook.ParsedBookInfo.Quality.Quality.Name})";
 
                 case "Profile Preference":
                     var preference = CompareProfilePreferenceDetailed(x, y);
@@ -269,6 +294,75 @@ namespace NzbDrone.Core.DecisionEngine
         {
             var target = TalearrAbridgedRules.Target(decision.RemoteBook, _grabPolicy.AbridgedPolicy, _bookGrabPolicyService, _abridgedResolver);
             return TalearrAbridgedRules.Rank(decision.RemoteBook, target, _abridgedResolver);
+        }
+
+        // TaleArr: among audiobook releases, a known very low bitrate or implausibly small release
+        // ranks below the others whatever its format.
+        private int CompareAudioFloor(DownloadDecision x, DownloadDecision y)
+        {
+            if (!_ladderSettings.AudioRanking || _qualityLadder == null)
+            {
+                return 0;
+            }
+
+            var xEstimate = AudioEstimate(x.RemoteBook);
+            var yEstimate = AudioEstimate(y.RemoteBook);
+            if (xEstimate.Source == "none" && yEstimate.Source == "none")
+            {
+                return 0;
+            }
+
+            return CompareBy(xEstimate, yEstimate, e => e.Tier > AudioQualityTier.VeryLow || e.Source == "none");
+        }
+
+        // TaleArr: releases the quality profile ranks equal are ordered by audio tier (Good above
+        // Low; unknown counts as Low). Two copies in the same tier stay tied for the later steps.
+        private int CompareAudioTier(DownloadDecision x, DownloadDecision y)
+        {
+            if (!_ladderSettings.AudioRanking || _qualityLadder == null)
+            {
+                return 0;
+            }
+
+            return CompareBy(AudioEstimate(x.RemoteBook), AudioEstimate(y.RemoteBook), e => (int)(e.Tier == AudioQualityTier.Unknown ? AudioQualityTier.Low : e.Tier));
+        }
+
+        // TaleArr: ebook releases the quality profile ranks equal are ordered by the format preference.
+        private int CompareEbookFormat(DownloadDecision x, DownloadDecision y)
+        {
+            var xQuality = x.RemoteBook?.ParsedBookInfo?.Quality?.Quality;
+            var yQuality = y.RemoteBook?.ParsedBookInfo?.Quality?.Quality;
+            if (_qualityLadder == null || !TalearrEbookPreference.IsEbook(xQuality) || !TalearrEbookPreference.IsEbook(yQuality))
+            {
+                return 0;
+            }
+
+            return CompareByReverse(TalearrEbookPreference.Rank(xQuality, _ladderSettings.EbookFormats), TalearrEbookPreference.Rank(yQuality, _ladderSettings.EbookFormats));
+        }
+
+        private AudioQualityEstimate AudioEstimate(RemoteBook remoteBook)
+        {
+            if (remoteBook == null || _qualityLadder == null)
+            {
+                return AudioQualityEstimate.None;
+            }
+
+            if (!_audioEstimates.TryGetValue(remoteBook, out var estimate))
+            {
+                try
+                {
+                    estimate = _qualityLadder.EstimateRelease(remoteBook) ?? AudioQualityEstimate.None;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "TaleArr: audio estimate failed for {0}", remoteBook.Release?.Title);
+                    estimate = AudioQualityEstimate.None;
+                }
+
+                _audioEstimates[remoteBook] = estimate;
+            }
+
+            return estimate;
         }
 
         private bool IsEbookFormat(Quality quality)

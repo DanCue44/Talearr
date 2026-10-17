@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Talearr.GrabPolicy;
+using NzbDrone.Core.Talearr.QualityLadder;
 
 namespace NzbDrone.Core.Talearr.Recordings
 {
@@ -83,7 +84,9 @@ namespace NzbDrone.Core.Talearr.Recordings
         // new runtime (the same 60% the grab policy uses).
         public const double AbridgedRuntimeRatio = 0.6;
 
-        public static UpgradeVerdict Decide(RecordingAudioFacts existing, RecordingAudioFacts incoming, UpgradeProfileComparison profile, TalearrRecordingsSettings settings)
+        // ladderUpgrades (talearr.ladder.audioupgrades): a gain across codecs counts when it is a clear
+        // step up the audio quality ladder (TalearrAudioLadder.IsClearUpgrade).
+        public static UpgradeVerdict Decide(RecordingAudioFacts existing, RecordingAudioFacts incoming, UpgradeProfileComparison profile, TalearrRecordingsSettings settings, bool ladderUpgrades = false)
         {
             existing ??= new RecordingAudioFacts();
             incoming ??= new RecordingAudioFacts();
@@ -102,7 +105,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 return worse;
             }
 
-            return Better(existing, incoming, profile, settings);
+            return Better(existing, incoming, profile, settings, ladderUpgrades);
         }
 
         public static string NormalizeCodec(string format)
@@ -211,7 +214,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             return null;
         }
 
-        private static UpgradeVerdict Better(RecordingAudioFacts existing, RecordingAudioFacts incoming, UpgradeProfileComparison profile, TalearrRecordingsSettings settings)
+        private static UpgradeVerdict Better(RecordingAudioFacts existing, RecordingAudioFacts incoming, UpgradeProfileComparison profile, TalearrRecordingsSettings settings, bool ladderUpgrades)
         {
             if (profile.AnyHigher)
             {
@@ -238,6 +241,13 @@ namespace NzbDrone.Core.Talearr.Recordings
                 return UpgradeVerdict.Allow(RuleBetter, "one chaptered M4B replaces several files at the same bitrate");
             }
 
+            // TaleArr: quality ladder, e.g. 32 kbps mp3 files replaced by 64 kbps AAC of the same recording.
+            if (ladderUpgrades && existing.Codec != null && incoming.Codec != null && !sameCodec && gain > 0 &&
+                TalearrAudioLadder.IsClearUpgrade(Estimate(existing), Estimate(incoming), minimum))
+            {
+                return UpgradeVerdict.Allow(RuleBetter, $"a clear step up the audio quality ladder ({existing.Codec} {existing.BitrateKbps} kbps to {incoming.Codec} {incoming.BitrateKbps} kbps)");
+            }
+
             if (existing.Codec != null && incoming.Codec != null && !sameCodec && gain > 0)
             {
                 return UpgradeVerdict.Reject(RuleBetter, $"not an upgrade, a bitrate gain only counts within the same codec ({existing.Codec} {existing.BitrateKbps} kbps against {incoming.Codec} {incoming.BitrateKbps} kbps); kept the existing files");
@@ -257,6 +267,11 @@ namespace NzbDrone.Core.Talearr.Recordings
             return UpgradeVerdict.Reject(RuleBetter, gain > 0
                 ? $"not an upgrade, only {gain} kbps more (at least {minimum} kbps counts); kept the existing files"
                 : "not an upgrade, same quality and no higher bitrate; kept the existing files");
+        }
+
+        private static AudioQualityEstimate Estimate(RecordingAudioFacts facts)
+        {
+            return new AudioQualityEstimate { Codec = facts.Codec, Kbps = facts.BitrateKbps, Tier = TalearrAudioLadder.TierFor(facts.Codec, facts.BitrateKbps), Source = "mediainfo" };
         }
 
         private static string Minutes(int seconds)

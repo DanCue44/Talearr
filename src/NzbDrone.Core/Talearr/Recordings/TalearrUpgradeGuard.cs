@@ -11,6 +11,7 @@ using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Talearr.GrabPolicy;
+using NzbDrone.Core.Talearr.QualityLadder;
 
 namespace NzbDrone.Core.Talearr.Recordings
 {
@@ -46,6 +47,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         private readonly IEditionService _editionService;
         private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly ITalearrRecordingsSettingsService _settingsService;
+        private readonly ITalearrQualityLadderSettingsService _ladderSettings; // TaleArr
         private readonly Logger _logger;
 
         public TalearrUpgradeGuard(IMediaInfoExtractor mediaInfoExtractor,
@@ -55,8 +57,10 @@ namespace NzbDrone.Core.Talearr.Recordings
                                    IEditionService editionService,
                                    ICustomFormatCalculationService formatCalculator,
                                    ITalearrRecordingsSettingsService settingsService,
-                                   Logger logger)
+                                   Logger logger,
+                                   ITalearrQualityLadderSettingsService ladderSettings = null)
         {
+            _ladderSettings = ladderSettings;
             _mediaInfoExtractor = mediaInfoExtractor;
             _abridgedResolver = abridgedResolver;
             _recordingsService = recordingsService;
@@ -100,7 +104,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 var oldFacts = MeasureExisting(book, oldFiles);
                 var newFacts = MeasureIncoming(newItems, downloadClientItem);
                 var comparison = Compare(author, profile, oldFiles, newItems);
-                var verdict = TalearrUpgradeRules.Decide(oldFacts, newFacts, comparison, settings);
+                var verdict = TalearrUpgradeRules.Decide(oldFacts, newFacts, comparison, settings, TalearrQualityLadderSettingsService.Resolve(_ladderSettings).AudioUpgrades);
 
                 _logger.Debug("TaleArr: upgrade guard for '{0}' (book {1}): {2} ({3}): {4}", book.Title, book.Id, verdict.Kind, verdict.Rule, verdict.Reason);
                 return verdict;

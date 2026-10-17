@@ -1,12 +1,14 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useState } from 'react';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import FormLabel from 'Components/Form/FormLabel';
+import SpinnerButton from 'Components/Link/SpinnerButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import ConfirmModal from 'Components/Modal/ConfirmModal';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 
 // TaleArr: merge multi-file audiobooks into one chaptered M4B. Stored by TaleArr only
@@ -17,8 +19,12 @@ function TalearrM4b(props) {
     error,
     settings,
     hasSettings,
-    onInputChange
+    isConvertingLibrary,
+    onInputChange,
+    onConvertLibraryPress
   } = props;
+
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   return (
     <FieldSet legend="Merge to M4B">
@@ -52,8 +58,36 @@ function TalearrM4b(props) {
             <Alert kind={kinds.INFO}>
               {'Any single book can also be merged with Convert to M4B on its page. The bitrate, upscale and channel settings above are used when the files have to be re-encoded; m4a files that are already AAC are copied without re-encoding.'}
             </Alert>
+
+            <FormGroup size={sizes.MEDIUM}>
+              <FormLabel>{'Existing library'}</FormLabel>
+
+              <div>
+                <SpinnerButton
+                  kind={kinds.WARNING}
+                  isSpinning={!!isConvertingLibrary}
+                  isDisabled={!!isConvertingLibrary}
+                  onPress={() => setIsConfirmOpen(true)}
+                >
+                  {'Convert library to M4B'}
+                </SpinnerButton>
+              </div>
+            </FormGroup>
           </Form>
       }
+
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        kind={kinds.WARNING}
+        title="Convert library to M4B"
+        message="Merge every audiobook in the library that is made of several mp3, m4a or m4b files into one chaptered M4B, one book at a time. Needs FFmpeg. Each M4B is checked (same length within 1%) before the original files are removed (to the recycle bin when one is set); a book that fails keeps its files. This can take hours on a large library."
+        confirmLabel="Convert"
+        onConfirm={() => {
+          setIsConfirmOpen(false);
+          onConvertLibraryPress();
+        }}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </FieldSet>
   );
 }
@@ -63,7 +97,9 @@ TalearrM4b.propTypes = {
   error: PropTypes.object,
   settings: PropTypes.object.isRequired,
   hasSettings: PropTypes.bool.isRequired,
-  onInputChange: PropTypes.func.isRequired
+  isConvertingLibrary: PropTypes.bool,
+  onInputChange: PropTypes.func.isRequired,
+  onConvertLibraryPress: PropTypes.func.isRequired
 };
 
 export default TalearrM4b;

@@ -71,6 +71,15 @@ See [docs/TALEARR_AUDIOBOOKS.md](docs/TALEARR_AUDIOBOOKS.md).
   FFmpeg, keeping the cover and tags. The originals are removed only after the M4B is verified
   (duration within 1%). Stored as the `talearr.audiobook.m4bafterimport` row in the `Config`
   table through the new `/api/v1/config/talearrm4b` route.
+  **Convert library to M4B** in the same section merges every multi-file audiobook already in
+  the library, one book at a time (manual only; a failed book keeps its files).
+- **Audio quality ladder and ebook formats.** Settings > Profiles ranks releases the quality
+  profile ranks equal: audio by tier (AAC 64 kbps+, MP3 128 kbps+ and lossless are good, under
+  32 kbps or implausibly small ranks last), read from the title or estimated from size against
+  the book's known runtime, and ebooks by a format order (EPUB > AZW3 > MOBI > PDF). Opt-in:
+  upgrading low bitrate audio to a clearly better copy of the same recording, upgrading an ebook
+  to a preferred format, and a minimum bitrate. `talearr.ladder.*` Config rows through
+  `/api/v1/config/talearrqualityladder`.
 
 ## Recordings
 

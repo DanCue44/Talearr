@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Cache;
@@ -5,6 +6,7 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.QualityLadder;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
@@ -13,12 +15,15 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         private readonly UpgradableSpecification _upgradableSpecification;
         private readonly ICustomFormatCalculationService _formatService;
         private readonly Logger _logger;
+        private readonly ITalearrQualityLadder _talearrLadder; // TaleArr
 
         public UpgradeDiskSpecification(UpgradableSpecification qualityUpgradableSpecification,
                                         ICacheManager cacheManager,
                                         ICustomFormatCalculationService formatService,
-                                        Logger logger)
+                                        Logger logger,
+                                        ITalearrQualityLadder talearrLadder = null)
         {
+            _talearrLadder = talearrLadder;
             _upgradableSpecification = qualityUpgradableSpecification;
             _formatService = formatService;
             _logger = logger;
@@ -53,7 +58,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return Decision.Accept();
             }
 
-            foreach (var file in subject.Books.Where(b => b.BookFiles != null).SelectMany(c => c.BookFiles))
+            foreach (var (book, file) in subject.Books.Where(b => b.BookFiles != null).SelectMany(b => b.BookFiles.Select(f => (b, f))))
             {
                 if (file == null)
                 {
@@ -74,6 +79,17 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                                                            subject.ParsedBookInfo.Quality,
                                                            subject.CustomFormats))
                 {
+                    // TaleArr: the quality profile ranks them equal, but the audio quality ladder or
+                    // the ebook format preference finds the release clearly better (opt-in).
+                    var ladderReason = _talearrLadder?.UpgradeReason(subject, book, qualityProfile,
+                        qualityProfile.CalculateCustomFormatScore(subject.CustomFormats ?? new List<CustomFormat>()),
+                        qualityProfile.CalculateCustomFormatScore(customFormats ?? new List<CustomFormat>()));
+                    if (ladderReason != null)
+                    {
+                        _logger.Debug("{0}: {1}", ladderReason, subject.Release?.Title);
+                        continue;
+                    }
+
                     return Decision.Reject("Existing files on disk is of equal or higher preference: {0}", file.Quality.Quality.Name);
                 }
             }
