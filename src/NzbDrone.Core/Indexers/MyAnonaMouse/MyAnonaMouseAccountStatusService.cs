@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Core.HealthCheck;
@@ -18,10 +19,15 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         private readonly IMamUnsatisfiedSlotGuard _slotGuard;
         private readonly object _refreshLock = new object();
 
-        private DateTime _lastRefreshAttemptUtc = DateTime.MinValue;
+        // TaleArr: last refresh attempt per indexer. Each MAM indexer is refreshed on its own
+        // Account Status Refresh interval (was one fixed hour for all of them).
+        private readonly Dictionary<int, DateTime> _lastRefreshAttemptUtc = new Dictionary<int, DateTime>();
         private bool _refreshInProgress;
 
-        private static readonly TimeSpan RefreshInterval = TimeSpan.FromHours(1);
+        // Scheduler jitter: a run may start a little before a full interval has passed. Only
+        // allowed for intervals of 10 minutes or more, so a short interval is not halved.
+        private static readonly TimeSpan SchedulerJitter = TimeSpan.FromMinutes(1);
+        private static readonly TimeSpan JitterFrom = TimeSpan.FromMinutes(10);
 
         public MyAnonaMouseAccountStatusService(IIndexerFactory indexerFactory,
                                                 IMamUnsatisfiedSlotGuard slotGuard,
@@ -31,6 +37,9 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             _logger = logger;
             _slotGuard = slotGuard;
         }
+
+        // For tests.
+        internal Func<DateTime> UtcNow { get; set; } = () => DateTime.UtcNow;
 
         [EventHandleOrder(EventHandleOrder.Last)]
         public void Handle(ApplicationStartedEvent message)
@@ -43,26 +52,29 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             RefreshIfDue("health cycle");
         }
 
-        // TaleArr: the task (scheduled hourly or run by hand) always refreshes. It used to share the
-        // one-hour throttle with the health-cycle trigger, so running it by hand right after any
-        // other refresh did nothing (a 3 ms "completed" run) and a class change on MAM (for
-        // example Mouse back to User after buying upload credit) stayed stale for up to an hour.
+        // TaleArr: running the task by hand always refreshes. It used to share the one-hour
+        // throttle with the health-cycle trigger, so running it by hand right after any other
+        // refresh did nothing (a 3 ms "completed" run) and a class change on MAM (for example
+        // Mouse back to User after buying upload credit) stayed stale for up to an hour. The
+        // scheduled run (its task interval follows the shortest Account Status Refresh) and the
+        // health cycle refresh each indexer once its own interval has passed.
         public void Execute(RefreshMyAnonaMouseAccountStatusCommand message)
         {
-            RefreshIfDue(message?.Trigger == CommandTrigger.Manual ? "manual task" : "scheduled task", force: true);
+            var manual = message?.Trigger == CommandTrigger.Manual;
+            RefreshIfDue(manual ? "manual task" : "scheduled task", force: manual);
         }
 
         private void RefreshIfDue(string source, bool force = false)
         {
-            if (!TryBeginRefresh(force))
+            if (!TryBeginRefresh())
             {
-                _logger.Debug("Skipping MAM account status refresh from {0}: {1}", source, force ? "a refresh is already running" : "refreshed less than an hour ago");
+                _logger.Debug("Skipping MAM account status refresh from {0}: a refresh is already running", source);
                 return;
             }
 
             try
             {
-                RefreshAccountStatuses(source);
+                RefreshAccountStatuses(source, force);
             }
             finally
             {
@@ -70,7 +82,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             }
         }
 
-        private void RefreshAccountStatuses(string source)
+        private void RefreshAccountStatuses(string source, bool force)
         {
             _logger.Debug("Refreshing MAM account status from {0}", source);
 
@@ -82,6 +94,15 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 if (indexer.Definition is not IndexerDefinition definition ||
                     definition.Settings is not MyAnonaMouseSettings settings)
                 {
+                    continue;
+                }
+
+                if (!TryClaim(definition.Id, settings, force))
+                {
+                    _logger.Debug("Skipping MAM account status refresh for '{0}' from {1}: refreshed less than {2} minutes ago",
+                        definition.Name,
+                        source,
+                        settings.ResolveAccountStatusRefreshInterval().TotalMinutes);
                     continue;
                 }
 
@@ -124,7 +145,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             _logger.Debug("Refreshed MAM account status for {0} indexers; {1} changed", refreshed, changed);
         }
 
-        private bool TryBeginRefresh(bool force)
+        private bool TryBeginRefresh()
         {
             lock (_refreshLock)
             {
@@ -133,15 +154,33 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                     return false;
                 }
 
-                if (!force && DateTime.UtcNow - _lastRefreshAttemptUtc < RefreshInterval)
+                _refreshInProgress = true;
+                return true;
+            }
+        }
+
+        private bool TryClaim(int indexerId, MyAnonaMouseSettings settings, bool force)
+        {
+            var now = UtcNow();
+
+            lock (_refreshLock)
+            {
+                if (!force &&
+                    _lastRefreshAttemptUtc.TryGetValue(indexerId, out var last) &&
+                    now - last < Due(settings))
                 {
                     return false;
                 }
 
-                _refreshInProgress = true;
-                _lastRefreshAttemptUtc = DateTime.UtcNow;
+                _lastRefreshAttemptUtc[indexerId] = now;
                 return true;
             }
+        }
+
+        private static TimeSpan Due(MyAnonaMouseSettings settings)
+        {
+            var interval = settings.ResolveAccountStatusRefreshInterval();
+            return interval >= JitterFrom ? interval - SchedulerJitter : interval;
         }
 
         private void EndRefresh()

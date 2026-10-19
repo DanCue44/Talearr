@@ -167,6 +167,21 @@ namespace Chaptarr.Core.Test.Talearr.Mam
         }
 
         [Test]
+        public void a_short_interval_is_not_shortened_by_the_jitter_allowance()
+        {
+            AddIndexer(new MyAnonaMouseSettings { MamId = "MAIN", DynamicSeedboxEnabled = true, DynamicSeedboxInterval = 2 });
+            var start = new DateTime(2026, 10, 17, 12, 0, 0, DateTimeKind.Utc);
+            _client.Reply(HttpStatusCode.OK, "application/json", NoChange);
+            _client.Reply(HttpStatusCode.OK, "application/json", NoChange);
+
+            _service.Run(force: false, source: "test", nowUtc: start);
+            _service.Run(force: false, source: "test", nowUtc: start.AddMinutes(1));
+            _service.Run(force: false, source: "test", nowUtc: start.AddMinutes(2));
+
+            Assert.That(_client.Requests.Count, Is.EqualTo(2));
+        }
+
+        [Test]
         public void manual_run_should_ignore_the_interval()
         {
             AddIndexer(new MyAnonaMouseSettings { MamId = "MAIN", DynamicSeedboxEnabled = true });

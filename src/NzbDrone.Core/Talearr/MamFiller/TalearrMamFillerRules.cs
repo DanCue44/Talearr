@@ -16,6 +16,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
 
         // How long MAM may take to count a new snatch (see MamUnsatisfiedSlotGuard).
         public static readonly TimeSpan AccountingLag = TimeSpan.FromMinutes(20);
+        // TaleArr: default of Filler Pause After Error (ErrorPause).
         public static readonly TimeSpan Backoff = TimeSpan.FromHours(12);
         public static readonly TimeSpan MinimumSeedTime = TimeSpan.FromHours(72);
 
@@ -189,6 +190,15 @@ namespace NzbDrone.Core.Talearr.MamFiller
         {
             var days = TimeSpan.FromDays(Math.Max(1, settings.FillerSeedDays));
             return days < MinimumSeedTime ? MinimumSeedTime : days;
+        }
+
+        // TaleArr: pause after a MAM error, from Filler Pause After Error (was a fixed 12 hours).
+        public static TimeSpan ErrorPause(MyAnonaMouseSettings settings)
+        {
+            var hours = settings?.FillerErrorPauseHours ?? 0;
+            return hours <= 0
+                ? Backoff
+                : TimeSpan.FromHours(Math.Min(hours, MyAnonaMouseSettings.MaximumPauseHours));
         }
 
         public static bool IsRunDue(DateTime? lastRunAt, int intervalHours, DateTime now)

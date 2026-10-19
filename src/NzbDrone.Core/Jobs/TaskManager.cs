@@ -20,6 +20,7 @@ using NzbDrone.Core.MediaCover.Commands;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Talearr.MissingSearch;
+using NzbDrone.Core.ThingiProvider.Events;
 using NzbDrone.Core.Update.Commands;
 
 namespace NzbDrone.Core.Jobs
@@ -32,19 +33,23 @@ namespace NzbDrone.Core.Jobs
     }
 
     public class TaskManager : ITaskManager, IHandle<ApplicationStartedEvent>, IHandle<CommandExecutedEvent>, IHandleAsync<ConfigSavedEvent>,
-                               IHandle<TalearrMissingSearchSettingsSavedEvent>
+                               IHandle<TalearrMissingSearchSettingsSavedEvent>,
+                               IHandle<ProviderAddedEvent<IIndexer>>, IHandle<ProviderUpdatedEvent<IIndexer>>,
+                               IHandle<ProviderDeletedEvent<IIndexer>>
     {
         private readonly IScheduledTaskRepository _scheduledTaskRepository;
         private readonly IConfigService _configService;
         private readonly ITalearrMissingSearchSettingsService _talearrMissingSearch;
+        private readonly IIndexerFactory _indexerFactory;
         private readonly Logger _logger;
         private readonly ICached<ScheduledTask> _cache;
 
-        public TaskManager(IScheduledTaskRepository scheduledTaskRepository, IConfigService configService, ICacheManager cacheManager, Logger logger, ITalearrMissingSearchSettingsService talearrMissingSearch = null)
+        public TaskManager(IScheduledTaskRepository scheduledTaskRepository, IConfigService configService, ICacheManager cacheManager, Logger logger, ITalearrMissingSearchSettingsService talearrMissingSearch = null, IIndexerFactory indexerFactory = null)
         {
             _scheduledTaskRepository = scheduledTaskRepository;
             _configService = configService;
             _talearrMissingSearch = talearrMissingSearch;
+            _indexerFactory = indexerFactory;
             _cache = cacheManager.GetCache<ScheduledTask>(GetType());
             _logger = logger;
         }
@@ -138,9 +143,10 @@ namespace NzbDrone.Core.Jobs
                         TypeName = typeof(CheckHealthCommand).FullName
                     },
 
+                    // TaleArr: follows the shortest MAM Account Status Refresh (60 by default).
                     new ScheduledTask
                     {
-                        Interval = 60,
+                        Interval = GetMamAccountStatusInterval(),
                         TypeName = typeof(RefreshMyAnonaMouseAccountStatusCommand).FullName
                     },
 
@@ -149,7 +155,7 @@ namespace NzbDrone.Core.Jobs
                     // drops this row on its next start.
                     new ScheduledTask
                     {
-                        Interval = MyAnonaMouseDynamicSeedboxService.SchedulerIntervalMinutes,
+                        Interval = GetMamDynamicSeedboxInterval(),
                         TypeName = typeof(UpdateMyAnonaMouseDynamicSeedboxCommand).FullName,
                         Priority = CommandPriority.Low
                     },
@@ -356,6 +362,65 @@ namespace NzbDrone.Core.Jobs
 
             _scheduledTaskRepository.Update(task);
             _cache.Set(task.TypeName, task);
+        }
+
+        // TaleArr: MAM task ticks follow the MAM indexer settings (MyAnonaMouseSchedule).
+        public void Handle(ProviderAddedEvent<IIndexer> message)
+        {
+            ApplyMamIntervals();
+        }
+
+        public void Handle(ProviderUpdatedEvent<IIndexer> message)
+        {
+            ApplyMamIntervals();
+        }
+
+        public void Handle(ProviderDeletedEvent<IIndexer> message)
+        {
+            ApplyMamIntervals();
+        }
+
+        private void ApplyMamIntervals()
+        {
+            ApplyInterval(typeof(RefreshMyAnonaMouseAccountStatusCommand), GetMamAccountStatusInterval());
+            ApplyInterval(typeof(UpdateMyAnonaMouseDynamicSeedboxCommand), GetMamDynamicSeedboxInterval());
+        }
+
+        private void ApplyInterval(Type commandType, int interval)
+        {
+            var task = GetScheduledTask(commandType);
+            if (task == null || task.Interval == interval)
+            {
+                return;
+            }
+
+            _logger.Debug("Scheduled task '{0}' now runs every {1} minutes", commandType.Name, interval);
+            task.Interval = interval;
+            _scheduledTaskRepository.Update(task);
+            _cache.Set(task.TypeName, task);
+        }
+
+        private List<IndexerDefinition> GetIndexerDefinitions()
+        {
+            try
+            {
+                return _indexerFactory?.All() ?? new List<IndexerDefinition>();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Could not read indexer settings for the MAM task intervals; using defaults");
+                return new List<IndexerDefinition>();
+            }
+        }
+
+        private int GetMamAccountStatusInterval()
+        {
+            return MyAnonaMouseSchedule.AccountStatusTaskMinutes(GetIndexerDefinitions());
+        }
+
+        private int GetMamDynamicSeedboxInterval()
+        {
+            return MyAnonaMouseSchedule.DynamicSeedboxTaskMinutes(GetIndexerDefinitions());
         }
 
         private int GetBackupInterval()

@@ -412,6 +412,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         public const int PointsPerGiB = 500;
         public const int MinimumUploadGiB = 50;
 
+        // TaleArr: default of Bonus Retry After Refusal (RetryAfterFailure).
         public static readonly TimeSpan FailureBackoff = TimeSpan.FromHours(24);
         public static readonly TimeSpan CapWindow = TimeSpan.FromHours(24);
 
@@ -435,6 +436,16 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         public static bool CanBuyVip(string userClass)
         {
             return VipBuyerClasses.Any(c => string.Equals(c, userClass?.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        // TaleArr: back-off after a refused purchase, from Bonus Retry After Refusal (was a fixed
+        // 24 hours).
+        public static TimeSpan RetryAfterFailure(MyAnonaMouseSettings settings)
+        {
+            var hours = settings?.BonusRetryAfterFailureHours ?? 0;
+            return hours <= 0
+                ? FailureBackoff
+                : TimeSpan.FromHours(Math.Min(hours, MyAnonaMouseSettings.MaximumPauseHours));
         }
 
         public static int UploadCost(int gib)
@@ -511,9 +522,10 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                     .OrderByDescending(r => r.AttemptedAt)
                     .FirstOrDefault();
 
-                if (failure != null && !failure.Success && now - failure.AttemptedAt < FailureBackoff)
+                var retryAfter = RetryAfterFailure(settings);
+                if (failure != null && !failure.Success && now - failure.AttemptedAt < retryAfter)
                 {
-                    decision.Skipped.Add($"{spendType}: backing off until {failure.AttemptedAt.Add(FailureBackoff):yyyy-MM-dd HH:mm} UTC after MAM refused ({failure.Message})");
+                    decision.Skipped.Add($"{spendType}: backing off until {failure.AttemptedAt.Add(retryAfter):yyyy-MM-dd HH:mm} UTC after MAM refused ({failure.Message})");
                     continue;
                 }
 

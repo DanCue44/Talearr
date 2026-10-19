@@ -12,12 +12,17 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             RuleFor(c => c.BaseUrl).ValidRootUrl();
             RuleFor(c => c.MamId).NotEmpty();
 
-            RuleFor(c => c.UnsatisfiedSlotReserve).GreaterThanOrEqualTo(0);
-            RuleFor(c => c.ManualGrabBuffer).GreaterThanOrEqualTo(0);
+            // TaleArr: bounds only keep the values working (no zero or negative intervals, no
+            // overflow from a typo). How often and how hard TaleArr uses MAM is the user's choice;
+            // the help texts suggest gentle values.
+            RuleFor(c => c.UnsatisfiedSlotReserve).InclusiveBetween(0, MyAnonaMouseSettings.MaximumSlots);
+            RuleFor(c => c.ManualGrabBuffer).InclusiveBetween(0, MyAnonaMouseSettings.MaximumSlots);
+            RuleFor(c => c.AccountStatusRefreshInterval)
+                .InclusiveBetween(MyAnonaMouseSettings.MinimumAccountStatusRefreshInterval, MyAnonaMouseSettings.MaximumAccountStatusRefreshInterval);
             RuleFor(c => c.SeedCriteria).SetValidator(_ => new SeedCriteriaSettingsValidator(seedTimeMinimum: 72 * 60));
 
-            // TaleArr: dynamic seedbox updates. MAM only accepts an IP change once an hour, so
-            // checking more often than every 5 minutes only adds load.
+            // TaleArr: dynamic seedbox updates. MAM only accepts an IP change once an hour; a
+            // shorter interval is allowed (the user decides) and only adds checks.
             RuleFor(c => c.DynamicSeedboxInterval)
                 .GreaterThanOrEqualTo(MyAnonaMouseSettings.MinimumDynamicSeedboxInterval)
                 .LessThanOrEqualTo(MyAnonaMouseSettings.MaximumDynamicSeedboxInterval)
@@ -30,16 +35,20 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             RuleFor(c => c.BonusMinimumWedges).InclusiveBetween(1, 100);
             RuleFor(c => c.BonusMinimumRatio).GreaterThan(0).LessThanOrEqualTo(100);
             RuleFor(c => c.BonusUploadGiB).InclusiveBetween(MyAnonaMouseBonusSpendRules.MinimumUploadGiB, 10000);
-            RuleFor(c => c.BonusDailyPurchaseCap).InclusiveBetween(1, 10);
+            RuleFor(c => c.BonusDailyPurchaseCap).InclusiveBetween(1, MyAnonaMouseSettings.MaximumBonusDailyPurchaseCap);
+            RuleFor(c => c.BonusRetryAfterFailureHours).InclusiveBetween(1, MyAnonaMouseSettings.MaximumPauseHours);
 
             // TaleArr: ratio guard and freeleech seeding filler.
             RuleFor(c => c.MinimumRatioAfterGrab).GreaterThanOrEqualTo(0);
-            RuleFor(c => c.FillerSlotMargin).GreaterThanOrEqualTo(0);
-            RuleFor(c => c.FillerMaxGrabsPerRun).InclusiveBetween(1, 20);
-            RuleFor(c => c.FillerIntervalHours).InclusiveBetween(1, 168);
-            RuleFor(c => c.FillerMaxSizeMb).GreaterThan(0);
-            RuleFor(c => c.FillerMinLeechers).GreaterThanOrEqualTo(0);
-            RuleFor(c => c.FillerMaxSeeders).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.FillerSlotMargin).InclusiveBetween(0, MyAnonaMouseSettings.MaximumSlots);
+            RuleFor(c => c.FillerMaxGrabsPerRun).InclusiveBetween(1, MyAnonaMouseSettings.MaximumFillerGrabsPerRun);
+            RuleFor(c => c.FillerIntervalHours).InclusiveBetween(1, MyAnonaMouseSettings.MaximumFillerIntervalHours);
+            RuleFor(c => c.FillerMaxSizeMb).InclusiveBetween(1, MyAnonaMouseSettings.MaximumFillerSizeMb);
+            RuleFor(c => c.FillerMinLeechers).InclusiveBetween(0, MyAnonaMouseSettings.MaximumPeers);
+            RuleFor(c => c.FillerMaxSeeders).InclusiveBetween(0, MyAnonaMouseSettings.MaximumPeers);
+            RuleFor(c => c.FillerSearchPages).InclusiveBetween(1, MyAnonaMouseSettings.MaximumFillerSearchPages);
+            RuleFor(c => c.FillerPreferredSearchPages).InclusiveBetween(0, MyAnonaMouseSettings.MaximumFillerSearchPages);
+            RuleFor(c => c.FillerErrorPauseHours).InclusiveBetween(1, MyAnonaMouseSettings.MaximumPauseHours);
             RuleFor(c => c.FillerSeedDays).InclusiveBetween(3, 365);
             RuleFor(c => c.FillerCategory)
                 .NotEmpty()
@@ -87,10 +96,28 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             BonusDryRun = false;
         }
 
-        // TaleArr: dynamic seedbox interval bounds, in minutes.
+        // TaleArr: dynamic seedbox interval bounds, in minutes. The floor is the scheduler's
+        // one-minute resolution, not a politeness limit.
         public const int DefaultDynamicSeedboxInterval = 30;
-        public const int MinimumDynamicSeedboxInterval = 5;
+        public const int MinimumDynamicSeedboxInterval = 1;
         public const int MaximumDynamicSeedboxInterval = 24 * 60;
+
+        // TaleArr: MAM account status refresh (jsonLoad.php), in minutes. 60 was the fixed value
+        // before it became a setting.
+        public const int DefaultAccountStatusRefreshInterval = 60;
+        public const int MinimumAccountStatusRefreshInterval = 1;
+        public const int MaximumAccountStatusRefreshInterval = 24 * 60;
+
+        // TaleArr: technical ceilings for the tunables, generous enough that they never limit a
+        // real choice and small enough that a typo cannot overflow anything.
+        public const int MaximumSlots = 10000;
+        public const int MaximumPeers = 1000000;
+        public const int MaximumFillerGrabsPerRun = 1000;
+        public const int MaximumFillerIntervalHours = 30 * 24;
+        public const int MaximumFillerSizeMb = 10 * 1024 * 1024;
+        public const int MaximumFillerSearchPages = 50;
+        public const int MaximumBonusDailyPurchaseCap = 100;
+        public const int MaximumPauseHours = 30 * 24;
 
         [FieldDefinition(0, Label = "Website URL", Hidden = HiddenType.Hidden)]
         public string BaseUrl { get; set; }
@@ -119,7 +146,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         [FieldDefinition(3, Type = FieldType.Checkbox, Label = "Only Use Wedges for Audiobooks", HelpText = "Do not request a wedge for ebook torrents. Chaptarr also avoids requesting wedges for torrents already marked free, personal freeleech, or VIP.")]
         public bool UseFreeleechOnlyForAudiobooks { get; set; }
 
-        [FieldDefinition(4, Type = FieldType.Textbox, Label = "Minimum Seeders", HelpText = "Minimum number of seeders required.")]
+        [FieldDefinition(4, Type = FieldType.Textbox, Label = "Minimum Seeders", HelpText = "Minimum number of seeders required. Suggested: 1. 0 is allowed, but a torrent nobody seeds can sit in an unsatisfied slot without finishing.")]
         public int MinimumSeeders { get; set; }
 
         [FieldDefinition(5, Type = FieldType.Checkbox, Label = "Enable Deep Search", HelpText = "Use JSON API with enhanced metadata including title, description, narrator, and duration information when available", Hidden = HiddenType.Hidden)]
@@ -144,11 +171,16 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         [FieldDefinition(11, Type = FieldType.Checkbox, Label = "Protect Unsatisfied Slots", HelpText = "Pause MAM grabs before your unsatisfied-torrent limit is reached. Disabling this can trigger MAM's 24-hour download suspension.", Advanced = true)]
         public bool ProtectUnsatisfiedSlots { get; set; }
 
-        [FieldDefinition(12, Type = FieldType.Number, Label = "Safety Reserve", Unit = "slots", HelpText = "Slots Chaptarr will always keep free to protect against MAM's reporting delay and downloads started outside Chaptarr. Neither automatic nor Interactive Search grabs can use this reserve.")]
+        [FieldDefinition(12, Type = FieldType.Number, Label = "Safety Reserve", Unit = "slots", HelpText = "Slots Chaptarr will always keep free to protect against MAM's reporting delay and downloads started outside Chaptarr. Neither automatic nor Interactive Search grabs can use this reserve. Suggested: 5. Fewer is allowed (even 0), but it uses more unsatisfied slots and makes MAM's 24-hour download suspension more likely.")]
         public int UnsatisfiedSlotReserve { get; set; }
 
-        [FieldDefinition(13, Type = FieldType.Number, Label = "User Buffer", Unit = "slots", HelpText = "Additional slots automatic grabs will keep free for releases you choose in Interactive Search or download outside Chaptarr. Interactive Search can use this buffer, but never the Safety Reserve.")]
+        [FieldDefinition(13, Type = FieldType.Number, Label = "User Buffer", Unit = "slots", HelpText = "Additional slots automatic grabs will keep free for releases you choose in Interactive Search or download outside Chaptarr. Interactive Search can use this buffer, but never the Safety Reserve. Suggested: 0 (the default). Any value is allowed; a larger buffer leaves more slots for your own picks.")]
         public int ManualGrabBuffer { get; set; }
+
+        // TaleArr: how often the MAM account status (unsatisfied count, class, ratio, VIP,
+        // bonus points) is refreshed. Was a fixed hour.
+        [FieldDefinition(13, Type = FieldType.Number, Label = "Account Status Refresh", Unit = "minutes", HelpText = "How often TaleArr reads your MAM account status (unsatisfied slots, class, ratio, bonus points) from jsonLoad.php (1 to 1440). Suggested: 60. Lower is allowed but sends MAM more requests. Higher means the slot and ratio guards work from older numbers.", Advanced = true)]
+        public int AccountStatusRefreshInterval { get; set; } = DefaultAccountStatusRefreshInterval;
 
         [FieldDefinition(14, Type = FieldType.Checkbox, Label = "IndexerSettingsNeverMoveOnImport", HelpText = "IndexerSettingsNeverMoveOnImportHelpText")]
         public bool NeverMoveOnImport { get; set; }
@@ -167,7 +199,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         [FieldDefinition(17, Type = FieldType.Checkbox, Label = "Update Dynamic Seedbox IP", HelpText = "Tell MAM your torrent client's current IP on startup and on a schedule. The request must leave from the same IP as your torrent client: route it through the client's VPN with Seedbox Proxy (or this indexer's proxy). The session needs 'Allow session to set dynamic seedbox' on MAM.")]
         public bool DynamicSeedboxEnabled { get; set; }
 
-        [FieldDefinition(18, Type = FieldType.Number, Label = "Dynamic Seedbox Interval", Unit = "minutes", HelpText = "How often to check the IP with MAM (5 to 1440). MAM accepts at most one IP change per hour; unchanged IPs cost nothing.", Advanced = true)]
+        [FieldDefinition(18, Type = FieldType.Number, Label = "Dynamic Seedbox Interval", Unit = "minutes", HelpText = "How often to check the IP with MAM (1 to 1440). Suggested: 60, because MAM accepts at most one IP change per hour. Lower is allowed but sends MAM more requests; unchanged IPs cost nothing.", Advanced = true)]
         public int DynamicSeedboxInterval { get; set; }
 
         private string _seedboxMamId;
@@ -209,8 +241,12 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         [FieldDefinition(28, Type = FieldType.Number, Label = "Upload Credit to Buy", Unit = "GiB", HelpText = "Upload credit bought per safety net purchase (MAM minimum 50 GiB = 25,000 points).", Advanced = true)]
         public int BonusUploadGiB { get; set; }
 
-        [FieldDefinition(29, Type = FieldType.Number, Label = "Bonus Purchases per Day", HelpText = "Most bonus purchases TaleArr makes for this account in any 24 hours (1 to 10).", Advanced = true)]
+        [FieldDefinition(29, Type = FieldType.Number, Label = "Bonus Purchases per Day", HelpText = "Most bonus purchases TaleArr makes for this account in any 24 hours (1 to 100; at most one per hourly run). Suggested: 2. More is allowed but spends points faster and sends MAM more purchase requests.", Advanced = true)]
         public int BonusDailyPurchaseCap { get; set; }
+
+        // TaleArr: back-off after MAM refuses a purchase. Was a fixed 24 hours.
+        [FieldDefinition(29, Type = FieldType.Number, Label = "Bonus Retry After Refusal", Unit = "hours", HelpText = "After MAM refuses a purchase, wait this long before trying that kind of purchase again (1 to 720). Suggested: 24. Lower is allowed but sends MAM more purchase requests that may be refused again.", Advanced = true)]
+        public int BonusRetryAfterFailureHours { get; set; } = 24;
 
         [FieldDefinition(30, Type = FieldType.Checkbox, Label = "Bonus Spend Dry Run", HelpText = "Only log and list what auto-spend would buy; nothing is sent to MAM.", Advanced = true)]
         public bool BonusDryRun { get; set; }
@@ -259,6 +295,26 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         // Required by ITorrentIndexerSettings but hidden from UI
         public bool RejectBlocklistedTorrentHashesWhileGrabbing { get; set; }
 
+        // TaleArr: the account status refresh interval, clamped so a value saved outside the
+        // validator never stops or floods the refresh.
+        public TimeSpan ResolveAccountStatusRefreshInterval()
+        {
+            var minutes = AccountStatusRefreshInterval <= 0
+                ? DefaultAccountStatusRefreshInterval
+                : Math.Min(AccountStatusRefreshInterval, MaximumAccountStatusRefreshInterval);
+
+            return TimeSpan.FromMinutes(minutes);
+        }
+
+        // TaleArr: status freshness windows were sized for the one-hour refresh. A longer refresh
+        // stretches them by the same amount so the guards do not pause grabs between refreshes;
+        // a shorter one keeps the original window.
+        public TimeSpan ResolveStatusMaxAge(TimeSpan baseAge)
+        {
+            var extra = ResolveAccountStatusRefreshInterval() - TimeSpan.FromMinutes(DefaultAccountStatusRefreshInterval);
+            return extra > TimeSpan.Zero ? baseAge + extra : baseAge;
+        }
+
         public NzbDroneValidationResult Validate()
         {
             return new NzbDroneValidationResult(Validator.Validate(this));
@@ -279,25 +335,35 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         [FieldDefinition(41, Type = FieldType.Checkbox, Label = "Filler Dry Run", Section = "Freeleech Seeding Filler", HelpText = "Only log and show what the filler would grab (Activity > Seeding, Filler preview). Turn off to let it grab.")]
         public bool FillerDryRun { get; set; } = true;
 
-        [FieldDefinition(42, Type = FieldType.Number, Label = "Filler Slot Margin", Unit = "slots", Section = "Freeleech Seeding Filler", HelpText = "The filler fills up to your unsatisfied limit minus this margin. Safety Reserve and User Buffer still apply.", Advanced = true)]
+        [FieldDefinition(42, Type = FieldType.Number, Label = "Filler Slot Margin", Unit = "slots", Section = "Freeleech Seeding Filler", HelpText = "The filler fills up to your unsatisfied limit minus this margin. Safety Reserve and User Buffer still apply. Suggested: 2. Lower is allowed but uses more slots.", Advanced = true)]
         public int FillerSlotMargin { get; set; } = 2;
 
-        [FieldDefinition(43, Type = FieldType.Number, Label = "Filler Max Grabs Per Run", Section = "Freeleech Seeding Filler", Advanced = true)]
+        [FieldDefinition(43, Type = FieldType.Number, Label = "Filler Max Grabs Per Run", Section = "Freeleech Seeding Filler", HelpText = "Most torrents one filler run grabs (1 to 1000). Suggested: up to 8. More is allowed but sends MAM more downloads per run and fills slots faster.", Advanced = true)]
         public int FillerMaxGrabsPerRun { get; set; } = 5;
 
-        [FieldDefinition(44, Type = FieldType.Number, Label = "Filler Run Interval", Unit = "hours", Section = "Freeleech Seeding Filler", HelpText = "How often the filler runs (System > Tasks, MAM Freeleech Filler, can also be run by hand).", Advanced = true)]
+        [FieldDefinition(44, Type = FieldType.Number, Label = "Filler Run Interval", Unit = "hours", Section = "Freeleech Seeding Filler", HelpText = "How often the filler runs (1 to 720; System > Tasks, MAM Freeleech Filler, can also be run by hand). Suggested: 6. Lower is allowed but sends MAM more searches.", Advanced = true)]
         public int FillerIntervalHours { get; set; } = 6;
+
+        // TaleArr: filler search depth and error pause. Were fixed at 3 pages, 2 pages and 12 hours.
+        [FieldDefinition(44, Type = FieldType.Number, Label = "Filler Search Pages", Section = "Freeleech Seeding Filler", HelpText = "Pages of 100 freeleech results the filler reads per run (1 to 50). Suggested: 3. More is allowed but sends MAM more searches.", Advanced = true)]
+        public int FillerSearchPages { get; set; } = 3;
+
+        [FieldDefinition(44, Type = FieldType.Number, Label = "Filler Preferred Search Pages", Section = "Freeleech Seeding Filler", HelpText = "Pages of the extra search limited to Filler Preferred Categories (0 to 50, 0 turns it off). Suggested: 2. More is allowed but sends MAM more searches.", Advanced = true)]
+        public int FillerPreferredSearchPages { get; set; } = 2;
+
+        [FieldDefinition(44, Type = FieldType.Number, Label = "Filler Pause After Error", Unit = "hours", Section = "Freeleech Seeding Filler", HelpText = "How long the filler pauses after a MAM error (1 to 720). Suggested: 12. Shorter is allowed but retries MAM sooner while it may still be failing.", Advanced = true)]
+        public int FillerErrorPauseHours { get; set; } = 12;
 
         [FieldDefinition(45, Type = FieldType.Checkbox, Label = "Filler Prefer Audiobooks", Section = "Freeleech Seeding Filler", Advanced = true)]
         public bool FillerPreferAudiobooks { get; set; } = true;
 
-        [FieldDefinition(46, Type = FieldType.Number, Label = "Filler Max Size", Unit = "MB", Section = "Freeleech Seeding Filler", Advanced = true)]
+        [FieldDefinition(46, Type = FieldType.Number, Label = "Filler Max Size", Unit = "MB", Section = "Freeleech Seeding Filler", HelpText = "Largest torrent the filler grabs. Suggested: 2048. Larger is allowed but uses more disk and bandwidth, and big torrents take longer to finish.", Advanced = true)]
         public int FillerMaxSizeMb { get; set; } = 2048;
 
-        [FieldDefinition(47, Type = FieldType.Number, Label = "Filler Min Leechers", Section = "Freeleech Seeding Filler", HelpText = "Only torrents with at least this many leechers (someone to upload to).", Advanced = true)]
+        [FieldDefinition(47, Type = FieldType.Number, Label = "Filler Min Leechers", Section = "Freeleech Seeding Filler", HelpText = "Only torrents with at least this many leechers (someone to upload to). Suggested: 1. 0 is allowed, but torrents nobody wants earn less and still use a slot.", Advanced = true)]
         public int FillerMinLeechers { get; set; } = 1;
 
-        [FieldDefinition(48, Type = FieldType.Number, Label = "Filler Max Seeders", Section = "Freeleech Seeding Filler", Advanced = true)]
+        [FieldDefinition(48, Type = FieldType.Number, Label = "Filler Max Seeders", Section = "Freeleech Seeding Filler", HelpText = "Skip torrents that already have more seeders than this. Suggested: 30. More is allowed, but well seeded torrents earn less upload and still use a slot.", Advanced = true)]
         public int FillerMaxSeeders { get; set; } = 30;
 
         [FieldDefinition(49, Type = FieldType.Textbox, Label = "Filler Category", Section = "Freeleech Seeding Filler", HelpText = "Torrent client category for filler torrents. Keep it different from TaleArr's own categories so they are never imported.", Advanced = true)]

@@ -294,6 +294,18 @@ namespace Chaptarr.Core.Test.Talearr.Mam
         }
 
         [Test]
+        public void retry_after_refusal_follows_the_setting()
+        {
+            var settings = Fresh(Now, "Power User", points: 500000, wedges: 0);
+            settings.BonusKeepVip = true;
+            settings.BonusRetryAfterFailureHours = 1;
+
+            var decision = Decide(settings, Sent("VIP", Now.AddHours(-2), success: false));
+
+            Assert.That(decision.Purchase.SpendType, Is.EqualTo(MyAnonaMouseBonusSpendType.Vip));
+        }
+
+        [Test]
         public void daily_cap_counts_real_attempts_only()
         {
             var settings = Fresh(Now, points: 500000, wedges: 0);

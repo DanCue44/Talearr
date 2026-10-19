@@ -445,6 +445,36 @@ namespace Chaptarr.Core.Test.Talearr.Mam
         }
 
         [Test]
+        public void mam_error_pause_follows_the_setting()
+        {
+            _settings.FillerErrorPauseHours = 3;
+            _http.Reply(HttpStatusCode.ServiceUnavailable, "text/html", "down");
+
+            var status = Service.Run(true);
+
+            Assert.That(status.BackoffUntil, Is.EqualTo(_now.AddHours(3)));
+            Assert.That(status.LastResult, Does.Contain("paused for 3 hours"));
+        }
+
+        [TestCase(1, 1)]
+        [TestCase(3, 3)]
+        [TestCase(5, 5)]
+        public void search_pages_follow_the_setting(int pages, int expectedSearches)
+        {
+            _settings.FillerDryRun = true;
+            _settings.FillerSearchPages = pages;
+            var fullPage = Enumerable.Range(1, NzbDrone.Core.Indexers.MyAnonaMouse.MyAnonaMouse.FillerPageSize).Select(i => Torrent(i)).ToArray();
+            for (var i = 0; i < pages; i++)
+            {
+                ReplySearch(fullPage);
+            }
+
+            Service.Run(true);
+
+            Assert.That(_http.Requests, Has.Count.EqualTo(expectedSearches));
+        }
+
+        [Test]
         public void download_error_backs_off()
         {
             ReplySearch(Torrent(1));

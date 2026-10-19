@@ -12,6 +12,7 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.MyAnonaMouse;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Jobs;
+using NzbDrone.Core.ThingiProvider.Events;
 
 namespace Chaptarr.Core.Test.Jobs
 {
@@ -62,6 +63,12 @@ namespace Chaptarr.Core.Test.Jobs
                     var task = (ScheduledTask)args[0];
                     UpsertedTasks.Add(task);
                     return task;
+                }
+
+                if (targetMethod.Name == nameof(IScheduledTaskRepository.Update))
+                {
+                    UpdatedTasks.Add((ScheduledTask)args[0]);
+                    return args[0];
                 }
 
                 if (targetMethod.Name == nameof(IScheduledTaskRepository.Delete))
@@ -181,6 +188,38 @@ namespace Chaptarr.Core.Test.Jobs
             Assert.That(backupNextExecution, Is.EqualTo(lastExecution.AddMinutes(2 * 60 * 24)));
             Assert.That(repositoryProxy.UpdatedTasks.Select(t => t.TypeName), Is.EquivalentTo(new[] { typeof(RssSyncCommand).FullName, typeof(BackupCommand).FullName }));
             Assert.That(repositoryProxy.GetDefinitionCalls, Is.EqualTo(2));
+        }
+
+        // TaleArr: the MAM account status and seedbox task ticks follow the MAM indexer settings.
+        [Test]
+        public void mam_task_intervals_follow_the_indexer_settings()
+        {
+            var repository = DispatchProxy.Create<IScheduledTaskRepository, ScheduledTaskRepositoryProxy>();
+            var repositoryProxy = (ScheduledTaskRepositoryProxy)(object)repository;
+            var status = new ScheduledTask { Id = 21, TypeName = typeof(RefreshMyAnonaMouseAccountStatusCommand).FullName, Interval = 60 };
+            var seedbox = new ScheduledTask { Id = 22, TypeName = typeof(UpdateMyAnonaMouseDynamicSeedboxCommand).FullName, Interval = 5 };
+            repositoryProxy.Definitions[typeof(RefreshMyAnonaMouseAccountStatusCommand)] = status;
+            repositoryProxy.Definitions[typeof(UpdateMyAnonaMouseDynamicSeedboxCommand)] = seedbox;
+
+            var indexers = Chaptarr.Core.Test.Talearr.Mam.FakeMamIndexerFactory.Create(out var indexerFactory);
+            var settings = new MyAnonaMouseSettings { MamId = "OK", AccountStatusRefreshInterval = 15, DynamicSeedboxEnabled = true, DynamicSeedboxInterval = 2 };
+            var definition = new IndexerDefinition { Id = 3, Implementation = "MyAnonaMouse", EnableRss = true, Settings = settings };
+            indexers.Definitions.Add(definition);
+
+            var subject = new TaskManager(repository, null, new CacheManager(), LogManager.GetCurrentClassLogger(), null, indexerFactory);
+
+            subject.Handle(new ProviderUpdatedEvent<IIndexer>(definition));
+
+            Assert.That(status.Interval, Is.EqualTo(15));
+            Assert.That(seedbox.Interval, Is.EqualTo(2));
+            Assert.That(subject.GetNextExecution(typeof(RefreshMyAnonaMouseAccountStatusCommand)), Is.EqualTo(status.LastExecution.AddMinutes(15)));
+
+            indexers.Definitions.Clear();
+            subject.Handle(new ProviderDeletedEvent<IIndexer>(3));
+
+            Assert.That(status.Interval, Is.EqualTo(60), "back to the old hourly tick without MAM indexers");
+            Assert.That(seedbox.Interval, Is.EqualTo(5));
+            Assert.That(repositoryProxy.UpdatedTasks, Has.Count.EqualTo(4));
         }
     }
 }

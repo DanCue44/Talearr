@@ -14,7 +14,8 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
     //      grabs at all, freeleech included;
     //   2. a non-freeleech grab needs uploaded / (downloaded + release size) to stay at or above
     //      the indexer's Minimum Ratio After Grab (default 2.0, the Power User line);
-    //   3. with no fresh status (older than 3 hours or never read), only freeleech grabs pass.
+    //   3. with no fresh status (older than 3 hours, plus however much the Account Status
+    //      Refresh exceeds an hour, or never read), only freeleech grabs pass.
     // Every field is read defensively: anything MAM does not send stays unknown.
     public static class MyAnonaMouseAccountStanding
     {
@@ -117,7 +118,14 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                    !string.IsNullOrWhiteSpace(settings.UserClass) &&
                    refreshed.HasValue &&
                    refreshed.Value <= now.AddMinutes(5) &&
-                   now - refreshed.Value <= MaximumStatusAge;
+                   now - refreshed.Value <= settings.ResolveStatusMaxAge(MaximumStatusAge);
+        }
+
+        // TaleArr: the freshness window in hours, for messages ("3" with the default refresh).
+        public static string StaleHours(MyAnonaMouseSettings settings)
+        {
+            var age = settings?.ResolveStatusMaxAge(MaximumStatusAge) ?? MaximumStatusAge;
+            return age.TotalHours.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         public static double ResolveMinimumRatio(MyAnonaMouseSettings settings)
@@ -143,7 +151,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             {
                 return freeleech
                     ? null
-                    : "MAM account status is unknown or older than 3 hours: only freeleech MAM releases are grabbed until it refreshes";
+                    : $"MAM account status is unknown or older than {StaleHours(settings)} hours: only freeleech MAM releases are grabbed until it refreshes";
             }
 
             if (freeleech)
