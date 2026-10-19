@@ -11,15 +11,14 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 {
     // TaleArr: bonus points auto-spend. The hourly "Spend My Anona Mouse Bonus Points" task
     // (System > Tasks) checks each native MAM indexer with a rule enabled, using the stored
-    // account status (refreshed first when it is older than an hour), and makes at most one
+    // account status (refreshed first when it is older than Account Status Refresh, an hour by
+    // default), and makes at most one
     // purchase per indexer per run. Every attempt is written to talearr.db before the request is
     // sent, so the daily cap and the back-off hold even if TaleArr stops mid-purchase. The account
     // status is refreshed right after a purchase. Only VIP, upload and wedges can be bought.
     public class MyAnonaMouseBonusSpendService : IExecute<SpendMyAnonaMouseBonusPointsCommand>
     {
         public const int SchedulerIntervalMinutes = 60;
-
-        private static readonly TimeSpan RefreshBeforeSpendAge = TimeSpan.FromMinutes(60);
 
         private readonly IIndexerFactory _indexerFactory;
         private readonly IMyAnonaMouseBonusPurchaseStore _store;
@@ -94,7 +93,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             var now = UtcNow();
 
             if (!settings.UnsatisfiedStatusRefreshedUtc.HasValue ||
-                now - settings.UnsatisfiedStatusRefreshedUtc.Value >= RefreshBeforeSpendAge)
+                now - settings.UnsatisfiedStatusRefreshedUtc.Value >= settings.ResolveAccountStatusRefreshInterval())
             {
                 TryRefresh(indexer, definition, "before bonus auto-spend");
                 now = UtcNow();

@@ -242,10 +242,13 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 return false;
             }
 
+            // TaleArr: the window grows with a longer Account Status Refresh.
+            var maximumAge = settings.ResolveStatusMaxAge(MaximumStatusAge);
+
             return settings.UnsatisfiedSnapshotUtc.Value <= now.AddMinutes(5) &&
                    settings.UnsatisfiedStatusRefreshedUtc.Value <= now.AddMinutes(5) &&
-                   now - settings.UnsatisfiedSnapshotUtc.Value <= MaximumStatusAge &&
-                   now - settings.UnsatisfiedStatusRefreshedUtc.Value <= MaximumStatusAge;
+                   now - settings.UnsatisfiedSnapshotUtc.Value <= maximumAge &&
+                   now - settings.UnsatisfiedStatusRefreshedUtc.Value <= maximumAge;
         }
 
     }

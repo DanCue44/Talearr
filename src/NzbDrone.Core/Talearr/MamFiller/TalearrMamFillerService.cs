@@ -32,15 +32,13 @@ namespace NzbDrone.Core.Talearr.MamFiller
     //
     // Safety: never above limit minus margin (and the slot guard's Safety Reserve and User Buffer
     // still apply through TryReserve); stops when the account status is unknown or older than 3
-    // hours, when the account is seed-only, when any MAM torrent is at risk, and for 12 hours
-    // after any MAM error.
+    // hours (stretched by a longer Account Status Refresh), when the account is seed-only, when
+    // any MAM torrent is at risk, and for Filler Pause After Error (12 hours) after any MAM error.
     public class TalearrMamFillerService : ITalearrMamFillerService, IExecute<MamFreeleechFillerCommand>
     {
-        public const int MaxSearchPages = 3;
-
-        // TaleArr: pages of the extra search limited to the preferred categories.
-        public const int MaxPreferredSearchPages = 2;
-        private static readonly TimeSpan RefreshStatusAfter = TimeSpan.FromHours(1);
+        // TaleArr: search depth (Filler Search Pages, Filler Preferred Search Pages) and the
+        // status refresh age (Account Status Refresh) are indexer settings now; they were fixed at
+        // 3 pages, 2 pages and one hour.
 
         private readonly IIndexerFactory _indexerFactory;
         private readonly IProvideDownloadClient _downloadClientProvider;
@@ -143,9 +141,10 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 return Finish(status, "No enabled qBittorrent download client");
             }
 
-            // Account status: refresh once when it is over an hour old (jsonLoad.php, allowed).
+            // Account status: refresh once when it is older than Account Status Refresh
+            // (jsonLoad.php, allowed).
             var refreshed = settings.UnsatisfiedStatusRefreshedUtc;
-            if (!refreshed.HasValue || now - refreshed.Value > RefreshStatusAfter)
+            if (!refreshed.HasValue || now - refreshed.Value > settings.ResolveAccountStatusRefreshInterval())
             {
                 try
                 {
@@ -155,7 +154,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 }
                 catch (Exception ex)
                 {
-                    return BackOff(status, now, $"MAM account status refresh failed ({ex.Message})");
+                    return BackOff(status, settings, now, $"MAM account status refresh failed ({ex.Message})");
                 }
             }
 
@@ -163,7 +162,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 !settings.UnsatisfiedCount.HasValue ||
                 !settings.UnsatisfiedLimit.HasValue)
             {
-                return Finish(status, "MAM account status is unknown or older than 3 hours");
+                return Finish(status, $"MAM account status is unknown or older than {MyAnonaMouseAccountStanding.StaleHours(settings)} hours");
             }
 
             if (MyAnonaMouseAccountStanding.IsSeedOnly(settings))
@@ -255,7 +254,8 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 }
             }
 
-            for (var page = 0; page < MaxSearchPages; page++)
+            var searchPages = Math.Clamp(settings.FillerSearchPages, 1, MyAnonaMouseSettings.MaximumFillerSearchPages);
+            for (var page = 0; page < searchPages; page++)
             {
                 List<Newtonsoft.Json.Linq.JToken> results;
                 try
@@ -264,7 +264,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 }
                 catch (Exception ex)
                 {
-                    return BackOff(status, now, $"MAM freeleech search failed ({ex.Message})");
+                    return BackOff(status, settings, now, $"MAM freeleech search failed ({ex.Message})");
                 }
 
                 Consider(results);
@@ -278,7 +278,8 @@ namespace NzbDrone.Core.Talearr.MamFiller
             // TaleArr: the general search only sees the first pages of freeleech torrents, so the
             // preferred categories get a search of their own (MAM filters by site category id).
             var preferredIds = TalearrMamFillerTaste.PreferredCategoryIds(taste.PreferredCategories, seenCategories);
-            for (var page = 0; preferredIds.Count > 0 && page < MaxPreferredSearchPages; page++)
+            var preferredPages = Math.Clamp(settings.FillerPreferredSearchPages, 0, MyAnonaMouseSettings.MaximumFillerSearchPages);
+            for (var page = 0; preferredIds.Count > 0 && page < preferredPages; page++)
             {
                 List<Newtonsoft.Json.Linq.JToken> results;
                 try
@@ -287,7 +288,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 }
                 catch (Exception ex)
                 {
-                    return BackOff(status, now, $"MAM preferred category search failed ({ex.Message})");
+                    return BackOff(status, settings, now, $"MAM preferred category search failed ({ex.Message})");
                 }
 
                 Consider(results);
@@ -352,7 +353,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 catch (Exception ex)
                 {
                     status.Preview = MarkGrabbed(status.Preview, picked, grabbed);
-                    return BackOff(status, now, $"Grabbed {grabbed}; MAM download of {candidate.TorrentId} failed ({ex.Message})");
+                    return BackOff(status, settings, now, $"Grabbed {grabbed}; MAM download of {candidate.TorrentId} failed ({ex.Message})");
                 }
 
                 var record = new TalearrFillerTorrent
@@ -650,11 +651,12 @@ namespace NzbDrone.Core.Talearr.MamFiller
             return preview;
         }
 
-        private TalearrMamFillerStatus BackOff(TalearrMamFillerStatus status, DateTime now, string reason)
+        private TalearrMamFillerStatus BackOff(TalearrMamFillerStatus status, MyAnonaMouseSettings settings, DateTime now, string reason)
         {
-            status.BackoffUntil = now.Add(TalearrMamFillerRules.Backoff);
-            _logger.Warn("MAM freeleech filler: {0}; pausing for {1} hours", reason, TalearrMamFillerRules.Backoff.TotalHours);
-            return Finish(status, $"{reason}; paused for {TalearrMamFillerRules.Backoff.TotalHours} hours");
+            var pause = TalearrMamFillerRules.ErrorPause(settings);
+            status.BackoffUntil = now.Add(pause);
+            _logger.Warn("MAM freeleech filler: {0}; pausing for {1} hours", reason, pause.TotalHours);
+            return Finish(status, $"{reason}; paused for {pause.TotalHours} hours");
         }
 
         private TalearrMamFillerStatus Finish(TalearrMamFillerStatus status, string result, bool save = true)

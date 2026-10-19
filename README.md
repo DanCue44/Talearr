@@ -379,6 +379,18 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
   Tasks always calls MAM now (it used to share the one-hour throttle of the health-cycle
   refresh, so a manual run right after another refresh did nothing and a class change stayed
   stale for up to an hour).
+- **MAM timing is yours to choose** (indexer settings, Advanced). Every frequency and
+  aggressiveness value is a setting whose help text gives a gentle suggestion: **Account
+  Status Refresh** (60 minutes; was fixed), **Dynamic Seedbox Interval** (1 to 1440 minutes,
+  suggested 60), **Filler Run Interval** (6 hours), **Filler Max Grabs Per Run** (5, up to 1000),
+  **Filler Search Pages** (3) and **Filler Preferred Search Pages** (2), **Filler Pause After
+  Error** (12 hours), **Bonus Purchases per Day** (2, up to 100) and **Bonus Retry After
+  Refusal** (24 hours). Validation only blocks values that would break (zero or negative
+  intervals, no grabs, typo-sized numbers); lower or more is allowed but sends MAM more requests
+  or uses more slots. The account status and seedbox tasks tick as often as the shortest setting
+  needs, and with a refresh longer than an hour the 2 and 3 hour status freshness windows grow
+  by the same amount so grabs do not pause between refreshes. Existing settings keep their old
+  values.
 - **Freeleech seeding filler** (off; indexer settings, section Freeleech Seeding Filler). MAM
   counts a torrent as satisfied after 72 hours of seeding, and only satisfied torrents earn
   bonus points. The filler uses free unsatisfied slots for popular freeleech torrents so more

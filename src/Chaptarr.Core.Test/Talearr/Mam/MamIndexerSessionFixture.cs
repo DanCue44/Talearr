@@ -186,7 +186,10 @@ namespace Chaptarr.Core.Test.Talearr.Mam
             Assert.That(settings.SeedboxProxyId, Is.EqualTo(0));
         }
 
-        [TestCase(4, false)]
+        // TaleArr: the floor is 1 minute (was 5); shorter checks are the user's choice.
+        [TestCase(0, false)]
+        [TestCase(1, true)]
+        [TestCase(4, true)]
         [TestCase(5, true)]
         [TestCase(30, true)]
         [TestCase(1441, false)]
