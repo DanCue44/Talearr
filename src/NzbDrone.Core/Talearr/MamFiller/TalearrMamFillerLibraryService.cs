@@ -323,7 +323,10 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 EbookMonitorExistingMode = MonitorTypes.None,
                 MonitorMode = MonitorTypes.SpecificBook,
                 SpecificBookProviderIds = new HashSet<string>(books, StringComparer.OrdinalIgnoreCase),
-                Tags = tags
+                Tags = tags,
+
+                // A new author keeps only this book (docs/TALEARR_TRACKED_AUTHORS.md).
+                TalearrTrackedCatalog = true
             };
 
             if (mediaType == BookMediaType.Audiobook)

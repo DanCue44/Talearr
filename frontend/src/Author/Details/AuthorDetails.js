@@ -34,6 +34,7 @@ import AuthorDetailsSeasonConnector from './AuthorDetailsSeasonConnector';
 import AuthorDetailsSeriesConnector from './AuthorDetailsSeriesConnector';
 import AuthorDetailsControls from './AuthorDetailsControls';
 import SelectAuthorRootFolderModal from './SelectAuthorRootFolderModal';
+import TalearrAuthorCatalogButton from './TalearrAuthorCatalogButton';
 import styles from './AuthorDetails.css';
 
 function getExpandedState(newState) {
@@ -270,7 +271,8 @@ class AuthorDetails extends Component {
       authorHasEbookConfig,
       syncMonitoredAcrossFormats,
       rootFoldersPopulated,
-      filterValue
+      filterValue,
+      talearrCatalogMode
     } = this.props;
 
     const {
@@ -357,6 +359,12 @@ class AuthorDetails extends Component {
               label={translate('BookMonitoring')}
               iconName={icons.MONITORED}
               onPress={this.onMonitorOptionsPress}
+            />
+
+            <TalearrAuthorCatalogButton
+              authorId={id}
+              authorName={authorName}
+              catalogMode={talearrCatalogMode}
             />
 
             <PageToolbarButton
@@ -731,6 +739,7 @@ AuthorDetails.propTypes = {
   syncMonitoredAcrossFormats: PropTypes.bool,
   filterValue: PropTypes.string,
   onRefreshPress: PropTypes.func.isRequired,
+  talearrCatalogMode: PropTypes.string,
   onMediaTypeChange: PropTypes.func.isRequired,
   onSearchPress: PropTypes.func.isRequired,
   isSaving: PropTypes.bool.isRequired,

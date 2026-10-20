@@ -51,6 +51,8 @@ Talearr behavior changes so far (all without schema changes, new settings or `co
   request sets `monitorNewItems` / `audiobookMonitorNewItems` / `ebookMonitorNewItems`.
   `addOptions.monitor = "all"` still monitors the whole catalog. The add-book modal defaults to
   "Only this book" and "None"; saved browser defaults from before Talearr are switched once.
+  The new author also keeps only that book instead of its whole catalog (see
+  [Tracked authors](#tracked-authors)).
 - **Merge duplicates (Library > Duplicates).** Lists authors with the same name and book rows
   of one author with the same title and media type, and merges them: the kept row keeps its
   ids, everything else (editions, book files, history, queue and blocklist matches, series and
@@ -161,6 +163,22 @@ See [docs/TALEARR_WISHLISTS.md](docs/TALEARR_WISHLISTS.md).
 Storage: one `talearr.wishlist.*` row per wishlist in the `Config` table and uploaded files in
 `talearr-wishlists/` in the config folder. Not an import list provider, so a rollback deletes
 nothing.
+
+## Tracked authors
+
+See [docs/TALEARR_TRACKED_AUTHORS.md](docs/TALEARR_TRACKED_AUTHORS.md).
+
+- **Only my books.** An author added for a book request (add-book modal, `POST /api/v1/book`,
+  Allseerr, wishlists, MAM filler imports) keeps only the books you added, requested, monitor or
+  have files for. Refresh updates them and adds none of the rest of the catalog. Adding an author
+  still follows all of its books.
+- **Switch any time** on the author page: **Follow all books** brings the catalog in, **Only my
+  books** (confirmed first) removes unmonitored, fileless catalog rows. Files are never touched.
+- **API**: `GET|PUT /api/v1/talearr/authors/{id}/catalog` with `{"mode": "full" | "tracked"}`;
+  the author resource carries `talearrCatalogMode`.
+
+Storage: one `talearr.authorcatalog.*` row per "Only my books" author in the `Config` table. A
+rollback to Chaptarr treats every author as followed in full again.
 
 ## Book tags and genre filters
 

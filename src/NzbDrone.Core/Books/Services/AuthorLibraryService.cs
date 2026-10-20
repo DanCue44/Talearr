@@ -28,6 +28,7 @@ using NzbDrone.Core.Qualities;
 using NzbDrone.Core.MediaFiles.BookImport;
 using NzbDrone.Core.ProgressMessaging;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.Catalog;
 
 namespace NzbDrone.Core.Books.Services
 {
@@ -116,6 +117,12 @@ namespace NzbDrone.Core.Books.Services
         // the same work in the Open Library catalog by title. Not persisted.
         public Dictionary<string, string> MetadataFallbackWorkTitles { get; set; }
 
+        // Talearr: a single-book request (add-book, POST /api/v1/book, wishlists, MAM filler
+        // imports). An author this add creates keeps only its requested and owned books
+        // (TalearrAuthorCatalogMode.Tracked). Not persisted with pending imports; the pending
+        // queue remembers it in TalearrAuthorCatalogStore instead.
+        public bool TalearrTrackedCatalog { get; set; }
+
         public void MergeTagsForMediaType(BookMediaType mediaType, IEnumerable<int> tags)
         {
             if (tags == null)
@@ -164,6 +171,7 @@ namespace NzbDrone.Core.Books.Services
         private readonly IEditionSelector _editionSelector;
         private readonly IEditionMetadataProfileFilter _editionMetadataProfileFilter;
         private readonly IRefreshAuthorService _refreshAuthorService;
+        private readonly ITalearrAuthorCatalogStore _catalogStore;
         private readonly Logger _logger;
 
         public AuthorLibraryService(
@@ -186,7 +194,8 @@ namespace NzbDrone.Core.Books.Services
             IAuthorSyncMetadataService syncMetadataService,
             Logger logger,
             IEditionSelector editionSelector = null,
-            IRefreshAuthorService refreshAuthorService = null)
+            IRefreshAuthorService refreshAuthorService = null,
+            ITalearrAuthorCatalogStore catalogStore = null)
         {
             _authorService = authorService;
             _authorInfo = authorInfo;
@@ -207,6 +216,7 @@ namespace NzbDrone.Core.Books.Services
             _syncMetadataService = syncMetadataService;
             _editionMetadataProfileFilter = editionMetadataProfileFilter;
             _refreshAuthorService = refreshAuthorService;
+            _catalogStore = catalogStore;
             _logger = logger;
             _editionSelector = editionSelector ?? new EditionSelector(logger);
         }
@@ -392,6 +402,12 @@ namespace NzbDrone.Core.Books.Services
             {
                 // Provider IDs are identity. Display names are not: distinct authors can share one.
                 var existingAuthor = FindExistingAuthor(providerId, author);
+                if (existingAuthor != null)
+                {
+                    // Talearr: an author already in the library keeps its catalog mode.
+                    _catalogStore?.TakePendingRequest(providerId);
+                }
+
                 if (existingAuthor != null && usedMetadataFallback)
                 {
                     // Talearr: never merge sparser fallback data into an author already in the
@@ -468,6 +484,7 @@ namespace NzbDrone.Core.Books.Services
                 _logger.Debug("[DB-TIMING] Author '{0}' database insertion took {1}ms",
                     addedAuthor.Name, authorInsertStopwatch.ElapsedMilliseconds);
                 SeedAuthorSyncMetadata(addedAuthor, author, providerId);
+                ApplyTalearrCatalogModeForNewAuthor(addedAuthor, providerId, config);
 
                         try
                         {
@@ -1141,7 +1158,7 @@ namespace NzbDrone.Core.Books.Services
                     string.Join(",", requestedProviderIds
                         .SelectMany(requested => requested.Value.Select(providerId => $"{requested.Key}:{providerId}"))
                         .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)));
-                _refreshAuthorService.ReconcileAuthorBlob(existingAuthor, remoteAuthor);
+                _refreshAuthorService.ReconcileAuthorBlob(existingAuthor, remoteAuthor, book => IsRequestedBook(requestedProviderIds, book));
                 existingAuthor = _authorService.GetAuthor(existingAuthor.Id) ?? existingAuthor;
                 existingBooks = _bookService.GetBooksByAuthor(existingAuthor.Id) ?? new List<Book>();
             }
@@ -2183,6 +2200,8 @@ namespace NzbDrone.Core.Books.Services
                 retainEditions: true,
                 logContext: "ProcessBooksForAuthor");
 
+            books = ApplyTalearrTrackedCatalog(author, books, config);
+
             if (!books.Any())
             {
                 return Task.CompletedTask;
@@ -2571,6 +2590,61 @@ namespace NzbDrone.Core.Books.Services
 
                 mediaTypeIds.Add(providerId);
             }
+        }
+
+        // Talearr: a single-book request creates a Tracked author (docs/TALEARR_TRACKED_AUTHORS.md).
+        // A request that waited in the pending queue is recognized by the marker the queue left.
+        private void ApplyTalearrCatalogModeForNewAuthor(Author addedAuthor, string providerId, MonitoringConfig config)
+        {
+            if (_catalogStore == null || addedAuthor == null || addedAuthor.Id <= 0)
+            {
+                return;
+            }
+
+            try
+            {
+                var pendingTracked = _catalogStore.TakePendingRequest(providerId);
+                var tracked = config?.TalearrTrackedCatalog == true || (config?.IsFromQueue == true && pendingTracked);
+                if (!tracked)
+                {
+                    return;
+                }
+
+                _catalogStore.Set(addedAuthor.Id, TalearrAuthorCatalogMode.Tracked);
+                _logger.Info("Author '{0}' was added for a book request; only its requested and owned books are kept (switch to all books on the author page)", addedAuthor.Name);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Talearr: unable to store the catalog mode of author '{0}'; its full catalog is kept", addedAuthor.Name);
+            }
+        }
+
+        // Talearr: a Tracked author's catalog is cut down to its kept books and the requested ones.
+        private List<Book> ApplyTalearrTrackedCatalog(Author author, List<Book> books, MonitoringConfig config)
+        {
+            if (_catalogStore == null || author == null || author.Id <= 0 ||
+                _catalogStore.Get(author.Id) != TalearrAuthorCatalogMode.Tracked)
+            {
+                return books;
+            }
+
+            var requested = GetRequestedBookProviderIdsByMediaType(config);
+
+            // Only media types without local rows reach here for an existing author, so file
+            // checks are not needed to find the kept books.
+            var kept = (_bookService.GetBooksByAuthor(author.Id) ?? new List<Book>())
+                .Where(book => TalearrTrackedCatalogFilter.IsKeptLocalBook(book, hasFiles: false))
+                .ToList();
+
+            return TalearrTrackedCatalogFilter.Apply(books, kept, book => IsRequestedBook(requested, book), _logger, author, "ProcessBooksForAuthor");
+        }
+
+        private bool IsRequestedBook(Dictionary<BookMediaType, HashSet<string>> requested, Book book)
+        {
+            return book != null &&
+                   requested != null &&
+                   requested.TryGetValue(book.MediaType, out var providerIds) &&
+                   providerIds.Any(providerId => BookMatchesProviderId(book, providerId));
         }
 
         private bool BookMatchesProviderId(Book book, string providerId)

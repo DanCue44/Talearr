@@ -43,6 +43,7 @@ using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Validation;
 using NzbDrone.Core.Validation.Paths;
 using NzbDrone.Http.REST.Attributes;
+using NzbDrone.Core.Talearr.Catalog;
 using NzbDrone.SignalR;
 using NLog;
 using Newtonsoft.Json;
@@ -106,6 +107,7 @@ namespace Chaptarr.Api.V1.Author
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly IRootFolderService _rootFolderService;
         private readonly IProviderAliasService _providerAliasService;
+        private readonly ITalearrAuthorCatalogStore _talearrCatalogStore;
         private readonly IEventAggregator _eventAggregator;
 	        private readonly IAppFolderInfo _appFolderInfo;
 	        private readonly IBuildFileNames _fileNameBuilder;
@@ -139,9 +141,11 @@ namespace Chaptarr.Api.V1.Author
                             QualityProfileExistsValidator qualityProfileExistsValidator,
                             MetadataProfileExistsValidator metadataProfileExistsValidator,
                             AuthorFolderAsRootFolderValidator authorFolderAsRootFolderValidator,
-                            IProviderAliasService providerAliasService = null)
+                            IProviderAliasService providerAliasService = null,
+                            ITalearrAuthorCatalogStore talearrCatalogStore = null)
             : base(signalRBroadcaster)
         {
+            _talearrCatalogStore = talearrCatalogStore;
             _authorService = authorService;
             _bookService = bookService;
             _bookMonitoredService = bookMonitoredService;
@@ -344,6 +348,7 @@ namespace Chaptarr.Api.V1.Author
             LinkNextPreviousBooks(resource);
 
             LinkRootFolderPath(new[] { author }, resource);
+            LinkTalearrCatalogMode(resource);
 
             // Attach per-media-type statistics for live updates (used by Authors list without full refetch)
             try
@@ -381,6 +386,7 @@ namespace Chaptarr.Api.V1.Author
             }
 
             LinkRootFolderPath(authors, authorResources.ToArray());
+            LinkTalearrCatalogMode(authorResources.ToArray());
 
             return authorResources;
         }
@@ -1255,6 +1261,17 @@ namespace Chaptarr.Api.V1.Author
             _commandQueueManager.Push(new DownloadAuthorMediaCommand(id, forceDownload));
 
             return Accepted();
+        }
+
+        // Talearr: one cached lookup of the Tracked authors for the whole list.
+        private void LinkTalearrCatalogMode(params AuthorResource[] authors)
+        {
+            var tracked = new HashSet<int>(_talearrCatalogStore?.GetTrackedAuthorIds() ?? Array.Empty<int>());
+            foreach (var authorResource in authors)
+            {
+                authorResource.TalearrCatalogMode = TalearrAuthorCatalogModes.ToApi(
+                    tracked.Contains(authorResource.Id) ? TalearrAuthorCatalogMode.Tracked : TalearrAuthorCatalogMode.Full);
+            }
         }
 
         private void MapCoversToLocal(params AuthorResource[] authors)

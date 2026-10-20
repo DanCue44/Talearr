@@ -561,7 +561,12 @@ namespace NzbDrone.Core.Books
                 // Talearr: an explicit single-book add may use the Open Library fallback during
                 // an outage; the title lets it find the same work there.
                 AllowMetadataFallback = true,
-                MetadataFallbackWorkTitles = BuildFallbackWorkTitles(requestedIds, book.Title)
+                MetadataFallbackWorkTitles = BuildFallbackWorkTitles(requestedIds, book.Title),
+
+                // Talearr: a new author added for this request keeps only its requested and owned
+                // books (docs/TALEARR_TRACKED_AUTHORS.md). addOptions.monitor = "all" asks for the
+                // whole catalog, so that author stays Full.
+                TalearrTrackedCatalog = author.AddOptions?.Monitor != MonitorTypes.All
             }, mediaType);
         }
 

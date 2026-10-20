@@ -20,6 +20,8 @@ interface Author extends ModelBase {
   tags: number[];
   authorName: string;
   lastSelectedMediaType?: string;
+  // Talearr: 'full' (all books by the author) or 'tracked' (only the user's books).
+  talearrCatalogMode?: 'full' | 'tracked';
   isSaving?: boolean;
 }
 

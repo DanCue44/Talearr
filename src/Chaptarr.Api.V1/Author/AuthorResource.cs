@@ -103,6 +103,10 @@ namespace Chaptarr.Api.V1.Author
         // Optional warning returned by certain operations (e.g. v1 author import hydration).
         // When set, the operation succeeded but additional follow-up may be required.
         public string HydrationWarning { get; set; }
+
+        // Talearr: "full" (all books by the author) or "tracked" (only the user's books). Read only;
+        // change it with PUT /api/v1/talearr/authors/{id}/catalog.
+        public string TalearrCatalogMode { get; set; }
     }
 
     public static class AuthorResourceMapper
