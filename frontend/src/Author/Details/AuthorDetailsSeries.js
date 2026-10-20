@@ -179,7 +179,7 @@ class AuthorDetailsSeries extends Component {
             </div>
           </Link>
 
-          {/* TaleArr: series page with series monitoring (docs/TALEARR_SERIES.md) */}
+          {/* Talearr: series page with series monitoring (docs/TALEARR_SERIES.md) */}
           <IconButton
             className={styles.talearrSeriesLink}
             name={icons.OVERVIEW}

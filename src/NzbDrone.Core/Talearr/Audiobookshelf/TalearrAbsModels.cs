@@ -4,7 +4,7 @@ using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.Talearr.Audiobookshelf
 {
-    // TaleArr: one Audiobookshelf library item as cached in talearr.db.
+    // Talearr: one Audiobookshelf library item as cached in talearr.db.
     public class TalearrAbsItem
     {
         // The Notifications row id of the Audiobookshelf connection the item was read through.
@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
         // As Audiobookshelf sees it.
         public string Path { get; set; }
 
-        // The same folder as TaleArr sees it, through the connection's library mappings. Null when
+        // The same folder as Talearr sees it, through the connection's library mappings. Null when
         // no mapping covers the item.
         public string LocalPath { get; set; }
 
@@ -39,14 +39,14 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
 
     public static class TalearrAbsMatchMethods
     {
-        // The item's folder holds files TaleArr imported for the book.
+        // The item's folder holds files Talearr imported for the book.
         public const string Path = "path";
         public const string Asin = "asin";
         public const string Isbn = "isbn";
         public const string Title = "title";
     }
 
-    // TaleArr: which TaleArr book row an Audiobookshelf item was matched to.
+    // Talearr: which Talearr book row an Audiobookshelf item was matched to.
     public class TalearrAbsItemBook
     {
         public int ConnectionId { get; set; }
@@ -54,8 +54,8 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
         public int BookId { get; set; }
         public string Method { get; set; }
 
-        // True when the item is TaleArr's own import (matched by path). Such items show the badge
-        // but never block a grab, so upgrades of TaleArr's files keep working.
+        // True when the item is Talearr's own import (matched by path). Such items show the badge
+        // but never block a grab, so upgrades of Talearr's files keep working.
         public bool Managed { get; set; }
     }
 

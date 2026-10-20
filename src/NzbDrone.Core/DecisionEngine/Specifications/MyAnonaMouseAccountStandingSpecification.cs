@@ -5,7 +5,7 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
-    // TaleArr: rejects MAM releases while the account is seed-only, and non-freeleech MAM releases
+    // Talearr: rejects MAM releases while the account is seed-only, and non-freeleech MAM releases
     // that would push the share ratio below the indexer's Minimum Ratio After Grab (or while the
     // account status is unknown). See MyAnonaMouseAccountStanding.
     public class MyAnonaMouseAccountStandingSpecification : IDecisionEngineSpecification

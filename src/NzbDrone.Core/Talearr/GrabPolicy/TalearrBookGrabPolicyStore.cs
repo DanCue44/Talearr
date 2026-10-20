@@ -8,7 +8,7 @@ using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.Talearr.GrabPolicy
 {
-    // TaleArr: one per-book abridged override, as stored in talearr.db (BookGrabPolicies).
+    // Talearr: one per-book abridged override, as stored in talearr.db (BookGrabPolicies).
     public sealed class BookGrabPolicyOverride
     {
         // The work: the audiobook row's BaseBookId ("hc:378630"), else "book:<row id>".
@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         bool Delete(string workKey);
     }
 
-    // TaleArr: reads and writes the BookGrabPolicies table in talearr.db. Like the recordings
+    // Talearr: reads and writes the BookGrabPolicies table in talearr.db. Like the recordings
     // store, every call is best effort: a failure is logged and treated as "no override", so a
     // missing or broken talearr.db only means every book follows the global grab policy.
     public class TalearrBookGrabPolicyStore : ITalearrBookGrabPolicyStore
@@ -160,7 +160,7 @@ ON CONFLICT (WorkKey) DO UPDATE SET
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not {0} in {1}; books follow the global grab policy", what, TalearrDatabase.FileName);
+                _logger.Warn(ex, "Talearr: could not {0} in {1}; books follow the global grab policy", what, TalearrDatabase.FileName);
                 return fallback;
             }
         }

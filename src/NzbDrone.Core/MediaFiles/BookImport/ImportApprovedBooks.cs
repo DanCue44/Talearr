@@ -92,8 +92,8 @@ namespace NzbDrone.Core.MediaFiles.BookImport
             private readonly IContainmentValidator _containmentValidator;
             private readonly IMapCoversToLocal _coverMapper;
             private readonly ICustomFormatCalculationService _customFormatCalculationService;
-            private readonly ITalearrRecordingFolders _talearrRecordingFolders; // TaleArr
-            private readonly ITalearrUpgradeGuard _talearrUpgradeGuard; // TaleArr
+            private readonly ITalearrRecordingFolders _talearrRecordingFolders; // Talearr
+            private readonly ITalearrUpgradeGuard _talearrUpgradeGuard; // Talearr
             private readonly Logger _logger;
 
         public ImportApprovedBooks(
@@ -125,8 +125,8 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                 ITalearrRecordingFolders talearrRecordingFolders = null,
                 ITalearrUpgradeGuard talearrUpgradeGuard = null)
             {
-                _talearrRecordingFolders = talearrRecordingFolders; // TaleArr
-                _talearrUpgradeGuard = talearrUpgradeGuard; // TaleArr
+                _talearrRecordingFolders = talearrRecordingFolders; // Talearr
+                _talearrUpgradeGuard = talearrUpgradeGuard; // Talearr
             _mediaFileService = mediaFileService;
             _metadataTagService = metadataTagService;
             _mediaInfoExtractor = mediaInfoExtractor;
@@ -499,7 +499,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                     }
                 }
 
-                    // TaleArr: recording-aware upgrade guard. Only the same recording may replace files
+                    // Talearr: recording-aware upgrade guard. Only the same recording may replace files
                     // (abridged vs unabridged, narrator, runtime), never worse on measured bitrate,
                     // channels or duration, and bitrate gains count only within one codec. With
                     // keep both on, an unabridged download for abridged files becomes its own copy.
@@ -538,7 +538,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
 
                             if (newBookInstance == null || newEdition == null)
                             {
-                                var keepBothFailed = "TaleArr: could not create a separate recording for the unabridged download; kept the existing files";
+                                var keepBothFailed = "Talearr: could not create a separate recording for the unabridged download; kept the existing files";
                                 _logger.Warn("{0} ('{1}')", keepBothFailed, book.Title);
                                 foreach (var decision in bookDecisions)
                                 {
@@ -554,7 +554,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                         }
                     }
 
-                    // TaleArr: an additional recording never imports into a folder that already holds
+                    // Talearr: an additional recording never imports into a folder that already holds
                     // another recording's files (the copy folder rule in FileNameBuilder keeps them apart).
                     var talearrFolderConflict = TalearrRecordingFolders.FindImportConflict(_talearrRecordingFolders, _bookFileMover, newBookInstance ?? book, newEdition, author, bookDecisions.Select(d => d.Item), _logger);
                     if (!string.IsNullOrWhiteSpace(talearrFolderConflict))

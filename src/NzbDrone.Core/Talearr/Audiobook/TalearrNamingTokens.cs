@@ -12,7 +12,7 @@ using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.Talearr.Audiobook
 {
-    // TaleArr: extra file and folder naming tokens for audiobooks, and the helpers behind the
+    // Talearr: extra file and folder naming tokens for audiobooks, and the helpers behind the
     // zero-padded series position. Registered by FileNameBuilder; values come from the existing
     // book, edition and file fields, nothing is stored.
     //

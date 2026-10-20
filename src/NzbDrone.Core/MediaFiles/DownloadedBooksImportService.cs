@@ -60,8 +60,8 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IMediaInfoExtractor _mediaInfoExtractor;
         private readonly Logger _logger;
 
-        // TaleArr: optional so the upstream constructor (and its tests) keep working; DryIoc picks
-        // the constructor with the most resolvable parameters, which is the TaleArr one.
+        // Talearr: optional so the upstream constructor (and its tests) keep working; DryIoc picks
+        // the constructor with the most resolvable parameters, which is the Talearr one.
         private readonly IDownloadArchiveUnpacker _archiveUnpacker;
         private readonly IDownloadedFileLanguageVerifier _fileLanguageVerifier;
 
@@ -89,7 +89,7 @@ namespace NzbDrone.Core.MediaFiles
         {
         }
 
-        // TaleArr: constructor with the archive unpacker and the downloaded-file language check.
+        // Talearr: constructor with the archive unpacker and the downloaded-file language check.
         public DownloadedBooksImportService(
             IDiskProvider diskProvider,
             IDiskScanService diskScanService,
@@ -141,7 +141,7 @@ namespace NzbDrone.Core.MediaFiles
 
         public List<ImportResult> ProcessPath(string path, ImportMode importMode = ImportMode.Auto, Author author = null, DownloadClientItem downloadClientItem = null, RemoteBook remoteBook = null, bool requireDefaultRootFolderForMissingAuthors = false)
         {
-            // TaleArr: a payload that only holds archives is unpacked next to the download first.
+            // Talearr: a payload that only holds archives is unpacked next to the download first.
             var unpacked = _archiveUnpacker?.Unpack(path);
             if (unpacked != null)
             {
@@ -151,7 +151,7 @@ namespace NzbDrone.Core.MediaFiles
             return ProcessPath(path, importMode, author, downloadClientItem, remoteBook, null, requireDefaultRootFolderForMissingAuthors);
         }
 
-        // TaleArr: imports from the unpack work folder, then removes it. The original download is
+        // Talearr: imports from the unpack work folder, then removes it. The original download is
         // never moved or deleted (it may still be seeding); the work folder is our own copy, so
         // files are moved out of it whatever mode the download client allows.
         private List<ImportResult> ProcessUnpackedPath(ArchiveUnpackResult unpacked, ImportMode importMode, Author author, DownloadClientItem downloadClientItem, RemoteBook remoteBook, bool requireDefaultRootFolderForMissingAuthors)
@@ -425,7 +425,7 @@ namespace NzbDrone.Core.MediaFiles
 
             EnforceTrackedDownloadTargetBooks(decisions, remoteBook, downloadClientItem);
             EnforceTrackedDownloadExpectedEditions(decisions, downloadClientItem);
-            _fileLanguageVerifier?.Verify(decisions, remoteBook, downloadClientItem); // TaleArr
+            _fileLanguageVerifier?.Verify(decisions, remoteBook, downloadClientItem); // Talearr
 
             // Derive effective import mode for downloads (Move if client can move files; otherwise Copy)
             var effectiveMode = importMode;
@@ -445,7 +445,7 @@ namespace NzbDrone.Core.MediaFiles
 
             if (!hasPendingConversion && effectiveMode == ImportMode.Move && importResults.Any(i => i.Result == ImportResultType.Imported))
             {
-                // TaleArr: a usenet bundle whose wanted books imported leaves only unwanted books behind.
+                // Talearr: a usenet bundle whose wanted books imported leaves only unwanted books behind.
                 if (ShouldDisposeBundleFolder(directoryInfo, remoteBook, downloadClientItem, importResults))
                 {
                     _logger.Info("Removing the rest of bundle {0} after importing the wanted books", downloadClientItem.Title);
@@ -582,7 +582,7 @@ namespace NzbDrone.Core.MediaFiles
             ApplyTrackedReleaseEvidence(decisions, remoteBook, downloadClientItem);
             EnforceTrackedDownloadTargetBooks(decisions, remoteBook, downloadClientItem);
             EnforceTrackedDownloadExpectedEditions(decisions, downloadClientItem);
-            _fileLanguageVerifier?.Verify(decisions, remoteBook, downloadClientItem); // TaleArr
+            _fileLanguageVerifier?.Verify(decisions, remoteBook, downloadClientItem); // Talearr
 
             var effectiveMode = importMode;
             if (importMode == ImportMode.Auto && downloadClientItem != null)
@@ -808,7 +808,7 @@ namespace NzbDrone.Core.MediaFiles
             {
                 var matchedBook = decision.Item?.Book;
 
-                // TaleArr: a file that credits a different author is not the grabbed book, even
+                // Talearr: a file that credits a different author is not the grabbed book, even
                 // when its title words matched ("Craig Rice - 45 Murderers ..." for Ryan Becker).
                 if (matchedBook != null && expectedBookIds.Contains(matchedBook.Id))
                 {
@@ -831,7 +831,7 @@ namespace NzbDrone.Core.MediaFiles
 
                 if (matchedBook == null || !expectedBookIds.Contains(matchedBook.Id))
                 {
-                    // TaleArr: other books in a bundle are imported only when they are wanted
+                    // Talearr: other books in a bundle are imported only when they are wanted
                     // (monitored and missing); the rest are left out without failing the download.
                     if (remoteBook.IsBundle)
                     {
@@ -893,7 +893,7 @@ namespace NzbDrone.Core.MediaFiles
                 var matchedEdition = localBook.Edition;
                 var targetEdition = FindEquivalentEditionForTargetBook(targetBook, matchedEdition);
 
-                // TaleArr: an Audible-only duplicate row (az:) has no equivalent edition under the
+                // Talearr: an Audible-only duplicate row (az:) has no equivalent edition under the
                 // grabbed book until the next refresh folds it in. The grab was for the grabbed
                 // book's monitored edition, so import into that one.
                 if (targetEdition == null && TalearrCatalogDedupe.IsAudibleDuplicateOf(targetBook, matchedBook))
@@ -983,7 +983,7 @@ namespace NzbDrone.Core.MediaFiles
                 return false;
             }
 
-            // TaleArr: an Audible-only duplicate of the grabbed book (same title, no work id) is the same work.
+            // Talearr: an Audible-only duplicate of the grabbed book (same title, no work id) is the same work.
             return WorkIdMatcher.WorkProviderIdMatches(targetBook, matchedBook) ||
                    TalearrCatalogDedupe.IsAudibleDuplicateOf(targetBook, matchedBook);
         }
@@ -1380,7 +1380,7 @@ namespace NzbDrone.Core.MediaFiles
             }
         }
 
-        // TaleArr: the leftover books of a bundle are deleted with the download folder, but only
+        // Talearr: the leftover books of a bundle are deleted with the download folder, but only
         // for usenet (nothing seeds), only after every grabbed book imported, and only inside the
         // download client's own output path. Torrents are left to the client removal path.
         internal bool ShouldDisposeBundleFolder(IDirectoryInfo directoryInfo, RemoteBook remoteBook, DownloadClientItem downloadClientItem, List<ImportResult> importResults)
@@ -1419,7 +1419,7 @@ namespace NzbDrone.Core.MediaFiles
                 return false;
             }
 
-            // TaleArr: the leftovers are deleted even though book files remain, so the output path must
+            // Talearr: the leftovers are deleted even though book files remain, so the output path must
             // be this download's own job folder, never a shared category folder a client reported by mistake.
             if (!IsDownloadJobFolder(outputPath, downloadClientItem.Title))
             {

@@ -15,7 +15,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         private readonly UpgradableSpecification _upgradableSpecification;
         private readonly ICustomFormatCalculationService _formatService;
         private readonly Logger _logger;
-        private readonly ITalearrQualityLadder _talearrLadder; // TaleArr
+        private readonly ITalearrQualityLadder _talearrLadder; // Talearr
 
         public UpgradeDiskSpecification(UpgradableSpecification qualityUpgradableSpecification,
                                         ICacheManager cacheManager,
@@ -79,7 +79,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                                                            subject.ParsedBookInfo.Quality,
                                                            subject.CustomFormats))
                 {
-                    // TaleArr: the quality profile ranks them equal, but the audio quality ladder or
+                    // Talearr: the quality profile ranks them equal, but the audio quality ladder or
                     // the ebook format preference finds the release clearly better (opt-in).
                     var ladderReason = _talearrLadder?.UpgradeReason(subject, book, qualityProfile,
                         qualityProfile.CalculateCustomFormatScore(subject.CustomFormats ?? new List<CustomFormat>()),

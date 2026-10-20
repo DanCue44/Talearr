@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace NzbDrone.Core.Talearr.Audiobook
 {
-    // TaleArr: the matcher treats all audio files of one extension in one folder as a single
+    // Talearr: the matcher treats all audio files of one extension in one folder as a single
     // book. When a folder holds two different books ("Book A 01.mp3 ... Book B 01.mp3") that
     // would merge them. This looks at the album tags of such a folder and returns a book key per
     // file when the tags clearly name more than one book, so each book is matched on its own.

@@ -246,7 +246,7 @@ class PageConnector extends Component {
   componentDidMount() {
     this.props.dispatchFetchHardcoverConfig();
 
-    // TaleArr: book tags load alongside, but the UI never waits for them.
+    // Talearr: book tags load alongside, but the UI never waits for them.
     this.props.dispatchFetchTalearrBookTags();
 
     if (!this.props.isPopulated) {

@@ -2,7 +2,7 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Talearr.Audiobookshelf
 {
-    // TaleArr: reads the Audiobookshelf libraries into talearr.db. Scheduled every hour, queued
+    // Talearr: reads the Audiobookshelf libraries into talearr.db. Scheduled every hour, queued
     // when an Audiobookshelf connection is saved, and from the "Sync now" button. The class name
     // is what System > Tasks shows ("Sync Audiobookshelf Library").
     public class SyncAudiobookshelfLibraryCommand : Command

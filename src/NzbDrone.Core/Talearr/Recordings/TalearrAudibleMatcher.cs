@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         public string Method { get; set; }
     }
 
-    // TaleArr: decides whether an Audible product is the recording a Chaptarr edition describes.
+    // Talearr: decides whether an Audible product is the recording a Chaptarr edition describes.
     // Pure functions, so the rules are easy to test and to tune.
     public static class TalearrAudibleMatcher
     {

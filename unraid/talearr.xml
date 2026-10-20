@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
-<!-- TaleArr Unraid template (Community Applications format). See README.md "Unraid". -->
+<!-- Talearr Unraid template (Community Applications format). See README.md "Unraid". -->
 <!-- The repository and image are private for now: the Icon and TemplateURL raw GitHub links only -->
 <!-- resolve once DanCue44/TaleArr is public, and the image needs a docker login to ghcr.io until -->
 <!-- the talearr package is public. -->
 <Container version="2">
-  <Name>TaleArr</Name>
+  <Name>Talearr</Name>
   <Repository>ghcr.io/dancue44/talearr:latest</Repository>
   <Registry>https://github.com/DanCue44/TaleArr/pkgs/container/talearr</Registry>
   <Network>bridge</Network>
@@ -14,7 +14,7 @@
   <Support>https://talearr.com</Support>
   <Project>https://talearr.com</Project>
   <ReadMe>https://github.com/DanCue44/TaleArr#readme</ReadMe>
-  <Overview>TaleArr is an ebook and audiobook collection manager for Usenet and BitTorrent users, a drop-in fork of Chaptarr (itself a Readarr fork). It monitors authors and books, grabs the right edition and recording (unabridged by default, English editions by plain title), keeps abridged and unabridged recordings together, imports into tidy author and book folders and talks to Audiobookshelf. It reads the same /config as Chaptarr, so you can switch either way, and System &gt; Migrate brings a Readarr, Bookshelf or LazyLibrarian library over.[br][br]For hardlinks, keep downloads and the library on the same share and map one parent folder (see the README's Unraid section).</Overview>
+  <Overview>Talearr is an ebook and audiobook collection manager for Usenet and BitTorrent users, a drop-in fork of Chaptarr (itself a Readarr fork). It monitors authors and books, grabs the right edition and recording (unabridged by default, English editions by plain title), keeps abridged and unabridged recordings together, imports into tidy author and book folders and talks to Audiobookshelf. It reads the same /config as Chaptarr, so you can switch either way, and System &gt; Migrate brings a Readarr, Bookshelf or LazyLibrarian library over.[br][br]For hardlinks, keep downloads and the library on the same share and map one parent folder (see the README's Unraid section).</Overview>
   <Category>MediaApp:Books Downloaders:</Category>
   <WebUI>http://[IP]:[PORT:8789]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/DanCue44/TaleArr/main/unraid/talearr.xml</TemplateURL>

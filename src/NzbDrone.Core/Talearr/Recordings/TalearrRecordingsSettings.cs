@@ -30,7 +30,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         Off = 2
     }
 
-    // TaleArr: recordings settings. Stored as talearr.recordings.* rows in the existing Config
+    // Talearr: recordings settings. Stored as talearr.recordings.* rows in the existing Config
     // table, which Chaptarr ignores, so a rollback is unaffected.
     public sealed class TalearrRecordingsSettings
     {
@@ -151,7 +151,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 _repository.Upsert(RuntimeToleranceKey, Math.Clamp(settings.RuntimeTolerancePct, 0, MaxRuntimeTolerancePct).ToString());
 
                 _cached = Load();
-                _logger.Info("TaleArr recordings settings saved: marketplace={0}, provider={1}, audnexusFallback={2}, enrich={3}, searchOnAdd={4}, keepBoth={5}, upgradeGuard={6}, minBitrateGain={7}, runtimeTolerance={8}",
+                _logger.Info("Talearr recordings settings saved: marketplace={0}, provider={1}, audnexusFallback={2}, enrich={3}, searchOnAdd={4}, keepBoth={5}, upgradeGuard={6}, minBitrateGain={7}, runtimeTolerance={8}",
                     _cached.Marketplace,
                     _cached.Provider,
                     _cached.AudnexusFallback,
@@ -225,7 +225,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read TaleArr setting {0}, using the default", key);
+                _logger.Debug(ex, "Unable to read Talearr setting {0}, using the default", key);
                 return null;
             }
         }

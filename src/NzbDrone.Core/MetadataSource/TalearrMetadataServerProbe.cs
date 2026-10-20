@@ -13,7 +13,7 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.MetadataSource
 {
-    // TaleArr: active health probe for the metadata server.
+    // Talearr: active health probe for the metadata server.
     //
     // Chaptarr's MetadataServerHealthService only learns about an outage when a real
     // request fails, and its health check runs every 6 hours. This probe sends one small

@@ -25,7 +25,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
         List<TalearrAbsSyncState> GetStates();
     }
 
-    // TaleArr: Audiobookshelf library cache in talearr.db. Like the recordings store, every call is
+    // Talearr: Audiobookshelf library cache in talearr.db. Like the recordings store, every call is
     // best effort: a failure is logged and read as "nothing cached", so a broken talearr.db never
     // blocks a search. A corrupt file is recreated and refilled by the next sync.
     public class TalearrAbsStore : ITalearrAbsStore
@@ -211,7 +211,7 @@ ON CONFLICT (ConnectionId) DO UPDATE SET
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not {0} in {1}; continuing without it", what, TalearrDatabase.FileName);
+                _logger.Warn(ex, "Talearr: could not {0} in {1}; continuing without it", what, TalearrDatabase.FileName);
                 return fallback;
             }
         }

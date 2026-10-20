@@ -107,12 +107,12 @@ namespace NzbDrone.Core.Books.Services
         public HashSet<string> SpecificBookProviderIds { get; set; }  // e.g., ["hc:495645", "hc:495646"]
         public BookMediaType? SpecificBookMediaType { get; set; }
 
-        // TaleArr: the add may use the Open Library fallback when the metadata server is
+        // Talearr: the add may use the Open Library fallback when the metadata server is
         // unavailable. Set only by explicit user adds (author and single-book add), never by
         // pending-queue retries, re-adds or imports. Not persisted with pending imports.
         public bool AllowMetadataFallback { get; set; }
 
-        // TaleArr: requested work id -> title, so a single-book add of a hc:/gr: result can find
+        // Talearr: requested work id -> title, so a single-book add of a hc:/gr: result can find
         // the same work in the Open Library catalog by title. Not persisted.
         public Dictionary<string, string> MetadataFallbackWorkTitles { get; set; }
 
@@ -229,7 +229,7 @@ namespace NzbDrone.Core.Books.Services
             }
         }
 
-        // TaleArr: fetch from the metadata server; when that fails because the server is
+        // Talearr: fetch from the metadata server; when that fails because the server is
         // unavailable (and the add allows it), build the author from the Open Library fallback.
         private async Task<(Author Author, bool UsedFallback)> FetchAuthorBlobOrFallbackAsync(string providerId, MonitoringConfig config)
         {
@@ -394,7 +394,7 @@ namespace NzbDrone.Core.Books.Services
                 var existingAuthor = FindExistingAuthor(providerId, author);
                 if (existingAuthor != null && usedMetadataFallback)
                 {
-                    // TaleArr: never merge sparser fallback data into an author already in the
+                    // Talearr: never merge sparser fallback data into an author already in the
                     // library; it is updated by a normal refresh once the server is back. A
                     // requested book it does not have yet stays queued as a pending request.
                     _logger.Info("Author {0} is already in the library; keeping it unchanged while the metadata server is unavailable", existingAuthor.Name);
@@ -1416,7 +1416,7 @@ namespace NzbDrone.Core.Books.Services
             var rootFolder = _rootFolderService.GetBestRootFolder(rootFolderPath);
             if (rootFolder == null || !rootFolder.Path.PathEquals(rootFolderPath))
             {
-                throw BuildMonitoringConfigValidationException(mediaType, RootFolderPropertyName(mediaType), $"Selected root folder '{rootFolderPath}' is not configured in TaleArr");
+                throw BuildMonitoringConfigValidationException(mediaType, RootFolderPropertyName(mediaType), $"Selected root folder '{rootFolderPath}' is not configured in Talearr");
             }
 
             if (!IsCompatibleRootFolder(rootFolder, mediaType))

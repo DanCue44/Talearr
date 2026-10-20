@@ -1,12 +1,12 @@
-# TaleArr import additions
+# Talearr import additions
 
-Two things TaleArr does on completed downloads that Chaptarr does not.
+Two things Talearr does on completed downloads that Chaptarr does not.
 
 ## Archives
 
 Scene ebook releases often arrive as a zip that holds a rar (plus `.nfo` and `.diz`
 files), and multi-part rar sets are common for audiobooks. When a completed download
-has no audio or ebook files but does have archives, TaleArr unpacks them before
+has no audio or ebook files but does have archives, Talearr unpacks them before
 importing:
 
 - Supported: `.zip`, `.rar` (single, `.partN.rar` sets and old `.rar`/`.r00` sets), `.7z`,
@@ -41,7 +41,7 @@ Code: `src/NzbDrone.Core/MediaFiles/TalearrImport/SafeArchiveExtractor.cs` and
 
 ## Downloaded-file language
 
-After download and before import, TaleArr reads the language a file declares about itself:
+After download and before import, Talearr reads the language a file declares about itself:
 
 | File | Where the language comes from |
 |---|---|
@@ -64,7 +64,7 @@ When the file's language is not a wanted one, the file is rejected with a `Langu
 rejection, for example:
 
 > File language is Swedish (swe) (from EPUB dc:language), but English (eng) is wanted
-> (editions of 'The Pelican Brief'). TaleArr rejected this release so another one can be
+> (editions of 'The Pelican Brief'). Talearr rejected this release so another one can be
 > tried.
 
 If nothing in the download imported and every file was rejected for language (files only

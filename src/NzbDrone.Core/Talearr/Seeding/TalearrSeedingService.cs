@@ -19,7 +19,7 @@ namespace NzbDrone.Core.Talearr.Seeding
         TalearrSeedingReport GetReport(TimeSpan? maxAge = null);
     }
 
-    // TaleArr: what every enabled torrent client is seeding for TaleArr, matched to the grab
+    // Talearr: what every enabled torrent client is seeding for Talearr, matched to the grab
     // history (book, indexer), with the private-tracker seeding requirement and a hit-and-run
     // risk per torrent. Read-only: nothing is changed in the clients and MAM is not called (the
     // MAM block comes from the hourly account refresh stored on the indexer).
@@ -106,7 +106,7 @@ namespace NzbDrone.Core.Talearr.Seeding
                 }
             }
 
-            // TaleArr: MAM freeleech filler torrents sit in their own category.
+            // Talearr: MAM freeleech filler torrents sit in their own category.
             var mam = indexers.FirstOrDefault(d => d.Enable && d.Settings is MyAnonaMouseSettings);
             var filler = AddFillerRows(clientRows, mam);
 
@@ -182,7 +182,7 @@ namespace NzbDrone.Core.Talearr.Seeding
             };
         }
 
-        // TaleArr: reads the filler category from each client that supports it and returns the
+        // Talearr: reads the filler category from each client that supports it and returns the
         // download ids the filler added (tracked in talearr.db or in the filler category).
         private HashSet<string> AddFillerRows(List<(TalearrSeedingClientTorrent Torrent, IDownloadClient Client)> clientRows, IndexerDefinition mam)
         {
@@ -248,7 +248,7 @@ namespace NzbDrone.Core.Talearr.Seeding
             }
         }
 
-        // TaleArr: the last bonus auto-spend attempts for the MAM summary ("Recent bonus purchases").
+        // Talearr: the last bonus auto-spend attempts for the MAM summary ("Recent bonus purchases").
         private TalearrSeedingMamStatus WithBonusPurchases(TalearrSeedingMamStatus status, IndexerDefinition mam)
         {
             if (status == null || _bonusPurchases == null || mam == null)
@@ -339,7 +339,7 @@ namespace NzbDrone.Core.Talearr.Seeding
             };
         }
 
-        // Latest TaleArr grab per download id: the torrents the clients hold plus recent grabs
+        // Latest Talearr grab per download id: the torrents the clients hold plus recent grabs
         // (for the missing check).
         private Dictionary<string, TalearrSeedingGrab> LoadGrabs(IEnumerable<string> downloadIds, DateTime recentSince)
         {

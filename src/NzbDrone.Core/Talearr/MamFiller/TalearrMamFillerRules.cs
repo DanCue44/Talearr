@@ -6,7 +6,7 @@ using NzbDrone.Core.Indexers.MyAnonaMouse;
 
 namespace NzbDrone.Core.Talearr.MamFiller
 {
-    // TaleArr: pure rules behind the freeleech seeding filler, kept apart from MAM, the client and
+    // Talearr: pure rules behind the freeleech seeding filler, kept apart from MAM, the client and
     // talearr.db so they can be tested with plain data.
     public static class TalearrMamFillerRules
     {
@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
 
         // How long MAM may take to count a new snatch (see MamUnsatisfiedSlotGuard).
         public static readonly TimeSpan AccountingLag = TimeSpan.FromMinutes(20);
-        // TaleArr: default of Filler Pause After Error (ErrorPause).
+        // Talearr: default of Filler Pause After Error (ErrorPause).
         public static readonly TimeSpan Backoff = TimeSpan.FromHours(12);
         public static readonly TimeSpan MinimumSeedTime = TimeSpan.FromHours(72);
 
@@ -64,7 +64,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
             };
         }
 
-        // TaleArr: author_info is a JSON string like {"7640": "J K Rowling"} (sometimes an object).
+        // Talearr: author_info is a JSON string like {"7640": "J K Rowling"} (sometimes an object).
         internal static List<string> ReadAuthors(JToken token)
         {
             var authors = new List<string>();
@@ -159,7 +159,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
             return null;
         }
 
-        // TaleArr: preferred picks (taste preferences) first, then audiobooks when preferred, then
+        // Talearr: preferred picks (taste preferences) first, then audiobooks when preferred, then
         // most leechers, fewest seeders, smallest. Without preferences this is the 0.18.0 order.
         public static List<TalearrMamFillerCandidate> Rank(IEnumerable<TalearrMamFillerCandidate> candidates, bool preferAudiobooks)
         {
@@ -192,7 +192,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
             return days < MinimumSeedTime ? MinimumSeedTime : days;
         }
 
-        // TaleArr: pause after a MAM error, from Filler Pause After Error (was a fixed 12 hours).
+        // Talearr: pause after a MAM error, from Filler Pause After Error (was a fixed 12 hours).
         public static TimeSpan ErrorPause(MyAnonaMouseSettings settings)
         {
             var hours = settings?.FillerErrorPauseHours ?? 0;

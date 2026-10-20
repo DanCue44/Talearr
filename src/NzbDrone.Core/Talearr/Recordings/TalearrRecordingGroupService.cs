@@ -23,9 +23,9 @@ namespace NzbDrone.Core.Talearr.Recordings
         RecordingGroup GetGroup(Book anyRow);
     }
 
-    // TaleArr: finds a work's audiobook rows the way upstream's import routing does
+    // Talearr: finds a work's audiobook rows the way upstream's import routing does
     // (BookUnitDestinationService.GetIdentityGroupBooks): same author and media type, and the same
-    // BaseBookId or intersecting provider ids. Read only; TaleArr never forks upstream's copy logic.
+    // BaseBookId or intersecting provider ids. Read only; Talearr never forks upstream's copy logic.
     public class TalearrRecordingGroupService : ITalearrRecordingGroupService
     {
         private readonly IBookService _bookService;

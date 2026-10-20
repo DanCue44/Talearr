@@ -8,7 +8,7 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Indexers.MyAnonaMouse
 {
-    // TaleArr: keeps MAM's dynamic seedbox IP in step with the torrent client's VPN egress.
+    // Talearr: keeps MAM's dynamic seedbox IP in step with the torrent client's VPN egress.
     // Runs once on startup, then the 5-minute scheduled task (faster when an interval is below 5
     // minutes, see MyAnonaMouseSchedule) checks each MAM indexer that has
     // the update enabled against its own Dynamic Seedbox Interval. A manual run from
@@ -69,7 +69,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                         MyAnonaMouseSettings.MaximumDynamicSeedboxInterval));
 
                     // Allow a minute of scheduler jitter so a 30-minute interval runs every
-                    // 30 minutes rather than every 35. TaleArr: not below 10 minutes, where the
+                    // 30 minutes rather than every 35. Talearr: not below 10 minutes, where the
                     // task ticks at the interval itself (MyAnonaMouseSchedule) and a minute off
                     // would halve a 2-minute interval.
                     var due = interval >= TimeSpan.FromMinutes(10) ? interval - TimeSpan.FromMinutes(1) : interval;

@@ -93,7 +93,7 @@ const bookTokens = [
 
 const releaseDateTokens = [
   { token: '{Release Year}', example: '2016' },
-  // TaleArr: empty (not "Unknown") when no year is known, so { - } style separators drop too.
+  // Talearr: empty (not "Unknown") when no year is known, so { - } style separators drop too.
   { token: '{Book Year}', example: '1994' },
   { token: '{Book Year - }', example: '1994 - ' },
   { token: '{Release YearFirst}', example: '2015' },
@@ -121,7 +121,7 @@ const narratorTokens = [
   { token: '{Narrator Last}', example: 'Porter' },
   { token: '{Narrators}', example: 'Ray Porter, Kate Reading' },
   { token: '{ - Narrator}', example: ' - Ray Porter' },
-  // TaleArr: Audiobookshelf reads the narrator from curly braces at the end of the book folder.
+  // Talearr: Audiobookshelf reads the narrator from curly braces at the end of the book folder.
   { token: '{ {Narrator}}', example: ' {Ray Porter}' }
 ];
 
@@ -132,13 +132,13 @@ const seriesTokens = [
   { token: '{Series Folder}', example: 'Dresden Files' },
   { token: '{Book TitleWithSeries}', example: 'Grave Peril - Dresden Files #3' },
   { token: '{ - Book SeriesPosition}', example: ' - 3' },
-  // TaleArr: zero-padded series positions (decimals keep their fraction: 2.5 -> 02.5).
+  // Talearr: zero-padded series positions (decimals keep their fraction: 2.5 -> 02.5).
   { token: '{Book SeriesPosition:00}', example: '03' },
   { token: '{Book SeriesPosition:000}', example: '003' },
   { token: '{Book SeriesPosition:00 - }', example: '03 - ' }
 ];
 
-// TaleArr: abridged or unabridged recording, from the edition's title, format or runtime.
+// Talearr: abridged or unabridged recording, from the edition's title, format or runtime.
 const recordingTokens = [
   { token: '{Abridged}', example: 'Abridged (empty when unabridged)' },
   { token: '{ (Abridged)}', example: ' (Abridged)' },
@@ -146,7 +146,7 @@ const recordingTokens = [
   { token: '{ [Abridgement]}', example: ' [Unabridged]' }
 ];
 
-// TaleArr: ready-made audiobook layouts, inserted as the whole format. The author folder
+// Talearr: ready-made audiobook layouts, inserted as the whole format. The author folder
 // comes from Author Folder Format, so these start at the series folder.
 const audiobookLayouts = [
   {

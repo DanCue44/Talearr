@@ -80,7 +80,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
         }
     }
 
-    // TaleArr: opt-in Soulseek search and grab through slskd (docs/TALEARR_SOULSEEK.md).
+    // Talearr: opt-in Soulseek search and grab through slskd (docs/TALEARR_SOULSEEK.md).
     // Search answers are judged by the normal decision engine; a grab asks slskd to download the
     // whole folder, is tracked in a talearr.soulseek.grab.* Config row, and once every file is
     // there it is imported for the book it was grabbed for through the normal import pipeline.
@@ -192,7 +192,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             }
 
             _searches.Set(state.Token, state, SearchCacheLifetime);
-            _logger.Info("TaleArr Soulseek: '{0}' found {1} candidates from {2} peers for book {3} ({4} acceptable)",
+            _logger.Info("Talearr Soulseek: '{0}' found {1} candidates from {2} peers for book {3} ({4} acceptable)",
                 searchText,
                 result.Results.Count,
                 result.PeerCount,
@@ -262,7 +262,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             };
 
             _store.Save(grab);
-            _logger.Info("TaleArr Soulseek: grabbed '{0}' ({1} files) from {2} for book {3}", grab.Title, files.Count, grab.Username, book.Id);
+            _logger.Info("Talearr Soulseek: grabbed '{0}' ({1} files) from {2} for book {3}", grab.Title, files.Count, grab.Username, book.Id);
 
             return grab;
         }
@@ -335,7 +335,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr Soulseek: unable to check the Soulseek downloads");
+                _logger.Warn(ex, "Talearr Soulseek: unable to check the Soulseek downloads");
             }
             finally
             {
@@ -390,7 +390,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             }
             else if (!_diskProvider.FolderExists(settings.DownloadsPath))
             {
-                result.Warnings.Add($"TaleArr cannot see '{settings.DownloadsPath}'. Map slskd's downloads folder into the TaleArr container.");
+                result.Warnings.Add($"Talearr cannot see '{settings.DownloadsPath}'. Map slskd's downloads folder into the Talearr container.");
             }
 
             result.Success = true;
@@ -424,7 +424,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "TaleArr Soulseek: unable to read slskd transfers for {0}", byPeer.Key);
+                    _logger.Debug(ex, "Talearr Soulseek: unable to read slskd transfers for {0}", byPeer.Key);
                     continue;
                 }
 
@@ -436,7 +436,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn(ex, "TaleArr Soulseek: unable to update download {0}", grab.Id);
+                        _logger.Warn(ex, "Talearr Soulseek: unable to update download {0}", grab.Id);
                     }
                 }
             }
@@ -503,8 +503,8 @@ namespace NzbDrone.Core.Talearr.Soulseek
             {
                 Finish(grab, TalearrSoulseekGrabState.ImportFailed,
                     settings.DownloadsPath.IsNullOrWhiteSpace()
-                        ? "Downloaded, but the slskd downloads folder is not set in TaleArr"
-                        : $"Downloaded, but TaleArr cannot find the files under '{settings.DownloadsPath}'");
+                        ? "Downloaded, but the slskd downloads folder is not set in Talearr"
+                        : $"Downloaded, but Talearr cannot find the files under '{settings.DownloadsPath}'");
                 return;
             }
 
@@ -588,7 +588,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             Finish(grab, TalearrSoulseekGrabState.Imported, $"Imported {imported} file(s)");
         }
 
-        // Where slskd put the files: TaleArr's own batch folder, or (older slskd) slskd's default
+        // Where slskd put the files: Talearr's own batch folder, or (older slskd) slskd's default
         // "<downloads>/<remote folder name>", or any folder up to two levels down holding them.
         internal (string Folder, List<string> Files)? LocateFiles(TalearrSoulseekSettings settings, TalearrSoulseekGrab grab)
         {
@@ -637,7 +637,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr Soulseek: unable to list {0}", settings.DownloadsPath);
+                _logger.Debug(ex, "Talearr Soulseek: unable to list {0}", settings.DownloadsPath);
             }
 
             return null;
@@ -678,7 +678,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
                     return;
                 }
 
-                // TaleArr's own batch folder can go entirely (only cover art and the like are left);
+                // Talearr's own batch folder can go entirely (only cover art and the like are left);
                 // a folder slskd chose is removed only when nothing is left in it.
                 var ours = grab.Destination.IsNotNullOrWhiteSpace() &&
                            string.Equals(Path.GetFileName(grab.LocalFolder.TrimEnd('/', '\\')), grab.Destination, StringComparison.OrdinalIgnoreCase);
@@ -694,7 +694,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr Soulseek: unable to clean up {0}", grab.LocalFolder);
+                _logger.Debug(ex, "Talearr Soulseek: unable to clean up {0}", grab.LocalFolder);
             }
         }
 
@@ -721,7 +721,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr Soulseek: unable to cancel the slskd transfers of {0}", grab.Id);
+                _logger.Debug(ex, "Talearr Soulseek: unable to cancel the slskd transfers of {0}", grab.Id);
             }
         }
 
@@ -733,11 +733,11 @@ namespace NzbDrone.Core.Talearr.Soulseek
 
             if (state == TalearrSoulseekGrabState.Imported)
             {
-                _logger.Info("TaleArr Soulseek: {0} ({1})", message, grab.Title);
+                _logger.Info("Talearr Soulseek: {0} ({1})", message, grab.Title);
             }
             else
             {
-                _logger.Warn("TaleArr Soulseek: download '{0}' from {1}: {2}", grab.Title, grab.Username, message);
+                _logger.Warn("Talearr Soulseek: download '{0}' from {1}: {2}", grab.Title, grab.Username, message);
             }
         }
 

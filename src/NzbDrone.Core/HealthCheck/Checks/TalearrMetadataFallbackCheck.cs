@@ -6,7 +6,7 @@ using NzbDrone.Core.Talearr.MetadataFallback;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // TaleArr: System > Status notice for the Open Library metadata fallback: which source search
+    // Talearr: System > Status notice for the Open Library metadata fallback: which source search
     // and add use right now, and when the fallback was last used. English text on purpose, like
     // TalearrMetadataServerProbeCheck.
     [CheckOn(typeof(MetadataServerProbeStatusChangedEvent))]

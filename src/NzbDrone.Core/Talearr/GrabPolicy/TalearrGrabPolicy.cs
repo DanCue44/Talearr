@@ -1,6 +1,6 @@
 namespace NzbDrone.Core.Talearr.GrabPolicy
 {
-    // TaleArr: how abridged audiobook releases are treated when searching.
+    // Talearr: how abridged audiobook releases are treated when searching.
     public enum AbridgedAudiobookPolicy
     {
         // Abridged releases are rejected unless the wanted edition is itself abridged.
@@ -18,7 +18,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         AbridgedOnly = 3
     }
 
-    // TaleArr: grab policy settings. Stored as talearr.* rows in the existing Config table
+    // Talearr: grab policy settings. Stored as talearr.* rows in the existing Config table
     // (see TalearrGrabPolicyService), which Chaptarr never reads, so a rollback to Chaptarr
     // on the same database is unaffected.
     public sealed class TalearrGrabPolicy

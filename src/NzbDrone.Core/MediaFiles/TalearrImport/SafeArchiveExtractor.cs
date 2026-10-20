@@ -9,7 +9,7 @@ using SharpCompress.Readers;
 
 namespace NzbDrone.Core.MediaFiles.TalearrImport
 {
-    // TaleArr: guard rails for unpacking downloaded archives. Sizes are counted from the bytes
+    // Talearr: guard rails for unpacking downloaded archives. Sizes are counted from the bytes
     // actually written, never from archive headers, because a hostile archive can lie about them.
     public class ArchiveExtractionLimits
     {

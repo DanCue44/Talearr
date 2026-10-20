@@ -232,7 +232,7 @@ namespace NzbDrone.Core.Books
                     }
                     else if (refreshResult.Reason == RefreshReason.Error)
                     {
-                        // TaleArr: outage failures were already logged once by TalearrMetadataOutageLog.
+                        // Talearr: outage failures were already logged once by TalearrMetadataOutageLog.
                         if (refreshResult.MetadataServerUnavailable)
                         {
                             _logger.Debug("Skipping refresh of {0} while the metadata server is unavailable; keeping existing data", author.Name);
@@ -342,7 +342,7 @@ namespace NzbDrone.Core.Books
                 return false;
             }
 
-            // TaleArr: take the author metadata refresh gate so a RefreshAuthorCommand queued by the
+            // Talearr: take the author metadata refresh gate so a RefreshAuthorCommand queued by the
             // same add cannot insert the same missing books at the same time (duplicate rows on add).
             using var talearrGate = TalearrAuthorRefreshGate.Enter(AuthorMetadataRefreshGate, _logger, $"add reconcile for author '{localAuthor?.Name}'");
 
@@ -585,7 +585,7 @@ namespace NzbDrone.Core.Books
                     return remoteChildren;
                 }
 
-                // TaleArr: books added from the Open Library fallback during an outage carry only an
+                // Talearr: books added from the Open Library fallback during an outage carry only an
                 // ol: work id; give the matching server book that id so it updates them in place.
                 private void AttachOpenLibraryFallbackBooks(Author local, List<Book> remoteChildren)
                 {
@@ -642,7 +642,7 @@ namespace NzbDrone.Core.Books
 
                     var afterExclusions = ApplyImportListExclusions(profileFiltered, importListExclusionService);
 
-                    // TaleArr: fold Audible-only (az:) pockets into the matching work before retention.
+                    // Talearr: fold Audible-only (az:) pockets into the matching work before retention.
                     afterExclusions = TalearrCatalogDedupe.CollapseAudibleOnlyPockets(afterExclusions, logger, local, logContext);
 
                     if (retainEditions)
@@ -1464,7 +1464,7 @@ namespace NzbDrone.Core.Books
                 return books;
             }
 
-            // TaleArr: ids of book rows removed by the merge tool point at the kept row, so the
+            // Talearr: ids of book rows removed by the merge tool point at the kept row, so the
             // refresh does not add the merged-away book again (Talearr/Catalog/TalearrMergeRedirects).
             private void ApplyMergeRedirects(Author entity, List<Book> localBooks, List<Book> remoteChildren)
             {

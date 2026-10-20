@@ -6,7 +6,7 @@ using System.Text;
 
 namespace NzbDrone.Core.Talearr.Audiobook.M4b
 {
-    // TaleArr: builds the ffmpeg inputs for a merge: the concat list, the FFMETADATA1 file with
+    // Talearr: builds the ffmpeg inputs for a merge: the concat list, the FFMETADATA1 file with
     // tags and chapters, and the argument list. Pure functions so they can be unit tested.
     public static class M4bFfmpegCommand
     {

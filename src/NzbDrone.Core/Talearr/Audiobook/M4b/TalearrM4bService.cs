@@ -27,7 +27,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
         }
     }
 
-    // TaleArr: library side of the M4B merge. Runs the TalearrConvertToM4b command (the manual
+    // Talearr: library side of the M4B merge. Runs the TalearrConvertToM4b command (the manual
     // "Convert to M4B" action and the optional after-import conversion), swaps the verified M4B
     // in for the original files and only then removes them (to the recycle bin when one is set).
     public class TalearrM4bService : IExecute<TalearrConvertToM4bCommand>, IExecute<TalearrConvertLibraryToM4bCommand>, IHandle<BookImportedEvent>
@@ -88,12 +88,12 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                     return;
                 }
 
-                _logger.Info("TaleArr: queueing M4B conversion of '{0}' after import ({1} files)", message.Book.Title, mergeable);
+                _logger.Info("Talearr: queueing M4B conversion of '{0}' after import ({1} files)", message.Book.Title, mergeable);
                 _commandQueueManager.Push(new TalearrConvertToM4bCommand { BookId = message.Book.Id, AfterImport = true });
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not queue the M4B conversion after import");
+                _logger.Warn(ex, "Talearr: could not queue the M4B conversion after import");
             }
         }
 
@@ -109,7 +109,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
             }
         }
 
-        // TaleArr: the existing library. Finds every audiobook with several mp3/m4a/m4b files of one
+        // Talearr: the existing library. Finds every audiobook with several mp3/m4a/m4b files of one
         // edition and converts them one after another; a failed book keeps its files and the run
         // goes on. Needs FFmpeg up front, so nothing is half done when it is missing.
         public void Execute(TalearrConvertLibraryToM4bCommand message)
@@ -144,7 +144,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn(ex, "TaleArr: M4B conversion of '{0}' failed, original files kept", book.Title);
+                    _logger.Warn(ex, "Talearr: M4B conversion of '{0}' failed, original files kept", book.Title);
                     failed.Add($"{book.Title}: {ex.Message}");
                 }
             }
@@ -222,7 +222,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                     }
                 });
 
-                // TaleArr: the converter already checked the length; check its answer again before
+                // Talearr: the converter already checked the length; check its answer again before
                 // any original is touched, so a converter bug can never cost the library its files.
                 if (outcome.Success && !M4bFfmpegCommand.IsDurationWithinTolerance(outcome.ExpectedDurationSeconds, outcome.DurationSeconds))
                 {
@@ -233,7 +233,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
 
                 if (!outcome.Success)
                 {
-                    _logger.Warn("TaleArr: M4B conversion of '{0}' failed, original files kept: {1}", title, outcome.Error);
+                    _logger.Warn("Talearr: M4B conversion of '{0}' failed, original files kept: {1}", title, outcome.Error);
                     errors.Add($"{title}: {outcome.Error}");
                     continue;
                 }
@@ -249,7 +249,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
             return (converted, errors);
         }
 
-        // TaleArr: tell the rest of TaleArr (book duration, statistics) and the notifications (media
+        // Talearr: tell the rest of Talearr (book duration, statistics) and the notifications (media
         // server rescans, "upgrade" messages) about the swap, like an import that replaced files.
         private void PublishImported(Author author, Book book, BookFile merged, List<BookFile> oldFiles)
         {
@@ -264,7 +264,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: the M4B was imported but the import notifications failed for '{0}'", book.Title);
+                _logger.Warn(ex, "Talearr: the M4B was imported but the import notifications failed for '{0}'", book.Title);
             }
         }
 
@@ -379,7 +379,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn(ex, "TaleArr: the M4B was imported but the original file could not be removed: {0}", file.Path);
+                    _logger.Warn(ex, "Talearr: the M4B was imported but the original file could not be removed: {0}", file.Path);
                 }
             }
 

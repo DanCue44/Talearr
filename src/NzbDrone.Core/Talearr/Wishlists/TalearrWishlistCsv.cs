@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
         public const string Hardcover = "hardcover";
     }
 
-    // TaleArr: reads wishlist exports. The format is recognised from the header row:
+    // Talearr: reads wishlist exports. The format is recognised from the header row:
     //
     //   Goodreads  "My Books" export: Title, Author, ISBN, ISBN13, Exclusive Shelf (to-read)
     //   StoryGraph library export:    Title, Authors, ISBN/UID, Format, Read Status (to-read)

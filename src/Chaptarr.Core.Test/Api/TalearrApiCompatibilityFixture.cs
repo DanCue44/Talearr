@@ -32,7 +32,7 @@ using NzbDrone.Core.Qualities;
 
 namespace Chaptarr.Core.Test.Api
 {
-    // TaleArr: pins the parts of the v1 API that Prowlarr's "Readarr" app sync, AllSeerr and
+    // Talearr: pins the parts of the v1 API that Prowlarr's "Readarr" app sync, AllSeerr and
     // other Readarr clients read. A failure here means an outside client breaks: change the
     // client contract on purpose (and docs/README) or put the field/route back.
     [TestFixture]

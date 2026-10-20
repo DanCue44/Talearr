@@ -477,7 +477,7 @@ namespace Chaptarr.Api.V1.Author
                 RequestedBy = "ApiV1AuthorAdd",
                 AuthorName = authorResource.AuthorName,
 
-                // TaleArr: an explicit add may use the Open Library fallback during an outage.
+                // Talearr: an explicit add may use the Open Library fallback during an outage.
                 AllowMetadataFallback = true,
                 MonitorMode = addOptions?.Monitor,
                 AudiobookBooksToMonitor = audiobookSpecificBookProviderIds?.ToList(),
@@ -1267,7 +1267,7 @@ namespace Chaptarr.Api.V1.Author
 
         private void LinkNextPreviousBooks(params AuthorResource[] authors)
         {
-            // TaleArr: one lookup per author instead of scanning both lists for every author.
+            // Talearr: one lookup per author instead of scanning both lists for every author.
             var nextBooks = FirstBookByAuthor(_bookService.GetNextBooksByAuthorId(authors.Select(x => x.Id)));
             var lastBooks = FirstBookByAuthor(_bookService.GetLastBooksByAuthorId(authors.Select(x => x.Id)));
 

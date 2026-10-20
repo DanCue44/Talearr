@@ -27,7 +27,7 @@ import toggleSelected from 'Utilities/Table/toggleSelected';
 import createWantedFilterModalConnector from 'Wanted/createWantedFilterModalConnector';
 import CutoffUnmetRowConnector from './CutoffUnmetRowConnector';
 
-// TaleArr: custom filter editor for this page.
+// Talearr: custom filter editor for this page.
 const CutoffUnmetFilterModalConnector = createWantedFilterModalConnector('cutoffUnmet', setCutoffUnmetFilter);
 
 function getMonitoredValue(props) {

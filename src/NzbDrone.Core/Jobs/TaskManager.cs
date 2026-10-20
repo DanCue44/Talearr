@@ -143,14 +143,14 @@ namespace NzbDrone.Core.Jobs
                         TypeName = typeof(CheckHealthCommand).FullName
                     },
 
-                    // TaleArr: follows the shortest MAM Account Status Refresh (60 by default).
+                    // Talearr: follows the shortest MAM Account Status Refresh (60 by default).
                     new ScheduledTask
                     {
                         Interval = GetMamAccountStatusInterval(),
                         TypeName = typeof(RefreshMyAnonaMouseAccountStatusCommand).FullName
                     },
 
-                    // TaleArr: MAM dynamic seedbox IP. The service applies each indexer's own
+                    // Talearr: MAM dynamic seedbox IP. The service applies each indexer's own
                     // interval and does nothing unless the update is enabled. Stock Chaptarr
                     // drops this row on its next start.
                     new ScheduledTask
@@ -160,7 +160,7 @@ namespace NzbDrone.Core.Jobs
                         Priority = CommandPriority.Low
                     },
 
-                    // TaleArr: MAM bonus points auto-spend. Does nothing unless a rule is enabled
+                    // Talearr: MAM bonus points auto-spend. Does nothing unless a rule is enabled
                     // on the indexer. Stock Chaptarr drops this row on its next start.
                     new ScheduledTask
                     {
@@ -169,7 +169,7 @@ namespace NzbDrone.Core.Jobs
                         Priority = CommandPriority.Low
                     },
 
-                    // TaleArr: MAM freeleech seeding filler. Checks hourly; the service applies the
+                    // Talearr: MAM freeleech seeding filler. Checks hourly; the service applies the
                     // indexer's own run interval and does nothing unless the filler is on.
                     new ScheduledTask
                     {
@@ -234,7 +234,7 @@ namespace NzbDrone.Core.Jobs
                         Priority = CommandPriority.Low
                     },
 
-                    // TaleArr: Audible facts for recordings (talearr.db only). Stock Chaptarr drops
+                    // Talearr: Audible facts for recordings (talearr.db only). Stock Chaptarr drops
                     // this row on its next start, so a rollback needs nothing.
                     new ScheduledTask
                     {
@@ -243,7 +243,7 @@ namespace NzbDrone.Core.Jobs
                         Priority = CommandPriority.Low
                     },
 
-                    // TaleArr: read the Audiobookshelf libraries into talearr.db (GET only). Stock
+                    // Talearr: read the Audiobookshelf libraries into talearr.db (GET only). Stock
                     // Chaptarr drops this row on its next start, so a rollback needs nothing.
                     new ScheduledTask
                     {
@@ -252,7 +252,7 @@ namespace NzbDrone.Core.Jobs
                         Priority = CommandPriority.Low
                     },
 
-                    // TaleArr: monitored series pick up books added since the last run (also queued
+                    // Talearr: monitored series pick up books added since the last run (also queued
                     // after every author refresh). Local reads only. Stock Chaptarr drops the row.
                     new ScheduledTask
                     {
@@ -261,7 +261,7 @@ namespace NzbDrone.Core.Jobs
                         Priority = CommandPriority.Low
                     },
 
-                    // TaleArr: wishlists (CSV exports, Hardcover lists) add their new rows. Stock
+                    // Talearr: wishlists (CSV exports, Hardcover lists) add their new rows. Stock
                     // Chaptarr drops this row on its next start.
                     new ScheduledTask
                     {
@@ -270,7 +270,7 @@ namespace NzbDrone.Core.Jobs
                         Priority = CommandPriority.Low
                     },
 
-                    // TaleArr: scheduled missing-books search (Settings > Indexers). Off (interval 0)
+                    // Talearr: scheduled missing-books search (Settings > Indexers). Off (interval 0)
                     // by default. Stock Chaptarr drops this row on its next start.
                     new ScheduledTask
                     {
@@ -336,7 +336,7 @@ namespace NzbDrone.Core.Jobs
             return TalearrMissingSearchSettingsService.Resolve(_talearrMissingSearch).IntervalMinutes;
         }
 
-        // TaleArr: apply a new missing-search schedule. Turning it on starts the clock now, so the
+        // Talearr: apply a new missing-search schedule. Turning it on starts the clock now, so the
         // first run is one interval away instead of immediately.
         public void Handle(TalearrMissingSearchSettingsSavedEvent message)
         {
@@ -364,7 +364,7 @@ namespace NzbDrone.Core.Jobs
             _cache.Set(task.TypeName, task);
         }
 
-        // TaleArr: MAM task ticks follow the MAM indexer settings (MyAnonaMouseSchedule).
+        // Talearr: MAM task ticks follow the MAM indexer settings (MyAnonaMouseSchedule).
         public void Handle(ProviderAddedEvent<IIndexer> message)
         {
             ApplyMamIntervals();

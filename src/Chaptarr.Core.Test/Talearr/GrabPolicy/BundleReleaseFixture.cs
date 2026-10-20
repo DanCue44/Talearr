@@ -14,7 +14,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
     [TestFixture]
     public class BundleReleaseFixture
     {
-        // Real release names that came up for single-book searches on the TaleArr test server.
+        // Real release names that came up for single-book searches on the Talearr test server.
         [TestCase("1984 - The Complete Novels - George Orwell", "1984")]
         [TestCase("The Poppy War Trilogy by R.F", "The Poppy War")]
         [TestCase("R.F. Kuang 5 Books Collection Set: The Poppy War, The Dragon Republic, The Burning God, Babel & Yellowface", "The Poppy War")]

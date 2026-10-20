@@ -106,7 +106,7 @@ namespace NzbDrone.Core.HealthCheck
             {
                 if (result.Type == HealthCheckResult.Ok)
                 {
-                    // TaleArr: tell notifications when a failing check recovers.
+                    // Talearr: tell notifications when a failing check recovers.
                     var previous = _healthCheckResults.Find(result.Source.Name);
 
                     if (previous != null)

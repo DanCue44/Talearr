@@ -17,7 +17,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         void Apply(Book book);
     }
 
-    // TaleArr: when a book's effective abridged policy wants the other reading than its monitored
+    // Talearr: when a book's effective abridged policy wants the other reading than its monitored
     // edition, pick a matching edition before searching:
     //
     //   - "abridged only" (per book or global) and the monitored edition is not abridged: the best
@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
     // fits) and the book's history says why, at most once a day.
     public class TalearrAbridgedEditionSwitch : ITalearrAbridgedEditionSwitch
     {
-        public const string NotePrefix = "TaleArr:";
+        public const string NotePrefix = "Talearr:";
         private static readonly TimeSpan NoteInterval = TimeSpan.FromHours(24);
 
         private readonly IBookService _bookService;
@@ -82,7 +82,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             }
             catch (Exception ex)
             {
-                logger?.Debug(ex, "TaleArr: abridged edition switch unavailable, searching the monitored edition");
+                logger?.Debug(ex, "Talearr: abridged edition switch unavailable, searching the monitored edition");
             }
         }
 
@@ -94,7 +94,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not check the abridged edition of '{0}' before searching", book?.Title);
+                _logger.Warn(ex, "Talearr: could not check the abridged edition of '{0}' before searching", book?.Title);
             }
         }
 
@@ -141,7 +141,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             var files = _mediaFileService.GetFilesByBook(book.Id) ?? new List<BookFile>();
             if (files.Count > 0)
             {
-                _logger.Debug("TaleArr: '{0}' has files; its monitored edition is kept even though the abridged policy is {1}", book.Title, TalearrAbridgedRules.Describe(target.Policy));
+                _logger.Debug("Talearr: '{0}' has files; its monitored edition is kept even though the abridged policy is {1}", book.Title, TalearrAbridgedRules.Describe(target.Policy));
                 return;
             }
 
@@ -156,7 +156,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             _bookService.AddWantedEdition(book.Id, edition.Id);
             book.Editions = _editionService.GetEditionsByBook(book.Id);
 
-            _logger.Info("TaleArr: '{0}' now monitors the {1} edition {2} ({3}) before searching ({4})", book.Title, kind, edition.Id, edition.Title, policyText);
+            _logger.Info("Talearr: '{0}' now monitors the {1} edition {2} ({3}) before searching ({4})", book.Title, kind, edition.Id, edition.Title, policyText);
             Note(book, $"monitored edition switched to the {kind} edition '{edition.Title}' ({policyText})", throttle: false);
         }
 
@@ -196,7 +196,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: could not add a history note for '{0}'", book.Title);
+                _logger.Debug(ex, "Talearr: could not add a history note for '{0}'", book.Title);
             }
 
             _logger.Info("{0}: {1}", book.Title, message);

@@ -13,7 +13,7 @@ using NzbDrone.Core.Talearr.EbookDelivery;
 
 namespace Chaptarr.Http.Authentication
 {
-    // TaleArr: authentication for the OPDS feed (/opds). Readers such as KOReader only speak HTTP
+    // Talearr: authentication for the OPDS feed (/opds). Readers such as KOReader only speak HTTP
     // Basic or a URL with ?apikey=, so the feed gets its own scheme; the rules are in
     // TalearrOpdsAccess. A turned-off feed answers 404 instead of asking for a login.
     public class TalearrOpdsAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>

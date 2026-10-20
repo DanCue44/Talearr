@@ -1,6 +1,6 @@
-# TaleArr matching and edition fixes
+# Talearr matching and edition fixes
 
-TaleArr changes how editions are picked, how release titles are matched and how Audible
+Talearr changes how editions are picked, how release titles are matched and how Audible
 duplicates are handled. None of it changes the database schema, the API routes or fields, or
 `config.xml`, so Chaptarr can still run on the same database.
 
@@ -58,8 +58,8 @@ edition was monitored at the time: searches use the monitored edition title, and
 changed from "The Firm: A Novel (The Firm Series Book 1)" to "The Firm" between the automatic
 runs and the interactive one.
 
-Upstream tests that required subtitle-less releases to be rejected were changed to the TaleArr
-behavior and are marked `TaleArr:`.
+Upstream tests that required subtitle-less releases to be rejected were changed to the Talearr
+behavior and are marked `Talearr:`.
 
 ## Audible duplicates (`TalearrCatalogDedupe`)
 
@@ -87,7 +87,7 @@ local Audiobook books".
 
 - The add reconcile now takes the same gate upstream uses for author refreshes, so the queued
   refresh starts after it and matches the rows it created. The wait is capped at 90 seconds; after
-  that the reconcile goes ahead as before and logs a "TaleArr:" warning.
+  that the reconcile goes ahead as before and logs a "Talearr:" warning.
 - When a requested work still resolves to several local rows that are the same stored work (same
   author, media type, all stable work ids and normalized title), the add uses one of them (the
   monitored row, else the oldest) instead of failing. Distinct works behind one id still fail.
@@ -114,4 +114,4 @@ curl -X POST -H "X-Api-Key: $KEY" -H "Content-Type: application/json" \
   -d '{"name": "TalearrDuplicateBookCleanup", "dryRun": false}' http://host:8789/api/v1/command
 ```
 
-Each step is logged with a "TaleArr:" prefix. No schema change, no setting, nothing runs on its own.
+Each step is logged with a "Talearr:" prefix. No schema change, no setting, nothing runs on its own.

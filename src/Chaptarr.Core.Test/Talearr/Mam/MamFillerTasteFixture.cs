@@ -24,7 +24,7 @@ using NzbDrone.Core.Talearr.MamFiller;
 
 namespace Chaptarr.Core.Test.Talearr.Mam
 {
-    // TaleArr: filler taste preferences (preferred categories and authors, exclusions, the
+    // Talearr: filler taste preferences (preferred categories and authors, exclusions, the
     // preferred category search and the library import of preferred picks).
     public partial class MamFreeleechFillerFixture
     {
@@ -364,7 +364,7 @@ namespace Chaptarr.Core.Test.Talearr.Mam
         }
     }
 
-    // TaleArr: the library side of "Filler Import Preferred Picks", with fakes.
+    // Talearr: the library side of "Filler Import Preferred Picks", with fakes.
     [TestFixture]
     public class MamFillerLibraryFixture
     {

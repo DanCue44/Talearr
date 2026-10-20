@@ -37,7 +37,7 @@ function editable(settings) {
   };
 }
 
-// TaleArr: scheduled missing-books search on Settings > Indexers. Stored as
+// Talearr: scheduled missing-books search on Settings > Indexers. Stored as
 // talearr.missingsearch.* rows in the Config table through /api/v1/config/talearrmissingsearch.
 class TalearrMissingSearch extends Component {
 

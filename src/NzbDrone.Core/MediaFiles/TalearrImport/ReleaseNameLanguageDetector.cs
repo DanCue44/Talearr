@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace NzbDrone.Core.MediaFiles.TalearrImport
 {
     /// <summary>
-    /// TaleArr: finds explicit language markers in a release or file name ("SWEDiSH", "Dutch",
+    /// Talearr: finds explicit language markers in a release or file name ("SWEDiSH", "Dutch",
     /// "[GER]"). Matching ignores case, so scene spellings like "DANiSH" count. Only full language
     /// names, native names and a few unambiguous scene codes are used; two-letter codes are never
     /// treated as evidence. Words that also appear in the book title, author or other protected

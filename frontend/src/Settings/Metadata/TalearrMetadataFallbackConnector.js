@@ -7,7 +7,7 @@ import { fetchTalearrMetadataFallback, saveTalearrMetadataFallback, setTalearrMe
 import createSettingsSectionSelector from 'Store/Selectors/createSettingsSectionSelector';
 import TalearrMetadataFallback from './TalearrMetadataFallback';
 
-// TaleArr: metadata fallback section on Settings > Metadata.
+// Talearr: metadata fallback section on Settings > Metadata.
 const SECTION = 'talearrMetadataFallback';
 
 function createMapStateToProps() {

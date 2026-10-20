@@ -4,7 +4,7 @@ import createSaveHandler from 'Store/Actions/Creators/createSaveHandler';
 import createSetSettingValueReducer from 'Store/Actions/Creators/Reducers/createSetSettingValueReducer';
 import { createThunk } from 'Store/thunks';
 
-// TaleArr: M4B merge settings (convert multi-file audiobooks after import).
+// Talearr: M4B merge settings (convert multi-file audiobooks after import).
 
 //
 // Variables

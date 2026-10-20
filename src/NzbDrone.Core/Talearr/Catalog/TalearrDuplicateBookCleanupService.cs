@@ -8,7 +8,7 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Talearr.Catalog
 {
-    // TaleArr: opt-in cleanup of rows that store the same work twice for one media type. Dry run
+    // Talearr: opt-in cleanup of rows that store the same work twice for one media type. Dry run
     // unless DryRun is explicitly false. Run it through POST /api/v1/command
     // {"name": "TalearrDuplicateBookCleanup", "dryRun": false} or the
     // /api/v1/talearr/duplicates routes.
@@ -100,7 +100,7 @@ namespace NzbDrone.Core.Talearr.Catalog
 
                 report.RowsToRemove = report.Groups.Sum(g => g.Remove.Count);
 
-                _logger.Info("TaleArr: duplicate book cleanup {0}: {1} authors, {2} books scanned, {3} duplicate groups, {4} rows {5}",
+                _logger.Info("Talearr: duplicate book cleanup {0}: {1} authors, {2} books scanned, {3} duplicate groups, {4} rows {5}",
                     dryRun ? "(dry run)" : "finished",
                     report.AuthorsScanned,
                     report.BooksScanned,
@@ -168,7 +168,7 @@ namespace NzbDrone.Core.Talearr.Catalog
                 {
                     if (dryRun)
                     {
-                        _logger.Info("TaleArr: duplicate '{0}' ({1}, {2}) row {3} would be removed; keeping {4}",
+                        _logger.Info("Talearr: duplicate '{0}' ({1}, {2}) row {3} would be removed; keeping {4}",
                             row.Book.Title, author.Name, groupReport.MediaType, row.Book.Id, group.Keep.Book.Id);
                         continue;
                     }
@@ -189,13 +189,13 @@ namespace NzbDrone.Core.Talearr.Catalog
 
                     if (!TalearrDuplicateBooks.IsRemovable(freshFacts))
                     {
-                        _logger.Info("TaleArr: duplicate '{0}' row {1} changed since the scan (files, monitoring or a manual add); keeping it", fresh.Title, fresh.Id);
+                        _logger.Info("Talearr: duplicate '{0}' row {1} changed since the scan (files, monitoring or a manual add); keeping it", fresh.Title, fresh.Id);
                         continue;
                     }
 
                     _bookService.DeleteBook(fresh.Id, false);
                     report.RowsRemoved++;
-                    _logger.Info("TaleArr: removed duplicate '{0}' ({1}, {2}) row {3}; kept {4}",
+                    _logger.Info("Talearr: removed duplicate '{0}' ({1}, {2}) row {3}; kept {4}",
                         fresh.Title, author.Name, groupReport.MediaType, fresh.Id, group.Keep.Book.Id);
                 }
             }

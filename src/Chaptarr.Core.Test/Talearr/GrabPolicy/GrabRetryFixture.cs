@@ -23,7 +23,7 @@ using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace Chaptarr.Core.Test.Talearr.GrabPolicy
 {
-    // TaleArr: retry when sending a release to the download client fails for a transient reason.
+    // Talearr: retry when sending a release to the download client fails for a transient reason.
     // Built around the 2026-10-16 live case: "The Only One Left" (Riley Sager) audiobook on Knaben
     // through Prowlarr, where fetching the .torrent answered 429 and nothing was retried.
     [TestFixture]

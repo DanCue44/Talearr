@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace NzbDrone.Core.Talearr.Seeding
 {
-    // TaleArr: GET /api/v1/talearr/seeding. Read-only. Bytes and seconds, ISO 8601 UTC times.
+    // Talearr: GET /api/v1/talearr/seeding. Read-only. Bytes and seconds, ISO 8601 UTC times.
     // The API serializer drops nulls by default, but this contract keeps every field, so every
     // nullable property says so explicitly.
     public class TalearrSeedingReport
@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Talearr.Seeding
         [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
         public TalearrSeedingMamStatus Mam { get; set; }
 
-        // TaleArr: MAM freeleech seeding filler, null when it was never turned on.
+        // Talearr: MAM freeleech seeding filler, null when it was never turned on.
         [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
         public MamFiller.TalearrMamFillerStatus Filler { get; set; }
     }
@@ -86,7 +86,7 @@ namespace NzbDrone.Core.Talearr.Seeding
         [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
         public DateTime? CompletedAt { get; set; }
 
-        // TaleArr: added by the MAM freeleech seeding filler (not a library grab).
+        // Talearr: added by the MAM freeleech seeding filler (not a library grab).
         public bool IsFiller { get; set; }
     }
 
@@ -120,7 +120,7 @@ namespace NzbDrone.Core.Talearr.Seeding
         [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
         public DateTime? CheckedAt { get; set; }
 
-        // TaleArr: bonus auto-spend additions (null when MAM did not send them).
+        // Talearr: bonus auto-spend additions (null when MAM did not send them).
         [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
         public DateTime? VipUntil { get; set; }
 
@@ -132,7 +132,7 @@ namespace NzbDrone.Core.Talearr.Seeding
         public bool BonusDryRun { get; set; }
         public List<TalearrSeedingBonusPurchase> BonusPurchases { get; set; } = new List<TalearrSeedingBonusPurchase>();
 
-        // TaleArr: Power User progress (TalearrMamPowerUserProgress). Null when unknown.
+        // Talearr: Power User progress (TalearrMamPowerUserProgress). Null when unknown.
         [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
         public DateTime? MemberSince { get; set; }
 
@@ -164,7 +164,7 @@ namespace NzbDrone.Core.Talearr.Seeding
         public string Reason { get; set; }
     }
 
-    // One torrent as a download client reports it, before it is matched to TaleArr's history.
+    // One torrent as a download client reports it, before it is matched to Talearr's history.
     public class TalearrSeedingClientTorrent
     {
         public string DownloadId { get; set; }
@@ -186,7 +186,7 @@ namespace NzbDrone.Core.Talearr.Seeding
         // The torrent's current tracker is MyAnonamouse (the host only; the URL holds a passkey).
         public bool IsMamTracker { get; set; }
 
-        // Set when the client is not filtered to TaleArr's categories: keep only TaleArr grabs.
+        // Set when the client is not filtered to Talearr's categories: keep only Talearr grabs.
         public bool RequireHistoryMatch { get; set; }
     }
 

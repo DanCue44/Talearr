@@ -211,7 +211,7 @@ class AddNewAuthorSearchResult extends Component {
                   <Label
                     kind={kinds.WARNING}
                     size={sizes.LARGE}
-                    title="Found through the TaleArr metadata fallback while the metadata server is unavailable"
+                    title="Found through the Talearr metadata fallback while the metadata server is unavailable"
                   >
                     {metadataSource}
                   </Label> :

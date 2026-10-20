@@ -17,7 +17,7 @@ namespace NzbDrone.Core.Books
             IReadOnlyList<Edition> editions);
         bool EnsureSingleMonitoredEdition(List<Edition> editions, IReadOnlyDictionary<int, int> fileCountsByEditionId = null, BookMediaType? mediaType = null);
 
-        // TaleArr: clears an automatically chosen edition in a non-preferred language so the
+        // Talearr: clears an automatically chosen edition in a non-preferred language so the
         // single-monitored repair can pick the preferred-language edition instead.
         bool ReleaseForeignAutoSelectedEdition(List<Edition> editions, IReadOnlyDictionary<int, int> fileCountsByEditionId, BookMediaType? mediaType);
     }
@@ -36,7 +36,7 @@ namespace NzbDrone.Core.Books
             _logger = logger;
         }
 
-        // TaleArr: the UI language (existing Config table key UILanguage) is the preferred edition language.
+        // Talearr: the UI language (existing Config table key UILanguage) is the preferred edition language.
         public EditionSelector(Logger logger, IConfigService configService)
             : this(logger)
         {
@@ -94,7 +94,7 @@ namespace NzbDrone.Core.Books
                 return SelectRepresentativeFallback(candidates, mediaType, preferredLanguage, referenceTitles);
             }
 
-            // TaleArr: native format still wins, ranked by language before popularity. Only when every
+            // Talearr: native format still wins, ranked by language before popularity. Only when every
             // native edition is labelled with a foreign language does a preferred-language fallback
             // (ebook/print) win, so an English request is not tied to a German audiobook just because
             // no English audio is listed yet. Unlabelled native editions keep the native path.
@@ -148,7 +148,7 @@ namespace NzbDrone.Core.Books
 
             // Allowed-language filtering happens upstream in EditionMetadataProfileFilter.Apply().
             // Prefer native format (audio=2, ebook=3), then pick most rated with deterministic ties.
-            // TaleArr: fallbacks stay in the pool so a preferred-language ebook can win when every
+            // Talearr: fallbacks stay in the pool so a preferred-language ebook can win when every
             // native edition is labelled foreign (see SelectByNativeFormatThenRatings).
             var selected2 = SelectByNativeFormatThenRatings(nativeCandidates.Concat(fallbackCandidates).ToList(), mediaType, PreferredLanguage);
             if (selected2 == null)
@@ -248,7 +248,7 @@ namespace NzbDrone.Core.Books
 
             var monitoredEditions = list.Where(e => e.Monitored).OrderBy(e => e.Id).ToList();
 
-            // TaleArr: several monitored editions is a corrupt state (older builds monitored every newly
+            // Talearr: several monitored editions is a corrupt state (older builds monitored every newly
             // inserted edition), so the flags carry no user intent. Choose on merit from all editions
             // instead of the lowest monitored row id, which was an arbitrary, often foreign, edition.
             if (monitoredEditions.Count > 1 && mediaType.HasValue)
@@ -308,7 +308,7 @@ namespace NzbDrone.Core.Books
             var changed = false;
             foreach (var edition in list)
             {
-                // TaleArr: compare by reference for unsaved editions. Every new edition has Id 0, so an
+                // Talearr: compare by reference for unsaved editions. Every new edition has Id 0, so an
                 // Id comparison monitored all of them at once and left books with many monitored editions.
                 var shouldMonitor = ReferenceEquals(edition, selected) || (selected.Id > 0 && edition.Id == selected.Id);
                 if (edition.Monitored != shouldMonitor)
@@ -327,7 +327,7 @@ namespace NzbDrone.Core.Books
         }
 
         /// <summary>
-        /// TaleArr: when the only monitored edition was chosen automatically (no ManualAdd, no files on
+        /// Talearr: when the only monitored edition was chosen automatically (no ManualAdd, no files on
         /// any edition) and is in a non-preferred language while a native-format edition in the
         /// preferred language exists, clear the monitored flags so EnsureSingleMonitoredEdition picks
         /// again. Explicit user selections set AnyEditionOk=false or ManualAdd and are never touched;
@@ -485,7 +485,7 @@ namespace NzbDrone.Core.Books
                 .FirstOrDefault();
         }
 
-        // TaleArr: language rank (see TalearrEditionPreference) before popularity.
+        // Talearr: language rank (see TalearrEditionPreference) before popularity.
         private static Edition SelectMostRated(IEnumerable<Edition> editions, string preferredLanguage, IReadOnlySet<string> referenceTitles)
         {
             return (editions ?? Enumerable.Empty<Edition>())

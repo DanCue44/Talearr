@@ -70,7 +70,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             _proxy.SendWebhook(BuildHealthPayload(healthCheck), Settings);
         }
 
-        // TaleArr: health restored, download failure and import failure / manual interaction.
+        // Talearr: health restored, download failure and import failure / manual interaction.
         public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
         {
             _proxy.SendWebhook(BuildHealthRestoredPayload(previousCheck), Settings);

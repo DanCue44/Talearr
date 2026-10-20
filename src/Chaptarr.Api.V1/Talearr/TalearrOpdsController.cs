@@ -15,7 +15,7 @@ using IOFile = System.IO.File;
 
 namespace Chaptarr.Api.V1.Talearr
 {
-    // TaleArr: read-only OPDS 1.2 catalog of the ebook library, for KOReader, Panels, Thorium,
+    // Talearr: read-only OPDS 1.2 catalog of the ebook library, for KOReader, Panels, Thorium,
     // Moon+ Reader and other OPDS readers. Off by default (404). Signs in with HTTP Basic or
     // ?apikey= (see TalearrOpdsAccess). New routes outside /api; nothing upstream changes.
     //   GET /opds                       root: recent, authors, series, all books, search
@@ -167,7 +167,7 @@ namespace Chaptarr.Api.V1.Talearr
 
             if (error != null || !IOFile.Exists(temp))
             {
-                Logger.Warn("TaleArr: OPDS KEPUB conversion of '{0}' failed ({1}); sending the EPUB", Path.GetFileName(file.Path), error ?? "no output");
+                Logger.Warn("Talearr: OPDS KEPUB conversion of '{0}' failed ({1}); sending the EPUB", Path.GetFileName(file.Path), error ?? "no output");
                 TryDelete(temp);
                 return PhysicalFile(file.Path, TalearrOpdsFeedWriter.MimeType(file.Path), DownloadName(book, file.Path), true);
             }
@@ -237,7 +237,7 @@ namespace Chaptarr.Api.V1.Talearr
             }
             catch (Exception ex)
             {
-                Logger.Debug(ex, "TaleArr: could not remove '{0}'", path);
+                Logger.Debug(ex, "Talearr: could not remove '{0}'", path);
             }
         }
     }

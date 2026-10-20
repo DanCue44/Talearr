@@ -9,7 +9,7 @@ using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.Talearr.Audiobookshelf
 {
-    // What the matcher needs from TaleArr's library. TalearrAbsBookLookup is the real one; tests
+    // What the matcher needs from Talearr's library. TalearrAbsBookLookup is the real one; tests
     // use an in-memory one.
     public interface ITalearrAbsBookLookup
     {
@@ -22,9 +22,9 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
         List<Book> GetBooksByAuthor(int authorId);
     }
 
-    // TaleArr: matches one Audiobookshelf item to TaleArr book rows.
+    // Talearr: matches one Audiobookshelf item to Talearr book rows.
     //
-    //   1. path: the item's folder (through the library mapping) holds files TaleArr imported.
+    //   1. path: the item's folder (through the library mapping) holds files Talearr imported.
     //      Those rows are "managed": shown as in Audiobookshelf, never a reason to skip a grab.
     //   2. asin, then isbn: an edition with the same identifier.
     //   3. title: an author with the same name, then the release title scorer
@@ -60,7 +60,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                 return result;
             }
 
-            // 1. TaleArr's own files. A media type TaleArr has files for in this folder is settled.
+            // 1. Talearr's own files. A media type Talearr has files for in this folder is settled.
             if (item.LocalPath.IsNotNullOrWhiteSpace())
             {
                 var managed = (lookup.GetBooksWithFilesUnder(item.LocalPath) ?? new List<Book>())
@@ -147,7 +147,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                     var candidates = catalog.Where(b => wanted.Contains(b.MediaType)).ToList();
                     if (candidates.Count == 0)
                     {
-                        // Only the other media type is in TaleArr: still find the work, so an
+                        // Only the other media type is in Talearr: still find the work, so an
                         // audiobook in Audiobookshelf can be widened to the ebook row and back.
                         candidates = catalog;
                     }

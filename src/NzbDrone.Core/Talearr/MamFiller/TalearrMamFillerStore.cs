@@ -18,12 +18,12 @@ namespace NzbDrone.Core.Talearr.MamFiller
         TalearrMamFillerStatus GetStatus();
         void SaveStatus(TalearrMamFillerStatus status);
 
-        // TaleArr: preferred picks put into the library (JSON rows in TalearrFillerState).
+        // Talearr: preferred picks put into the library (JSON rows in TalearrFillerState).
         List<TalearrFillerPick> AllPicks();
         void SavePick(TalearrFillerPick pick);
     }
 
-    // TaleArr: filler bookkeeping in talearr.db (schema version 7). Best effort: a broken file
+    // Talearr: filler bookkeeping in talearr.db (schema version 7). Best effort: a broken file
     // only means the filler forgets its own torrents (dedupe then falls back to the client's
     // torrent list and the slot reservations).
     public class TalearrMamFillerStore : ITalearrMamFillerStore
@@ -174,7 +174,7 @@ ON CONFLICT (Key) DO UPDATE SET Value = excluded.Value;", new { Key = PickPrefix
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not {0} in {1}", what, TalearrDatabase.FileName);
+                _logger.Warn(ex, "Talearr: could not {0} in {1}", what, TalearrDatabase.FileName);
                 return fallback;
             }
         }

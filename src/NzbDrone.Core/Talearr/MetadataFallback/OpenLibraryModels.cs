@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 
 namespace NzbDrone.Core.Talearr.MetadataFallback
 {
-    // TaleArr: the parts of the Open Library JSON the fallback uses. Parsed from JObject so
+    // Talearr: the parts of the Open Library JSON the fallback uses. Parsed from JObject so
     // fields that change shape (bio is a string or {type, value}) never break a request.
     public class OpenLibraryAuthorDoc
     {
@@ -126,7 +126,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
         public decimal RatingsAverage { get; set; }
         public int RatingsCount { get; set; }
 
-        // TaleArr: Amazon ids of the work's editions (id_amazon). Audible products are B0... ASINs.
+        // Talearr: Amazon ids of the work's editions (id_amazon). Audible products are B0... ASINs.
         public List<string> AmazonIds { get; set; } = new List<string>();
 
         public string EditionKey => !string.IsNullOrWhiteSpace(CoverEditionKey) ? CoverEditionKey : EditionKeys.FirstOrDefault();

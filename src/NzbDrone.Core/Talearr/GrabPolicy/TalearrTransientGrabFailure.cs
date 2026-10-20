@@ -18,7 +18,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         Network = 3
     }
 
-    // TaleArr: a grab that failed for a reason that is likely to go away on its own (the indexer
+    // Talearr: a grab that failed for a reason that is likely to go away on its own (the indexer
     // or Prowlarr said 429, answered 5xx, timed out, or the connection dropped). Anything else
     // (release gone, blocklisted, rejected by the client, bad torrent) is not transient and keeps
     // upstream's handling.

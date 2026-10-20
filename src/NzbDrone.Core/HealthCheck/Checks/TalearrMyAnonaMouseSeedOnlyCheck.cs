@@ -6,7 +6,7 @@ using NzbDrone.Core.ThingiProvider.Events;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // TaleArr: error while the MAM account is seed-only (class Mouse or a seed-only flag from the
+    // Talearr: error while the MAM account is seed-only (class Mouse or a seed-only flag from the
     // account refresh). Every MAM grab is blocked until MAM lifts it. English text on purpose.
     [CheckOn(typeof(ProviderUpdatedEvent<IIndexer>))]
     [CheckOn(typeof(ProviderDeletedEvent<IIndexer>))]
@@ -34,7 +34,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
 
             return new HealthCheck(GetType(),
                 HealthCheckResult.Error,
-                $"{MyAnonaMouseAccountStanding.SeedOnlyMessage}. TaleArr makes no MAM grabs until the account is out of seed-only mode ({string.Join(", ", seedOnly)}).",
+                $"{MyAnonaMouseAccountStanding.SeedOnlyMessage}. Talearr makes no MAM grabs until the account is out of seed-only mode ({string.Join(", ", seedOnly)}).",
                 "#mam-seed-only");
         }
     }

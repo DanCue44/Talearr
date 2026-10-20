@@ -41,7 +41,7 @@ namespace Chaptarr.Api.V1.ManualImport
         public bool ReplaceExistingFiles { get; set; }
         public bool DisableReleaseSwitching { get; set; }
 
-        // TaleArr: additive, display-only match confidence; Chaptarr clients ignore it.
+        // Talearr: additive, display-only match confidence; Chaptarr clients ignore it.
         public string TalearrMatchConfidence { get; set; }
         public List<string> TalearrMatchNotes { get; set; }
     }

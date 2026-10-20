@@ -190,7 +190,7 @@ namespace Chaptarr.Core.Test.Jobs
             Assert.That(repositoryProxy.GetDefinitionCalls, Is.EqualTo(2));
         }
 
-        // TaleArr: the MAM account status and seedbox task ticks follow the MAM indexer settings.
+        // Talearr: the MAM account status and seedbox task ticks follow the MAM indexer settings.
         [Test]
         public void mam_task_intervals_follow_the_indexer_settings()
         {

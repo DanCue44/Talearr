@@ -170,7 +170,7 @@ namespace NzbDrone.Core.Notifications
             return GetAvailableProviders().Where(n => ((NotificationDefinition)n.Definition).OnHealthIssue).ToList();
         }
 
-        // TaleArr: OnHealthRestored is an existing Notifications column that was never wired up.
+        // Talearr: OnHealthRestored is an existing Notifications column that was never wired up.
         public List<INotification> OnHealthRestoredEnabled(bool filterBlockedNotifications = true)
         {
             if (filterBlockedNotifications)

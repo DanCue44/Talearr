@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace NzbDrone.Core.Notifications.Webhook
 {
-    // TaleArr: Sonarr/Radarr style "DownloadFailure" webhook.
+    // Talearr: Sonarr/Radarr style "DownloadFailure" webhook.
     public class WebhookDownloadFailedPayload : WebhookPayload
     {
         public WebhookAuthor Author { get; set; }

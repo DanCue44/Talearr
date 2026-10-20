@@ -462,7 +462,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
                     item.Rejections = decision.Rejections;
                     item.Size = decision.Item.Size;
 
-                    // TaleArr: the row was edited by hand, so the match is the user's choice.
+                    // Talearr: the row was edited by hand, so the match is the user's choice.
                     item.TalearrMatchConfidence = TalearrMatchConfidence.High;
                     item.TalearrMatchNotes = new List<string> { "Chosen by you" };
 
@@ -525,14 +525,14 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
             item.ReplaceExistingFiles = replaceExistingFiles;
             item.DisableReleaseSwitching = disableReleaseSwitching;
 
-            // TaleArr: show how sure the match is, so a wrong match stands out in the review table.
+            // Talearr: show how sure the match is, so a wrong match stands out in the review table.
             if (!item.AdditionalFile)
             {
                 var confidence = TalearrMatchConfidence.Evaluate(item.Book?.Title ?? item.SuggestedBookTitle, decision.Item.MatchProvenance, actualPath, item.Tags);
                 item.TalearrMatchConfidence = confidence?.Level;
                 item.TalearrMatchNotes = confidence?.Notes;
 
-                // TaleArr: the completed-download language check, as a warning here.
+                // Talearr: the completed-download language check, as a warning here.
                 var languageMismatch = decision.Item.Book != null ? _fileLanguageVerifier?.DescribeMismatch(decision.Item) : null;
                 if (languageMismatch != null)
                 {
@@ -545,7 +545,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
 
         public void Execute(ManualImportCommand message)
         {
-            // TaleArr: the review table's Hardlink / Copy choice applies to every file of this import.
+            // Talearr: the review table's Hardlink / Copy choice applies to every file of this import.
             using var talearrTransfer = TalearrTransferScope.Begin(TalearrTransferScope.Parse(message.TalearrTransfer));
 
             _logger.ProgressTrace("Manually importing {0} files using mode {1}", message.Files.Count, message.ImportMode);
@@ -1021,7 +1021,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
                     }
                     else if (book != null && !string.IsNullOrWhiteSpace(file.ForeignEditionId))
                     {
-                        // TaleArr: accept a provider edition id when the numeric id is missing (Chaptarr #108).
+                        // Talearr: accept a provider edition id when the numeric id is missing (Chaptarr #108).
                         try
                         {
                             edition = TalearrManualImportSelection.FindEditionByForeignId(_editionService.GetEditionsByBook(book.Id), file.ForeignEditionId);
@@ -1117,7 +1117,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
                 if (isExplicitLocalSelection &&
                     !ManualEditionSelectionMatchesBook(edition, book, file.EditionId, out var manualEditionRejection))
                 {
-                    // TaleArr: name the field that was missing or did not match.
+                    // Talearr: name the field that was missing or did not match.
                     throw new InvalidOperationException(file.EditionId <= 0
                         ? TalearrManualImportSelection.MissingEditionReason(book, file.ForeignEditionId)
                         : manualEditionRejection);

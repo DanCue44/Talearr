@@ -19,7 +19,7 @@ namespace NzbDrone.Core.Notifications
         void OnBookFileDelete(BookFileDeleteMessage deleteMessage);
         void OnHealthIssue(HealthCheck.HealthCheck healthCheck);
 
-        // TaleArr: a failing health check passes again.
+        // Talearr: a failing health check passes again.
         void OnHealthRestored(HealthCheck.HealthCheck previousCheck);
         void OnApplicationUpdate(ApplicationUpdateMessage updateMessage);
         void OnDownloadFailure(DownloadFailedMessage message);

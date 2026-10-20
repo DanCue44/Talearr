@@ -23,14 +23,14 @@ namespace NzbDrone.Core.Talearr.Recordings
         bool IsCorruption(Exception ex);
     }
 
-    // TaleArr: a small SQLite file next to chaptarr.db that only TaleArr opens. It holds
+    // Talearr: a small SQLite file next to chaptarr.db that only Talearr opens. It holds
     // rebuildable data (Audible facts, which edition resolved to which product, optional request
     // provenance) and per-book abridged overrides (safe to lose: the book then follows the global
     // grab policy), keyed by provider identity rather than Chaptarr row ids. Chaptarr never reads
     // it, it is not part of the FluentMigrator schema, and losing it only costs a refetch.
     //
     // Schema versions live in PRAGMA user_version. A file that is corrupt, unreadable or written
-    // by a newer TaleArr is moved aside and recreated rather than repaired.
+    // by a newer Talearr is moved aside and recreated rather than repaired.
     public class TalearrDatabase : ITalearrDatabase
     {
         public const string FileName = "talearr.db";
@@ -294,7 +294,7 @@ CREATE TABLE IF NOT EXISTS TalearrFillerState (
         {
             lock (_lock)
             {
-                _logger.Warn("TaleArr: recreating {0} ({1}). It holds cached data (Audible facts, the Audiobookshelf library), which is fetched again, per-book abridged overrides, which fall back to the global grab policy, and book tags.", FileName, reason);
+                _logger.Warn("Talearr: recreating {0} ({1}). It holds cached data (Audible facts, the Audiobookshelf library), which is fetched again, per-book abridged overrides, which fall back to the global grab policy, and book tags.", FileName, reason);
                 MoveAside();
                 _initialized = false;
                 InitializeCore(allowRecreate: false);
@@ -348,7 +348,7 @@ CREATE TABLE IF NOT EXISTS TalearrFillerState (
                 var version = connection.ExecuteScalar<int>("PRAGMA user_version;");
                 if (version > CurrentSchemaVersion)
                 {
-                    throw new TalearrDatabaseUnusableException($"schema version {version} is newer than this TaleArr ({CurrentSchemaVersion})");
+                    throw new TalearrDatabaseUnusableException($"schema version {version} is newer than this Talearr ({CurrentSchemaVersion})");
                 }
 
                 for (var next = version; next < CurrentSchemaVersion; next++)
@@ -358,14 +358,14 @@ CREATE TABLE IF NOT EXISTS TalearrFillerState (
                     connection.Execute($"PRAGMA user_version = {next + 1};", transaction: transaction);
                     transaction.Commit();
 
-                    _logger.Debug("TaleArr: {0} schema upgraded to version {1}", FileName, next + 1);
+                    _logger.Debug("Talearr: {0} schema upgraded to version {1}", FileName, next + 1);
                 }
 
                 _initialized = true;
             }
             catch (Exception ex) when (allowRecreate && (ex is TalearrDatabaseUnusableException || IsCorruption(ex)))
             {
-                _logger.Warn("TaleArr: {0} is unusable ({1}); recreating it. It holds cached data (Audible facts, the Audiobookshelf library), per-book abridged overrides (books fall back to the global grab policy) and book tags.", FileName, ex.Message);
+                _logger.Warn("Talearr: {0} is unusable ({1}); recreating it. It holds cached data (Audible facts, the Audiobookshelf library), per-book abridged overrides (books fall back to the global grab policy) and book tags.", FileName, ex.Message);
                 MoveAside();
                 InitializeCore(allowRecreate: false);
             }
@@ -404,7 +404,7 @@ CREATE TABLE IF NOT EXISTS TalearrFillerState (
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: could not move {0} aside, deleting it", FileName);
+                _logger.Debug(ex, "Talearr: could not move {0} aside, deleting it", FileName);
                 TryDelete(DatabasePath);
             }
 
@@ -423,7 +423,7 @@ CREATE TABLE IF NOT EXISTS TalearrFillerState (
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: could not delete {0}", path);
+                _logger.Debug(ex, "Talearr: could not delete {0}", path);
             }
         }
     }

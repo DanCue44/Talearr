@@ -31,7 +31,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 return new HealthCheck(GetType());
             }
 
-            // TaleArr: when the probe already reports the outage, show one warning, not two.
+            // Talearr: when the probe already reports the outage, show one warning, not two.
             if (_talearrProbe?.LastResult?.State == MetadataServerProbeState.Down)
             {
                 return new HealthCheck(GetType());

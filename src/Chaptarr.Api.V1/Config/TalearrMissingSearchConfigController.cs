@@ -9,7 +9,7 @@ using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Config
 {
-    // TaleArr: scheduled missing-books search settings. A new route; no existing route or field
+    // Talearr: scheduled missing-books search settings. A new route; no existing route or field
     // changes. Values are stored as talearr.missingsearch.* rows in the Config table.
     public class TalearrMissingSearchConfigResource : RestResource
     {

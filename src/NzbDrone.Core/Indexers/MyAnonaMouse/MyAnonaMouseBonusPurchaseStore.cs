@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         List<MyAnonaMouseBonusPurchaseRecord> GetRecent(int? indexerId, int limit);
     }
 
-    // TaleArr: the bonus auto-spend log in talearr.db (schema 7, MamBonusPurchases). Keeps the
+    // Talearr: the bonus auto-spend log in talearr.db (schema 7, MamBonusPurchases). Keeps the
     // newest KeepRows rows per indexer.
     public class MyAnonaMouseBonusPurchaseStore : IMyAnonaMouseBonusPurchaseStore
     {
@@ -123,7 +123,7 @@ DELETE FROM MamBonusPurchases WHERE IndexerId = @IndexerId AND Id NOT IN (
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not {0} in {1}", what, TalearrDatabase.FileName);
+                _logger.Warn(ex, "Talearr: could not {0} in {1}", what, TalearrDatabase.FileName);
                 return fallback;
             }
         }

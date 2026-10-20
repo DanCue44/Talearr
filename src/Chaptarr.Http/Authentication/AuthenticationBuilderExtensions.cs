@@ -507,7 +507,7 @@ namespace Chaptarr.Http.Authentication
                     options.QueryName = "access_token";
                 })
 
-                // TaleArr: the OPDS feed signs in with HTTP Basic or ?apikey=.
+                // Talearr: the OPDS feed signs in with HTTP Basic or ?apikey=.
                 .AddScheme<AuthenticationSchemeOptions, TalearrOpdsAuthenticationHandler>(TalearrOpdsAuthenticationHandler.SchemeName, options => { });
         }
 

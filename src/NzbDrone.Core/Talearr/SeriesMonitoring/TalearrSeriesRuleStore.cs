@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
         void Remove(string seriesKey);
     }
 
-    // TaleArr: series rules live in the existing Config key/value table, one row per series
+    // Talearr: series rules live in the existing Config key/value table, one row per series
     // ("talearr.series.monitor.<series key>", JSON). User choices, so not in the rebuildable
     // talearr.db. Stock Chaptarr never reads these keys.
     public class TalearrSeriesRuleStore : ITalearrSeriesRuleStore
@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn(ex, "TaleArr: unable to read the series monitoring rules");
+                    _logger.Warn(ex, "Talearr: unable to read the series monitoring rules");
                     return new List<TalearrSeriesRule>();
                 }
             }
@@ -127,7 +127,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
             }
             catch (JsonException ex)
             {
-                _logger.Warn(ex, "TaleArr: ignoring an unreadable series rule for {0}", seriesKey);
+                _logger.Warn(ex, "Talearr: ignoring an unreadable series rule for {0}", seriesKey);
                 return null;
             }
         }

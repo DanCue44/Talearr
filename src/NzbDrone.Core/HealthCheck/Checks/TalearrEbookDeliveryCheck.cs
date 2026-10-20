@@ -5,9 +5,9 @@ using NzbDrone.Core.Talearr.ReaderHandoff;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // TaleArr: System > Status warning when ebook delivery is on but cannot work as set: Send to
+    // Talearr: System > Status warning when ebook delivery is on but cannot work as set: Send to
     // Kindle without an address or SMTP server, or OPDS KEPUB downloads without kepubify.
-    // English text on purpose: it is TaleArr-only and stays out of the shared translation files.
+    // English text on purpose: it is Talearr-only and stays out of the shared translation files.
     [CheckOn(typeof(TalearrKindleSettingsChangedEvent))]
     [CheckOn(typeof(TalearrOpdsSettingsChangedEvent))]
     public class TalearrEbookDeliveryCheck : HealthCheckBase

@@ -5,7 +5,7 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Indexers.MyAnonaMouse
 {
-    // TaleArr: scheduled dynamic seedbox update (see MyAnonaMouseDynamicSeedboxService).
+    // Talearr: scheduled dynamic seedbox update (see MyAnonaMouseDynamicSeedboxService).
     public class UpdateMyAnonaMouseDynamicSeedboxCommand : Command
     {
     }
@@ -49,7 +49,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                                  Outcome != MyAnonaMouseSeedboxOutcome.TooRecent;
     }
 
-    // TaleArr: reads replies from https://t.myanonamouse.net/json/dynamicSeedbox.php. MAM answers
+    // Talearr: reads replies from https://t.myanonamouse.net/json/dynamicSeedbox.php. MAM answers
     // with {"Success": bool, "msg": "...", "ip": "...", "ASN": n, "AS": "..."} and an HTTP status
     // that matches (200, 403, 429). Known messages: "Completed", "No change", "Last change too
     // recent", "No Session Cookie", "Invalid session", "Incorrect session type - ...", and ASN or

@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
-    // TaleArr: extra /torrents/info fields for the seeding report (all optional; older builds
+    // Talearr: extra /torrents/info fields for the seeding report (all optional; older builds
     // leave them out).
     public partial class QBittorrentTorrent
     {
@@ -25,7 +25,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         public string Tracker { get; set; } // Current working tracker URL (holds the passkey; never expose it)
     }
 
-    // TaleArr: one entry of /torrents/trackers.
+    // Talearr: one entry of /torrents/trackers.
     public class QBittorrentTracker
     {
         public string Url { get; set; }

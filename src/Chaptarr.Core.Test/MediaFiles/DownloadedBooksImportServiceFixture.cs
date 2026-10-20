@@ -2766,7 +2766,7 @@ namespace Chaptarr.Core.Test.MediaFiles
             };
         }
 
-        // TaleArr: a bundle grabbed for one book keeps that book, also imports other books from
+        // Talearr: a bundle grabbed for one book keeps that book, also imports other books from
         // it that are monitored and missing, and leaves the rest out without failing.
         private sealed class ResultImportApprovedBooks : IImportApprovedBooks
         {

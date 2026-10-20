@@ -9,7 +9,7 @@ using NzbDrone.Core.Books;
 namespace NzbDrone.Core.Parser
 {
     /// <summary>
-    /// TaleArr: looser release title matching.
+    /// Talearr: looser release title matching.
     ///
     /// Releases often carry a shorter or reshuffled form of the book title:
     ///   "Ryan Becker - Murderous Minds (2017) [MP3]"   for "Murderous Minds: Stories of Real Life Murderers..."
@@ -236,7 +236,7 @@ namespace NzbDrone.Core.Parser
             }
         }
 
-        // TaleArr: token lists whose neighbours were joined by a hyphen in the release title. Keyed
+        // Talearr: token lists whose neighbours were joined by a hyphen in the release title. Keyed
         // by the token list FindBestMatch builds, so the scoring helpers need no extra parameter.
         private static readonly ConditionalWeakTable<object, bool[]> TalearrHyphenJoins = new ConditionalWeakTable<object, bool[]>();
 

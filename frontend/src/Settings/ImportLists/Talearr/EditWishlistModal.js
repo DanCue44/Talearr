@@ -76,7 +76,7 @@ function toRequest(form) {
   };
 }
 
-// TaleArr: add or edit a wishlist, with a dry run before saving (docs/TALEARR_WISHLISTS.md).
+// Talearr: add or edit a wishlist, with a dry run before saving (docs/TALEARR_WISHLISTS.md).
 class EditWishlistModal extends Component {
 
   //

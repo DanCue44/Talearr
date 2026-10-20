@@ -12,7 +12,7 @@ namespace NzbDrone.Core.Talearr.Migration
         TalearrMigrationSnapshot Read(TalearrMigrationRequest request);
     }
 
-    // TaleArr: reads a running Readarr, Bookshelf or LazyLibrarian over its API. Only GET requests;
+    // Talearr: reads a running Readarr, Bookshelf or LazyLibrarian over its API. Only GET requests;
     // nothing in the source is changed.
     public class TalearrMigrationApiReader : ITalearrMigrationApiReader
     {

@@ -7,7 +7,7 @@ using NzbDrone.Core.Configuration;
 namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 {
     /// <summary>
-    /// IConfigService stand-in for the TaleArr import settings. Anything else throws so a test
+    /// IConfigService stand-in for the Talearr import settings. Anything else throws so a test
     /// notices when code under test starts depending on another setting.
     /// </summary>
     public class TalearrConfigProxy : DispatchProxy

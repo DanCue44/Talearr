@@ -66,7 +66,7 @@ function setKey(kind, set) {
   return `${kind}:${set.key}`;
 }
 
-// TaleArr: possible duplicate authors and book rows, with a merge that keeps one row and moves
+// Talearr: possible duplicate authors and book rows, with a merge that keeps one row and moves
 // everything else onto it. Files on disk are never touched.
 class TalearrDuplicates extends Component {
 

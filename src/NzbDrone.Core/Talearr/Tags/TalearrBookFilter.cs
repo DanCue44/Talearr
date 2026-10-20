@@ -27,11 +27,11 @@ namespace NzbDrone.Core.Talearr.Tags
 
     public interface ITalearrBookFilterService
     {
-        // Ids of the books that pass every supported rule, or null when no rule needs TaleArr.
+        // Ids of the books that pass every supported rule, or null when no rule needs Talearr.
         HashSet<int> MatchingBookIds(string filtersJson);
     }
 
-    // TaleArr: server side evaluation of the custom filters on the Wanted pages, which are paged
+    // Talearr: server side evaluation of the custom filters on the Wanted pages, which are paged
     // in SQL. Book tags live in talearr.db, so the matching ids are worked out here and the page
     // query only gets an id list. Mirrors frontend filterCollection and filterTypePredicates.
     public class TalearrBookFilterService : ITalearrBookFilterService

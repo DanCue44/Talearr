@@ -45,7 +45,7 @@ namespace Chaptarr.Api.V1.System.Tasks
             return ConvertToResource(task);
         }
 
-        // TaleArr: names SplitCamelCase cannot spell (acronyms).
+        // Talearr: names SplitCamelCase cannot spell (acronyms).
         private static readonly Dictionary<string, string> TaskDisplayNames = new Dictionary<string, string>
         {
             ["MamFreeleechFiller"] = "MAM Freeleech Filler"

@@ -8,7 +8,7 @@ using NzbDrone.Core.Talearr.Audiobook.M4b;
 
 namespace NzbDrone.Core.Talearr.ReaderHandoff
 {
-    // TaleArr: optional EPUB to KEPUB conversion for the reader hand-off copy, using the
+    // Talearr: optional EPUB to KEPUB conversion for the reader hand-off copy, using the
     // kepubify binary (https://pgaskin.net/kepubify/) when it is installed. Never bundled.
     public interface ITalearrKepubify
     {
@@ -128,7 +128,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: kepubify conversion of '{0}' failed", sourceEpub);
+                _logger.Debug(ex, "Talearr: kepubify conversion of '{0}' failed", sourceEpub);
                 return ex.Message;
             }
             finally
@@ -142,7 +142,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "TaleArr: could not remove the kepubify work folder '{0}'", workFolder);
+                    _logger.Debug(ex, "Talearr: could not remove the kepubify work folder '{0}'", workFolder);
                 }
             }
         }

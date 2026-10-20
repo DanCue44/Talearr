@@ -81,7 +81,7 @@ function parseMappings(text) {
     .map(([from, to]) => ({ from, to }));
 }
 
-// TaleArr: guided migration from Readarr, Bookshelf or LazyLibrarian (docs/TALEARR_MIGRATION.md).
+// Talearr: guided migration from Readarr, Bookshelf or LazyLibrarian (docs/TALEARR_MIGRATION.md).
 // Preview reads the source and shows a dry-run report; Apply carries out that plan. Nothing in
 // the source is changed.
 class TalearrMigration extends Component {
@@ -329,7 +329,7 @@ class TalearrMigration extends Component {
                 type={inputTypes.TEXT}
                 name="backupPath"
                 value={form.backupPath}
-                helpText="For example /readarr-config/readarr.db with the Readarr config folder mounted read-only into TaleArr"
+                helpText="For example /readarr-config/readarr.db with the Readarr config folder mounted read-only into Talearr"
                 onChange={this.onInputChange}
               />
             </FormGroup> :
@@ -354,7 +354,7 @@ class TalearrMigration extends Component {
             type={inputTypes.TEXT_AREA}
             name="pathMappings"
             value={form.pathMappings}
-            helpText="One per line, source path => TaleArr path, for example /books => /ebooks, when the library is mounted at a different path here."
+            helpText="One per line, source path => Talearr path, for example /books => /ebooks, when the library is mounted at a different path here."
             onChange={this.onInputChange}
           />
         </FormGroup>
@@ -386,7 +386,7 @@ class TalearrMigration extends Component {
             type={inputTypes.CHECK}
             name="importIndexers"
             value={form.importIndexers}
-            helpText="Indexers synced by Prowlarr are skipped: add TaleArr as an app in Prowlarr instead"
+            helpText="Indexers synced by Prowlarr are skipped: add Talearr as an app in Prowlarr instead"
             onChange={this.onInputChange}
           />
         </FormGroup>
@@ -397,7 +397,7 @@ class TalearrMigration extends Component {
             type={inputTypes.CHECK}
             name="enableImportedProviders"
             value={form.enableImportedProviders}
-            helpText="Off: they are added disabled, so the source and TaleArr do not both grab while the source still runs"
+            helpText="Off: they are added disabled, so the source and Talearr do not both grab while the source still runs"
             onChange={this.onInputChange}
           />
         </FormGroup>

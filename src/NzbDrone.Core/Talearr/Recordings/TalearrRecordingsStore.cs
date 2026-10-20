@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         int PruneOlderThan(DateTime cutoffUtc);
     }
 
-    // TaleArr: reads and writes talearr.db. Every call is best effort: a failure is logged and
+    // Talearr: reads and writes talearr.db. Every call is best effort: a failure is logged and
     // treated as a cache miss (or a skipped write), so a broken or missing talearr.db never breaks
     // a search, an import or an API call. A corrupt file is recreated on the spot.
     public class TalearrRecordingsStore : ITalearrRecordingsStore
@@ -260,7 +260,7 @@ SELECT last_insert_rowid();", new
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not {0} in {1}; continuing without the cache", what, TalearrDatabase.FileName);
+                _logger.Warn(ex, "Talearr: could not {0} in {1}; continuing without the cache", what, TalearrDatabase.FileName);
                 return fallback;
             }
         }

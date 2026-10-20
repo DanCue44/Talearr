@@ -6,8 +6,8 @@ using NzbDrone.Core.Talearr.Seeding;
 
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
-    // TaleArr: seeding details for GET /api/v1/talearr/seeding and the seeding risk health check.
-    // Reads TaleArr's categories including the post-import ones (the queue only reads the
+    // Talearr: seeding details for GET /api/v1/talearr/seeding and the seeding risk health check.
+    // Reads Talearr's categories including the post-import ones (the queue only reads the
     // download categories, so imported torrents never show there). Read-only.
     public partial class QBittorrent : ITalearrSeedingSource
     {

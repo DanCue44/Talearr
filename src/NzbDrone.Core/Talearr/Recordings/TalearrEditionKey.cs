@@ -4,7 +4,7 @@ using NzbDrone.Core.Books;
 
 namespace NzbDrone.Core.Talearr.Recordings
 {
-    // TaleArr: the provider identity talearr.db keys an edition by. Upstream's AddWantedEdition
+    // Talearr: the provider identity talearr.db keys an edition by. Upstream's AddWantedEdition
     // gives cloned editions BookEditionIdentity.GetTrustedForeignEditionId as their foreign id
     // ("hc:edition:30583648"), while the base row keeps the metadata server's id
     // ("hc:edition:30583648-audiobook"). Both come from the same provider fields, so the trusted

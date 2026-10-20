@@ -8,12 +8,12 @@ using NzbDrone.Core.Talearr.Seeding;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // TaleArr: warns when a private-tracker torrent may end as a hit and run (paused, queued,
+    // Talearr: warns when a private-tracker torrent may end as a hit and run (paused, queued,
     // errored, tracker error or removed before its seeding requirement). Health warnings also go
     // out through notifications with "On Health Issue". Re-checked after download processing but
     // the client is read at most every few minutes for this. The message only holds titles and
     // reasons (no running times) so a notification is sent when the problem changes, not every
-    // minute. English text on purpose (TaleArr-only).
+    // minute. English text on purpose (Talearr-only).
     [CheckOn(typeof(DownloadsProcessedEvent))]
     public class TalearrSeedingRiskCheck : HealthCheckBase
     {

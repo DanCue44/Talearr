@@ -232,7 +232,7 @@ namespace Chaptarr.Core.Test.Talearr.SeriesMonitoring
             var detail = _service.SetRule(AudioSeries, new TalearrSeriesRuleRequest { Ebook = true });
 
             Assert.That(_books[3138].EbookMonitored, Is.True);
-            Assert.That(Searched(), Is.Empty, "the author's ebook side is paused, so TaleArr would not search");
+            Assert.That(Searched(), Is.Empty, "the author's ebook side is paused, so Talearr would not search");
             Assert.That(detail.Series.Rule.LastResult, Does.Contain("3 waiting on the author's format"));
         }
 

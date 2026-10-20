@@ -21,7 +21,7 @@ const enrichOptions = [
   { key: 'off', value: 'Off (only when you press Refresh)' }
 ];
 
-// TaleArr: recordings settings (docs/TALEARR_RECORDINGS.md). Stored as talearr.recordings.* rows
+// Talearr: recordings settings (docs/TALEARR_RECORDINGS.md). Stored as talearr.recordings.* rows
 // in the Config table; Chaptarr ignores them.
 function TalearrRecordings(props) {
   const {
@@ -49,7 +49,7 @@ function TalearrRecordings(props) {
       {
         !isFetching && error &&
           <Alert kind={kinds.DANGER}>
-            {'Unable to load the TaleArr recordings settings'}
+            {'Unable to load the Talearr recordings settings'}
           </Alert>
       }
 
@@ -177,7 +177,7 @@ function TalearrRecordings(props) {
             </FormGroup>
 
             <Alert kind={kinds.INFO}>
-              {'The Audible catalog API is unofficial. TaleArr keeps requests low (batched, at most one a second, long cache) and never shares the data, but using it is at your own risk, as with Chaptarr\'s own Audible search.'}
+              {'The Audible catalog API is unofficial. Talearr keeps requests low (batched, at most one a second, long cache) and never shares the data, but using it is at your own risk, as with Chaptarr\'s own Audible search.'}
             </Alert>
           </Form>
       }

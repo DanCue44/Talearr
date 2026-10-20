@@ -73,7 +73,7 @@ namespace NzbDrone.Core.Books
         void ClearAuthorCache();
     }
 
-    // TaleArr: also drops its caches on CachesClearedEvent (published after a catalog merge).
+    // Talearr: also drops its caches on CachesClearedEvent (published after a catalog merge).
     public class AuthorService : IAuthorService, IHandle<CachesClearedEvent>
     {
         private readonly IAuthorRepository _authorRepository;
@@ -450,7 +450,7 @@ namespace NzbDrone.Core.Books
                 return CacheLookupAuthor(_authorRepository.Get(aliasAuthorId.Value));
             }
 
-            // TaleArr: an id of an author the merge tool merged away means the kept author.
+            // Talearr: an id of an author the merge tool merged away means the kept author.
             var redirectId = _mergeRedirects?.FindAuthor(normalizedProviderId);
             if (redirectId.GetValueOrDefault() > 0)
             {

@@ -8,7 +8,7 @@ using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Config
 {
-    // TaleArr: Open Library metadata fallback setting plus its live status. A new route; no
+    // Talearr: Open Library metadata fallback setting plus its live status. A new route; no
     // existing route or field changes. The mode is stored by TalearrMetadataFallbackSettingsService
     // as a talearr.metadatafallback.* row in the Config table, which Chaptarr ignores. The status
     // fields are read-only and in memory.

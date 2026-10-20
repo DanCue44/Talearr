@@ -107,7 +107,7 @@ namespace NzbDrone.Core.Notifications
 
         private string GetBookIncompleteImportMessage(string source)
         {
-            return string.Format("TaleArr failed to Import all files for {0}",
+            return string.Format("Talearr failed to Import all files for {0}",
                 source);
         }
 
@@ -155,7 +155,7 @@ namespace NzbDrone.Core.Notifications
                 return true;
             }
 
-            // TaleArr: TaleArr's own notices (metadata fallback active) go out with warnings.
+            // Talearr: Talearr's own notices (metadata fallback active) go out with warnings.
             if (healthCheck.Type == HealthCheckResult.Notice && includeWarnings && TalearrNotificationDetails.IsTalearrHealthCheck(healthCheck))
             {
                 return true;
@@ -164,7 +164,7 @@ namespace NzbDrone.Core.Notifications
             return false;
         }
 
-        // TaleArr: a notification with tags only hears about authors it is tagged for, so an
+        // Talearr: a notification with tags only hears about authors it is tagged for, so an
         // event without an author (manual mark-as-failed, unknown download) goes to untagged ones.
         private bool ShouldHandleAuthorOrUntagged(ProviderDefinition definition, Author author)
         {
@@ -437,7 +437,7 @@ namespace NzbDrone.Core.Notifications
             }
         }
 
-        // TaleArr: Sonarr/Radarr "On Health Restored", using the existing OnHealthRestored column.
+        // Talearr: Sonarr/Radarr "On Health Restored", using the existing OnHealthRestored column.
         public void Handle(HealthCheckRestoredEvent message)
         {
             if (message.IsInStartupGracePeriod)
@@ -476,7 +476,7 @@ namespace NzbDrone.Core.Notifications
                 SourceTitle = message.SourceTitle,
                 Message = message.Message,
 
-                // TaleArr: book context for richer messages and webhook payloads.
+                // Talearr: book context for richer messages and webhook payloads.
                 Author = remoteBook?.Author,
                 Books = remoteBook?.Books ?? new List<Book>(),
                 RemoteBook = remoteBook,
@@ -487,7 +487,7 @@ namespace NzbDrone.Core.Notifications
             {
                 try
                 {
-                    // TaleArr: a manual mark-as-failed has no tracked download; do not throw on it.
+                    // Talearr: a manual mark-as-failed has no tracked download; do not throw on it.
                     if (ShouldHandleAuthorOrUntagged(notification.Definition, remoteBook?.Author))
                     {
                         notification.OnDownloadFailure(downloadFailedMessage);
@@ -504,7 +504,7 @@ namespace NzbDrone.Core.Notifications
 
         public void Handle(BookImportIncompleteEvent message)
         {
-            // TaleArr: pass on the book, the reasons and whether the user has to step in
+            // Talearr: pass on the book, the reasons and whether the user has to step in
             // (import blocked = Sonarr/Radarr "Manual Interaction Required").
             var trackedDownload = message.TrackedDownload;
             var remoteBook = trackedDownload?.RemoteBook;
@@ -580,7 +580,7 @@ namespace NzbDrone.Core.Notifications
         public void Handle(UpdateInstalledEvent message)
         {
             var updateMessage = new ApplicationUpdateMessage();
-            updateMessage.Message = $"TaleArr updated from {message.PreviousVerison.ToString()} to {message.NewVersion.ToString()}";
+            updateMessage.Message = $"Talearr updated from {message.PreviousVerison.ToString()} to {message.NewVersion.ToString()}";
             updateMessage.PreviousVersion = message.PreviousVerison;
             updateMessage.NewVersion = message.NewVersion;
 

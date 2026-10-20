@@ -13,7 +13,7 @@ namespace Chaptarr.Core.Test.Talearr.Audiobookshelf
     {
         private static readonly DateTime SyncedAt = new DateTime(2026, 10, 16, 12, 0, 0, DateTimeKind.Utc);
 
-        // Audiobookshelf sees the ebook share as /books, TaleArr as /ebooks.
+        // Audiobookshelf sees the ebook share as /books, Talearr as /ebooks.
         private static readonly List<TalearrAbsFolderMapping> Mappings = new List<TalearrAbsFolderMapping>
         {
             new TalearrAbsFolderMapping { LibraryId = AbsFixtures.EbookLibraryId, LibraryFolderId = AbsFixtures.EbookFolderId, AbsFolderPath = "/books", LocalRootPath = "/ebooks" },

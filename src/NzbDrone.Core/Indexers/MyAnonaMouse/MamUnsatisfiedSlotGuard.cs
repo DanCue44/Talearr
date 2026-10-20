@@ -242,7 +242,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 return false;
             }
 
-            // TaleArr: the window grows with a longer Account Status Refresh.
+            // Talearr: the window grows with a longer Account Status Refresh.
             var maximumAge = settings.ResolveStatusMaxAge(MaximumStatusAge);
 
             return settings.UnsatisfiedSnapshotUtc.Value <= now.AddMinutes(5) &&

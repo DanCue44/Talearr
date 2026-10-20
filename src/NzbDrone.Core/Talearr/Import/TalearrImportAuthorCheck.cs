@@ -10,7 +10,7 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Talearr.Import
 {
-    // TaleArr: the last check before a tracked download is imported into the book it was grabbed
+    // Talearr: the last check before a tracked download is imported into the book it was grabbed
     // for. A file that explicitly credits a different author ("Craig Rice - 45 Murderers- A
     // Collection of True Crime Stories" for Ryan Becker's "True Crime Stories: 48 Terrifying True
     // Crime Murder Cases") is not that book, however well the title words lined up.

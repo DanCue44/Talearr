@@ -4,7 +4,7 @@ using Dapper;
 
 namespace Chaptarr.Core.Test.Talearr.Catalog
 {
-    // TaleArr: synthetic large library on a real migrated schema (for the benchmark and for
+    // Talearr: synthetic large library on a real migrated schema (for the benchmark and for
     // large-scale regression tests). Deterministic: the same sizes give the same rows.
     public static class TalearrLargeLibrary
     {

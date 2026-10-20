@@ -5,7 +5,7 @@ using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Talearr.QualityLadder
 {
-    // TaleArr: the ebook format preference (EPUB > AZW3 > MOBI > PDF by default). It only breaks
+    // Talearr: the ebook format preference (EPUB > AZW3 > MOBI > PDF by default). It only breaks
     // ties the quality profile leaves (formats grouped together, or the same format), so a profile
     // that orders the formats itself keeps the last word and preferences can never fight it.
     public static class TalearrEbookPreference

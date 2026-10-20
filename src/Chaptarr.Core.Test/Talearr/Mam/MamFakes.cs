@@ -13,7 +13,7 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace Chaptarr.Core.Test.Talearr.Mam
 {
-    // TaleArr: hand-written fakes for the MAM hardening fixtures. Every MAM reply below is a
+    // Talearr: hand-written fakes for the MAM hardening fixtures. Every MAM reply below is a
     // recorded shape; nothing here touches the network.
     public class FakeMamHttpClient : DispatchProxy
     {

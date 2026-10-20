@@ -138,7 +138,7 @@ function AppRoutes(props) {
         component={SeriesDetailsPageConnector}
       />
 
-      {/* TaleArr: series monitoring (docs/TALEARR_SERIES.md) */}
+      {/* Talearr: series monitoring (docs/TALEARR_SERIES.md) */}
       <Route
         exact={true}
         path="/talearr/series"
@@ -150,7 +150,7 @@ function AppRoutes(props) {
         component={TalearrSeriesPage}
       />
 
-      {/* TaleArr: possible duplicates and merge */}
+      {/* Talearr: possible duplicates and merge */}
       <Route
         path="/talearr/duplicates"
         component={TalearrDuplicates}
@@ -189,7 +189,7 @@ function AppRoutes(props) {
         component={IgnoredDownloadsConnector}
       />
 
-      {/* TaleArr: seeding status and hit-and-run risk */}
+      {/* Talearr: seeding status and hit-and-run risk */}
       <Route
         path="/activity/seeding"
         component={TalearrSeeding}
@@ -303,7 +303,7 @@ function AppRoutes(props) {
         component={Tasks}
       />
 
-      {/* TaleArr: migration from Readarr, Bookshelf or LazyLibrarian */}
+      {/* Talearr: migration from Readarr, Bookshelf or LazyLibrarian */}
       <Route
         path="/system/migrate"
         component={TalearrMigration}

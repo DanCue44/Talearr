@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Talearr.Import
         TalearrHardlinkStatus GetStatus();
     }
 
-    // TaleArr: counts imports that asked for a hardlink and got a full copy instead (different
+    // Talearr: counts imports that asked for a hardlink and got a full copy instead (different
     // filesystem, different Docker volume, different Unraid share). A few in a row means the
     // download and library folders cannot share files, so every torrent import doubles the disk
     // space; the health check turns that into a System > Status warning. In memory only: the
@@ -115,7 +115,7 @@ namespace NzbDrone.Core.Talearr.Import
             return status != null && status.ConsecutiveFallbacks >= WarningThreshold;
         }
 
-        // English text on purpose: TaleArr-only, kept out of the shared translation files.
+        // English text on purpose: Talearr-only, kept out of the shared translation files.
         public static string GetMessage(TalearrHardlinkStatus status)
         {
             if (!IsWarning(status))

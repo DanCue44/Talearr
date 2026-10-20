@@ -36,7 +36,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         public bool Created { get; set; }
     }
 
-    // TaleArr: measures the files on both sides of an audiobook upgrade and applies
+    // Talearr: measures the files on both sides of an audiobook upgrade and applies
     // TalearrUpgradeRules. Called from ImportApprovedBooks before any old file is touched.
     public class TalearrUpgradeGuard : ITalearrUpgradeGuard
     {
@@ -47,8 +47,8 @@ namespace NzbDrone.Core.Talearr.Recordings
         private readonly IEditionService _editionService;
         private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly ITalearrRecordingsSettingsService _settingsService;
-        private readonly ITalearrQualityLadderSettingsService _ladderSettings; // TaleArr
-        private readonly ITalearrUpgradeCooldown _upgradeCooldown; // TaleArr
+        private readonly ITalearrQualityLadderSettingsService _ladderSettings; // Talearr
+        private readonly ITalearrUpgradeCooldown _upgradeCooldown; // Talearr
         private readonly Logger _logger;
 
         public TalearrUpgradeGuard(IMediaInfoExtractor mediaInfoExtractor,
@@ -109,7 +109,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 var comparison = Compare(author, profile, oldFiles, newItems);
                 var verdict = TalearrUpgradeRules.Decide(oldFacts, newFacts, comparison, settings, TalearrQualityLadderSettingsService.Resolve(_ladderSettings).AudioUpgrades);
 
-                _logger.Debug("TaleArr: upgrade guard for '{0}' (book {1}): {2} ({3}): {4}", book.Title, book.Id, verdict.Kind, verdict.Rule, verdict.Reason);
+                _logger.Debug("Talearr: upgrade guard for '{0}' (book {1}): {2} ({3}): {4}", book.Title, book.Id, verdict.Kind, verdict.Rule, verdict.Reason);
 
                 // A rejected upgrade download: blocklist it and pause upgrades for the book, so the
                 // next search does not grab the same estimate-only "upgrade" again.
@@ -122,7 +122,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: upgrade guard could not measure '{0}'; leaving the upgrade to upstream", book.Title);
+                _logger.Warn(ex, "Talearr: upgrade guard could not measure '{0}'; leaving the upgrade to upstream", book.Title);
                 return null;
             }
         }
@@ -198,7 +198,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: abridged resolution failed for book {0}", book.Id);
+                _logger.Debug(ex, "Talearr: abridged resolution failed for book {0}", book.Id);
             }
 
             // The files' own length is what is being replaced; a runtime-from-files answer would just
@@ -303,7 +303,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "TaleArr: custom format scores unavailable for the upgrade guard");
+                    _logger.Debug(ex, "Talearr: custom format scores unavailable for the upgrade guard");
                 }
             }
 

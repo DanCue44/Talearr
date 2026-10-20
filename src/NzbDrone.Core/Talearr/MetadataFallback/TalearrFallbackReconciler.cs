@@ -10,7 +10,7 @@ using NzbDrone.Core.Parser;
 namespace NzbDrone.Core.Talearr.MetadataFallback
 {
     /// <summary>
-    /// TaleArr: attaches books that were added from Open Library during a metadata server outage
+    /// Talearr: attaches books that were added from Open Library during a metadata server outage
     /// to the server's own books on the first refresh after recovery.
     ///
     /// Such a local book only has an Open Library work id (ol:OL...W). The metadata server does

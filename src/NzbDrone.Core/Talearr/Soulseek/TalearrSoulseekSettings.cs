@@ -6,14 +6,14 @@ using NzbDrone.Core.Configuration;
 
 namespace NzbDrone.Core.Talearr.Soulseek
 {
-    // TaleArr: Soulseek through slskd (docs/TALEARR_SOULSEEK.md). Not a download client or
+    // Talearr: Soulseek through slskd (docs/TALEARR_SOULSEEK.md). Not a download client or
     // indexer provider: stock Chaptarr deletes provider rows whose type it does not know, and a
     // new DownloadProtocol value in History, Blocklist or PendingReleases could break a rollback.
     public sealed class TalearrSoulseekSettings
     {
         public const string MaskedApiKey = "********";
 
-        // Off by default: TaleArr never talks to slskd until this is on.
+        // Off by default: Talearr never talks to slskd until this is on.
         public bool Enabled { get; set; }
 
         // slskd's web address, for example http://slskd:5030.
@@ -22,7 +22,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
         // An slskd API key (slskd's web.authentication.api_keys).
         public string ApiKey { get; set; } = string.Empty;
 
-        // slskd's downloads folder as TaleArr sees it (inside the TaleArr container).
+        // slskd's downloads folder as Talearr sees it (inside the Talearr container).
         public string DownloadsPath { get; set; } = string.Empty;
 
         // How long slskd collects answers for one search.
@@ -83,7 +83,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
     }
 
     // Stored as one talearr.soulseek.settings row (JSON) in the existing Config table. No schema
-    // change; Chaptarr ignores the row, so a rollback only stops TaleArr's Soulseek grabs.
+    // change; Chaptarr ignores the row, so a rollback only stops Talearr's Soulseek grabs.
     public class TalearrSoulseekSettingsService : ITalearrSoulseekSettingsService
     {
         public const string SettingsKey = "talearr.soulseek.settings";
@@ -124,7 +124,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
 
                 settings.Normalize();
                 _repository.Upsert(SettingsKey, JsonSerializer.Serialize(settings, TalearrSlskdClient.JsonOptions));
-                _logger.Info("TaleArr Soulseek settings saved: enabled={0}, url='{1}', downloads='{2}'", settings.Enabled, settings.Url, settings.DownloadsPath);
+                _logger.Info("Talearr Soulseek settings saved: enabled={0}, url='{1}', downloads='{2}'", settings.Enabled, settings.Url, settings.DownloadsPath);
 
                 _cached = Load();
                 return _cached.Clone();
@@ -142,7 +142,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read the TaleArr Soulseek settings, using the defaults");
+                _logger.Debug(ex, "Unable to read the Talearr Soulseek settings, using the defaults");
                 return TalearrSoulseekSettings.Default;
             }
         }

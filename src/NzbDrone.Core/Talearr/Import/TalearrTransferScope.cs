@@ -14,7 +14,7 @@ namespace NzbDrone.Core.Talearr.Import
         Copy = 2
     }
 
-    // TaleArr: carries the manual import's transfer choice (hardlink or plain copy) down to
+    // Talearr: carries the manual import's transfer choice (hardlink or plain copy) down to
     // BookFileMovingService without threading a new parameter through the whole import pipeline.
     // Only copy-mode transfers read it; moves are unaffected. The value is per async flow, so a
     // concurrent automatic import never sees another command's choice.

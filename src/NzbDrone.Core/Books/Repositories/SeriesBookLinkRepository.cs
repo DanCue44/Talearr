@@ -78,7 +78,7 @@ namespace NzbDrone.Core.Books
 	            var links = new List<SeriesBookLink>();
 	            if (isSqlite && bookIdsArray.Length > SqliteVariableLimit.MaxParameters)
 	            {
-	                // TaleArr: a request this large (the book index asks for every book) is far cheaper
+	                // Talearr: a request this large (the book index asks for every book) is far cheaper
 	                // as one table scan filtered in memory than as dozens of 900-parameter IN queries.
 	                var wanted = bookIdsArray.ToHashSet();
 	                links = _database.Query<SeriesBookLink>(@"SELECT sbl.* FROM ""SeriesBookLink"" sbl")
@@ -111,7 +111,7 @@ namespace NzbDrone.Core.Books
 	            var seriesById = new Dictionary<int, Series>();
 	            if (isSqlite && seriesIds.Length > SqliteVariableLimit.MaxParameters)
 	            {
-	                // TaleArr: same as above, one scan instead of many IN batches.
+	                // Talearr: same as above, one scan instead of many IN batches.
 	                var wantedSeries = seriesIds.ToHashSet();
 	                foreach (var series in _database.Query<Series>(seriesSelectSql).Where(x => wantedSeries.Contains(x.Id)))
 	                {

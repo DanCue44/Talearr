@@ -79,7 +79,7 @@ namespace NzbDrone.Core.MediaFiles
 
             List<ImportResult> importResults;
 
-            // TaleArr: quick import's Hardlink / Copy choice.
+            // Talearr: quick import's Hardlink / Copy choice.
             using var talearrTransfer = NzbDrone.Core.Talearr.Import.TalearrTransferScope.Begin(
                 NzbDrone.Core.Talearr.Import.TalearrTransferScope.Parse(message.TalearrTransfer));
 

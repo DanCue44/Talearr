@@ -20,7 +20,7 @@ namespace Chaptarr.Http.Frontend.Mappers
 
         public override string Map(string resourceUrl)
         {
-            // TaleArr: serve the real transparent ICO. Safari falls back to /favicon.ico when it
+            // Talearr: serve the real transparent ICO. Safari falls back to /favicon.ico when it
             // cannot use the SVG tab icon, and an SVG here showed up as a blank white tile.
             var path = Path.Combine("Content", "Images", "Icons", "favicon.ico");
 

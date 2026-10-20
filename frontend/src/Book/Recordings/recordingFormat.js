@@ -1,4 +1,4 @@
-// TaleArr: display helpers for the Recordings section.
+// Talearr: display helpers for the Recordings section.
 
 export function formatRuntime(minutes) {
   if (!minutes || minutes <= 0) {

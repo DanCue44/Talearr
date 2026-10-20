@@ -23,7 +23,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         {
             if (subject?.ParsedBookInfo?.Discography == true)
             {
-                // TaleArr: a wanted omnibus is not a stray bundle; other discographies follow the
+                // Talearr: a wanted omnibus is not a stray bundle; other discographies follow the
                 // same last-resort rule as bundles.
                 if (MultiBookReleaseSpecification.IsWantedOmnibus(subject))
                 {

@@ -6,7 +6,7 @@ import { icons, messageTypes } from 'Helpers/Props';
 import { showMessage } from 'Store/Actions/appActions';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 
-// TaleArr: Send to Kindle on the book page. Hidden while Send to Kindle is off; disabled with the
+// Talearr: Send to Kindle on the book page. Hidden while Send to Kindle is off; disabled with the
 // reason as its tooltip when the book has no file Amazon accepts. Uses /api/v1/talearr/kindle.
 class TalearrSendToKindleButton extends Component {
 

@@ -184,7 +184,7 @@ namespace Chaptarr.Core.Test.Books
         }
 
         [Test]
-        // TaleArr: several monitored editions carry no user intent (older refreshes monitored every
+        // Talearr: several monitored editions carry no user intent (older refreshes monitored every
         // new edition), so the repair chooses on merit (native format first) instead of lowest id.
         public void should_repair_multiple_monitored_by_native_format_reselection()
         {

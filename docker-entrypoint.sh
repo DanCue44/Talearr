@@ -43,7 +43,7 @@ for arg in "$@"; do
 done
 
 echo "================================"
-echo "TaleArr Docker Entrypoint"
+echo "Talearr Docker Entrypoint"
 echo "PUID: $PUID"
 echo "PGID: $PGID"
 echo "UMASK: $(umask)"
@@ -129,10 +129,10 @@ if [ "$EUID" -eq 0 ]; then
         # Users can manually fix other files if needed
     else
         echo "Warning: $DATA_DIR appears to be read-only or access denied"
-        echo "TaleArr may not be able to write configuration files"
+        echo "Talearr may not be able to write configuration files"
     fi
     
-    echo "Starting TaleArr as user $username (UID=$PUID, GID=$PGID)"
+    echo "Starting Talearr as user $username (UID=$PUID, GID=$PGID)"
     gosu "$username" sh -c 'echo "Effective runtime user: $(id)"; echo "Effective runtime umask: $(umask)"'
 
     # Use gosu to properly drop privileges and run the command

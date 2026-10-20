@@ -1,7 +1,7 @@
 import { filterBuilderTypes, filterBuilderValueTypes, filterTypes } from 'Helpers/Props';
 import sortByName from 'Utilities/Array/sortByName';
 
-// TaleArr: custom filters on the Wanted pages. The pages are paged on the server, so the
+// Talearr: custom filters on the Wanted pages. The pages are paged on the server, so the
 // selected custom filter is sent as one talearrFilter query value (JSON) that the wanted
 // endpoints evaluate; monitored is sent the way the built in filters send it.
 

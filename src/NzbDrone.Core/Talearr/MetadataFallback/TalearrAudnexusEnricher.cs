@@ -11,7 +11,7 @@ using NzbDrone.Core.Parser;
 namespace NzbDrone.Core.Talearr.MetadataFallback
 {
     /// <summary>
-    /// TaleArr: gives books added from the Open Library fallback a real audiobook edition.
+    /// Talearr: gives books added from the Open Library fallback a real audiobook edition.
     ///
     /// The fallback maps each Open Library work to one print edition, so the audiobook row of the
     /// book has no narrator, runtime or abridged flag. When Open Library lists an Audible ASIN for

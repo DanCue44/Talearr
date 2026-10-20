@@ -7,9 +7,9 @@ using NzbDrone.Core.ThingiProvider.Events;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // TaleArr: a notice when Freeleech Wedges is Prefer Wedge but the account has no wedges left,
+    // Talearr: a notice when Freeleech Wedges is Prefer Wedge but the account has no wedges left,
     // so grabs quietly download without one (and count against ratio). Uses the wedge balance
-    // from the hourly account refresh; nothing is bought. English text on purpose (TaleArr-only).
+    // from the hourly account refresh; nothing is bought. English text on purpose (Talearr-only).
     [CheckOn(typeof(ProviderUpdatedEvent<IIndexer>))]
     [CheckOn(typeof(ProviderDeletedEvent<IIndexer>))]
     public class TalearrMyAnonaMouseWedgeCheck : HealthCheckBase

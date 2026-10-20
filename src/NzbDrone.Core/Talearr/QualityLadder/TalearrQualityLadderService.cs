@@ -18,7 +18,7 @@ namespace NzbDrone.Core.Talearr.QualityLadder
         TalearrQualityLadderSettings GetSettings();
 
         // The book's known runtime: its monitored edition, then cached Audible facts, then the
-        // duration TaleArr recorded for the row. Null when nothing is known.
+        // duration Talearr recorded for the row. Null when nothing is known.
         int? RuntimeSeconds(Book book);
 
         // Audiobook releases only (AudioQualityEstimate.None otherwise).
@@ -29,7 +29,7 @@ namespace NzbDrone.Core.Talearr.QualityLadder
         string UpgradeReason(RemoteBook subject, Book book, QualityProfile profile, int newFormatScore, int currentFormatScore);
     }
 
-    // TaleArr: applies the audio quality ladder and the ebook format preference to the decision
+    // Talearr: applies the audio quality ladder and the ebook format preference to the decision
     // engine (ranking in DownloadDecisionComparer, upgrades in UpgradeDiskSpecification and
     // CutoffSpecification). Read only: it never writes to the database.
     public class TalearrQualityLadderService : ITalearrQualityLadder
@@ -119,14 +119,14 @@ namespace NzbDrone.Core.Talearr.QualityLadder
                         return null;
                     }
 
-                    return $"TaleArr: {candidate.Quality.Name} is preferred over {string.Join(", ", files.Select(f => f.Quality.Quality.Name).Distinct())}";
+                    return $"Talearr: {candidate.Quality.Name} is preferred over {string.Join(", ", files.Select(f => f.Quality.Quality.Name).Distinct())}";
                 }
 
                 return AudioUpgradeReason(subject, book, files, settings);
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: quality ladder upgrade check failed; leaving it to the quality profile");
+                _logger.Debug(ex, "Talearr: quality ladder upgrade check failed; leaving it to the quality profile");
                 return null;
             }
         }
@@ -161,7 +161,7 @@ namespace NzbDrone.Core.Talearr.QualityLadder
                 return null;
             }
 
-            return $"TaleArr: better audio of the same recording ({incoming.Describe()} against {existing.Describe()} on disk)";
+            return $"Talearr: better audio of the same recording ({incoming.Describe()} against {existing.Describe()} on disk)";
         }
 
         // Grab time evidence only: the release's abridged marker and narrator. The upgrade guard
@@ -180,7 +180,7 @@ namespace NzbDrone.Core.Talearr.QualityLadder
                     }
                     catch (Exception ex)
                     {
-                        _logger.Debug(ex, "TaleArr: abridged resolution failed for book {0}", book.Id);
+                        _logger.Debug(ex, "Talearr: abridged resolution failed for book {0}", book.Id);
                     }
                 }
 
@@ -243,7 +243,7 @@ namespace NzbDrone.Core.Talearr.QualityLadder
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: runtime lookup failed for book {0}", book.Id);
+                _logger.Debug(ex, "Talearr: runtime lookup failed for book {0}", book.Id);
             }
 
             return book.DurationMinutes > 0 ? book.DurationMinutes.Value * 60 : null;

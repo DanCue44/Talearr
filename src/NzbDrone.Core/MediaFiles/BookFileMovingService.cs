@@ -247,7 +247,7 @@ namespace NzbDrone.Core.MediaFiles
             {
                 EnsureTrackFolder(bookFile, localBook, filePath);
 
-                // TaleArr: a manual import can ask for a hardlink or a plain copy explicitly.
+                // Talearr: a manual import can ask for a hardlink or a plain copy explicitly.
                 var primaryMode = TalearrTransferScope.CopyMode(_configService.CopyUsingHardlinks);
                 if (bookFile.Path.PathNotEquals(filePath))
                 {
@@ -379,7 +379,7 @@ namespace NzbDrone.Core.MediaFiles
                     if (!_diskProvider.FileExists(replicaPath))
                     {
                         var actualMode = _diskTransferService.TransferFile(sourcePath, replicaPath, mode, overwrite: false);
-                        _talearrHardlinkMonitor?.Record(sourcePath, replicaPath, mode, actualMode); // TaleArr
+                        _talearrHardlinkMonitor?.Record(sourcePath, replicaPath, mode, actualMode); // Talearr
                         _mediaFileAttributeService.SetFilePermissions(replicaPath);
                     }
 
@@ -454,7 +454,7 @@ namespace NzbDrone.Core.MediaFiles
 
             _rootFolderWatchingService.ReportFileSystemChangeBeginning(bookFilePath, destinationFilePath);
             var actualTransferMode = _diskTransferService.TransferFile(bookFilePath, destinationFilePath, mode);
-            _talearrHardlinkMonitor?.Record(bookFilePath, destinationFilePath, mode, actualTransferMode); // TaleArr
+            _talearrHardlinkMonitor?.Record(bookFilePath, destinationFilePath, mode, actualTransferMode); // Talearr
 
             bookFile.Path = destinationFilePath;
             _fileMutationSafetyService.PrepareImportDestination(bookFile, actualTransferMode);

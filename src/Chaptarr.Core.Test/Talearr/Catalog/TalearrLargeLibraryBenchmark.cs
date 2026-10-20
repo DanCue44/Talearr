@@ -14,7 +14,7 @@ using NzbDrone.Core.Talearr.Catalog;
 
 namespace Chaptarr.Core.Test.Talearr.Catalog
 {
-    // TaleArr: large-library benchmark (2,000 authors, 40,000 books, 100,000 editions, 12,000
+    // Talearr: large-library benchmark (2,000 authors, 40,000 books, 100,000 editions, 12,000
     // files) on the real migrated schema. Explicit: run it by name, it prints timings.
     //   dotnet test ... --filter "FullyQualifiedName~TalearrLargeLibraryBenchmark"
     [TestFixture]

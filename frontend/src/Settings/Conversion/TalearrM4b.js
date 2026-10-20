@@ -11,7 +11,7 @@ import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 
-// TaleArr: merge multi-file audiobooks into one chaptered M4B. Stored by TaleArr only
+// Talearr: merge multi-file audiobooks into one chaptered M4B. Stored by Talearr only
 // (Chaptarr ignores the setting).
 function TalearrM4b(props) {
   const {
@@ -36,7 +36,7 @@ function TalearrM4b(props) {
       {
         !isFetching && error &&
           <Alert kind={kinds.DANGER}>
-            {'Unable to load the TaleArr M4B settings'}
+            {'Unable to load the Talearr M4B settings'}
           </Alert>
       }
 

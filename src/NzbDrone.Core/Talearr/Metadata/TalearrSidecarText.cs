@@ -7,7 +7,7 @@ using NzbDrone.Core.Talearr.Naming;
 
 namespace NzbDrone.Core.Talearr.Metadata
 {
-    // TaleArr: text that goes into the sidecar files TaleArr writes next to a book (Audiobookshelf's
+    // Talearr: text that goes into the sidecar files Talearr writes next to a book (Audiobookshelf's
     // metadata.json) and into the tags of a merged M4B.
     //
     // Upstream wrote the matched edition's title, which for audiobooks is often a store listing:

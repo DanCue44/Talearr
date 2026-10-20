@@ -41,7 +41,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
 
             Assert.That(database.DatabasePath, Is.EqualTo(_folder.TalearrDbPath));
             Assert.That(database.SchemaVersion, Is.EqualTo(TalearrDatabase.CurrentSchemaVersion));
-            Assert.That(File.Exists(Path.Combine(_folder.Folder, "chaptarr.db")), Is.False, "TaleArr must not create chaptarr.db");
+            Assert.That(File.Exists(Path.Combine(_folder.Folder, "chaptarr.db")), Is.False, "Talearr must not create chaptarr.db");
         }
 
         [Test]

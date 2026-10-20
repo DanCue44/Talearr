@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace NzbDrone.Core.Notifications.Webhook
 {
-    // TaleArr: "ImportFailure" webhook, or "ManualInteractionRequired" when the import is blocked
+    // Talearr: "ImportFailure" webhook, or "ManualInteractionRequired" when the import is blocked
     // until the user acts (Sonarr/Radarr name for the same state).
     public class WebhookImportFailedPayload : WebhookPayload
     {

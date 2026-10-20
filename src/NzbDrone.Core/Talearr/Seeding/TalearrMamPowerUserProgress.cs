@@ -3,7 +3,7 @@ using NzbDrone.Core.Indexers.MyAnonaMouse;
 
 namespace NzbDrone.Core.Talearr.Seeding
 {
-    // TaleArr: MAM promotes a member to Power User automatically (within 15 minutes) once they
+    // Talearr: MAM promotes a member to Power User automatically (within 15 minutes) once they
     // have been a member for 4 weeks, uploaded over 25 GiB (bought upload credit counts) and hold
     // an overall ratio of 2.0; dropping below 2.0 demotes again, and buying VIP with points needs
     // Power User first. Below 1.0 MAM demotes to Mouse (seed only). Shown on Activity > Seeding.

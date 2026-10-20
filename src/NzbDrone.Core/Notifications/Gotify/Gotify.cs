@@ -60,7 +60,7 @@ namespace NzbDrone.Core.Notifications.Gotify
             _proxy.SendNotification(HEALTH_ISSUE_TITLE, healthCheck.Message, Settings);
         }
 
-        // TaleArr: Sonarr/Radarr "Health Restored".
+        // Talearr: Sonarr/Radarr "Health Restored".
         public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
         {
             _proxy.SendNotification(HEALTH_RESTORED_TITLE, $"The following issue is now resolved: {previousCheck.Message}", Settings);
@@ -88,7 +88,7 @@ namespace NzbDrone.Core.Notifications.Gotify
             try
             {
                 const string title = "Test Notification";
-                const string body = "This is a test message from TaleArr";
+                const string body = "This is a test message from Talearr";
 
                 _proxy.SendNotification(title, body, Settings);
             }

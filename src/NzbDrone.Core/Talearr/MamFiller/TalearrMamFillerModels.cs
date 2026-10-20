@@ -6,7 +6,7 @@ using NzbDrone.Core.Talearr.Seeding;
 
 namespace NzbDrone.Core.Talearr.MamFiller
 {
-    // TaleArr: System > Tasks "MAM Freeleech Filler". Scheduled every hour; the filler itself
+    // Talearr: System > Tasks "MAM Freeleech Filler". Scheduled every hour; the filler itself
     // only runs once its own interval (MAM indexer setting, default 6 hours) has passed, and a
     // manual run skips that wait (not the safety checks).
     public class MamFreeleechFillerCommand : Command
@@ -31,7 +31,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
         public bool VipFreeleech { get; set; }
         public bool Vip { get; set; }
 
-        // TaleArr: taste preferences (TalearrMamFillerTaste). MAM's site category and author_info.
+        // Talearr: taste preferences (TalearrMamFillerTaste). MAM's site category and author_info.
         public int? CategoryId { get; set; }
         public string CategoryName { get; set; }
         public List<string> Authors { get; set; } = new List<string>();
@@ -72,7 +72,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
         public bool IsAudiobook { get; set; }
         public bool Grabbed { get; set; }
 
-        // TaleArr: taste preferences. Additive API.
+        // Talearr: taste preferences. Additive API.
         public bool Preferred { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
@@ -92,7 +92,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
         public string LibraryMessage { get; set; }
     }
 
-    // TaleArr: a preferred filler pick that is also put into the library ("Import Preferred
+    // Talearr: a preferred filler pick that is also put into the library ("Import Preferred
     // Picks"). Kept as JSON in TalearrFillerState (key "pick:<torrent id>"), so no schema change.
     // The torrent itself stays in the filler category and keeps seeding; the files are copied or
     // hardlinked into the library once the download has finished and the book is in the library.
@@ -123,7 +123,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
         public bool IsOpen => LibraryState == StateWaiting || LibraryState == StateAdding;
     }
 
-    // TaleArr: what the download client says about one filler torrent, for the library import.
+    // Talearr: what the download client says about one filler torrent, for the library import.
     public class TalearrFillerDownload
     {
         public bool Completed { get; set; }
@@ -158,13 +158,13 @@ namespace NzbDrone.Core.Talearr.MamFiller
         public int Tracked { get; set; }
     }
 
-    // A torrent client the filler can add to without going through TaleArr's grab path (no
+    // A torrent client the filler can add to without going through Talearr's grab path (no
     // history, no tracked download, no import). qBittorrent implements it.
     public interface ITalearrMamFillerClient
     {
         void AddFillerTorrent(string fileName, byte[] torrentFile, string hash, string category, TimeSpan? seedTime);
 
-        // TaleArr's normal category for a media type, used when Import Into Library is on.
+        // Talearr's normal category for a media type, used when Import Into Library is on.
         string GetLibraryCategory(bool audiobook);
 
         List<TalearrSeedingClientTorrent> GetCategoryTorrents(string category);
@@ -173,11 +173,11 @@ namespace NzbDrone.Core.Talearr.MamFiller
 
         void RemoveFillerTorrent(string hash);
 
-        // TaleArr: taste preferences. Null when the client does not have the torrent.
+        // Talearr: taste preferences. Null when the client does not have the torrent.
         TalearrFillerDownload GetFillerDownload(string hash, string category);
     }
 
-    // TaleArr: puts preferred filler picks into the library (TalearrMamFillerLibraryService).
+    // Talearr: puts preferred filler picks into the library (TalearrMamFillerLibraryService).
     public interface ITalearrMamFillerLibrary
     {
         // Names of the authors in the library, for "Prefer Authors in My Library".

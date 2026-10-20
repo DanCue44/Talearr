@@ -34,7 +34,7 @@ namespace NzbDrone.Core.Books
         List<Book> GetBooksByFileIds(IEnumerable<int> fileIds);
         Book AddBook(Book newBook, bool doRefresh = true);
         Book FindBySlug(string titleSlug);
-        // TaleArr: slug lookup for routes. The default keeps the old full-library behavior for
+        // Talearr: slug lookup for routes. The default keeps the old full-library behavior for
         // other implementations; BookService answers it with one indexed-column query.
         List<Book> FindAllBySlug(string titleSlug) => (GetAllBooks() ?? new List<Book>())
             .Where(book => book != null && string.Equals(book.TitleSlug, titleSlug, StringComparison.OrdinalIgnoreCase))
@@ -673,7 +673,7 @@ namespace NzbDrone.Core.Books
                     .FirstOrDefault() ?? FindByMergeRedirect(normalizedProviderId, mediaType);
             }
 
-            // TaleArr: an id of a book row the merge tool merged away means the kept row.
+            // Talearr: an id of a book row the merge tool merged away means the kept row.
             private Book FindByMergeRedirect(string normalizedProviderId, BookMediaType mediaType)
             {
                 var targetId = _mergeRedirects?.FindBook(normalizedProviderId, (int)mediaType);

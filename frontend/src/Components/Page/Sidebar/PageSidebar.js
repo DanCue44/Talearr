@@ -33,12 +33,12 @@ const links = [
         title: () => translate('Books'),
         to: '/books'
       },
-      // TaleArr: series monitoring.
+      // Talearr: series monitoring.
       {
         title: () => translate('Series'),
         to: '/talearr/series'
       },
-      // TaleArr: possible duplicates and merge.
+      // Talearr: possible duplicates and merge.
       {
         title: () => 'Duplicates',
         to: '/talearr/duplicates'
@@ -86,7 +86,7 @@ const links = [
         title: () => translate('IgnoredDownloads'),
         to: '/activity/ignored'
       },
-      // TaleArr: seeding status and hit-and-run risk.
+      // Talearr: seeding status and hit-and-run risk.
       {
         title: () => 'Seeding',
         to: '/activity/seeding'
@@ -184,7 +184,7 @@ const links = [
         title: () => translate('Backup'),
         to: '/system/backup'
       },
-      // TaleArr: migration from Readarr, Bookshelf or LazyLibrarian.
+      // Talearr: migration from Readarr, Bookshelf or LazyLibrarian.
       {
         title: () => 'Migrate',
         to: '/system/migrate'

@@ -166,7 +166,7 @@ namespace Chaptarr.Core.Test.DecisionEngine
         }
 
         [Test]
-        // TaleArr: releases without the subtitle are accepted (upstream rejected them).
+        // Talearr: releases without the subtitle are accepted (upstream rejected them).
         public void should_accept_interactive_search_result_when_release_omits_the_monitored_edition_subtitle()
         {
             var author = new Author { Name = "Mitch Albom" };

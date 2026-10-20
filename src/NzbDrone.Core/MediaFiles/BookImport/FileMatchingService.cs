@@ -712,7 +712,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                     directAuthorIdentitySupport = BookImportUnitGroupingService.BuildIdentityPairSupport(filesWithMetadata, directAuthorExcludedIdentityValues);
                 }
 
-                // TaleArr: a folder that holds more than one book (by album tags) is split per book
+                // Talearr: a folder that holds more than one book (by album tags) is split per book
                 // instead of being matched as one unit. See SharedFolderBookSplitter.
                 var talearrSharedFolderBookKeys = BuildTalearrSharedFolderBookKeys(filesWithMetadata);
 
@@ -13493,7 +13493,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
             return tags;
         }
 
-        // TaleArr: book keys for files in folders that hold more than one book.
+        // Talearr: book keys for files in folders that hold more than one book.
         private static IReadOnlyDictionary<string, string> BuildTalearrSharedFolderBookKeys(IEnumerable<DiscoveredFileWithMetadata> files)
         {
             var keys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

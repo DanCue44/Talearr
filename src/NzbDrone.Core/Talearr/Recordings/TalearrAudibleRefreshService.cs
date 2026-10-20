@@ -7,7 +7,7 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Talearr.Recordings
 {
-    // TaleArr: runs RefreshAudibleRecordingFactsCommand.
+    // Talearr: runs RefreshAudibleRecordingFactsCommand.
     //
     // Scheduled run: picks the editions the Enrich setting covers, skips those whose cache rows
     // are still fresh, and works through at most MaxBooksPerRun books and MaxSearchesPerRun
@@ -54,14 +54,14 @@ namespace NzbDrone.Core.Talearr.Recordings
             var settings = TalearrRecordingsSettingsService.Resolve(_settingsService);
             if (settings.Provider == TalearrAudibleProvider.Off)
             {
-                _logger.Debug("TaleArr: Audible lookups are off");
+                _logger.Debug("Talearr: Audible lookups are off");
                 return;
             }
 
             var onDemand = message.BookIds != null && message.BookIds.Count > 0;
             if (!onDemand && settings.Enrich == TalearrEnrichScope.Off)
             {
-                _logger.Debug("TaleArr: background Audible enrichment is off");
+                _logger.Debug("Talearr: background Audible enrichment is off");
                 return;
             }
 
@@ -106,7 +106,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 if (summary.Throttled)
                 {
                     total.Throttled = true;
-                    _logger.Info("TaleArr: Audible is throttling; the rest waits for the next run");
+                    _logger.Info("Talearr: Audible is throttling; the rest waits for the next run");
                     break;
                 }
             }
@@ -116,7 +116,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 _store.PruneOlderThan(now - PruneAfter);
             }
 
-            _logger.Info("TaleArr: Audible facts ({0}): {1} books, {2} editions, {3} matched, {4} without a match, {5} searches, {6} books left for later",
+            _logger.Info("Talearr: Audible facts ({0}): {1} books, {2} editions, {3} matched, {4} without a match, {5} searches, {6} books left for later",
                 settings.Marketplace,
                 processed,
                 total.Editions,
@@ -179,7 +179,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "TaleArr: no author name for book {0}", book.Id);
+                    _logger.Debug(ex, "Talearr: no author name for book {0}", book.Id);
                 }
 
                 cache[book.AuthorId] = name;

@@ -1,26 +1,26 @@
 <div align="center">
 
-<img src="Logo/talearr.png" width="160" alt="TaleArr logo">
+<img src="Logo/talearr.png" width="160" alt="Talearr logo">
 
-# TaleArr
+# Talearr
 
 An ebook and audiobook collection manager, based on Chaptarr.
 
 </div>
 
-> TaleArr is a private fork and early work in progress.
+> Talearr is a private fork and early work in progress.
 
-## What is TaleArr?
+## What is Talearr?
 
-TaleArr is a fork of [Chaptarr](https://github.com/Chaptarr/chaptarr), which is itself a
+Talearr is a fork of [Chaptarr](https://github.com/Chaptarr/chaptarr), which is itself a
 fork of [Readarr](https://github.com/Readarr/Readarr) from the
 [Servarr](https://wiki.servarr.com/) project family. It manages audiobook and ebook
 libraries in one instance: narrator and edition aware metadata, separate audiobook and
 ebook root folders, series handling, quality profiles and upgrades, and the usual
 download client and indexer integrations.
 
-TaleArr tracks Chaptarr closely. The differences today are the name and icon, a separate
-TaleArr version, a "Works best with" block in System > Status (AllSeerr, NoBookEnds), a
+Talearr tracks Chaptarr closely. The differences today are the name and icon, a separate
+Talearr version, a "Works best with" block in System > Status (AllSeerr, NoBookEnds), a
 grab policy (see below), two import additions (completed downloads that only hold archives
 are unpacked before import, and downloaded files whose own language is not the wanted one
 are rejected; see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), fixes to edition choice,
@@ -33,7 +33,7 @@ unabridged, or two narrators, side by side, with a recording-aware upgrade guard
 image and CI. The icon master is
 `Logo/talearr-icon-master.png`.
 
-TaleArr behavior changes so far (all without schema changes, new settings or `config.xml` edits):
+Talearr behavior changes so far (all without schema changes, new settings or `config.xml` edits):
 
 - **Metadata server probe.** A small GET to the root of the configured metadata server
   every 15 minutes (10 s timeout, backing off from 2 to 30 minutes while it is down, 5 minutes
@@ -50,7 +50,7 @@ TaleArr behavior changes so far (all without schema changes, new settings or `co
   for a new author monitors only that book, and future releases stay unmonitored unless the
   request sets `monitorNewItems` / `audiobookMonitorNewItems` / `ebookMonitorNewItems`.
   `addOptions.monitor = "all"` still monitors the whole catalog. The add-book modal defaults to
-  "Only this book" and "None"; saved browser defaults from before TaleArr are switched once.
+  "Only this book" and "None"; saved browser defaults from before Talearr are switched once.
 - **Merge duplicates (Library > Duplicates).** Lists authors with the same name and book rows
   of one author with the same title and media type, and merges them: the kept row keeps its
   ids, everything else (editions, book files, history, queue and blocklist matches, series and
@@ -195,7 +195,7 @@ See [docs/TALEARR_MIGRATION.md](docs/TALEARR_MIGRATION.md).
   already there, what did not match and what conflicts. **Apply** carries out that plan:
   authors are queued with only the source's monitored books monitored, and files on disk are
   matched by the scan that runs when an author or root folder is added.
-- Imported clients and indexers start **disabled** unless asked, so the source and TaleArr do
+- Imported clients and indexers start **disabled** unless asked, so the source and Talearr do
   not both grab. Prowlarr-synced indexers are skipped. The source is only read, never changed.
 - **API**: `GET /api/v1/talearr/migration`, `POST .../preview`, `POST .../upload`,
   `POST .../apply`, `DELETE` (discard the preview).
@@ -209,10 +209,10 @@ key is kept in memory only. No schema change, no new provider type.
 See [docs/TALEARR_AUDIOBOOKSHELF.md](docs/TALEARR_AUDIOBOOKSHELF.md).
 
 - **Library awareness.** The existing Settings > Connect > Audiobookshelf connection gets
-  Sync Library (on): TaleArr reads the mapped libraries every hour (GET only) and matches the
+  Sync Library (on): Talearr reads the mapped libraries every hour (GET only) and matches the
   items to books by path, ASIN, ISBN, then title and author.
 - **No duplicate grabs.** Skip Books Already in Audiobookshelf (on) skips releases for books
-  ABS already has and TaleArr has no files for, shown as "In Audiobookshelf" in interactive
+  ABS already has and Talearr has no files for, shown as "In Audiobookshelf" in interactive
   search. An abridged copy does not count for a wanted unabridged recording, and with several
   recordings the narrator decides which one an ABS copy is.
 - **Book page badge.** "In Audiobookshelf", linking to the item (Link URL sets the address
@@ -228,7 +228,7 @@ See [docs/TALEARR_AUDIOBOOKSHELF.md](docs/TALEARR_AUDIOBOOKSHELF.md).
 
 Storage: three extra keys in the connection's own settings JSON (stock Chaptarr skips them) and
 a cache in `talearr.db`. Chaptarr deletes connection types it does not know on start, so
-TaleArr adds none.
+Talearr adds none.
 
 ## Soulseek and download clients
 
@@ -241,7 +241,7 @@ See [docs/TALEARR_SOULSEEK.md](docs/TALEARR_SOULSEEK.md) and
   settings (free upload slot only, maximum peer queue, one download per peer) are on by default.
   Manual only, no automatic search.
 - **Debrid** works through qBittorrent-compatible proxies (rdt-client, Decypharr) added as a
-  qBittorrent client; TaleArr reads their API versions and empty content paths correctly.
+  qBittorrent client; Talearr reads their API versions and empty content paths correctly.
 - **API**: `/api/v1/config/talearrsoulseek`, `/api/v1/talearr/soulseek` (search, grab, grabs).
 
 Storage: `talearr.soulseek.*` rows in the `Config` table. Not a download client or indexer
@@ -278,7 +278,7 @@ for KOReader, Panels, Thorium, Moon+ Reader and other OPDS readers:
 - Downloads stream the library file (EPUB, AZW3, MOBI, PDF and the rest). **Offer KEPUB
   downloads** (off) adds a KEPUB link next to each EPUB, converted on download with kepubify
   when it is installed; otherwise the plain EPUB is sent. The library file is never changed.
-- Sign-in: HTTP Basic with your TaleArr user (Forms or Basic authentication, same lockout as the
+- Sign-in: HTTP Basic with your Talearr user (Forms or Basic authentication, same lockout as the
   login page), or any user name with the API key as the password (works with Plex, OIDC or
   External authentication too), or `?apikey=` on the URL. From a local address no sign-in is
   needed when Authentication Required is "Disabled for Local Addresses", like the web UI. While
@@ -307,11 +307,11 @@ and no schema change, so a rollback to Chaptarr removes the feed and the button.
 
 ## MyAnonamouse
 
-The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additions:
+The native MyAnonaMouse indexer (Settings > Indexers) gets these Talearr additions:
 
 - **Session health.** A `mam_id` that MAM rejects (search, download or account refresh) shows
   "MAM session expired: paste a new mam_id" in System > Status until a new one is saved. When
-  MAM sends a new `mam_id` in Set-Cookie, TaleArr saves it to the indexer settings.
+  MAM sends a new `mam_id` in Set-Cookie, Talearr saves it to the indexer settings.
 - **Update Dynamic Seedbox IP** (off) tells MAM the torrent client's current IP on startup and
   every **Dynamic Seedbox Interval** (30 minutes) via `t.myanonamouse.net/json/dynamicSeedbox.php`.
   The call must leave from the torrent client's IP: pick a proxy that exits through the
@@ -367,7 +367,7 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
   Vault. Cheese purchases are not in the API.
 - **Seed-only and ratio guard** (always on). A new account starts with 0 upload, so a few
   normal grabs can push the ratio under 1.0, and MAM then demotes it to Mouse and makes it seed
-  only. TaleArr blocks every MAM grab (freeleech too, native and Prowlarr MAM results) while the
+  only. Talearr blocks every MAM grab (freeleech too, native and Prowlarr MAM results) while the
   account is Mouse or reports a seed-only / download-disabled flag, with the System > Status
   error "MAM account is seed-only: buy upload credit in the Bonus Points Store". A
   non-freeleech grab only goes ahead when uploaded / (downloaded + release size) stays at or
@@ -416,7 +416,7 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
      `fl` wedge parameter) and added straight to qBittorrent in **Filler Category**
      (`mam-seed`) with a per-torrent seeding time of **Filler Seed Time** (30 days). No grab
      history, queue entry or import is created; **Filler Import Into Library** (off) puts them
-     in the client's normal TaleArr category instead. **Filler Remove After Seed Time** (on)
+     in the client's normal Talearr category instead. **Filler Remove After Seed Time** (on)
      removes them with their files once they have seeded that long (never under 72 hours).
   5. **Taste preferences.** Picks that match a preferred category or author go first (then the
      ranking above); the rest only fill the remaining slots, or none with **Filler Only Grab
@@ -448,7 +448,7 @@ The native MyAnonaMouse indexer (Settings > Indexers) gets these TaleArr additio
 - **Power User progress.** Activity > Seeding shows how far the account is from MAM's
   automatic Power User promotion (member for 4 weeks, over 25 GiB uploaded, ratio 2.0) when
   the account refresh reports the join date and upload totals. Unknown values stay blank.
-- **Seeding status.** Activity > Seeding lists what the torrent clients seed in TaleArr's
+- **Seeding status.** Activity > Seeding lists what the torrent clients seed in Talearr's
   categories (post-import categories included): book, format, indexer, state, seeded time
   against the requirement (72 hours for MAM; the indexer Seed Time is the goal), upload and
   ratio, plus the stored MAM account status. A private-tracker torrent that has not met its
@@ -473,7 +473,7 @@ torrent, a `filler` block (last run, result, back-off, preview with `preferred`,
 
 ## Drop-in compatibility with Chaptarr
 
-TaleArr is built so it can start on an existing Chaptarr config folder and database
+Talearr is built so it can start on an existing Chaptarr config folder and database
 unchanged, and so Chaptarr can start on it again if you roll back.
 
 Kept exactly as upstream:
@@ -488,11 +488,11 @@ Kept exactly as upstream:
 
 Changed for users: the product name in the UI, page titles, login page, PWA manifest,
 notifications, startup logs, the logo and icons, and the Docker image name. New native
-installs use a `TaleArr` data folder; an existing `Chaptarr` data folder is reused.
+installs use a `Talearr` data folder; an existing `Chaptarr` data folder is reused.
 
 ## Notifications
 
-TaleArr uses Chaptarr's existing connection types (Webhook, Discord, Pushover, Apprise,
+Talearr uses Chaptarr's existing connection types (Webhook, Discord, Pushover, Apprise,
 Notifiarr, Telegram, Slack, ntfy, Gotify, email and the rest); it adds no new connection
 type, because stock Chaptarr deletes types it does not know when it starts. Events:
 
@@ -508,7 +508,7 @@ type, because stock Chaptarr deletes types it does not know when it starts. Even
 | MAM bonus purchase made or failed | On Health Issue + Include Health Warnings | bonus points auto-spend; a notice when bought, a warning when MAM refused |
 | MAM account is Mouse or seed-only | On Health Issue + Include Health Warnings | warning with the upload credit advice |
 | Private torrent at risk of a hit and run | On Health Issue + Include Health Warnings | the seeding risk check (warning); see MyAnonamouse > Seeding status |
-| Metadata fallback active | On Health Issue + Include Health Warnings | TaleArr's notice-level checks go out with warnings |
+| Metadata fallback active | On Health Issue + Include Health Warnings | Talearr's notice-level checks go out with warnings |
 | Application update, author/book added and deleted | as upstream | |
 
 Webhook payloads stay Readarr compatible: existing fields and `eventType` names are
@@ -517,10 +517,10 @@ unchanged, and new data is added as extra fields (`books[].coverUrl`, `mediaType
 
 ## Prowlarr and Readarr API clients
 
-- **Prowlarr**: add TaleArr as a **Readarr** application (URL `http://<host>:8789`, API key
+- **Prowlarr**: add Talearr as a **Readarr** application (URL `http://<host>:8789`, API key
   from Settings > General). Prowlarr syncs its indexers as Newznab/Torznab through
   `/api/v1/indexer`, `/indexer/schema` and `/indexer/test`. Sync categories 3030
-  (audiobook) and 7000-7999 (7020 ebook); at search time TaleArr sends audiobook searches only
+  (audiobook) and 7000-7999 (7020 ebook); at search time Talearr sends audiobook searches only
   the 3xxx categories and ebook searches only the 7xxx ones, so keep both in the app's
   sync categories. MAM results (native indexer or through Prowlarr) carry 3030/7020 plus
   the site category as `100000 + id`, like Prowlarr reports them.
@@ -535,16 +535,16 @@ unchanged, and new data is added as extra fields (`books[].coverUrl`, `mediaType
 
 ## Grab policy
 
-Settings > Indexers > Grab policy controls what TaleArr grabs and what it does when a grab
+Settings > Indexers > Grab policy controls what Talearr grabs and what it does when a grab
 goes wrong:
 
 | Setting | Default | What it does |
 |---|---|---|
-| Abridged audiobooks | Unabridged only | Audiobook releases marked "abridged" are skipped (shown as a soft filter in interactive search, so you can still grab one on purpose). They are allowed when the wanted edition is itself abridged, judged from the edition title or info, or from its runtime being under 60% of the longest edition in the same language. "Abridged only" does the opposite: releases marked unabridged are skipped, unmarked ones are allowed only when the monitored edition is abridged, abridged releases rank first, and before searching a book without files TaleArr monitors its best abridged edition (see [docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md#per-book-abridged-policy)). "Prefer unabridged" allows them but always ranks them below unabridged or unmarked releases. "Any" turns this off. A book can have its own value (from AllSeerr), which wins over this one. |
+| Abridged audiobooks | Unabridged only | Audiobook releases marked "abridged" are skipped (shown as a soft filter in interactive search, so you can still grab one on purpose). They are allowed when the wanted edition is itself abridged, judged from the edition title or info, or from its runtime being under 60% of the longest edition in the same language. "Abridged only" does the opposite: releases marked unabridged are skipped, unmarked ones are allowed only when the monitored edition is abridged, abridged releases rank first, and before searching a book without files Talearr monitors its best abridged edition (see [docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md#per-book-abridged-policy)). "Prefer unabridged" allows them but always ranks them below unabridged or unmarked releases. "Any" turns this off. A book can have its own value (from AllSeerr), which wins over this one. |
 | Allow bundles | Off | Series bundles, omnibuses, box sets, collections, "complete novels", "N books" sets and explicit title lists ("Great Innovators (Benjamin Franklin; Einstein; Steve Jobs)") are skipped for single-book searches. A wanted book that is itself an omnibus still matches bundle releases. |
-| Fail rejected imports | On | When an import is rejected because the release is the wrong book, its files are in the wrong language, its archives are unusable, or it holds no audio or ebook files (zip, rar and 7z are unpacked first, see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), the download is marked failed. That blocklists the release and starts the automatic redownload. Archive formats TaleArr does not unpack, same-title matches (usually duplicate metadata), transient errors and explicit interactive grabs stay in the queue as before. |
+| Fail rejected imports | On | When an import is rejected because the release is the wrong book, its files are in the wrong language, its archives are unusable, or it holds no audio or ebook files (zip, rar and 7z are unpacked first, see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), the download is marked failed. That blocklists the release and starts the automatic redownload. Archive formats Talearr does not unpack, same-title matches (usually duplicate metadata), transient errors and explicit interactive grabs stay in the queue as before. |
 | Automatic retry limit | 3 | Failed downloads per book within 7 days before automatic searching stops. |
-| Retry failed grabs | On | When a release cannot be sent to the download client because the indexer (or Prowlarr) answered 429, a 5xx error or timed out, the next approved release of the same search is tried (other releases of an indexer that just said 429 are left for later), and if nothing could be sent the book is searched again after 2, 10 and 30 minutes. The wait honours Retry-After and the indexer back-off shown under System > Status, is capped at an hour, and the number of re-searches is the automatic retry limit. Only automatic and user-started searches are retried; RSS sync and interactive grabs behave as before. Each step is logged with a "TaleArr:" prefix. |
+| Retry failed grabs | On | When a release cannot be sent to the download client because the indexer (or Prowlarr) answered 429, a 5xx error or timed out, the next approved release of the same search is tried (other releases of an indexer that just said 429 are left for later), and if nothing could be sent the book is searched again after 2, 10 and 30 minutes. The wait honours Retry-After and the indexer back-off shown under System > Status, is capped at an hour, and the number of re-searches is the automatic retry limit. Only automatic and user-started searches are retried; RSS sync and interactive grabs behave as before. Each step is logged with a "Talearr:" prefix. |
 
 Settings > Indexers > **Format policy** (see [docs/TALEARR_FORMAT_POLICY.md](docs/TALEARR_FORMAT_POLICY.md))
 picks the format grabbed for a wanted book, for the library and per author: Both (default,
@@ -579,10 +579,10 @@ setting, which is on by default. A replacement search covers every indexer with 
 search enabled, Usenet and torrent. Grabs you made yourself (interactive or a manual search)
 are retried as a manual search, so an unmonitored book or a delay profile does not block the
 replacement. Each step is appended to the Download Failed entry in History, for example
-"TaleArr: release blocklisted, searching all indexers for a replacement (attempt 1 of 3)".
+"Talearr: release blocklisted, searching all indexers for a replacement (attempt 1 of 3)".
 
 Storage: these five settings live in the existing `Config` key/value table as
-`talearr.grabpolicy.*` rows, read and written only by TaleArr through the new
+`talearr.grabpolicy.*` rows, read and written only by Talearr through the new
 `/api/v1/config/talearrgrabpolicy` route. Per-book abridged values live in `talearr.db`
 (`/api/v1/talearr/grabpolicy/book/{bookId}`). There is no schema change, no existing route or
 field changes, and `config.xml` is not touched. Chaptarr ignores the rows, so a rollback
@@ -590,7 +590,7 @@ runs Chaptarr's own behaviour on the same database.
 
 ## Versioning
 
-TaleArr has its own version, set in `src/Talearr.props` (currently `0.18.2`). System >
+Talearr has its own version, set in `src/Talearr.props` (currently `0.18.2`). System >
 Status shows it as the version, with a "Based on Chaptarr x.y.z" line underneath. The
 assembly version stays the upstream Chaptarr version (from `package.json` and
 `src/Directory.Build.props`) on purpose, because update checks, backups and metadata
@@ -608,7 +608,7 @@ space is used twice. Upstream moved a torrent once it reached its seed goal, and
 in manual import even while a torrent was still seeding; both are now a hardlink. Usenet
 downloads are still moved, a torrent blackhole still follows its own "read only" setting, and
 the client still removes finished torrents and their data the usual way (the library copy
-stays). Turn the setting off for the upstream behaviour. TaleArr's own steps never touch the
+stays). Turn the setting off for the upstream behaviour. Talearr's own steps never touch the
 seeding data either: archives are unpacked into a separate work folder and only that folder is
 deleted, an M4B merge writes a new file and only removes the library's links, bundle leftovers
 are only deleted for usenet, and tag or date writes break a library hardlink first. Moving a
@@ -616,7 +616,7 @@ still-hardlinked file to the recycle bin no longer changes the torrent copy's ti
 
 **Post-import categories.** qBittorrent, Deluge, rTorrent, uTorrent and Flood can move an
 imported torrent to a category or label (Audiobook / Ebook Post-Import Category, advanced
-settings of the download client). Torrents in that category are kept by TaleArr and never
+settings of the download client). Torrents in that category are kept by Talearr and never
 removed.
 
 **Hardlinks need one filesystem.** A hardlink only works when the download folder and the
@@ -632,7 +632,7 @@ memory and starts again after a restart).
 **Manual import (Wanted > Missing > Manual Import, or Manual Import on a queue item).** Point
 it at any folder, for example an old library: files are scanned and matched with the normal
 import matching, then shown in a review table where every row can be re-matched (author, book,
-edition). TaleArr adds:
+edition). Talearr adds:
 
 - A match confidence per row (High, Medium, Low; hover for why), from the match's own evidence
   and whether the matched title appears in the file's tags, file name or folder. A Low row is
@@ -657,7 +657,7 @@ Images are published to GitHub Container Registry by `.github/workflows/talearr-
 |---|---|
 | `ghcr.io/dancue44/talearr:develop` | every push to `develop` |
 | `ghcr.io/dancue44/talearr:latest` | every push to `main` |
-| `ghcr.io/dancue44/talearr:0.18.2` | `main` (TaleArr version) and `v0.18.2` git tags |
+| `ghcr.io/dancue44/talearr:0.18.2` | `main` (Talearr version) and `v0.18.2` git tags |
 | `ghcr.io/dancue44/talearr:<branch>` | pushes to `feat/**` and `fix/**` branches (amd64 only) |
 | `ghcr.io/dancue44/talearr:sha-<commit>` | every build |
 
@@ -699,10 +699,10 @@ copy. For hardlinks, use one parent share, for example `/mnt/user/data` with `do
 `/data` to `/mnt/user/data`, and clear the three separate paths). Give the download client the
 same `/data` mapping, set its completed folder under `/data/downloads`, and add
 `/data/media/books` and `/data/media/audiobooks` as root folders. Unraid can only hardlink within
-one disk or pool, so a hardlink fails (and TaleArr copies) when a download sits on the cache
+one disk or pool, so a hardlink fails (and Talearr copies) when a download sits on the cache
 and its library folder already lives on an array disk.
 
-To move an existing Chaptarr container to TaleArr (and back), see
+To move an existing Chaptarr container to Talearr (and back), see
 [docs/TALEARR_UNRAID_SWAP.md](docs/TALEARR_UNRAID_SWAP.md).
 
 ## Building from source
@@ -732,7 +732,7 @@ drop-in identifiers are unchanged. CI runs it on every push.
 Settings > Metadata > **Metadata fallback** keeps search and add working while the Chaptarr
 metadata server is down. Values: Off, When the metadata server is down (default), and the same
 with search results labelled "Open Library". It uses the public Open Library API (no key, one
-request per second, a `TaleArr/<version>` user agent, responses cached for 6 hours).
+request per second, a `Talearr/<version>` user agent, responses cached for 6 hours).
 
 - Search falls back when the metadata server is down or the search provider fails with a
   server or network error. A missing Hardcover token is not treated as an outage.
@@ -745,7 +745,7 @@ request per second, a `TaleArr/<version>` user agent, responses cached for 6 hou
   recovery the normal refresh updates the author from the metadata server, and books added
   from Open Library are matched to the server's books by ISBN-13, then by exact title (same
   media type, one candidate only), so the existing rows are updated in place, not duplicated.
-- Audiobooks: when Open Library lists an Audible ASIN for a work (`id_amazon`, B0...), TaleArr
+- Audiobooks: when Open Library lists an Audible ASIN for a work (`id_amazon`, B0...), Talearr
   asks Audnexus (`api.audnex.us`, no key, same user agent, one request per second, cached a day,
   at most 20 lookups per author) for that product and, if its title and author match, adds an
   audio edition with narrators, runtime and Unabridged/Abridged. Only fallback-built books are
@@ -765,7 +765,7 @@ See [docs/TALEARR_UPSTREAM_SYNC.md](docs/TALEARR_UPSTREAM_SYNC.md).
 
 ## Privacy
 
-Like Chaptarr, TaleArr uses `api2.chaptarr.com` for metadata and matching, and the update
+Like Chaptarr, Talearr uses `api2.chaptarr.com` for metadata and matching, and the update
 check contacts Chaptarr's update service. See the upstream README for what those requests
 contain.
 While the metadata server is unavailable, the metadata fallback (on by default) sends search
@@ -773,17 +773,17 @@ terms and author names to `openlibrary.org`; turn it off under Settings > Metada
 
 ## License and credits
 
-TaleArr is free software under the [GNU GPL v3](LICENSE). See [COPYRIGHT.md](COPYRIGHT.md).
+Talearr is free software under the [GNU GPL v3](LICENSE). See [COPYRIGHT.md](COPYRIGHT.md).
 
-TaleArr is based on [Chaptarr](https://github.com/Chaptarr/chaptarr) by the Chaptarr
+Talearr is based on [Chaptarr](https://github.com/Chaptarr/chaptarr) by the Chaptarr
 contributors, which is based on [Readarr](https://github.com/Readarr/Readarr) and the
 shared codebase of the Servarr team ([Sonarr](https://github.com/Sonarr/Sonarr),
 [Radarr](https://github.com/Radarr/Radarr), [Lidarr](https://github.com/Lidarr/Lidarr),
 [Prowlarr](https://github.com/Prowlarr/Prowlarr)). Thank you to all of them.
 
-TaleArr is not affiliated with or supported by the Chaptarr project or the Servarr team.
-Please do not send TaleArr support requests to them.
+Talearr is not affiliated with or supported by the Chaptarr project or the Servarr team.
+Please do not send Talearr support requests to them.
 
-- Copyright 2026 TaleArr contributors
+- Copyright 2026 Talearr contributors
 - Portions copyright 2026 Chaptarr contributors
 - Portions copyright 2010-2026 the Servarr team and contributors

@@ -26,15 +26,15 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
         List<TalearrSeriesApplyResult> ApplyAll(int? authorId = null);
     }
 
-    // TaleArr: monitor a series (docs/TALEARR_SERIES.md). A rule says which formats of the series'
-    // books TaleArr wants; applying it monitors every book of the series in those formats that the
+    // Talearr: monitor a series (docs/TALEARR_SERIES.md). A rule says which formats of the series'
+    // books Talearr wants; applying it monitors every book of the series in those formats that the
     // rule has not acted on before and searches for the new ones. New books reach the series through
     // the normal author refresh, which ends with AuthorRefreshCompleteEvent, so the rule is applied
     // again after every refresh and on a schedule.
     //
     // A rule only ever turns monitoring on, once per book and format: a book you unmonitor later
     // stays unmonitored, and removing a rule changes no book. It touches the primary row of each
-    // format only; additional recordings (TaleArr recordings) keep their own monitoring. Grabs go
+    // format only; additional recordings (Talearr recordings) keep their own monitoring. Grabs go
     // through the normal search, so the grab policy (abridged, bundles, retries) applies as usual.
     public class TalearrSeriesMonitorService : ITalearrSeriesMonitorService,
                                                IExecute<ApplySeriesMonitoringCommand>,
@@ -193,7 +193,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
                     if (rule != null)
                     {
                         _store.Remove(key);
-                        _logger.Info("TaleArr: stopped monitoring series '{0}'. Books keep their current monitoring.", rule.Title);
+                        _logger.Info("Talearr: stopped monitoring series '{0}'. Books keep their current monitoring.", rule.Title);
                     }
 
                     return GetDetail(seriesId);
@@ -220,7 +220,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
                 rule.IncludeExtras = request.IncludeExtras ?? rule.IncludeExtras;
 
                 _store.Save(rule);
-                _logger.Info("TaleArr: monitoring series '{0}' for {1}", rule.Title, DescribeFormats(rule));
+                _logger.Info("Talearr: monitoring series '{0}' for {1}", rule.Title, DescribeFormats(rule));
 
                 ApplyRule(rule, rows);
             }
@@ -280,7 +280,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
                     if (author != null && author.ApplyMediaTypeMonitoringSettings(mediaType, true, null))
                     {
                         _authorService.UpdateAuthor(author);
-                        _logger.Info("TaleArr: {0} monitoring turned on for author '{1}' from series '{2}'", isAudiobook ? "Audiobook" : "Ebook", author.Name, TitleOf(rows));
+                        _logger.Info("Talearr: {0} monitoring turned on for author '{1}' from series '{2}'", isAudiobook ? "Audiobook" : "Ebook", author.Name, TitleOf(rows));
                     }
                 }
 
@@ -326,7 +326,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn(ex, "TaleArr: unable to apply series monitoring for '{0}'", stored.Title);
+                        _logger.Warn(ex, "Talearr: unable to apply series monitoring for '{0}'", stored.Title);
                     }
                 }
             }
@@ -367,7 +367,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: unable to queue series monitoring");
+                _logger.Debug(ex, "Talearr: unable to queue series monitoring");
             }
         }
 
@@ -498,11 +498,11 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
 
             if (result.Monitored > 0 || result.Searched > 0)
             {
-                _logger.Info("TaleArr: series '{0}': {1}", rule.Title, rule.LastResult);
+                _logger.Info("Talearr: series '{0}': {1}", rule.Title, rule.LastResult);
             }
             else
             {
-                _logger.Debug("TaleArr: series '{0}': {1}", rule.Title, rule.LastResult);
+                _logger.Debug("Talearr: series '{0}': {1}", rule.Title, rule.LastResult);
             }
 
             return result;
@@ -619,7 +619,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: unable to read the files of {0} books", bookIds.Count);
+                _logger.Debug(ex, "Talearr: unable to read the files of {0} books", bookIds.Count);
                 return new HashSet<int>();
             }
         }
@@ -649,7 +649,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
                     }
                     catch (Exception ex)
                     {
-                        _logger.Debug(ex, "TaleArr: unable to read the books of author {0}", authorId);
+                        _logger.Debug(ex, "Talearr: unable to read the books of author {0}", authorId);
                         books = new List<Book>();
                     }
 

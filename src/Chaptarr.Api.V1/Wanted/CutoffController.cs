@@ -49,7 +49,7 @@ namespace Chaptarr.Api.V1.Wanted
 
             pagingSpec.FilterExpressions.Add(AuthorExtensions.GetBookMonitoringFilter(requestedMediaType, monitored));
 
-            // TaleArr: custom filters on book tags, author tags, genres and narrator (JSON list of
+            // Talearr: custom filters on book tags, author tags, genres and narrator (JSON list of
             // { key, value, type }). Absent for stock clients, so the page is unchanged.
             var talearrIds = _talearrBookFilter?.MatchingBookIds(talearrFilter)?.ToList();
             if (talearrIds != null)

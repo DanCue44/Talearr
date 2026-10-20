@@ -6,7 +6,7 @@ using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Config
 {
-    // TaleArr: M4B merge settings. A new route; no existing route or field changes. Values are
+    // Talearr: M4B merge settings. A new route; no existing route or field changes. Values are
     // stored by TalearrM4bSettingsService as talearr.audiobook.* rows in the Config table.
     public class TalearrM4bConfigResource : RestResource
     {

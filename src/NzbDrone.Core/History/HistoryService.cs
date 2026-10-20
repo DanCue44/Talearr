@@ -238,7 +238,7 @@ namespace NzbDrone.Core.History
                 history.Data.Add("ReleaseSource", message.Book.ReleaseSource.ToString());
                 history.Data.Add("IndexerFlags", message.Book.Release.IndexerFlags.ToString());
 
-                // TaleArr: remember a bundle grab so the import keeps only wanted books from it.
+                // Talearr: remember a bundle grab so the import keeps only wanted books from it.
                 TalearrBundleFallback.AddHistoryData(message.Book, history.Data);
 
                 if (!message.Book.ParsedBookInfo.ReleaseHash.IsNullOrWhiteSpace())

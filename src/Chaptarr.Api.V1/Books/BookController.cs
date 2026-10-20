@@ -907,7 +907,7 @@ namespace Chaptarr.Api.V1.Books
             // Readarr-compatible browser links use /book/{titleSlug}. Seerr builds those links
             // from the titleSlug returned by POST /api/v1/book, so resolve slugs here without
             // changing the canonical Chaptarr route shape.
-            // TaleArr: look the slug up directly instead of loading every book in the library.
+            // Talearr: look the slug up directly instead of loading every book in the library.
             var slugMatches = (_bookService.FindAllBySlug(routeToken) ?? new List<Book>())
                 .Where(book => book != null &&
                                string.Equals(book.TitleSlug, routeToken, StringComparison.OrdinalIgnoreCase))
@@ -1874,7 +1874,7 @@ namespace Chaptarr.Api.V1.Books
             var book = _bookService.GetBook(bookResource.Id);
             var wasMonitoredForFacadeMediaType = facadeContext != null &&
                                                  book.IsMonitoredForMediaType(facadeContext.MediaType);
-            // TaleArr: a book left with several monitored editions (an older refresh bug) made
+            // Talearr: a book left with several monitored editions (an older refresh bug) made
             // SingleOrDefault throw, so every edition switch on it failed with a 500.
             var beforeMonitoredEditionId = GetSingleMonitoredEditionId(book?.Editions);
             var storedMonitoredEditionIds = GetMonitoredEditionIds(book?.Editions);
@@ -1940,7 +1940,7 @@ namespace Chaptarr.Api.V1.Books
         }
 
         /// <summary>
-        /// TaleArr: when the client echoes several monitored editions back (it loaded a book whose
+        /// Talearr: when the client echoes several monitored editions back (it loaded a book whose
         /// stored state already had several), keep the edition the user just turned on: the one
         /// monitored in the request that was not monitored before. Returns true when it narrowed
         /// the selection.

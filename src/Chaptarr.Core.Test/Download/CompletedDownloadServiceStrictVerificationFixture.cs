@@ -1074,7 +1074,7 @@ namespace Chaptarr.Core.Test.Download
             Assert.That(eventAggregator.Events, Has.None.InstanceOf<DownloadCompletedEvent>());
         }
 
-        // TaleArr: a bundle grabbed for one book imports when that book did; other wanted books
+        // Talearr: a bundle grabbed for one book imports when that book did; other wanted books
         // imported from it and the bundle extras left out must not block or fail it.
         private static TrackedDownload BundleTrackedDownload(string downloadId)
         {

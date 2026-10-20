@@ -138,7 +138,7 @@ RiskCell.propTypes = {
   torrent: PropTypes.object.isRequired
 };
 
-// TaleArr: Activity > Seeding. What the torrent clients seed for TaleArr, with the private-tracker
+// Talearr: Activity > Seeding. What the torrent clients seed for Talearr, with the private-tracker
 // seeding requirement and hit-and-run risk. Read-only.
 class TalearrSeeding extends Component {
 
@@ -253,7 +253,7 @@ class TalearrSeeding extends Component {
     );
   }
 
-  // TaleArr: MAM promotes to Power User after 4 weeks, over 25 GiB uploaded and ratio 2.0.
+  // Talearr: MAM promotes to Power User after 4 weeks, over 25 GiB uploaded and ratio 2.0.
   renderPowerUser(mam) {
     const known = mam.daysUntilEligible != null || mam.uploadedRemainingBytes != null || mam.ratioOk != null;
 
@@ -295,7 +295,7 @@ class TalearrSeeding extends Component {
     );
   }
 
-  // TaleArr: the freeleech seeding filler's last run and what it would grab (or grabbed).
+  // Talearr: the freeleech seeding filler's last run and what it would grab (or grabbed).
   renderFiller(filler) {
     if (!filler || (!filler.enabled && !(filler.preview || []).length)) {
       return null;
@@ -329,7 +329,7 @@ class TalearrSeeding extends Component {
                     kind = kinds.SUCCESS;
                   }
 
-                  // TaleArr: taste preferences (Preferred badge, why, and the library import).
+                  // Talearr: taste preferences (Preferred badge, why, and the library import).
                   const details = [
                     p.preferredReason,
                     p.preferred || !p.category ? null : p.category,
@@ -469,7 +469,7 @@ class TalearrSeeding extends Component {
         <PageContentBody>
           <div className={styles.intro}>
             {
-              'Torrents your download clients are seeding for TaleArr. Private trackers need a minimum ' +
+              'Torrents your download clients are seeding for Talearr. Private trackers need a minimum ' +
               'seeding time (MyAnonamouse: 72 hours within 30 days); a torrent that stops before that ' +
               'counts as a hit and run. Times are refreshed every minute.'
             }
@@ -497,7 +497,7 @@ class TalearrSeeding extends Component {
 
           {
             report && !torrents.length ?
-              <Alert kind={kinds.INFO}>{'No torrents in TaleArr\'s download client categories.'}</Alert> :
+              <Alert kind={kinds.INFO}>{'No torrents in Talearr\'s download client categories.'}</Alert> :
               null
           }
 

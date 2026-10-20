@@ -7,8 +7,8 @@ using NzbDrone.Core.ThingiProvider.Events;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // TaleArr: System > Status messages for MAM sessions: an expired or revoked mam_id, and a
-    // dynamic seedbox update MAM refused. English text on purpose: TaleArr-only, kept out of
+    // Talearr: System > Status messages for MAM sessions: an expired or revoked mam_id, and a
+    // dynamic seedbox update MAM refused. English text on purpose: Talearr-only, kept out of
     // the shared translation files.
     [CheckOn(typeof(MyAnonaMouseSessionStatusChangedEvent))]
     [CheckOn(typeof(ProviderUpdatedEvent<IIndexer>))]

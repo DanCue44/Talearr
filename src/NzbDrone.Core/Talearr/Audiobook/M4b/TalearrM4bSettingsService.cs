@@ -4,7 +4,7 @@ using NzbDrone.Core.Configuration;
 
 namespace NzbDrone.Core.Talearr.Audiobook.M4b
 {
-    // TaleArr: settings for merging multi-file audiobooks into one chaptered M4B.
+    // Talearr: settings for merging multi-file audiobooks into one chaptered M4B.
     public sealed class TalearrM4bSettings
     {
         // Off by default: after an import, books made of several mp3/m4a files are merged into a
@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
             lock (_lock)
             {
                 _repository.Upsert(ConvertAfterImportKey, settings.ConvertAfterImport.ToString());
-                _logger.Info("TaleArr M4B settings saved: convertAfterImport={0}", settings.ConvertAfterImport);
+                _logger.Info("Talearr M4B settings saved: convertAfterImport={0}", settings.ConvertAfterImport);
 
                 _cached = Load();
                 return _cached.Clone();
@@ -79,7 +79,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read TaleArr M4B settings, using the defaults");
+                _logger.Debug(ex, "Unable to read Talearr M4B settings, using the defaults");
             }
 
             return settings;

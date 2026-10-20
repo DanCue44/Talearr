@@ -26,12 +26,12 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         void Annotate(DownloadFailedEvent message, string note);
     }
 
-    // TaleArr: caps automatic re-searching after failed downloads and records each step on the
+    // Talearr: caps automatic re-searching after failed downloads and records each step on the
     // DownloadFailed history row (Data["Message"]), so the history page shows what happened
     // without new history event types (which Chaptarr would not understand after a rollback).
     public class TalearrRetryService : ITalearrRetryService
     {
-        public const string NotePrefix = "TaleArr:";
+        public const string NotePrefix = "Talearr:";
 
         private readonly IHistoryService _historyService;
         private readonly ITalearrGrabPolicyService _grabPolicyService;
@@ -110,7 +110,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to record TaleArr retry note for {0}", message.SourceTitle);
+                _logger.Debug(ex, "Unable to record Talearr retry note for {0}", message.SourceTitle);
             }
 
             _logger.Info("{0}: {1} {2}", message.SourceTitle, NotePrefix, note);

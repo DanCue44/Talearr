@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- TaleArr: recorded Readarr/LazyLibrarian API responses and a small readarr.db SQL script (.sqlscript: *.sql is gitignored). -->
+    <!-- Talearr: recorded Readarr/LazyLibrarian API responses and a small readarr.db SQL script (.sqlscript: *.sql is gitignored). -->
     <None Include="Talearr\Migration\Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

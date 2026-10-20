@@ -12,7 +12,7 @@ function createBooksClientSideCollectionSelector(uiSection) {
     createCustomFiltersSelector('books', uiSection),
     (state) => state.talearrBookTags.byBookId,
     (bookState, authorState, uiSectionState = {}, customFilters, talearrBookTagsByBookId) => {
-      // TaleArr: book tags live outside the book resource; filter predicates read them here.
+      // Talearr: book tags live outside the book resource; filter predicates read them here.
       const state = Object.assign({}, bookState, uiSectionState, { customFilters, talearrBookTagsByBookId });
 
       const books = state.items;

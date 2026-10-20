@@ -28,7 +28,7 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
         public int MinPages { get; set; }
         public List<string> Ignored { get; set; }
 
-        // TaleArr: genre and content type rules, stored as a talearr.* Config row (additive field;
+        // Talearr: genre and content type rules, stored as a talearr.* Config row (additive field;
         // stock Chaptarr clients leave it out and keep the stored rules).
         public TalearrContentFilter TalearrContentFilter { get; set; }
 

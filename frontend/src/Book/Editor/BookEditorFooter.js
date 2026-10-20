@@ -67,7 +67,7 @@ class BookEditorFooter extends Component {
     }
   };
 
-  // TaleArr: book tags (stored by TaleArr, Chaptarr only tags authors).
+  // Talearr: book tags (stored by Talearr, Chaptarr only tags authors).
   onTagsPress = () => {
     this.setState({ isTagsModalOpen: true });
   };

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prints the TaleArr version (src/Talearr.props) and the upstream Chaptarr
+# Prints the Talearr version (src/Talearr.props) and the upstream Chaptarr
 # version (package.json) as shell assignments, for CI and local scripts.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"

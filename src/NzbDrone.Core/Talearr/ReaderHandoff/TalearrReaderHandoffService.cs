@@ -27,7 +27,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
         TalearrReaderHandoffTestResult Test(TalearrReaderHandoffSettings settings);
     }
 
-    // TaleArr: reader hand-off. After an ebook from a download is imported, a copy goes to a
+    // Talearr: reader hand-off. After an ebook from a download is imported, a copy goes to a
     // watch folder (for example Calibre-Web-Automated's ingest folder), optionally converted
     // to KEPUB. Always a copy: the library file is never moved or changed. Audiobooks are
     // skipped. Runs async so a slow disk or kepubify never holds up the import.
@@ -65,7 +65,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: reader hand-off failed for '{0}'", message?.Book?.Title);
+                _logger.Warn(ex, "Talearr: reader hand-off failed for '{0}'", message?.Book?.Title);
             }
         }
 
@@ -137,7 +137,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
                 kepubify = _kepubify.FindExecutable();
                 if (kepubify == null)
                 {
-                    _logger.Warn("TaleArr: Convert to KEPUB is on but kepubify was not found on PATH; copying the EPUB as it is");
+                    _logger.Warn("Talearr: Convert to KEPUB is on but kepubify was not found on PATH; copying the EPUB as it is");
                 }
             }
 
@@ -145,7 +145,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
             {
                 if (!File.Exists(source))
                 {
-                    _logger.Warn("TaleArr: reader hand-off skipped '{0}': the imported file is missing", source);
+                    _logger.Warn("Talearr: reader hand-off skipped '{0}': the imported file is missing", source);
                     continue;
                 }
 
@@ -153,7 +153,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
                 if (destination != null)
                 {
                     written.Add(destination);
-                    _logger.Info("TaleArr: handed '{0}' to the reader folder as '{1}'", Path.GetFileName(source), destination);
+                    _logger.Info("Talearr: handed '{0}' to the reader folder as '{1}'", Path.GetFileName(source), destination);
                 }
             }
 
@@ -175,7 +175,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
                 }
 
                 TryDelete(partial);
-                _logger.Warn("TaleArr: KEPUB conversion of '{0}' failed ({1}); copying the EPUB as it is", Path.GetFileName(source), error ?? "no output");
+                _logger.Warn("Talearr: KEPUB conversion of '{0}' failed ({1}); copying the EPUB as it is", Path.GetFileName(source), error ?? "no output");
             }
 
             var destination = Path.Combine(folder, Path.GetFileName(source));
@@ -212,7 +212,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: could not remove '{0}'", path);
+                _logger.Debug(ex, "Talearr: could not remove '{0}'", path);
             }
         }
 
@@ -231,7 +231,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
             }
             else if (!Directory.Exists(path))
             {
-                result.Errors.Add($"Folder '{path}' does not exist or TaleArr cannot see it. Check the container's volume mappings.");
+                result.Errors.Add($"Folder '{path}' does not exist or Talearr cannot see it. Check the container's volume mappings.");
             }
             else
             {
@@ -239,13 +239,13 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
 
                 try
                 {
-                    File.WriteAllText(probe, "TaleArr write test");
+                    File.WriteAllText(probe, "Talearr write test");
                     File.Delete(probe);
                 }
                 catch (Exception ex)
                 {
                     TryDelete(probe);
-                    result.Errors.Add($"TaleArr cannot write to '{path}': {ex.Message}");
+                    result.Errors.Add($"Talearr cannot write to '{path}': {ex.Message}");
                 }
             }
 
@@ -256,7 +256,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
 
             result.Success = result.Errors.Count == 0;
             result.Message = result.Success
-                ? $"TaleArr can write to '{path}'."
+                ? $"Talearr can write to '{path}'."
                 : string.Join(" ", result.Errors);
 
             return result;

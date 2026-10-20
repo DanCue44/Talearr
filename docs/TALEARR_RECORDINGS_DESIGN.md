@@ -1,7 +1,7 @@
-# TaleArr Phase 2: audiobook recordings (design)
+# Talearr Phase 2: audiobook recordings (design)
 
-Status: built in TaleArr 0.12.0 (PRs 2 to 9 below); user documentation is in
-[TALEARR_RECORDINGS.md](TALEARR_RECORDINGS.md). Written 2026-10-16 against TaleArr 0.11.0
+Status: built in Talearr 0.12.0 (PRs 2 to 9 below); user documentation is in
+[TALEARR_RECORDINGS.md](TALEARR_RECORDINGS.md). Written 2026-10-16 against Talearr 0.11.0
 (based on Chaptarr 0.9.965, main database migration 107).
 
 Where the build differs from this design:
@@ -33,23 +33,23 @@ Phase 2 covers three things:
    under clear rules, and never replaces one recording with a different recording.
 
 The fixed constraint: stock Chaptarr must still start on the same database after a rollback and
-behave sensibly on the data TaleArr left behind.
+behave sensibly on the data Talearr left behind.
 
 ## Summary of the recommendation
 
 - **Recordings are upstream's own "wanted copy" rows (option c).** Chaptarr already models a second
   copy of an audiobook as a second `Books` row in the same identity group (same `BaseBookId` and
   `MediaType`), pinned to one edition. Its narrator picker already creates these rows through
-  `POST /api/v1/book/{id}/editions/wanted`. TaleArr builds the recordings feature on that
+  `POST /api/v1/book/{id}/editions/wanted`. Talearr builds the recordings feature on that
   mechanism, so it needs no new tables or columns for the recordings themselves, and stock
-  Chaptarr understands every row TaleArr creates.
+  Chaptarr understands every row Talearr creates.
 - **Audible facts live in a separate `talearr.db` (option a), as a rebuildable cache keyed by
   provider identity (marketplace + ASIN), not by Chaptarr row ids.** Losing or deleting it costs
   nothing but a refetch. Chaptarr never opens it.
 - **Settings use `talearr.*` rows in the existing `Config` table**, the pattern the grab policy
   already uses.
 - **No FluentMigrator migrations (option b is not used).** The invariant in README and
-  `TALEARR_UNRAID_SWAP.md` ("TaleArr does not add database migrations", schema byte-for-byte
+  `TALEARR_UNRAID_SWAP.md` ("Talearr does not add database migrations", schema byte-for-byte
   unchanged, checked by the Docker workflow) stays true. Option b was checked and would work
   today, but it has costs listed below, and none of the Phase 2 data needs it.
 
@@ -114,7 +114,7 @@ and no abridged marker.
 
 Two things this shows:
 
-- The abridged flag has to come from somewhere else. TaleArr's grab policy currently infers it from
+- The abridged flag has to come from somewhere else. Talearr's grab policy currently infers it from
   title words or a runtime under 60% of the longest same-language edition
   (`AbridgedReleaseDetector.IsAbridgedByMetadata` / `IsAbridgedByRuntime`), which fails when runtime
   is missing, as it is for most editions.
@@ -152,7 +152,7 @@ Limits and terms:
 - **Audible catalog API** is unofficial and undocumented, needs no account, and has no published
   rate limit. It throttles heavy use with 429 or 503 responses. Audible's Conditions of Use forbid
   robots and data mining, so this is used at the user's own risk, the same risk upstream Chaptarr
-  already takes. TaleArr keeps volume low: batch lookups (`?asins=a,b,c`, one request for many
+  already takes. Talearr keeps volume low: batch lookups (`?asins=a,b,c`, one request for many
   ASINs), at most one request per second, a long cache, enrichment only for editions the user cares
   about, and no redistribution of the data.
 - **Audnexus** (`api.audnex.us`, GPL-3.0, community run, what Audiobookshelf uses) defaults to 100
@@ -160,7 +160,7 @@ Limits and terms:
   volunteer server. Offer it as an alternative provider, not the default: the direct catalog has
   batch lookups and search, and upstream already depends on it.
 
-## Options for storing TaleArr data
+## Options for storing Talearr data
 
 What has to be stored:
 
@@ -171,17 +171,17 @@ What has to be stored:
 
 ### (a) Separate `talearr.db`, keyed by Chaptarr ids
 
-A SQLite file next to `chaptarr.db`, opened only by TaleArr, with its own tiny schema versioning
+A SQLite file next to `chaptarr.db`, opened only by Talearr, with its own tiny schema versioning
 (`PRAGMA user_version`), not FluentMigrator.
 
 - **Rollback:** Chaptarr never opens it. `chaptarr.db` is untouched, so rollback is the image swap
-  it is today. The file can stay (TaleArr picks it up again on return) or be deleted.
+  it is today. The file can stay (Talearr picks it up again on return) or be deleted.
 - **Upstream merges:** no conflict surface beyond a registration line in the container setup.
 - **Existing data:** none touched.
 - **Costs:** two databases can drift. Chaptarr row ids are "handles, not identity"
   (`API_IDENTITY_AND_LIFECYCLE.md`): refresh, merge and reimport can delete and recreate rows, and a
   restored Chaptarr backup brings back older rows. Anything keyed by Chaptarr ids goes stale. Not in
-  Chaptarr's backup zip unless TaleArr adds it. On Postgres installs it is still a SQLite file in
+  Chaptarr's backup zip unless Talearr adds it. On Postgres installs it is still a SQLite file in
   the config folder.
 - **Fix for the costs:** store only rebuildable data there, and key it by provider identity
   (marketplace + ASIN, `ForeignEditionId`, `BaseBookId`), with Chaptarr ids at most as a lookup hint
@@ -193,56 +193,56 @@ A SQLite file next to `chaptarr.db`, opened only by TaleArr, with its own tiny s
 Checked in the code:
 
 - `MigrationController.Migrate` calls FluentMigrator 7.2 `runner.MigrateUp()` over every
-  `[Migration(n)]` in `NzbDrone.Core.Datastore.Migration` (exact namespace, so TaleArr migrations
+  `[Migration(n)]` in `NzbDrone.Core.Datastore.Migration` (exact namespace, so Talearr migrations
   would have to live there). `MigrateUp` applies every known migration not yet in `VersionInfo` and
   ignores `VersionInfo` rows it has no class for. It does not validate version order (that is a
   separate `ValidateVersionOrder` call, not used). So stock Chaptarr starts on a database that has
-  TaleArr versions, and upstream migration 108 still applies after a TaleArr 9000001.
+  Talearr versions, and upstream migration 108 still applies after a Talearr 9000001.
 - `RebasedVersionCollisionSchemaRepair` (a `BeforeAll` maintenance step) only looks at upstream's
   own reused low numbers (4, 5, 6, 9, 10, 15, 22, 23, 24, 25). It does not react to unknown versions.
   Its existence shows upstream has renumbered migrations before, which is why a reserved range far
   above upstream's (for example 9000000 and up; versions are cast to `int`) would be needed.
 - `MigrationController` has a whole-schema checksum hook (`BaselineSchema.ExpectedSqliteSha256`,
   `ExpectedPostgresSha256`). Both are empty today, so it is off. If upstream ever fills them in,
-  stock Chaptarr would refuse to start on a database with extra TaleArr tables.
-- `IDatabase.Migration` is `MAX(Version)` from `VersionInfo`. After a TaleArr migration, System >
+  stock Chaptarr would refuse to start on a database with extra Talearr tables.
+- `IDatabase.Migration` is `MAX(Version)` from `VersionInfo`. After a Talearr migration, System >
   Status and Sentry on stock Chaptarr would report 9000001 instead of 107, and the swap doc's
   "same migrationVersion" check no longer holds.
 - Migrations run for main, log and cache databases (`NzbDroneMigrationBase` dispatches on type), so
-  a TaleArr version row would appear in `logs.db` and `cache.db` too.
+  a Talearr version row would appear in `logs.db` and `cache.db` too.
 - Columns on upstream tables are the riskier half: SQLite column drops and alters rebuild the table
   from the columns upstream knows, so a future upstream migration on `Books` or `Editions` could
-  silently drop a TaleArr column, or fail on one. New tables avoid that, but must have no foreign
+  silently drop a Talearr column, or fail on one. New tables avoid that, but must have no foreign
   keys into upstream tables, or Chaptarr deletes of books and editions could fail after rollback.
 
 Summary for (b):
 
-- **Rollback:** works today. TaleArr tables sit unused, `migrationVersion` reads differently, and
+- **Rollback:** works today. Talearr tables sit unused, `migrationVersion` reads differently, and
   the empty checksum hook is a future trap.
 - **Upstream merges:** fine as long as migrations stay in the reserved range and touch only
-  TaleArr tables.
+  Talearr tables.
 - **Existing data:** untouched if tables only.
 - **Against it:** it breaks a documented and CI-checked promise, and the only data that needs to
   be durable (the recording rows) does not need new schema.
 
-Keep (b) as the fallback for a later phase that really needs durable, non-rebuildable TaleArr data.
+Keep (b) as the fallback for a later phase that really needs durable, non-rebuildable Talearr data.
 If it is ever used: tables only, `Talearr` prefix, no foreign keys, versions from 9000000, a
 `talearr-rollback-prep` command that can drop them, and updated swap docs.
 
 ### (c) Extra recordings as extra books or editions inside the existing schema
 
 - **Extra editions only** (keep one book row, monitor two editions) does not work: the "one
-  monitored edition per book row" rule is enforced in many places (TaleArr's own Phase 1
+  monitored edition per book row" rule is enforced in many places (Talearr's own Phase 1
   `BookController` fix stores exactly one), and an upgrade on the row deletes every file of the row.
 - **Extra book rows** is exactly upstream's wanted copy. Rows are created by upstream code paths,
   survive refresh, keep separate files and upgrade separately.
 - **Rollback:** stock Chaptarr sees ordinary copy rows that its own narrator picker would have
   made. Nothing to undo.
-- **Upstream merges:** TaleArr calls `IBookService.AddWantedEdition` and reads the identity group;
-  it does not fork that logic. If upstream changes copy semantics, TaleArr follows.
+- **Upstream merges:** Talearr calls `IBookService.AddWantedEdition` and reads the identity group;
+  it does not fork that logic. If upstream changes copy semantics, Talearr follows.
 - **Existing data:** none rewritten. Copies show as separate entries in Chaptarr's book lists and
   API (already true for upstream copies).
-- **Gaps TaleArr fills:** which edition is which recording, folder collisions between copies, a
+- **Gaps Talearr fills:** which edition is which recording, folder collisions between copies, a
   recordings view, and an API.
 
 ### Decision
@@ -351,7 +351,7 @@ In order, first answer wins:
    below), else file duration against the unabridged runtime.
 5. Otherwise `unknown`.
 
-`AbridgedReleaseDetector` gets the resolved value through a small TaleArr service, so the grab
+`AbridgedReleaseDetector` gets the resolved value through a small Talearr service, so the grab
 policy ("allowed when the wanted edition is itself abridged") becomes reliable.
 
 ### Resolving an edition to an Audible product
@@ -365,7 +365,7 @@ policy ("allowed when the wanted edition is itself abridged") becomes reliable.
 
 ## API additions (additive only)
 
-All under TaleArr-only controllers and routes. No existing route, field or status code changes.
+All under Talearr-only controllers and routes. No existing route, field or status code changes.
 Identities in responses follow the provider-identity contract: local ids are handles, provider ids
 are what clients should store.
 
@@ -425,7 +425,7 @@ so near-identical editions (same narrator, abridged status and runtime within 5%
 ```
 
 - `kind`: `unabridged`, `abridged`, `narrator` (needs `narrator`) or `edition` (needs `editionId`).
-- TaleArr picks the best matching candidate edition (abridged status known, preferred language,
+- Talearr picks the best matching candidate edition (abridged status known, preferred language,
   then Audible link confidence, then runtime known, then upstream popularity), then calls
   `IBookService.AddWantedEdition(bookId, editionId)` and, if `search`, queues `BookSearchCommand`
   exactly as upstream does.
@@ -473,7 +473,7 @@ Recordings                                        Marketplace: US   [Refresh]
 book header shows a one-line notice: "You have the abridged recording. Add the unabridged one?
 [Add and search]".
 
-**Book lists.** Copies already show as separate entries upstream. TaleArr adds a small
+**Book lists.** Copies already show as separate entries upstream. Talearr adds a small
 "2 recordings" badge on the base row and shows the abridged badge in the narrator cell. No
 change to sorting or counts.
 
@@ -495,9 +495,9 @@ Today AllSeerr keeps one Chaptarr book id per format (`Media.externalServiceId` 
 `externalServiceIdAudio` for audiobook) and drives editions through `chaptarrRequests.ts`
 (`monitorEditionInLanguage`, lookups, monitor and search).
 
-Additions (AllSeerr repo, after TaleArr ships the API):
+Additions (AllSeerr repo, after Talearr ships the API):
 
-- Detect TaleArr: `GET /api/v1/system/status` `instanceName` contains "TaleArr" and
+- Detect Talearr: `GET /api/v1/system/status` `instanceName` contains "Talearr" and
   `GET /api/v1/config/talearrrecordings` answers. Without it, hide the feature.
 - Request option on audiobook requests: `recording: "default" | "unabridged" | "abridged"`. A
   request for a book that is already available as audiobook can ask for the other recording; the
@@ -513,7 +513,7 @@ Additions (AllSeerr repo, after TaleArr ships the API):
 
 ### NoBookEnds
 
-NoBookEnds talks to Audiobookshelf and AllSeerr, never to TaleArr directly.
+NoBookEnds talks to Audiobookshelf and AllSeerr, never to Talearr directly.
 
 - Each recording lives in its own folder, so Audiobookshelf shows two library items. NoBookEnds
   groups them by ASIN, ISBN or title + author into one book with a "Recordings" switcher.
@@ -524,7 +524,7 @@ NoBookEnds talks to Audiobookshelf and AllSeerr, never to TaleArr directly.
 - When the new item arrives, the book page shows both recordings and lets the user switch.
 - **Phase 3 (not in this design):** carry the listening position across recordings. The natural
   pivot is the ebook text: NoBookEnds Sync aligns each audio item to the same ebook, so a position
-  in recording A maps to an ebook offset, and that offset maps to a time in recording B. TaleArr's
+  in recording A maps to an ebook offset, and that offset maps to a time in recording B. Talearr's
   part is only to expose stable identities (ASIN, `foreignEditionId`) so the two ABS items can be
   recognised as one book.
 
@@ -537,7 +537,7 @@ narrator, audio production, indexer flag, release group). After import, `Upgrade
 moves the old files of that book row to the recycle bin (when configured) or deletes them.
 `MediaInfo` holds bitrate, codec, channels and duration, but only after download.
 
-Rules TaleArr adds (code only, settings in `Config`):
+Rules Talearr adds (code only, settings in `Config`):
 
 1. **Same recording only.** A release or file may replace a book row's files only if it is the same
    recording: same abridged status (when both known), runtime not shorter than the tolerance
@@ -556,12 +556,12 @@ Rules TaleArr adds (code only, settings in `Config`):
 4. **Ebooks**: better means a higher format in the profile (as today) for the same edition language;
    a PDF never replaces a reflowable format unless the profile ranks PDF higher on purpose.
 5. **Release-side bitrate** (before download) uses ordinary `ReleaseTitle` custom formats ("64kbps",
-   "128kbps", "AAC", "Opus"), which TaleArr can offer as presets. No new custom format
+   "128kbps", "AAC", "Opus"), which Talearr can offer as presets. No new custom format
    implementation class: stock Chaptarr could not deserialize one after rollback.
-6. Every decision is written into History like the grab policy does ("TaleArr: kept existing file,
+6. Every decision is written into History like the grab policy does ("Talearr: kept existing file,
    new file is 32 kbps lower").
 
-Implementation: one TaleArr import specification (`IImportDecisionEngineSpecification`) for rules
+Implementation: one Talearr import specification (`IImportDecisionEngineSpecification`) for rules
 1 and 3, a marked hook in `DownloadDecisionComparer` for rule 2 tie breaks, and the `keepBoth`
 reroute at the point where the import destination is resolved (marked block next to
 `BookUnitDestinationService.ResolveDestinationForUnit`).
@@ -574,7 +574,7 @@ unabridged Scott Brick) would get the same folder, and with renaming off, releas
 collide too.
 
 Rule: when a copy row's computed book folder equals the folder of another row in its identity
-group, TaleArr appends a disambiguator to the copy's folder: " (Abridged)" or " (Unabridged)" when
+group, Talearr appends a disambiguator to the copy's folder: " (Abridged)" or " (Unabridged)" when
 known, else " (<release year>)", else " (<ASIN>)". The base row's path never changes. This is a
 marked block in the path builder for copy rows only, not a new naming token (an unknown token would
 be left literal by stock Chaptarr after rollback).
@@ -585,11 +585,11 @@ run could recompute a colliding folder for a copy; the rollback notes say to che
 
 ## Migration and rollback plan
 
-### Going to TaleArr Phase 2
+### Going to Talearr Phase 2
 
 - No database migration. `chaptarr.db` schema is unchanged; the Docker workflow's schema
   byte-for-byte check stays as it is.
-- On first start TaleArr creates `talearr.db` and writes default `talearr.*` `Config` rows only when
+- On first start Talearr creates `talearr.db` and writes default `talearr.*` `Config` rows only when
   the user saves settings (reads fall back to defaults).
 - Background enrichment runs as a low-priority scheduled command (`TalearrRefreshAudibleFacts`,
   every 12 h, monitored and copy editions first, rate limited). Nothing is written to upstream
@@ -602,27 +602,27 @@ run could recompute a colliding folder for a copy; the rollback notes say to che
 2. What stock Chaptarr sees: copy rows it knows how to handle, the `talearr.*` `Config` rows it
    ignores, and files at their stored paths. It keeps both recordings, searches and upgrades each
    row with its own rules (no upgrade guard, no abridged awareness beyond its own).
-3. `talearr.db` is ignored; keep it for a return to TaleArr or delete it.
+3. `talearr.db` is ignored; keep it for a return to Talearr or delete it.
 4. Before running "Rename files" on stock Chaptarr, preview it; disambiguated copy folders may be
    proposed for a move into the base folder.
-5. Coming back to TaleArr: everything is picked up again; stale cache rows are refetched.
+5. Coming back to Talearr: everything is picked up again; stale cache rows are refetched.
 
 ### Upstream merges
 
-New TaleArr-only files: `src/NzbDrone.Core/Talearr/Recordings/` (service, Audible client, cache
+New Talearr-only files: `src/NzbDrone.Core/Talearr/Recordings/` (service, Audible client, cache
 store, specification), `src/Chaptarr.Api.V1/Talearr/` (controllers), frontend
-`Book/Recordings/` and settings blocks. Marked `// TaleArr:` hooks, to be added to the conflict table
+`Book/Recordings/` and settings blocks. Marked `// Talearr:` hooks, to be added to the conflict table
 in `TALEARR_UPSTREAM_SYNC.md` and the brand check:
 
-- `AbridgedReleaseDetector` (TaleArr file already) takes the resolved abridged value.
+- `AbridgedReleaseDetector` (Talearr file already) takes the resolved abridged value.
 - Import destination reroute next to `BookUnitDestinationService.ResolveDestinationForUnit`.
 - Copy-folder disambiguation in the path builder.
 - `DownloadDecisionComparer` tie break.
 - Container registration for `ITalearrDatabase` and the services.
 
-TaleArr does not change `AddWantedEdition`, `EditionPinPolicy`, refresh preservation or
-`UpgradeMediaFileService`; if upstream changes them, TaleArr inherits the change. A test fixture
-pins the upstream behaviour TaleArr depends on (copy creation, per-row upgrade, refresh
+Talearr does not change `AddWantedEdition`, `EditionPinPolicy`, refresh preservation or
+`UpgradeMediaFileService`; if upstream changes them, Talearr inherits the change. A test fixture
+pins the upstream behaviour Talearr depends on (copy creation, per-row upgrade, refresh
 preservation), so a merge that changes it fails CI instead of breaking recordings quietly.
 
 ## Risks
@@ -633,7 +633,7 @@ preservation), so a merge that changes it fails CI instead of breaking recording
 | Audible terms forbid automated access | Policy risk for the user | Same exposure as upstream; low volume; documented in settings; can be turned off |
 | Stale or foreign-marketplace ASINs from the metadata server | Wrong or no match | Batch lookup of all ASINs, then narrator + runtime constrained search; confidence threshold; never overwrite upstream columns |
 | Wrong abridged classification | Wrong edition picked for "add unabridged" | Show the source of the answer; confirm modal lists the chosen edition; user can pick an edition instead |
-| Upstream changes copy semantics (wanted copies, `UnitKeyHash`, refresh preservation) | Recordings break or merge | Pinned behaviour tests; TaleArr calls upstream services instead of forking them |
+| Upstream changes copy semantics (wanted copies, `UnitKeyHash`, refresh preservation) | Recordings break or merge | Pinned behaviour tests; Talearr calls upstream services instead of forking them |
 | Two copies resolve to the same folder | Files mixed or overwritten | Copy folder disambiguation; import refuses a destination that holds another row's files |
 | Upgrade guard rejects a real upgrade | Missed upgrade | Tolerances are settings; History says why; manual import still overrides |
 | `talearr.db` corrupt or deleted | Facts missing until refetched | Rebuildable by design; recreated on open failure |
@@ -677,11 +677,11 @@ ship on its own.
      `keepBoth` reroute, History notes, release-title custom format presets.
 9. **`docs: phase 2 user docs and sync table`**
    - README section, `TALEARR_UPSTREAM_SYNC.md` hooks, `TALEARR_UNRAID_SWAP.md` rollback notes
-     (talearr.db, rename preview), release as TaleArr 0.12.0.
+     (talearr.db, rename preview), release as Talearr 0.12.0.
 
 Outside this repo, after step 5 is released:
 
-10. **AllSeerr**: TaleArr detection, `recording` request option, `externalServiceIdAudioAlt`, status
+10. **AllSeerr**: Talearr detection, `recording` request option, `externalServiceIdAudioAlt`, status
     from the recordings API, NoBookEnds contract fields.
 11. **NoBookEnds**: group ABS items by identity, Recordings switcher, "Get the unabridged audiobook"
     on the abridged note.

@@ -12,7 +12,7 @@ namespace Chaptarr.Core.Test.Talearr
     [TestFixture]
     public class TalearrRejectionLabelsFixture
     {
-        // Stands in for a specification another TaleArr feature adds later: it is not in the
+        // Stands in for a specification another Talearr feature adds later: it is not in the
         // label table, so the label must come from its class name.
         private sealed class UnabridgedPreferenceSpecification : IDecisionEngineSpecification
         {

@@ -134,7 +134,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
         string ServerError(TalearrKindleSettings settings);
     }
 
-    // TaleArr: Send to Kindle. Picks the best ebook file Amazon accepts by email (EPUB first), checks
+    // Talearr: Send to Kindle. Picks the best ebook file Amazon accepts by email (EPUB first), checks
     // the 50 MB limit, and mails it to the Kindle addresses. Never logs passwords or addresses.
     public class TalearrKindleService : ITalearrKindleService, IHandleAsync<BookImportedEvent>
     {
@@ -271,7 +271,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "TaleArr: Email connection {0} not found", settings.EmailConnectionId);
+                    _logger.Debug(ex, "Talearr: Email connection {0} not found", settings.EmailConnectionId);
                 }
 
                 if (definition?.Settings is not EmailSettings email)
@@ -391,12 +391,12 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
 
                 if (!result.Success)
                 {
-                    _logger.Warn("TaleArr: Send to Kindle skipped '{0}': {1}", message.Book.Title, result.Message);
+                    _logger.Warn("Talearr: Send to Kindle skipped '{0}': {1}", message.Book.Title, result.Message);
                 }
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: Send to Kindle failed for '{0}'", message?.Book?.Title);
+                _logger.Warn(ex, "Talearr: Send to Kindle failed for '{0}'", message?.Book?.Title);
             }
         }
 
@@ -430,7 +430,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
             message.To.AddRange(addresses.Select(MailboxAddress.Parse));
             message.Subject = title;
 
-            var body = new BodyBuilder { TextBody = $"{title}{(string.IsNullOrWhiteSpace(authorName) ? string.Empty : " by " + authorName)}, sent by TaleArr." };
+            var body = new BodyBuilder { TextBody = $"{title}{(string.IsNullOrWhiteSpace(authorName) ? string.Empty : " by " + authorName)}, sent by Talearr." };
             body.Attachments.Add(attachmentName, File.ReadAllBytes(file.Path), ContentType.Parse(MimeType(file.Path)));
             message.Body = body.ToMessageBody();
 
@@ -440,11 +440,11 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: Send to Kindle through {0} failed", server);
+                _logger.Debug(ex, "Talearr: Send to Kindle through {0} failed", server);
                 return Fail($"The email could not be sent through {server}: {ex.Message}");
             }
 
-            _logger.Info("TaleArr: sent '{0}' to {1} Kindle address(es)", Path.GetFileName(file.Path), addresses.Count);
+            _logger.Info("Talearr: sent '{0}' to {1} Kindle address(es)", Path.GetFileName(file.Path), addresses.Count);
 
             return new TalearrKindleResult
             {
@@ -486,7 +486,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: Send to Kindle test against {0} failed", server);
+                _logger.Debug(ex, "Talearr: Send to Kindle test against {0} failed", server);
                 return Fail($"Could not connect to {server}: {ex.Message}");
             }
 

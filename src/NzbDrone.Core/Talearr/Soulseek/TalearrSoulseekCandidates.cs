@@ -12,7 +12,7 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Talearr.Soulseek
 {
-    // One thing TaleArr could ask a peer for: a whole audiobook folder, or one ebook file.
+    // One thing Talearr could ask a peer for: a whole audiobook folder, or one ebook file.
     public class TalearrSoulseekCandidate
     {
         public string Key { get; set; }
@@ -34,7 +34,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
         public bool HasDiscFolders { get; set; }
     }
 
-    // TaleArr: turns slskd search answers into candidates and in-memory ReleaseInfo rows, so the
+    // Talearr: turns slskd search answers into candidates and in-memory ReleaseInfo rows, so the
     // normal decision engine (title matching, language, packs/bundles, size, quality ladder)
     // judges them. The ReleaseInfo rows are never stored: Soulseek grabs do not go through
     // DownloadService, History, Blocklist or PendingReleases.

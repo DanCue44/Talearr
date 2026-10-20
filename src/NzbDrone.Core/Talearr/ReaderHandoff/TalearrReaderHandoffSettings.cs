@@ -6,14 +6,14 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Talearr.ReaderHandoff
 {
-    // TaleArr: reader hand-off (README.md, "Reader hand-off"). After an ebook import, copy the
+    // Talearr: reader hand-off (README.md, "Reader hand-off"). After an ebook import, copy the
     // file to a watch folder such as Calibre-Web-Automated's ingest folder.
     public sealed class TalearrReaderHandoffSettings
     {
         // Off by default: nothing is copied anywhere until a folder is set and this is turned on.
         public bool Enabled { get; set; }
 
-        // The watch folder as TaleArr sees it (inside the container).
+        // The watch folder as Talearr sees it (inside the container).
         public string Path { get; set; } = string.Empty;
 
         // Put each copy in a subfolder named after the author.
@@ -90,7 +90,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
                 _repository.Upsert(PathKey, (settings.Path ?? string.Empty).Trim());
                 _repository.Upsert(AuthorFolderKey, settings.AuthorFolder.ToString());
                 _repository.Upsert(KepubKey, settings.ConvertToKepub.ToString());
-                _logger.Info("TaleArr reader hand-off settings saved: enabled={0}, path='{1}', authorFolder={2}, kepub={3}",
+                _logger.Info("Talearr reader hand-off settings saved: enabled={0}, path='{1}', authorFolder={2}, kepub={3}",
                     settings.Enabled,
                     settings.Path,
                     settings.AuthorFolder,
@@ -118,7 +118,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read TaleArr reader hand-off settings, using the defaults");
+                _logger.Debug(ex, "Unable to read Talearr reader hand-off settings, using the defaults");
                 settings = TalearrReaderHandoffSettings.Default;
             }
 

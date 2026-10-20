@@ -11,7 +11,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         RegionUnavailable = 2
     }
 
-    // TaleArr: Audible facts for one product in one marketplace, as cached in talearr.db.
+    // Talearr: Audible facts for one product in one marketplace, as cached in talearr.db.
     public class AudibleProduct
     {
         public const string SourceAudible = "audible";
@@ -66,7 +66,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         }
     }
 
-    // TaleArr: which Audible product a Chaptarr edition resolved to, keyed by the edition's
+    // Talearr: which Audible product a Chaptarr edition resolved to, keyed by the edition's
     // provider identity (TalearrEditionKey, stored in the ForeignEditionId column) so it survives
     // row churn and is shared by a base edition and its upstream copies. Asin null means "looked,
     // nothing matched well enough".
@@ -89,7 +89,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         public bool Matched => !string.IsNullOrWhiteSpace(Asin);
     }
 
-    // TaleArr: optional provenance for a recording someone asked for. Safe to lose.
+    // Talearr: optional provenance for a recording someone asked for. Safe to lose.
     public class RecordingRequest
     {
         public int Id { get; set; }

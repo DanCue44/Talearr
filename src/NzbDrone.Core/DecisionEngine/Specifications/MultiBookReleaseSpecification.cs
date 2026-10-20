@@ -32,7 +32,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             switch (detection.Verdict)
             {
                 case ReleasePackDetectionVerdict.MultipleBooks:
-                    // TaleArr: a wanted omnibus is not a stray bundle.
+                    // Talearr: a wanted omnibus is not a stray bundle.
                     if (IsWantedOmnibus(subject))
                     {
                         _logger.Trace("Release {0} looks like a pack but the wanted book is itself an omnibus", subject.Release?.Title);
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             }
         }
 
-        // TaleArr: with "Allow bundles" on a bundle is a normal release. Otherwise it is kept only
+        // Talearr: with "Allow bundles" on a bundle is a normal release. Otherwise it is kept only
         // as a last resort (flagged, so every other check still runs and the grab waits for the
         // single copies), and rejected where no last resort applies (RSS, pushed releases, an
         // automatic search whose bundle does not name the wanted book).

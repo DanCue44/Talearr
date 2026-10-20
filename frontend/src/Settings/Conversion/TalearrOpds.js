@@ -29,7 +29,7 @@ function opdsForm(settings) {
   };
 }
 
-// TaleArr: OPDS catalog. Stored as talearr.opds.* Config rows through
+// Talearr: OPDS catalog. Stored as talearr.opds.* Config rows through
 // /api/v1/config/talearropds (Chaptarr ignores them). Saves with its own button.
 class TalearrOpds extends Component {
 
@@ -126,7 +126,7 @@ class TalearrOpds extends Component {
     return (
       <FieldSet legend={legend}>
         <div className={styles.help}>
-          {'A read-only OPDS feed of the ebooks in the library (authors, series, recently added and search) for readers such as KOReader, Panels, Thorium and Moon+ Reader. Sign in with HTTP Basic using your TaleArr login, or any user name with the API key as the password. Readers without Basic support can use the URL with the API key. Kobo: use KOReader with this feed, or the reader hand-off below with Calibre-Web-Automated.'}
+          {'A read-only OPDS feed of the ebooks in the library (authors, series, recently added and search) for readers such as KOReader, Panels, Thorium and Moon+ Reader. Sign in with HTTP Basic using your Talearr login, or any user name with the API key as the password. Readers without Basic support can use the URL with the API key. Kobo: use KOReader with this feed, or the reader hand-off below with Calibre-Web-Automated.'}
         </div>
 
         <Form>

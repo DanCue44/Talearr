@@ -9,7 +9,7 @@ using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Config
 {
-    // TaleArr: recordings settings (Audible marketplace and provider, background enrichment,
+    // Talearr: recordings settings (Audible marketplace and provider, background enrichment,
     // search on add, keep both recordings, upgrade guard). A new route; no existing route or field changes.
     // Values are stored as talearr.recordings.* rows in the Config table, which Chaptarr ignores.
     public class TalearrRecordingsConfigResource : RestResource
@@ -27,7 +27,7 @@ namespace Chaptarr.Api.V1.Config
         public int? MinBitrateGainKbps { get; set; }
         public int? RuntimeTolerancePct { get; set; }
 
-        // Read only: the marketplaces TaleArr knows, for a settings dropdown.
+        // Read only: the marketplaces Talearr knows, for a settings dropdown.
         public List<TalearrMarketplaceResource> AvailableMarketplaces { get; set; }
     }
 

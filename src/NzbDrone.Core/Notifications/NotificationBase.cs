@@ -23,26 +23,26 @@ namespace NzbDrone.Core.Notifications
         protected const string BOOK_RETAGGED_TITLE = "Book File Tags Updated";
         protected const string APPLICATION_UPDATE_TITLE = "Application Updated";
 
-        // TaleArr: Sonarr/Radarr parity events.
+        // Talearr: Sonarr/Radarr parity events.
         protected const string HEALTH_RESTORED_TITLE = "Health Check Restored";
         protected const string BOOK_UPGRADED_TITLE = "Book Upgraded";
         protected const string MANUAL_INTERACTION_REQUIRED_TITLE = "Manual Interaction Required";
         protected const string BUNDLE_GRABBED_TITLE = "Bundle Grabbed (last resort)";
 
-        protected const string BOOK_GRABBED_TITLE_BRANDED = "TaleArr - " + BOOK_GRABBED_TITLE;
-        protected const string BOOK_DOWNLOADED_TITLE_BRANDED = "TaleArr - " + BOOK_DOWNLOADED_TITLE;
-        protected const string AUTHOR_ADDED_TITLE_BRANDED = "TaleArr - " + AUTHOR_ADDED_TITLE;
-        protected const string BOOK_ADDED_TITLE_BRANDED = "TaleArr - " + BOOK_ADDED_TITLE;
-        protected const string AUTHOR_DELETED_TITlE_BRANDED = "TaleArr - " + AUTHOR_DELETED_TITLE;
-        protected const string BOOK_DELETED_TITLE_BRANDED = "TaleArr - " + BOOK_DELETED_TITLE;
-        protected const string BOOK_FILE_DELETED_TITLE_BRANDED = "TaleArr - " + BOOK_FILE_DELETED_TITLE;
-        protected const string HEALTH_ISSUE_TITLE_BRANDED = "TaleArr - " + HEALTH_ISSUE_TITLE;
-        protected const string DOWNLOAD_FAILURE_TITLE_BRANDED = "TaleArr - " + DOWNLOAD_FAILURE_TITLE;
-        protected const string IMPORT_FAILURE_TITLE_BRANDED = "TaleArr - " + IMPORT_FAILURE_TITLE;
-        protected const string BOOK_RETAGGED_TITLE_BRANDED = "TaleArr - " + BOOK_RETAGGED_TITLE;
-        protected const string APPLICATION_UPDATE_TITLE_BRANDED = "TaleArr - " + APPLICATION_UPDATE_TITLE;
-        protected const string HEALTH_RESTORED_TITLE_BRANDED = "TaleArr - " + HEALTH_RESTORED_TITLE;
-        protected const string MANUAL_INTERACTION_REQUIRED_TITLE_BRANDED = "TaleArr - " + MANUAL_INTERACTION_REQUIRED_TITLE;
+        protected const string BOOK_GRABBED_TITLE_BRANDED = "Talearr - " + BOOK_GRABBED_TITLE;
+        protected const string BOOK_DOWNLOADED_TITLE_BRANDED = "Talearr - " + BOOK_DOWNLOADED_TITLE;
+        protected const string AUTHOR_ADDED_TITLE_BRANDED = "Talearr - " + AUTHOR_ADDED_TITLE;
+        protected const string BOOK_ADDED_TITLE_BRANDED = "Talearr - " + BOOK_ADDED_TITLE;
+        protected const string AUTHOR_DELETED_TITlE_BRANDED = "Talearr - " + AUTHOR_DELETED_TITLE;
+        protected const string BOOK_DELETED_TITLE_BRANDED = "Talearr - " + BOOK_DELETED_TITLE;
+        protected const string BOOK_FILE_DELETED_TITLE_BRANDED = "Talearr - " + BOOK_FILE_DELETED_TITLE;
+        protected const string HEALTH_ISSUE_TITLE_BRANDED = "Talearr - " + HEALTH_ISSUE_TITLE;
+        protected const string DOWNLOAD_FAILURE_TITLE_BRANDED = "Talearr - " + DOWNLOAD_FAILURE_TITLE;
+        protected const string IMPORT_FAILURE_TITLE_BRANDED = "Talearr - " + IMPORT_FAILURE_TITLE;
+        protected const string BOOK_RETAGGED_TITLE_BRANDED = "Talearr - " + BOOK_RETAGGED_TITLE;
+        protected const string APPLICATION_UPDATE_TITLE_BRANDED = "Talearr - " + APPLICATION_UPDATE_TITLE;
+        protected const string HEALTH_RESTORED_TITLE_BRANDED = "Talearr - " + HEALTH_RESTORED_TITLE;
+        protected const string MANUAL_INTERACTION_REQUIRED_TITLE_BRANDED = "Talearr - " + MANUAL_INTERACTION_REQUIRED_TITLE;
 
         public abstract string Name { get; }
 

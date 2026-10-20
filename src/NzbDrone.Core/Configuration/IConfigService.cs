@@ -34,9 +34,9 @@ namespace NzbDrone.Core.Configuration
         int MinimumFreeSpaceWhenImporting { get; set; }
         bool CopyUsingHardlinks { get; set; }
         bool ImportExtraFiles { get; set; }
-        bool TalearrUnpackArchives { get; set; } // TaleArr
-        bool TalearrSeedingSafeImports { get; set; } // TaleArr
-        bool TalearrVerifyFileLanguage { get; set; } // TaleArr
+        bool TalearrUnpackArchives { get; set; } // Talearr
+        bool TalearrSeedingSafeImports { get; set; } // Talearr
+        bool TalearrVerifyFileLanguage { get; set; } // Talearr
         string ExtraFileExtensions { get; set; }
         bool WatchLibraryForChanges { get; set; }
         bool GranularFileSystemScanning { get; set; }

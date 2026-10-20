@@ -11,7 +11,7 @@ using SharpCompress.Writers.SevenZip;
 namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 {
     /// <summary>
-    /// Builds small synthetic archives for the TaleArr import tests. Nothing here comes from a
+    /// Builds small synthetic archives for the Talearr import tests. Nothing here comes from a
     /// real release: the structure (a zip holding a rar set plus .nfo/.diz, multi-volume rar,
     /// 7z) mirrors what scene ebook releases look like, the contents are made up.
     /// </summary>

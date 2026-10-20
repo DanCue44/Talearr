@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
         public TalearrSoulseekProgressStatus Status { get; set; }
         public string Message { get; set; }
 
-        // TaleArr: reads slskd's per-file transfer states ("Queued, Remotely", "InProgress",
+        // Talearr: reads slskd's per-file transfer states ("Queued, Remotely", "InProgress",
         // "Completed, Succeeded", "Completed, Errored", ...) into one state for the grab.
         public static TalearrSoulseekProgress Evaluate(IReadOnlyCollection<SlskdTransfer> transfers, int expectedFiles)
         {

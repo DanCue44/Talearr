@@ -2,7 +2,7 @@ import React from 'react';
 import FieldSet from 'Components/FieldSet';
 import styles from './WorksBestWith.css';
 
-// TaleArr: companion apps shown on System > Status.
+// Talearr: companion apps shown on System > Status.
 const companions = [
   {
     name: 'AllSeerr',

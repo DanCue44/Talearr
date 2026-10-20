@@ -36,8 +36,8 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
         List<TalearrAbsBookItem> GetItems(int bookId);
 
         // The Audiobookshelf copy that makes grabbing this row unnecessary, or null. Null when the
-        // row has TaleArr files of its own (upgrades stay TaleArr's business), when the copy is
-        // TaleArr's own import, when "Skip books already in Audiobookshelf" is off, and for an
+        // row has Talearr files of its own (upgrades stay Talearr's business), when the copy is
+        // Talearr's own import, when "Skip books already in Audiobookshelf" is off, and for an
         // audiobook when the copy is another recording (abridged against a wanted unabridged one,
         // or the narrator of another recording row).
         TalearrAbsOwnedCopy FindOwnedCopy(Book book);
@@ -48,7 +48,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
         void Invalidate();
     }
 
-    // TaleArr: read side of the Audiobookshelf cache. Keeps an in-memory index of talearr.db
+    // Talearr: read side of the Audiobookshelf cache. Keeps an in-memory index of talearr.db
     // (rebuilt after a sync and at most every two minutes), because the decision engine asks for
     // every release of every search.
     public class TalearrAbsLibraryService : ITalearrAbsLibraryService
@@ -334,7 +334,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: could not read the recordings of book {0}", book.Id);
+                _logger.Debug(ex, "Talearr: could not read the recordings of book {0}", book.Id);
             }
 
             var books = group?.Books?.Where(b => b != null).ToList() ?? new List<Book>();
@@ -426,7 +426,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: could not read the files of book {0}", book.Id);
+                _logger.Debug(ex, "Talearr: could not read the files of book {0}", book.Id);
                 return true;
             }
         }
@@ -494,7 +494,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not load the Audiobookshelf library cache");
+                _logger.Warn(ex, "Talearr: could not load the Audiobookshelf library cache");
             }
 
             return index;

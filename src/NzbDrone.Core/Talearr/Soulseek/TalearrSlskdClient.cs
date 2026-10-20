@@ -23,7 +23,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
         void CancelDownload(TalearrSoulseekSettings settings, string username, string transferId, bool remove);
     }
 
-    // TaleArr: a small client for slskd's REST API (https://github.com/slskd/slskd, api/v0),
+    // Talearr: a small client for slskd's REST API (https://github.com/slskd/slskd, api/v0),
     // authenticated with an slskd API key (X-API-Key). Used only by the opt-in Soulseek feature.
     public class TalearrSlskdClient : ITalearrSlskdClient
     {
@@ -87,7 +87,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: could not delete slskd search {0}", id);
+                _logger.Debug(ex, "Talearr: could not delete slskd search {0}", id);
             }
         }
 
@@ -117,7 +117,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
                     throw new HttpException(response);
                 }
 
-                _logger.Debug("TaleArr: slskd has no batch downloads (status {0}); using the plain enqueue call", (int)response.StatusCode);
+                _logger.Debug("Talearr: slskd has no batch downloads (status {0}); using the plain enqueue call", (int)response.StatusCode);
             }
 
             Send(settings, HttpMethod.Post, $"/api/v0/transfers/downloads/{Uri.EscapeDataString(username)}", files);
@@ -173,7 +173,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             request.RequestTimeout = RequestTimeout;
             request.SuppressHttpError = true;
             request.LogHttpError = false;
-            request.Headers.Add("User-Agent", "TaleArr");
+            request.Headers.Add("User-Agent", "Talearr");
 
             if (settings.ApiKey.IsNotNullOrWhiteSpace())
             {

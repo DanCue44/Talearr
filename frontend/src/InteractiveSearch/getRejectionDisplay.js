@@ -1,4 +1,4 @@
-// TaleArr: turn a release's rejections into { label, reason } pairs for interactive search.
+// Talearr: turn a release's rejections into { label, reason } pairs for interactive search.
 // rejectionDetails carries a short label from the server ("Language", "Wrong book", "Pack");
 // plain rejection strings (older servers, or details missing) fall back to a generic label.
 export default function getRejectionDisplay(rejections, rejectionDetails) {

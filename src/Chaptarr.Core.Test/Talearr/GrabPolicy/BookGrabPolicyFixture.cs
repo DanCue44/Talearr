@@ -19,7 +19,7 @@ using NzbDrone.Core.Talearr.Recordings;
 
 namespace Chaptarr.Core.Test.Talearr.GrabPolicy
 {
-    // TaleArr: per-book abridged overrides end to end on an in-memory library run through the
+    // Talearr: per-book abridged overrides end to end on an in-memory library run through the
     // real upstream BookService: talearr.db storage, the API, the edition switch before a search,
     // the retry note and the Audiobookshelf owned-copy check.
     [TestFixture]
@@ -407,7 +407,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
 
             Assert.That(Monitored(book.Id).Id, Is.EqualTo(FirmEditions.MoffettAbridged().Id), "the best abridged edition, Audible-confirmed and in the book's language");
             Assert.That(book.Editions.Single(e => e.Monitored).Id, Is.EqualTo(FirmEditions.MoffettAbridged().Id), "the search sees the new edition");
-            Assert.That(_history.Single().Data["Message"], Does.StartWith("TaleArr: monitored edition switched to the abridged edition"));
+            Assert.That(_history.Single().Data["Message"], Does.StartWith("Talearr: monitored edition switched to the abridged edition"));
         }
 
         [Test]
@@ -485,7 +485,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
             var note = _history.Single();
             Assert.That(note.EventType, Is.EqualTo(EntityHistoryEventType.DownloadIgnored), "an event type stock Chaptarr knows");
             Assert.That(note.BookId, Is.EqualTo(book.Id));
-            Assert.That(note.Data["Message"], Is.EqualTo("TaleArr: no abridged edition of this book is known, so the search can only find releases marked abridged (abridged policy abridged only for this book)"));
+            Assert.That(note.Data["Message"], Is.EqualTo("Talearr: no abridged edition of this book is known, so the search can only find releases marked abridged (abridged policy abridged only for this book)"));
         }
 
         [Test]

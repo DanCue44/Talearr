@@ -8,7 +8,7 @@ using NzbDrone.Core.Books;
 
 namespace NzbDrone.Core.Parser
 {
-    // TaleArr: cheap identity checks shared by the grab decision (search and bundle last resort)
+    // Talearr: cheap identity checks shared by the grab decision (search and bundle last resort)
     // and the import of a tracked download. Real wrong matches they stop:
     //   "Craig Rice - 45 Murderers- A Collection of True Crime Stories (retail) (epub)" was grabbed
     //     and imported for "True Crime Stories: 48 Terrifying True Crime Murder Cases" by Ryan Becker

@@ -5,7 +5,7 @@ using NzbDrone.Core.DecisionEngine.Specifications;
 
 namespace NzbDrone.Core.DecisionEngine
 {
-    // TaleArr: short, readable labels for release rejections, shown next to the reason in
+    // Talearr: short, readable labels for release rejections, shown next to the reason in
     // interactive search ("Language", "Wrong book", "Pack", "Size", "Blocklisted", ...).
     //
     // The label is display-only. It never changes Rejection.Category, which the search
@@ -51,7 +51,7 @@ namespace NzbDrone.Core.DecisionEngine
             { "MinimumAgeSpecification", "Minimum age" },
             { "MonitoredMediaTypeSpecification", "Not monitored" },
             { "MonitoredBookSpecification", "Not monitored" },
-            { "MyAnonaMouseFreeleechOnlySpecification", "MyAnonaMouse" }, // TaleArr
+            { "MyAnonaMouseFreeleechOnlySpecification", "MyAnonaMouse" }, // Talearr
             { "MyAnonaMouseVipAccessSpecification", "MyAnonaMouse" },
             { "MyAnonaMouseUnsatisfiedSlotSpecification", "MyAnonaMouse" },
             { "NotSampleSpecification", "Sample" },

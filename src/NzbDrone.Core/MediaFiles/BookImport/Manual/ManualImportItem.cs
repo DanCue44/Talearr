@@ -43,7 +43,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
         public string SuggestedForeignEditionId { get; set; }
         public string SuggestedEditionTitle { get; set; }
 
-        // TaleArr: display-only match confidence (high, medium, low) and why.
+        // Talearr: display-only match confidence (high, medium, low) and why.
         public string TalearrMatchConfidence { get; set; }
         public List<string> TalearrMatchNotes { get; set; }
     }

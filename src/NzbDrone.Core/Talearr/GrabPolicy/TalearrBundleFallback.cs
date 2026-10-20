@@ -9,7 +9,7 @@ using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Talearr.GrabPolicy
 {
-    // TaleArr: bundles (box sets, collections, discographies) as a last resort. With the grab
+    // Talearr: bundles (box sets, collections, discographies) as a last resort. With the grab
     // policy's "Allow bundles" off, a bundle is no longer rejected outright: it passes the pack
     // check flagged as a fallback, every other check still runs on it, and ProcessDownloadDecisions
     // only grabs it for a book that no single copy covered. The import then keeps the wanted book,
@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             return remoteBook.Books?.Any(book => book != null && BundleNamesBook(remoteBook, book)) == true;
         }
 
-        // TaleArr: whether a bundle's name really names this book. The title must appear as a whole
+        // Talearr: whether a bundle's name really names this book. The title must appear as a whole
         // phrase (not inside "All-in-One"), the bundle must not credit another author, a short
         // title ("All In", "Bride", "Deep End") also needs the author, a course or marketing pack
         // needs the author, and a number in the wanted title must not be contradicted.

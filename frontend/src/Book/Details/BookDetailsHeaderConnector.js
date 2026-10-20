@@ -34,7 +34,7 @@ function createMapStateToProps() {
     (state) => state.talearrBookTags.byBookId,
     createTagsSelector(),
     (book, bookDetails, queueItem, uiSettings, dimensions, talearrBookTags, tagList) => {
-      // TaleArr: book tags from talearr.db, shown by label.
+      // Talearr: book tags from talearr.db, shown by label.
       const talearrTagLabels = (talearrBookTags[book.id] || [])
         .map((tagId) => tagList.find((t) => t.id === tagId))
         .filter(Boolean)

@@ -33,7 +33,7 @@ namespace Chaptarr.Core.Test.Talearr.Notifications
         {
             var proxy = RecordingProxy.Create<IWebhookProxy>(out _webhookProxy);
             var config = RecordingProxy.Create<IConfigFileProvider>(out var configProxy);
-            configProxy.Handlers["get_InstanceName"] = _ => "TaleArr";
+            configProxy.Handlers["get_InstanceName"] = _ => "Talearr";
 
             _webhook = new Webhook(proxy, config)
             {
@@ -77,7 +77,7 @@ namespace Chaptarr.Core.Test.Talearr.Notifications
 
             var json = LastWebhook();
             Assert.That((string)json["eventType"], Is.EqualTo("Grab"));
-            Assert.That((string)json["instanceName"], Is.EqualTo("TaleArr"));
+            Assert.That((string)json["instanceName"], Is.EqualTo("Talearr"));
             Assert.That(json["author"]["name"], Is.Not.Null);
             Assert.That((string)json["release"]["quality"], Is.EqualTo("M4B"));
             Assert.That((string)json["release"]["releaseTitle"], Is.EqualTo("Dune Box Set"));
@@ -100,7 +100,7 @@ namespace Chaptarr.Core.Test.Talearr.Notifications
 
             _webhook.OnImportFailure(new BookDownloadMessage
             {
-                Message = "TaleArr failed to Import all files for Dune",
+                Message = "Talearr failed to Import all files for Dune",
                 Author = author,
                 Book = book,
                 Books = new List<Book> { book },

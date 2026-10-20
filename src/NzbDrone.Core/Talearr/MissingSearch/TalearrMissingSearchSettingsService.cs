@@ -11,7 +11,7 @@ namespace NzbDrone.Core.Talearr.MissingSearch
         TalearrMissingSearchSettings Save(TalearrMissingSearchSettings settings);
     }
 
-    // TaleArr: talearr.missingsearch.* rows in the existing Config table. No schema change.
+    // Talearr: talearr.missingsearch.* rows in the existing Config table. No schema change.
     public class TalearrMissingSearchSettingsService : ITalearrMissingSearchSettingsService
     {
         public const string ScheduleKey = "talearr.missingsearch.schedule";
@@ -70,7 +70,7 @@ namespace NzbDrone.Core.Talearr.MissingSearch
                 saved = _cached.Clone();
             }
 
-            _logger.Info("TaleArr scheduled missing search saved: schedule={0}, booksPerRun={1}, staggerSeconds={2}",
+            _logger.Info("Talearr scheduled missing search saved: schedule={0}, booksPerRun={1}, staggerSeconds={2}",
                 saved.Schedule,
                 saved.EffectiveBooksPerRun,
                 saved.EffectiveStaggerSeconds);
@@ -111,7 +111,7 @@ namespace NzbDrone.Core.Talearr.MissingSearch
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read TaleArr setting {0}, using the default", key);
+                _logger.Debug(ex, "Unable to read Talearr setting {0}, using the default", key);
                 return null;
             }
         }

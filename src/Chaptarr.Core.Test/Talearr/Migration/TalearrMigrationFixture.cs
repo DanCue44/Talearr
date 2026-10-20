@@ -411,10 +411,10 @@ namespace Chaptarr.Core.Test.Talearr.Migration
             var geek = _indexers.Single(i => i.Name == "NZBgeek");
             Assert.That(geek.Enable, Is.False);
             Assert.That(((NewznabSettings)geek.Settings).Categories, Is.EqualTo(new[] { 7020, 3030 }));
-            Assert.That(geek.Tags, Is.EqualTo(new[] { 9 }), "source tag fav maps to the existing TaleArr tag");
+            Assert.That(geek.Tags, Is.EqualTo(new[] { 9 }), "source tag fav maps to the existing Talearr tag");
             Assert.That(((TorznabSettings)_indexers.Single(i => i.Name == "Jackett Books").Settings).SeedCriteria.SeedRatio, Is.EqualTo(1.5));
 
-            Assert.That(_localBooks["hc:1001|Ebook"].EbookMonitored, Is.True, "a book already in TaleArr gets monitored in place");
+            Assert.That(_localBooks["hc:1001|Ebook"].EbookMonitored, Is.True, "a book already in Talearr gets monitored in place");
 
             var (providerId, config) = _enqueued.Single();
             Assert.That(providerId, Is.EqualTo("hc:600"));

@@ -180,7 +180,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
         TalearrOpdsSnapshot Get();
     }
 
-    // TaleArr: reads the ebook side of the library for the OPDS feed through the existing book,
+    // Talearr: reads the ebook side of the library for the OPDS feed through the existing book,
     // author, series and file services. Read only; nothing is written anywhere.
     public class TalearrOpdsLibrary : ITalearrOpdsLibrary,
         IHandle<BookImportedEvent>,
@@ -263,7 +263,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
                 : (_seriesService.GetAllSeries() ?? new List<Series>()).Where(s => seriesIds.Contains(s.Id)).ToList();
 
             var snapshot = Build(books, _authorService.GetAllAuthors() ?? new List<Author>(), ebookFiles, links, series, DateTime.UtcNow);
-            _logger.Debug("TaleArr: OPDS catalog built with {0} ebooks", snapshot.Books.Count);
+            _logger.Debug("Talearr: OPDS catalog built with {0} ebooks", snapshot.Books.Count);
 
             return snapshot;
         }

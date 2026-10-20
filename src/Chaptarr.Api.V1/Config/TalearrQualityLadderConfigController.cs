@@ -8,7 +8,7 @@ using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Config
 {
-    // TaleArr: audio quality ladder and ebook format preference. A new route; no existing route
+    // Talearr: audio quality ladder and ebook format preference. A new route; no existing route
     // or field changes. Stored as talearr.ladder.* rows in the Config table. Fields a client does
     // not send keep their current values.
     public class TalearrQualityLadderConfigResource : RestResource

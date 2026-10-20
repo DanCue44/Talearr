@@ -58,7 +58,7 @@ export const defaultState = {
     ebookTags: null
   },
 
-  // TaleArr: adding one book monitors only that book and no future releases unless the
+  // Talearr: adding one book monitors only that book and no future releases unless the
   // user picks otherwise in the add modal (see Store/Migrators/migrateTalearrBookDefaults).
   bookDefaults: {
     talearrSafeBookDefaults: 1,
@@ -143,7 +143,7 @@ function getMediaTypeLabel(mediaType) {
   return mediaType === 'ebook' ? 'eBook' : 'audiobook';
 }
 
-const pendingBookRequestMessage = 'The author and requested book are being prepared by the metadata server. TaleArr saved your request and will add it automatically when it becomes available.';
+const pendingBookRequestMessage = 'The author and requested book are being prepared by the metadata server. Talearr saved your request and will add it automatically when it becomes available.';
 
 function getPendingBookRequest(data, xhr) {
   const status = (xhr && xhr.status) || (data && data.pendingId ? 202 : null);

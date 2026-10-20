@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Talearr.ContentFilter
         void Remove(int metadataProfileId);
     }
 
-    // TaleArr: one Config row per metadata profile ("talearr.metadataprofile.<id>", JSON). User
+    // Talearr: one Config row per metadata profile ("talearr.metadataprofile.<id>", JSON). User
     // choices, so not in the rebuildable talearr.db. Stock Chaptarr never reads these keys, and a
     // rollback simply stops applying the rules.
     public class TalearrContentFilterStore : ITalearrContentFilterStore
@@ -56,7 +56,7 @@ namespace NzbDrone.Core.Talearr.ContentFilter
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: ignoring unreadable genre and content rules for metadata profile {0}", metadataProfileId);
+                _logger.Warn(ex, "Talearr: ignoring unreadable genre and content rules for metadata profile {0}", metadataProfileId);
                 return new TalearrContentFilter();
             }
         }

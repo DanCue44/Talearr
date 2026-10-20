@@ -62,7 +62,7 @@ namespace NzbDrone.Core.Talearr.Catalog
         TalearrDuplicateCandidates Find();
     }
 
-    // TaleArr: "possible duplicates" for the merge tool. Authors match on a normalized name;
+    // Talearr: "possible duplicates" for the merge tool. Authors match on a normalized name;
     // books match on author + media type + normalized title. Ebook and audiobook rows of one work
     // never group together (they are siblings). Read-only, lean column selects.
     public class TalearrDuplicateFinder : ITalearrDuplicateFinder

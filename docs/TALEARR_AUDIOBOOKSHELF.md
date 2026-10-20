@@ -1,13 +1,13 @@
-# TaleArr and Audiobookshelf
+# Talearr and Audiobookshelf
 
-TaleArr knows what is already in your Audiobookshelf (ABS) library. It reads the library every
+Talearr knows what is already in your Audiobookshelf (ABS) library. It reads the library every
 hour, matches the items to your books, skips releases for books ABS already has, and shows
 "In Audiobookshelf" on the book page with a link to the item. Telling ABS about new imports
 stays the job of the existing connection, which already does it.
 
 ## Setup
 
-Settings > Connect > Audiobookshelf. This is Chaptarr's own Audiobookshelf connection; TaleArr
+Settings > Connect > Audiobookshelf. This is Chaptarr's own Audiobookshelf connection; Talearr
 adds three settings to it.
 
 | Setting | Default | What it does |
@@ -17,18 +17,18 @@ adds three settings to it.
 | **Sync Library** | on | Read the mapped ABS libraries every hour (GET requests only) and when the connection is saved. |
 | **Skip Books Already in Audiobookshelf** | on | Do not grab a book ABS already has. See [What counts](#what-counts). |
 | **Link URL** (advanced) | empty | The address your browser uses for ABS, for the book page links. Empty: built from Host, Port and Url Base, which may be a Docker name your browser cannot reach. |
-| Root folder mappings | | Chaptarr's mapping of each TaleArr root folder to the ABS library folder that holds the same files. TaleArr also uses it to translate ABS paths into its own paths, because the containers usually see the share under different names. |
+| Root folder mappings | | Chaptarr's mapping of each Talearr root folder to the ABS library folder that holds the same files. Talearr also uses it to translate ABS paths into its own paths, because the containers usually see the share under different names. |
 
-Test checks the connection as before and, with Sync Library on, that every library TaleArr
+Test checks the connection as before and, with Sync Library on, that every library Talearr
 would read can be listed with this key.
 
 Example (Unraid): ABS mounts `/mnt/user/Media/Books` as `/books` and
-`/mnt/user/Media/Audiobooks` as `/audiobooks`; TaleArr mounts them as `/ebooks` and
-`/audiobooks`. Map the TaleArr `/ebooks` root to the ABS `Ebooks - /books` folder and
+`/mnt/user/Media/Audiobooks` as `/audiobooks`; Talearr mounts them as `/ebooks` and
+`/audiobooks`. Map the Talearr `/ebooks` root to the ABS `Ebooks - /books` folder and
 `/audiobooks` to `Audiobooks - /audiobooks`. An ABS item at `/books/R.F. Kuang/The Poppy War`
-is then `/ebooks/R.F. Kuang/The Poppy War` to TaleArr.
+is then `/ebooks/R.F. Kuang/The Poppy War` to Talearr.
 
-Without mappings TaleArr reads every ABS book library (or the single library picked in older
+Without mappings Talearr reads every ABS book library (or the single library picked in older
 Chaptarr versions) and uses ABS paths as they are.
 
 ## Sync
@@ -37,13 +37,13 @@ System > Tasks > Sync Audiobookshelf Library runs every 60 minutes; the connecti
 the last run and has **Sync now**. For each library it reads every item (title, subtitle,
 author, narrator, ASIN, ISBN, duration, abridged flag, whether it has audio files or an ebook,
 and the path), skipping missing items and podcasts. If ABS cannot be reached, the previous copy
-is kept and the error is shown in the dialog, so a short outage never makes TaleArr forget the
+is kept and the error is shown in the dialog, so a short outage never makes Talearr forget the
 library and grab everything again.
 
-Each item is matched to TaleArr books, first match wins:
+Each item is matched to Talearr books, first match wins:
 
-1. **Path**: the item's folder (through the mapping) holds files TaleArr imported. These are
-   TaleArr's own books; they show the badge but never stop a grab, so upgrades keep working.
+1. **Path**: the item's folder (through the mapping) holds files Talearr imported. These are
+   Talearr's own books; they show the badge but never stop a grab, so upgrades keep working.
 2. **ASIN**, then **ISBN** (ISBN-10 and ISBN-13 compare equal): an edition with the same
    identifier.
 3. **Title and author**: an author with the same name (initials and spacing ignored, so
@@ -61,9 +61,9 @@ A release is skipped ("In Audiobookshelf" in interactive search, a soft filter y
 grab) when every book it is for is in ABS and:
 
 - the connection has Skip Books Already in Audiobookshelf on;
-- TaleArr has no files for the book (with files, upgrades and the
+- Talearr has no files for the book (with files, upgrades and the
   [recordings](TALEARR_RECORDINGS.md) upgrade guard decide as before);
-- the ABS item is not TaleArr's own import;
+- the ABS item is not Talearr's own import;
 - for an ebook: the item has an ebook file. An audiobook never stands in for an ebook, or the
   other way round;
 - for an audiobook: the item is that recording.
@@ -71,7 +71,7 @@ grab) when every book it is for is in ABS and:
     "unabridged" in its title, subtitle or folder name, else its duration against the wanted
     edition's (under 60% is abridged, 90% or more is unabridged). The wanted answer is the
     recordings resolver's. An unmarked item counts as unabridged, like an unmarked release under
-    the grab policy. So an abridged copy in ABS does not stop TaleArr grabbing a wanted
+    the grab policy. So an abridged copy in ABS does not stop Talearr grabbing a wanted
     unabridged recording, and an unabridged copy does not satisfy a wanted abridged one. With
     the grab policy's abridged setting at "Any", this check is off.
   - With more than one recording, the item goes to the recording with the same narrator, else
@@ -84,7 +84,7 @@ Chaptarr can write Audiobookshelf's `metadata.json` and `cover.jpg` next to each
 off by default and set per root folder, separately for audiobooks and ebooks: Settings > Media
 Management > Root Folders > edit a folder > **Write AudioBookShelf metadata.json** and **Write
 AudioBookShelf cover file**. They are written after an import and after an author refresh or
-rescan, once per book folder (from the first file of a multi-file audiobook). TaleArr changes what
+rescan, once per book folder (from the first file of a multi-file audiobook). Talearr changes what
 goes into them, not when they are written.
 
 ### metadata.json
@@ -107,7 +107,7 @@ goes into them, not when they are written.
 
 Chaptarr wrote the matched edition's first cover URL, whatever its size. For the 1984 import that
 was a Goodreads thumbnail (`9834606._SX50_.jpg`, 50x67 pixels, 1.5 KB), and Audiobookshelf used it
-as the book's cover. TaleArr now:
+as the book's cover. Talearr now:
 
 1. **Collects candidates**, in this order: the edition's covers, the book's covers, then the covers
    of other editions of the same recording (audiobooks: an edition with the same narrator, Audible
@@ -123,18 +123,18 @@ as the book's cover. TaleArr now:
 4. **Never writes a thumbnail.** When the largest image is under 150 px on the short side, nothing
    is written, so Audiobookshelf keeps the embedded cover or its own match instead of a postage
    stamp. A book in that state is not downloaded again for 12 hours.
-5. **Never downgrades.** When the folder already has a cover that TaleArr may replace (see below),
+5. **Never downgrades.** When the folder already has a cover that Talearr may replace (see below),
    it is replaced only by an image at least as large (short side, then area). A PNG or WebP chosen
    for `cover.jpg` is re-encoded as JPEG. The file is written to `cover.jpg.partial~` first and
    then moved into place.
 
-When the candidate list changes (an edition gains a cover, or TaleArr's rules change), the cover
-is looked at once more under these rules. A cover written by an older TaleArr or Chaptarr is
+When the candidate list changes (an edition gains a cover, or Talearr's rules change), the cover
+is looked at once more under these rules. A cover written by an older Talearr or Chaptarr is
 therefore re-checked once after the update and replaced only when a larger image is found.
 
 ### What is never overwritten
 
-Upstream's rules decide whether a sidecar may be replaced at all, and TaleArr keeps them:
+Upstream's rules decide whether a sidecar may be replaced at all, and Talearr keeps them:
 
 - A `metadata.json` or `cover.jpg` that this provider did not write (from Audiobookshelf with
   "Store metadata with item" on, from the download, or put there by you) is never touched, not even
@@ -143,7 +143,7 @@ Upstream's rules decide whether a sidecar may be replaced at all, and TaleArr ke
   metadata over it, or you edited it) is released: Chaptarr stops tracking its content and never
   writes it again.
 - After an import into a folder that already holds either file, the file is left alone.
-- To have TaleArr write a file again, delete it and refresh the author.
+- To have Talearr write a file again, delete it and refresh the author.
 
 Code: `src/NzbDrone.Core/Talearr/Metadata/` (`TalearrSidecarText`, `TalearrSidecarCover`,
 `TalearrSidecarCoverWriter`, `TalearrSidecarImage`), hooked from `AudioBookShelfMetadata`
@@ -164,13 +164,13 @@ Additive routes; nothing upstream changes.
 
 ## Storage and rollback
 
-- The connection is Chaptarr's own `AudioBookShelf` row in the `Notifications` table. TaleArr
+- The connection is Chaptarr's own `AudioBookShelf` row in the `Notifications` table. Talearr
   adds `talearrSyncLibrary`, `talearrSkipOwned` and `talearrLinkUrl` to its `Settings` JSON.
   Stock Chaptarr reads that JSON with System.Text.Json, which skips keys it does not know, so
   after a rollback Chaptarr keeps using the connection (scans, mappings) unchanged. If Chaptarr
-  saves the connection, the three keys are dropped and TaleArr later uses the defaults (on, on,
+  saves the connection, the three keys are dropped and Talearr later uses the defaults (on, on,
   empty).
-- TaleArr deliberately adds no connection type of its own: on start, Chaptarr deletes every
+- Talearr deliberately adds no connection type of its own: on start, Chaptarr deletes every
   connection whose implementation it does not know
   (`ProviderFactory.RemoveMissingImplementations`), which would lose the setup on a rollback.
 - The library cache is in `talearr.db` (schema version 2: `AbsItems`, `AbsItemBooks`,
@@ -178,7 +178,7 @@ Additive routes; nothing upstream changes.
   migrations, no `config.xml` edits.
 - The scheduled task row is removed by Chaptarr on its next start, like the recordings one.
 
-Checked against stock Chaptarr 0.9.965 on a data folder TaleArr had written: it started, listed
-and tested the Audiobookshelf connection with its mappings, removed the TaleArr task rows and a
-probe row with an unknown implementation, kept the migration version, and TaleArr then started
+Checked against stock Chaptarr 0.9.965 on a data folder Talearr had written: it started, listed
+and tested the Audiobookshelf connection with its mappings, removed the Talearr task rows and a
+probe row with an unknown implementation, kept the migration version, and Talearr then started
 on the same folder and synced again.

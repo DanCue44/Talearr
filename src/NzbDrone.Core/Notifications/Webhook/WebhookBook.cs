@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Notifications.Webhook
                 Edition = new WebhookBookEdition(selectedEdition);
             }
 
-            // TaleArr: additive details for consumers that show a card (Readarr fields unchanged).
+            // Talearr: additive details for consumers that show a card (Readarr fields unchanged).
             var details = TalearrNotificationDetails.Describe(book, selectedEdition);
             CoverUrl = details?.CoverUrl;
             MediaType = details?.MediaType?.ToLowerInvariant();

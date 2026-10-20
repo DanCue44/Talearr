@@ -39,7 +39,7 @@ namespace Chaptarr.Api.V1.Talearr
         public List<RecordingCandidateInfo> Candidates { get; set; } = new List<RecordingCandidateInfo>();
     }
 
-    // TaleArr: recordings routes under /api/v1/talearr/recordings. New routes only; no existing
+    // Talearr: recordings routes under /api/v1/talearr/recordings. New routes only; no existing
     // route, field or status code changes. Local ids in responses are handles; clients should
     // store baseBookId / foreignEditionId / asin.
     [V1ApiController("talearr/recordings")]
@@ -73,7 +73,7 @@ namespace Chaptarr.Api.V1.Talearr
                 return NotFound(new TalearrRecordingProblem { Message = "Book not found" });
             }
 
-            // TaleArr: a book added a moment ago gets its first Audible lookup here (at most a few
+            // Talearr: a book added a moment ago gets its first Audible lookup here (at most a few
             // seconds), so AllSeerr sees abridged candidates right after the add.
             var view = _recordingsService.GetRecordingsWithFacts(book, allLanguages, FirstLookupTimeout);
             if (view == null)

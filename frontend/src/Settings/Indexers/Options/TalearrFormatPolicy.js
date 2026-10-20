@@ -45,7 +45,7 @@ function readError(xhr, fallback) {
   return (body && body.message) || fallback;
 }
 
-// TaleArr: format policy on Settings > Indexers (docs/TALEARR_FORMAT_POLICY.md). Stored as
+// Talearr: format policy on Settings > Indexers (docs/TALEARR_FORMAT_POLICY.md). Stored as
 // talearr.formatpolicy.* rows in the Config table through /api/v1/config/talearrformatpolicy.
 class TalearrFormatPolicy extends Component {
 
@@ -161,7 +161,7 @@ class TalearrFormatPolicy extends Component {
     return (
       <FieldSet legend="Format policy">
         <div className={styles.help}>
-          {'Which format TaleArr grabs for a monitored book. Monitoring still decides which books are wanted in which format; the policy filters the grabs. Interactive search shows a skipped release as "Format policy" and can still grab it.'}
+          {'Which format Talearr grabs for a monitored book. Monitoring still decides which books are wanted in which format; the policy filters the grabs. Interactive search shows a skipped release as "Format policy" and can still grab it.'}
         </div>
 
         <Form>

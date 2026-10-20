@@ -7,7 +7,7 @@ import { fetchTalearrRecordings, saveTalearrRecordings, setTalearrRecordingsValu
 import createSettingsSectionSelector from 'Store/Selectors/createSettingsSectionSelector';
 import TalearrRecordings from './TalearrRecordings';
 
-// TaleArr: recordings section on Settings > Metadata.
+// Talearr: recordings section on Settings > Metadata.
 const SECTION = 'talearrRecordings';
 
 function createMapStateToProps() {

@@ -19,7 +19,7 @@ namespace NzbDrone.Core.Talearr.Metadata
         bool Save(TalearrCoverDecision decision, string fullPath);
     }
 
-    // TaleArr: downloads and writes cover sidecars chosen by TalearrSidecarCover. Hooked from
+    // Talearr: downloads and writes cover sidecars chosen by TalearrSidecarCover. Hooked from
     // MetadataService.ProcessBookImages, after upstream's own checks (an existing cover that this
     // provider did not write, or that was changed since, is never touched).
     public class TalearrSidecarCoverWriter : ITalearrSidecarCoverWriter
@@ -59,14 +59,14 @@ namespace NzbDrone.Core.Talearr.Metadata
             switch (decision.Verdict)
             {
                 case TalearrCoverVerdict.Write:
-                    _logger.Debug("TaleArr: cover for '{0}': {1}", image.BookTitle, decision.Reason);
+                    _logger.Debug("Talearr: cover for '{0}': {1}", image.BookTitle, decision.Reason);
                     _negative.TryRemove(cacheKey, out _);
                     break;
                 case TalearrCoverVerdict.KeepExisting:
-                    _logger.Debug("TaleArr: keeping the cover in {0} for '{1}': {2}", fullPath, image.BookTitle, decision.Reason);
+                    _logger.Debug("Talearr: keeping the cover in {0} for '{1}': {2}", fullPath, image.BookTitle, decision.Reason);
                     break;
                 default:
-                    _logger.Info("TaleArr: no cover written for '{0}': {1} ({2} candidates, {3} downloaded)",
+                    _logger.Info("Talearr: no cover written for '{0}': {1} ({2} candidates, {3} downloaded)",
                         image.BookTitle, decision.Reason, image.Candidates.Count, decision.Downloads);
                     _negative[cacheKey] = (DateTime.UtcNow.Add(NegativeCacheTime), decision);
                     break;
@@ -100,7 +100,7 @@ namespace NzbDrone.Core.Talearr.Metadata
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: couldn't write cover {0}", fullPath);
+                _logger.Warn(ex, "Talearr: couldn't write cover {0}", fullPath);
 
                 try
                 {
@@ -147,7 +147,7 @@ namespace NzbDrone.Core.Talearr.Metadata
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: couldn't read the existing cover {0}", fullPath);
+                _logger.Debug(ex, "Talearr: couldn't read the existing cover {0}", fullPath);
                 return null;
             }
         }

@@ -1,6 +1,6 @@
 # Soulseek through slskd
 
-TaleArr can search Soulseek for one book and download a whole folder through your own
+Talearr can search Soulseek for one book and download a whole folder through your own
 [slskd](https://github.com/slskd/slskd). It is **off by default** and only does anything when you
 press **Search Soulseek** on a book page. Only search for and download what you are allowed to.
 
@@ -13,7 +13,7 @@ Settings > Download Clients > **Soulseek (slskd)**:
 | Enable Soulseek | off | Shows Search Soulseek on book pages. |
 | slskd URL | empty | For example `http://slskd:5030`. |
 | API key | empty | One of slskd's `web.authentication.api_keys`. Returned masked by the API. |
-| Downloads folder | empty | slskd's downloads folder as TaleArr sees it. Map it into the TaleArr container. |
+| Downloads folder | empty | slskd's downloads folder as Talearr sees it. Map it into the Talearr container. |
 | Search time | 15 s | How long slskd collects answers (5 to 120). |
 | Free upload slot only | on | Etiquette: only peers that can send now, so you do not queue behind others. |
 | Maximum peer queue | 50 | Etiquette: skip peers with more queued uploads (0 = no limit). |
@@ -23,7 +23,7 @@ Settings > Download Clients > **Soulseek (slskd)**:
 | Give up after | 24 h | A download the peer has not started by then is cancelled. |
 | Clean up after import | on | Clears the finished transfers in slskd and removes the leftover folder. |
 
-**Test** checks that slskd answers, the API key works, slskd is logged in, and TaleArr can see
+**Test** checks that slskd answers, the API key works, slskd is logged in, and Talearr can see
 the downloads folder. Share something back in slskd; Soulseek runs on goodwill.
 
 ## How a search is judged
@@ -40,21 +40,21 @@ the downloads folder. Share something back in slskd; Soulseek runs on goodwill.
 - Each release gets a title from the meaningful folder names plus a format hint
   (`Frank Herbert - Dune [MP3 64kbps]`) and goes through the **normal decision engine** for that
   book: title and series matching, language, packs and bundles (grab policy), size, quality
-  profile and the TaleArr quality ladder, release profiles. The results show the same labels as
+  profile and the Talearr quality ladder, release profiles. The results show the same labels as
   interactive search. Rejected results can still be grabbed on purpose.
 - A peer whose download of this book failed is not offered for it again.
 
 ## What a grab does
 
-1. slskd 0.26 or later gets a batch with TaleArr's own destination folder
-   (`<downloads>/talearr-<id>`). Older slskd gets the plain enqueue call; TaleArr then finds the
+1. slskd 0.26 or later gets a batch with Talearr's own destination folder
+   (`<downloads>/talearr-<id>`). Older slskd gets the plain enqueue call; Talearr then finds the
    files in slskd's default folder (`<downloads>/<remote folder name>`) or one level down.
-2. TaleArr checks the transfers after each of upstream's download refreshes (every minute):
+2. Talearr checks the transfers after each of upstream's download refreshes (every minute):
    queued, downloading, failed (any file errored, rejected, timed out or cancelled), or done.
 3. When every file is there, it is imported for **the book it was grabbed for** through the
    normal import pipeline (Move), so the import rules, naming, recordings and the upgrade guard all
    apply. A failed import leaves the files where they are and says where (use Manual Import).
-4. After a successful import, the slskd transfers are cleared and TaleArr's own folder is removed
+4. After a successful import, the slskd transfers are cleared and Talearr's own folder is removed
    (a folder slskd chose is only removed when it is empty).
 
 The book page lists Soulseek downloads for that book with Cancel and Forget.

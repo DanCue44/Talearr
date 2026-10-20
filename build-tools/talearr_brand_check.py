@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""TaleArr rebrand guard.
+"""Talearr rebrand guard.
 
 Run after merging upstream Chaptarr changes. It fails if an upstream merge
-quietly undid the user-visible TaleArr branding, or if the fork drifted away
-from the technical identifiers that keep TaleArr a drop-in replacement for
+quietly undid the user-visible Talearr branding, or if the fork drifted away
+from the technical identifiers that keep Talearr a drop-in replacement for
 Chaptarr (config prefix, database and config file names, assembly name).
 
 Usage: python3 build-tools/talearr_brand_check.py
@@ -18,29 +18,29 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # (file, regex, why). Each regex must match somewhere in the file.
 MUST_HAVE_BRAND = [
-    ("frontend/src/index.ejs", r"<title>TaleArr</title>", "browser tab title"),
-    ("frontend/src/login.html", r"<title>Login - TaleArr</title>", "login page title"),
-    ("frontend/src/login.html", r"<span>TaleArr</span>", "login page name"),
-    ("frontend/src/Content/Images/Icons/manifest.json", r'"name": "TaleArr"', "PWA manifest name"),
-    ("frontend/src/Utilities/String/translate.ts", r"tokens\.appName = 'TaleArr'", "UI {appName} token"),
-    ("frontend/src/System/Status/About/About.js", r"talearrVersion", "TaleArr version in System > Status"),
+    ("frontend/src/index.ejs", r"<title>Talearr</title>", "browser tab title"),
+    ("frontend/src/login.html", r"<title>Login - Talearr</title>", "login page title"),
+    ("frontend/src/login.html", r"<span>Talearr</span>", "login page name"),
+    ("frontend/src/Content/Images/Icons/manifest.json", r'"name": "Talearr"', "PWA manifest name"),
+    ("frontend/src/Utilities/String/translate.ts", r"tokens\.appName = 'Talearr'", "UI {appName} token"),
+    ("frontend/src/System/Status/About/About.js", r"talearrVersion", "Talearr version in System > Status"),
     ("frontend/src/System/Status/MoreInfo/MoreInfo.js", r"DanCue44/TaleArr", "More Info source link"),
-    ("src/NzbDrone.Common/EnvironmentInfo/BuildInfo.cs", r'ProductName \{ get; \} = "TaleArr"', "backend product name"),
-    ("src/NzbDrone.Common/EnvironmentInfo/BuildInfo.cs", r'"TalearrVersion"', "TaleArr version metadata read"),
+    ("src/NzbDrone.Common/EnvironmentInfo/BuildInfo.cs", r'ProductName \{ get; \} = "Talearr"', "backend product name"),
+    ("src/NzbDrone.Common/EnvironmentInfo/BuildInfo.cs", r'"TalearrVersion"', "Talearr version metadata read"),
     ("src/NzbDrone.Core/Localization/LocalizationService.cs", r"TalearrBranding\.Apply", "translation rebranding hook"),
     ("src/NzbDrone.Core/Localization/LocalizationService.cs", r'TryAdd\("appName", BuildInfo\.ProductName\)', "backend {appName} token"),
-    ("src/NzbDrone.Core/Notifications/NotificationBase.cs", r'"TaleArr - "', "notification titles"),
+    ("src/NzbDrone.Core/Notifications/NotificationBase.cs", r'"Talearr - "', "notification titles"),
     ("src/NzbDrone.Core/Configuration/ConfigFileProvider.cs", r"BuildInfo\.ProductName", "instance name default"),
-    ("src/NzbDrone.Host/Bootstrap.cs", r'"Starting TaleArr', "startup log line"),
+    ("src/NzbDrone.Host/Bootstrap.cs", r'"Starting Talearr', "startup log line"),
     ("src/Directory.Build.props", r'<Import Project="\$\(MSBuildThisFileDirectory\)Talearr\.props" />', "Talearr.props import"),
-    ("src/Talearr.props", r"<TalearrVersion[^>]*>\d+\.\d+\.\d+</TalearrVersion>", "TaleArr version"),
-    ("docker-entrypoint.sh", r"TaleArr Docker Entrypoint", "container log banner"),
+    ("src/Talearr.props", r"<TalearrVersion[^>]*>\d+\.\d+\.\d+</TalearrVersion>", "Talearr version"),
+    ("docker-entrypoint.sh", r"Talearr Docker Entrypoint", "container log banner"),
     ("frontend/src/Components/Page/Header/PageHeader.js", r"wordmarkAccent", "header wordmark"),
     ("frontend/src/System/Status/Status.js", r"<WorksBestWith />", "Works best with block"),
     ("Logo/talearr-icon-master.png", r"PNG", "icon master"),
 ]
 
-# Technical identity that must stay upstream so TaleArr can run on a Chaptarr
+# Technical identity that must stay upstream so Talearr can run on a Chaptarr
 # config folder and database unchanged.
 MUST_KEEP_UPSTREAM = [
     ("src/NzbDrone.Common/EnvironmentInfo/BuildInfo.cs", r'AppName \{ get; \} = "Chaptarr"', "technical app name"),
@@ -49,10 +49,10 @@ MUST_KEEP_UPSTREAM = [
     ("src/NzbDrone.Host/Bootstrap.cs", r'"Chaptarr:Postgres"', "Chaptarr__ env config prefix"),
     ("Dockerfile.cross", r'"/app/Chaptarr\.dll"', "entry assembly name"),
     ("Dockerfile.cross", r"EXPOSE 8789", "default port"),
-    ("src/NzbDrone.Core/Update/InstallUpdateService.cs", r"Built-in updater disabled in the TaleArr image", "in-app updater disabled in Docker"),
+    ("src/NzbDrone.Core/Update/InstallUpdateService.cs", r"Built-in updater disabled in the Talearr image", "in-app updater disabled in Docker"),
 ]
 
-# TaleArr feature hooks inside upstream files. An upstream merge that drops one of these
+# Talearr feature hooks inside upstream files. An upstream merge that drops one of these
 # silently turns the feature off, so check they are still wired in.
 MUST_KEEP_TALEARR_HOOKS = [
     ("src/NzbDrone.Core/Parser/ReleasePackDetector.cs", r"TalearrBundleDetector\.Detect", "grab policy: bundle detection hook"),
@@ -96,7 +96,7 @@ MUST_KEEP_TALEARR_HOOKS = [
     ("src/NzbDrone.Core/Talearr/ContentFilter/TalearrContentFilterStore.cs", r'KeyPrefix = "talearr\.metadataprofile\."', "metadata profiles: genre rules are talearr.* Config rows"),
 ]
 
-# Phase 2 recordings wiring (docs/TALEARR_RECORDINGS_DESIGN.md). TaleArr-only files, but the
+# Phase 2 recordings wiring (docs/TALEARR_RECORDINGS_DESIGN.md). Talearr-only files, but the
 # drop-in promise depends on what they contain, so pin the parts that matter.
 MUST_KEEP_RECORDINGS = [
     ("src/NzbDrone.Core/Talearr/Recordings/TalearrDatabase.cs", r'FileName = "talearr\.db"', "recordings: cache lives in its own talearr.db"),
@@ -117,7 +117,7 @@ MUST_KEEP_RECORDINGS = [
     ("src/Chaptarr.Api.V1/Talearr/TalearrRecordingsController.cs", r'V1ApiController\("talearr/recordings"\)', "recordings: API route for AllSeerr and NoBookEnds"),
     ("src/NzbDrone.Core/Talearr/Recordings/TalearrRecordingsService.cs", r"_bookService\.AddWantedEdition\(", "recordings: new recordings are upstream wanted copies"),
     ("src/NzbDrone.Core/Talearr/Recordings/TalearrEditionKey.cs", r"GetTrustedForeignEditionId", "recordings: facts keyed the way upstream keys cloned editions"),
-    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"public partial class FileNameBuilder", "recordings: FileNameBuilder stays partial for the TaleArr half"),
+    ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"public partial class FileNameBuilder", "recordings: FileNameBuilder stays partial for the Talearr half"),
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"components = TalearrDisambiguateRecordingFolder\(", "recordings: copy folders are disambiguated"),
     ("src/NzbDrone.Core/Organizer/FileNameBuilder.cs", r"Lazy<ITalearrRecordingFolders> recordingFolders = null", "recordings: folder rule is optional and lazy (no container cycle)"),
     ("src/NzbDrone.Core/MediaFiles/BookImport/ImportApprovedBooks.cs", r"TalearrRecordingFolders\.FindImportConflict\(", "recordings: import refuses a folder holding another recording's files"),
@@ -127,7 +127,7 @@ MUST_KEEP_RECORDINGS = [
     ("frontend/src/Book/Details/BookDetails.js", r"<BookRecordings", "recordings: Recordings section on the book page"),
     ("frontend/src/Settings/Metadata/MetadataSettings.js", r"<TalearrRecordingsConnector", "recordings: settings block on Settings > Metadata"),
     ("frontend/src/Store/Actions/settingsActions.js", r"talearrRecordings\.actionHandlers", "recordings: settings store section"),
-    ("frontend/src/Book/Recordings/BookRecordings.js", r"url: '/talearr/recordings'", "recordings: book page uses the TaleArr recordings API"),
+    ("frontend/src/Book/Recordings/BookRecordings.js", r"url: '/talearr/recordings'", "recordings: book page uses the Talearr recordings API"),
     # Per-book abridged policy (docs/TALEARR_RECORDINGS.md#per-book-abridged-policy).
     ("src/NzbDrone.Core/Talearr/GrabPolicy/TalearrGrabPolicy.cs", r"AbridgedOnly = 3", "abridged policy: abridged only keeps its stored number"),
     ("src/NzbDrone.Core/Talearr/Recordings/TalearrDatabase.cs", r"CREATE TABLE IF NOT EXISTS BookGrabPolicies", "abridged policy: per-book overrides live in talearr.db"),
@@ -148,10 +148,10 @@ MUST_KEEP_RECORDINGS = [
 ]
 
 # Phase 3 Audiobookshelf library awareness (docs/TALEARR_AUDIOBOOKSHELF.md). The connection is
-# upstream's own AudioBookShelf provider row; TaleArr adds keys to its Settings JSON and keeps the
+# upstream's own AudioBookShelf provider row; Talearr adds keys to its Settings JSON and keeps the
 # library cache in talearr.db. Pin the parts the rollback promise depends on.
 MUST_KEEP_AUDIOBOOKSHELF = [
-    ("src/NzbDrone.Core/Notifications/AudioBookShelf/AudioBookShelfSettings.cs", r"public partial class AudioBookShelfSettings", "abs: upstream settings stay partial for the TaleArr fields"),
+    ("src/NzbDrone.Core/Notifications/AudioBookShelf/AudioBookShelfSettings.cs", r"public partial class AudioBookShelfSettings", "abs: upstream settings stay partial for the Talearr fields"),
     ("src/NzbDrone.Core/Notifications/AudioBookShelf/AudioBookShelfSettings.Talearr.cs", r"public bool TalearrSyncLibrary \{ get; set; \} = true;", "abs: library sync is on by default"),
     ("src/NzbDrone.Core/Notifications/AudioBookShelf/AudioBookShelfSettings.Talearr.cs", r"public bool TalearrSkipOwned \{ get; set; \} = true;", "abs: skip books already in Audiobookshelf, on by default, can be turned off"),
     ("src/NzbDrone.Core/Notifications/AudioBookShelf/AudioBookShelf.cs", r"TalearrAbsClient\.TestLibraryRead\(", "abs: Test button checks the libraries can be read"),
@@ -221,11 +221,11 @@ MAIN_DATABASE_ALLOWED = {
     "src/NzbDrone.Core/Talearr/Catalog/TalearrMergeService.cs",
 }
 MUST_NOT_HAVE_IN_TREE = [
-    ("src/NzbDrone.Core/Datastore/Migration", "*.cs", r"(?i)talearr", "TaleArr adds no chaptarr.db migrations"),
-    ("src/NzbDrone.Core/Talearr", "*.cs", r"\[Migration\(", "TaleArr code keeps its data out of the chaptarr.db schema"),
-    ("src/NzbDrone.Core/Talearr", "*.cs", r"IMainDatabase", "TaleArr code keeps its data out of the chaptarr.db schema"),
-    ("src/NzbDrone.Core/Talearr", "*.cs", r"NotificationBase<|IProviderConfig\b", "TaleArr adds no provider implementation (stock Chaptarr deletes unknown ones on start)"),
-    ("src/NzbDrone.Core/Talearr/Audiobookshelf", "*.cs", r"HttpMethod\.(Post|Put|Patch|Delete)", "TaleArr only reads Audiobookshelf; scans stay upstream's"),
+    ("src/NzbDrone.Core/Datastore/Migration", "*.cs", r"(?i)talearr", "Talearr adds no chaptarr.db migrations"),
+    ("src/NzbDrone.Core/Talearr", "*.cs", r"\[Migration\(", "Talearr code keeps its data out of the chaptarr.db schema"),
+    ("src/NzbDrone.Core/Talearr", "*.cs", r"IMainDatabase", "Talearr code keeps its data out of the chaptarr.db schema"),
+    ("src/NzbDrone.Core/Talearr", "*.cs", r"NotificationBase<|IProviderConfig\b", "Talearr adds no provider implementation (stock Chaptarr deletes unknown ones on start)"),
+    ("src/NzbDrone.Core/Talearr/Audiobookshelf", "*.cs", r"HttpMethod\.(Post|Put|Patch|Delete)", "Talearr only reads Audiobookshelf; scans stay upstream's"),
     ("src/NzbDrone.Core/Talearr/Wishlists", "*.cs", r"ImportListBase<|IImportListSettings", "wishlists are not import list providers (stock Chaptarr deletes unknown ones on start)"),
     ("src/NzbDrone.Core/Talearr/Migration", "*.cs", r"_httpClient\.(Post|Put|Execute)|HttpMethod\.(Post|Put|Patch|Delete)", "migration only reads the source (GET)"),
 ]
@@ -272,15 +272,15 @@ def main() -> int:
                 failures.append(f"{path.relative_to(ROOT)}: found /{pattern}/ ({why})")
 
     if failures:
-        print("TaleArr brand check failed:")
+        print("Talearr brand check failed:")
         for failure in failures:
             print(f"  - {failure}")
-        print("Re-apply the TaleArr change (see docs/TALEARR_UPSTREAM_SYNC.md).")
+        print("Re-apply the Talearr change (see docs/TALEARR_UPSTREAM_SYNC.md).")
         return 1
 
     total = (len(MUST_HAVE_BRAND) + len(MUST_KEEP_UPSTREAM) + len(MUST_KEEP_TALEARR_HOOKS) +
              len(MUST_KEEP_RECORDINGS) + len(MUST_KEEP_AUDIOBOOKSHELF) + len(MUST_KEEP_SERIES) + len(MUST_KEEP_WISHLISTS) + len(MUST_KEEP_FORMAT_POLICY) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE))
-    print(f"TaleArr brand check passed ({total} checks).")
+    print(f"Talearr brand check passed ({total} checks).")
     return 0
 
 

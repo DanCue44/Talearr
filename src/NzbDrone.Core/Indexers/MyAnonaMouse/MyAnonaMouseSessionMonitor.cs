@@ -12,7 +12,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         SeedboxMamId = 1
     }
 
-    // TaleArr: raised when a MAM session or dynamic seedbox state changes, so the health
+    // Talearr: raised when a MAM session or dynamic seedbox state changes, so the health
     // checks re-run right away instead of at the next 6-hourly health cycle.
     public class MyAnonaMouseSessionStatusChangedEvent : IEvent
     {
@@ -50,7 +50,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         MyAnonaMouseSessionHealth Get(int indexerId);
     }
 
-    // TaleArr: in-memory MAM session state for the health checks, plus persistence of rotated
+    // Talearr: in-memory MAM session state for the health checks, plus persistence of rotated
     // mam_id cookies back into the indexer settings JSON (no schema change; Chaptarr reads the
     // same MamId field). State is rebuilt after a restart by the startup account refresh and
     // the startup seedbox update.

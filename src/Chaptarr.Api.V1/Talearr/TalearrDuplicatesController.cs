@@ -12,7 +12,7 @@ namespace Chaptarr.Api.V1.Talearr
         public int? AuthorId { get; set; }
     }
 
-    // TaleArr: report and opt-in cleanup of book rows that store the same work twice for one
+    // Talearr: report and opt-in cleanup of book rows that store the same work twice for one
     // media type (unmonitored, file-less, automatic copies only). New routes only.
     //   GET  /api/v1/talearr/duplicates[?authorId=16]          dry run report
     //   POST /api/v1/talearr/duplicates/cleanup {"dryRun": false, "authorId": 16}

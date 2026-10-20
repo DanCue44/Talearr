@@ -7,7 +7,7 @@ using NzbDrone.Core.Configuration;
 
 namespace NzbDrone.Core.Talearr.QualityLadder
 {
-    // TaleArr: audio quality ladder and ebook format preference settings. The defaults only change
+    // Talearr: audio quality ladder and ebook format preference settings. The defaults only change
     // ranking; nothing is rejected or upgraded unless it is turned on.
     public sealed class TalearrQualityLadderSettings
     {
@@ -111,7 +111,7 @@ namespace NzbDrone.Core.Talearr.QualityLadder
                 _repository.Upsert(EbookFormatsKey, string.Join(",", formats));
                 _repository.Upsert(EbookUpgradesKey, settings.EbookUpgrades.ToString());
 
-                _logger.Info("TaleArr quality ladder settings saved: audioRanking={0}, audioUpgrades={1}, minimumAudioKbps={2}, ebookFormats={3}, ebookUpgrades={4}",
+                _logger.Info("Talearr quality ladder settings saved: audioRanking={0}, audioUpgrades={1}, minimumAudioKbps={2}, ebookFormats={3}, ebookUpgrades={4}",
                     settings.AudioRanking, settings.AudioUpgrades, minimum, string.Join(">", formats), settings.EbookUpgrades);
 
                 _cached = Load();
@@ -142,7 +142,7 @@ namespace NzbDrone.Core.Talearr.QualityLadder
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read TaleArr quality ladder settings, using the defaults");
+                _logger.Debug(ex, "Unable to read Talearr quality ladder settings, using the defaults");
             }
 
             return settings;

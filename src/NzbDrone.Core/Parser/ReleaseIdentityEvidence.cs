@@ -86,7 +86,7 @@ namespace NzbDrone.Core.Parser
             return result;
         }
 
-        // TaleArr: whether a free-text name (a release segment, an ebook author tag) is the author
+        // Talearr: whether a free-text name (a release segment, an ebook author tag) is the author
         // or one of the author's aliases or pen names.
         public static bool NameMatchesAuthor(Author author, string candidate)
         {
@@ -105,7 +105,7 @@ namespace NzbDrone.Core.Parser
                 .Any(expectedName => forms.Any(form => CandidateMatchesName(expectedName, form) || CandidatePartMatchesName(expectedName, form)));
         }
 
-        // TaleArr: whether the author (or an alias or pen name) appears anywhere in a release title.
+        // Talearr: whether the author (or an alias or pen name) appears anywhere in a release title.
         public static bool TextNamesAuthor(Author author, string text)
         {
             if (author == null || text.IsNullOrWhiteSpace())

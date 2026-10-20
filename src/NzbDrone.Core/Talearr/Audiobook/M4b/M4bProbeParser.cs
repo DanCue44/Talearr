@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace NzbDrone.Core.Talearr.Audiobook.M4b
 {
-    // TaleArr: reads "ffprobe -print_format json -show_format -show_streams -show_chapters".
+    // Talearr: reads "ffprobe -print_format json -show_format -show_streams -show_chapters".
     public static class M4bProbeParser
     {
         public static M4bSourceTrack Parse(string path, string json)

@@ -9,11 +9,11 @@ using NzbDrone.Core.Parser;
 namespace NzbDrone.Core.Books.Services
 {
     /// <summary>
-    /// TaleArr: language-aware edition ranking.
+    /// Talearr: language-aware edition ranking.
     ///
     /// Upstream picks the most rated native-format edition, so a popular translation (German
     /// "Die Akte" with 861 votes) beats the English original ("The Pelican Brief" audiobook with
-    /// 377 votes) whenever the metadata profile allows every language. TaleArr ranks editions by
+    /// 377 votes) whenever the metadata profile allows every language. Talearr ranks editions by
     /// language first and only then by popularity:
     ///
     ///   0  preferred language, title matches the work title

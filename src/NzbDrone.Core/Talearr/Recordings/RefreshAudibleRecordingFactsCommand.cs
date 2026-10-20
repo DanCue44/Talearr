@@ -3,7 +3,7 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Talearr.Recordings
 {
-    // TaleArr: refreshes Audible facts for audiobook editions. Scheduled every 12 hours (cheap and
+    // Talearr: refreshes Audible facts for audiobook editions. Scheduled every 12 hours (cheap and
     // incremental: only missing or stale cache rows, a capped number per run), and queued on
     // demand for one book group with Force set. The class name is what System > Tasks shows
     // ("Refresh Audible Recording Facts"), so it carries no brand word.

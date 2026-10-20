@@ -20,10 +20,10 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
         TalearrAbsSyncState Sync(TalearrAbsConnection connection);
     }
 
-    // TaleArr: reads each Audiobookshelf connection's libraries (GET only), maps the item paths to
-    // TaleArr's root folders, matches items to books and replaces the connection's rows in
+    // Talearr: reads each Audiobookshelf connection's libraries (GET only), maps the item paths to
+    // Talearr's root folders, matches items to books and replaces the connection's rows in
     // talearr.db. A failed read keeps the previous rows, so a short Audiobookshelf outage never
-    // makes TaleArr forget the library and grab everything again.
+    // makes Talearr forget the library and grab everything again.
     public class TalearrAbsSyncService : ITalearrAbsSyncService,
                                          IExecute<SyncAudiobookshelfLibraryCommand>,
                                          IHandle<ProviderAddedEvent<INotification>>,
@@ -139,7 +139,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                     }
                     catch (Exception ex)
                     {
-                        _logger.Debug(ex, "TaleArr: could not match Audiobookshelf item {0} ({1})", item.ItemId, item.Title);
+                        _logger.Debug(ex, "Talearr: could not match Audiobookshelf item {0} ({1})", item.ItemId, item.Title);
                     }
                 }
 
@@ -152,13 +152,13 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                 };
 
                 _store.ReplaceConnection(result, state);
-                _logger.Info("TaleArr: read {0} items from Audiobookshelf ({1}), {2} matched to books", state.ItemCount, connection.Name, state.MatchedCount);
+                _logger.Info("Talearr: read {0} items from Audiobookshelf ({1}), {2} matched to books", state.ItemCount, connection.Name, state.MatchedCount);
                 return state;
             }
             catch (Exception ex)
             {
                 var message = Describe(ex);
-                _logger.Warn(ex, "TaleArr: could not read the Audiobookshelf library ({0}); keeping the last copy", connection.Name);
+                _logger.Warn(ex, "Talearr: could not read the Audiobookshelf library ({0}); keeping the last copy", connection.Name);
 
                 var state = new TalearrAbsSyncState
                 {

@@ -29,7 +29,7 @@ function createMapStateToProps() {
         isSearchingForMissingBooks,
         isSaving: missing.items.filter((m) => m.isSaving).length > 1,
         ...missing,
-        // TaleArr: custom filters for this page.
+        // Talearr: custom filters for this page.
         customFilters
       };
     }

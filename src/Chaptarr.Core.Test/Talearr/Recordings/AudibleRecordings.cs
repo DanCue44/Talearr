@@ -1,7 +1,7 @@
 namespace Chaptarr.Core.Test.Talearr.Recordings
 {
     // Recorded 2026-10-16 from the live Audible catalog and Audnexus (response groups trimmed to
-    // the fields TaleArr reads). "The Firm" by John Grisham: B002PE36VO is the stale US ASIN the
+    // the fields Talearr reads). "The Firm" by John Grisham: B002PE36VO is the stale US ASIN the
     // metadata server stores for the Scott Brick edition (Audible answers a bare stub), B002V5BSLC
     // is the current US product, B00NIXU8GW is the UK product, and the US search also returns an
     // abridged German product (B00TWO6SJM, Charles Brauer).

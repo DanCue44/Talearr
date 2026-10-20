@@ -68,7 +68,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
                 }
             };
 
-            // Ebook formats grouped: the profile ranks them equal, the TaleArr order decides.
+            // Ebook formats grouped: the profile ranks them equal, the Talearr order decides.
             _ebookProfile = new QualityProfile
             {
                 Id = 1,
@@ -160,7 +160,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
         {
             var reason = Reason(Release("Andy Weir - Project Hail Mary [128kbps] MP3", Quality.MP3, SizeFor(128, TenHours), narrator: "Ray Porter"));
 
-            Assert.That(reason, Does.StartWith("TaleArr: better audio of the same recording"));
+            Assert.That(reason, Does.StartWith("Talearr: better audio of the same recording"));
         }
 
         [Test]

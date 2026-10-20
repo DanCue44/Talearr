@@ -18,7 +18,7 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
 
             var resource = profile.ToResource();
 
-            // TaleArr: new profiles start with no genre or content type rules.
+            // Talearr: new profiles start with no genre or content type rules.
             resource.TalearrContentFilter = new TalearrContentFilter();
             return resource;
         }

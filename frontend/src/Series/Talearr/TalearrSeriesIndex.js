@@ -37,7 +37,7 @@ function readMonitoredOnly() {
   }
 }
 
-// TaleArr: every series in the library, with what TaleArr monitors (docs/TALEARR_SERIES.md).
+// Talearr: every series in the library, with what Talearr monitors (docs/TALEARR_SERIES.md).
 class TalearrSeriesIndex extends Component {
 
   //
@@ -133,7 +133,7 @@ class TalearrSeriesIndex extends Component {
 
         <PageContentBody>
           <div className={styles.intro}>
-            {'Monitor a series to have TaleArr monitor and search every book in it, now and as new books appear, as audiobooks, ebooks or both.'}
+            {'Monitor a series to have Talearr monitor and search every book in it, now and as new books appear, as audiobooks, ebooks or both.'}
           </div>
 
           <label className={styles.filter}>

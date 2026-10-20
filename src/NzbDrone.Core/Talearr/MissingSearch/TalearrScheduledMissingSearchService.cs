@@ -12,7 +12,7 @@ using NzbDrone.Core.Queue;
 
 namespace NzbDrone.Core.Talearr.MissingSearch
 {
-    // TaleArr: the scheduled missing-books search. Each run searches up to BooksPerRun monitored
+    // Talearr: the scheduled missing-books search. Each run searches up to BooksPerRun monitored
     // missing books, the ones searched longest ago first (Book.LastSearchTime, which every
     // indexer search already records, so no new storage is needed), waiting StaggerSeconds
     // between books so indexers are not hammered.
@@ -58,18 +58,18 @@ namespace NzbDrone.Core.Talearr.MissingSearch
 
             if (settings.Schedule == MissingSearchSchedule.Off && trigger == CommandTrigger.Scheduled)
             {
-                _logger.Debug("TaleArr: scheduled missing search is off");
+                _logger.Debug("Talearr: scheduled missing search is off");
                 return 0;
             }
 
             var books = SelectBooks(settings.EffectiveBooksPerRun);
             if (books.Count == 0)
             {
-                _logger.ProgressInfo("TaleArr: scheduled missing search found no monitored missing books to search");
+                _logger.ProgressInfo("Talearr: scheduled missing search found no monitored missing books to search");
                 return 0;
             }
 
-            _logger.ProgressInfo("TaleArr: scheduled missing search for {0} book(s), {1}s apart", books.Count, settings.EffectiveStaggerSeconds);
+            _logger.ProgressInfo("Talearr: scheduled missing search for {0} book(s), {1}s apart", books.Count, settings.EffectiveStaggerSeconds);
 
             var grabbed = 0;
             for (var index = 0; index < books.Count; index++)
@@ -90,11 +90,11 @@ namespace NzbDrone.Core.Talearr.MissingSearch
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "TaleArr: scheduled missing search failed for book [{0}]", book);
+                    _logger.Error(ex, "Talearr: scheduled missing search failed for book [{0}]", book);
                 }
             }
 
-            _logger.ProgressInfo("TaleArr: scheduled missing search completed for {0} book(s). {1} report(s) downloaded.", books.Count, grabbed);
+            _logger.ProgressInfo("Talearr: scheduled missing search completed for {0} book(s). {1} report(s) downloaded.", books.Count, grabbed);
             return grabbed;
         }
 
@@ -146,7 +146,7 @@ namespace NzbDrone.Core.Talearr.MissingSearch
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: unable to read the queue before the scheduled missing search");
+                _logger.Debug(ex, "Talearr: unable to read the queue before the scheduled missing search");
             }
 
             return ids;

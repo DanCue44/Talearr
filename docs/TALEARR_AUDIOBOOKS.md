@@ -1,4 +1,4 @@
-# TaleArr audiobook naming, multi-disc import and M4B merge
+# Talearr audiobook naming, multi-disc import and M4B merge
 
 Three Phase 2 additions for audiobooks. None of them changes the database schema, an existing
 API route or field, or `config.xml`, so Chaptarr can still run on the same database.
@@ -135,7 +135,7 @@ Settings > Conversion > Merge to M4B > **Merge after import** (off by default), 
   originals stay.
 - Not a disk-access command, so imports are not held up for the length of an encode.
 
-FFmpeg and FFprobe were already in the TaleArr Docker image (`ffmpeg` from the Debian packages in
+FFmpeg and FFprobe were already in the Talearr Docker image (`ffmpeg` from the Debian packages in
 `Dockerfile.cross`, used by Chaptarr's own conversion and m4b-tool), so the image is unchanged
 (size increase 0). Native installs need FFmpeg on the PATH; without it the command fails with
 "FFmpeg and FFprobe are needed" and nothing is touched.
@@ -144,7 +144,7 @@ Chaptarr's own download-time conversion (quality profile "convert to M4B", m4b-t
 and unchanged; when it has already produced a single M4B there is nothing left to merge.
 
 Storage: `Config` table row `talearr.audiobook.m4bafterimport` (`True`/`False`), read and written
-only by TaleArr through the new `/api/v1/config/talearrm4b` route
+only by Talearr through the new `/api/v1/config/talearrm4b` route
 (`{"id": 1, "convertAfterImport": false}`). Chaptarr ignores the row.
 
 Code: `src/NzbDrone.Core/Talearr/Audiobook/M4b/`, `Chaptarr.Api.V1/Config/TalearrM4bConfigController.cs`,

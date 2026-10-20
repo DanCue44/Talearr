@@ -30,7 +30,7 @@ namespace Chaptarr.Http.Frontend
             return MapResource("login");
         }
 
-        // TaleArr: browsers fetch /favicon.ico before signing in (Safari relies on it for the
+        // Talearr: browsers fetch /favicon.ico before signing in (Safari relies on it for the
         // tab icon), so it must not redirect to the login page.
         [AllowAnonymous]
         [HttpGet("/favicon.ico")]

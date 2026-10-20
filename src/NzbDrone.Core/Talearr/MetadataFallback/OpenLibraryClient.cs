@@ -32,7 +32,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
         List<OpenLibraryWorkDoc> SearchWorks(string query, int limit = 20);
     }
 
-    // TaleArr: keyless client for the public Open Library API (openlibrary.org), used only as the
+    // Talearr: keyless client for the public Open Library API (openlibrary.org), used only as the
     // fallback metadata source. Polite by design: an identifying User-Agent, at most one request
     // per second, a 15s timeout and a 6 hour in-memory cache of successful responses.
     public class OpenLibraryClient : IOpenLibraryClient
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
             _logger = logger;
         }
 
-        public static string UserAgent => $"TaleArr/{BuildInfo.TalearrVersion ?? "0"} (metadata fallback)";
+        public static string UserAgent => $"Talearr/{BuildInfo.TalearrVersion ?? "0"} (metadata fallback)";
 
         public List<OpenLibraryAuthorDoc> SearchAuthors(string name, int limit = 10)
         {

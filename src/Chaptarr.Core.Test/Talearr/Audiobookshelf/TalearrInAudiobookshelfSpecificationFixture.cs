@@ -212,7 +212,7 @@ namespace Chaptarr.Core.Test.Talearr.Audiobookshelf
             _world.Cache(1, AbsItems.Audio("li-own", "The Firm", "John Grisham", localPath: "/audiobooks/John Grisham/The Firm"));
 
             // The file goes away (say, deleted for a redownload): the Audiobookshelf item is still
-            // TaleArr's own folder, so it never blocks the redownload.
+            // Talearr's own folder, so it never blocks the redownload.
             _world.Files.Remove(file);
             _world.Library.Invalidate();
 

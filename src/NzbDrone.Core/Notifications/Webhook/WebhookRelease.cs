@@ -22,7 +22,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             CustomFormats = remoteBook.CustomFormats?.Select(x => x.Name).ToList();
             CustomFormatScore = remoteBook.CustomFormatScore;
 
-            // TaleArr: additive bundle flags (a box set grabbed when no single copy was found).
+            // Talearr: additive bundle flags (a box set grabbed when no single copy was found).
             IsBundle = remoteBook.IsBundle;
             IsBundleFallback = TalearrNotificationDetails.IsBundleFallback(remoteBook);
         }

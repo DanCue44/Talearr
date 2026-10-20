@@ -49,7 +49,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         AbridgedResolution ResolveEdition(Edition edition, IReadOnlyCollection<Edition> siblings, IReadOnlyCollection<BookFile> files = null);
     }
 
-    // TaleArr: decides whether a recording is abridged. First answer wins:
+    // Talearr: decides whether a recording is abridged. First answer wins:
     //   1. Audible format_type of the edition's resolved product (talearr.db, no network),
     //   2. explicit text on the edition (title, subtitle, edition info and format),
     //   3. runtime under 60% of the longest same-language edition, using Audible runtimes where
@@ -106,7 +106,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: abridged resolution failed for book {0}, using metadata only", book.Id);
+                _logger.Debug(ex, "Talearr: abridged resolution failed for book {0}, using metadata only", book.Id);
                 result = wanted != null ? Heuristic(wanted, editions) : AbridgedResolution.Unknown;
             }
 
@@ -232,7 +232,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: no cached Audible facts");
+                _logger.Debug(ex, "Talearr: no cached Audible facts");
                 return new Dictionary<int, EditionAudibleFacts>();
             }
         }

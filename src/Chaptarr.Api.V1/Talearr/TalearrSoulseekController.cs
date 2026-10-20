@@ -43,7 +43,7 @@ namespace Chaptarr.Api.V1.Talearr
         public int ActiveGrabs { get; set; }
     }
 
-    // TaleArr: Soulseek through slskd under /api/v1/talearr/soulseek (docs/TALEARR_SOULSEEK.md).
+    // Talearr: Soulseek through slskd under /api/v1/talearr/soulseek (docs/TALEARR_SOULSEEK.md).
     // New routes only; upstream's release search and download client routes are unchanged.
     [V1ApiController("talearr/soulseek")]
     public class TalearrSoulseekController : Controller

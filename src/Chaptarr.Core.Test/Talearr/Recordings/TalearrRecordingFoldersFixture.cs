@@ -120,7 +120,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
 
             Assert.That(Build(Builder(), primary, rename: true), Is.EqualTo("The Firm - Scott Brick/The Firm"), "the base row's path never changes");
             Assert.That(Build(Builder(), copy, rename: true), Is.EqualTo("The Firm - Scott Brick (Abridged)/The Firm"));
-            Assert.That(Build(Builder(withFolders: false), copy, rename: true), Is.EqualTo("The Firm - Scott Brick/The Firm"), "without the TaleArr hook both would share a folder");
+            Assert.That(Build(Builder(withFolders: false), copy, rename: true), Is.EqualTo("The Firm - Scott Brick/The Firm"), "without the Talearr hook both would share a folder");
         }
 
         // The edition titles are store listings that used to keep the folders apart by accident;
@@ -210,7 +210,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             var copy = AddCopy(28790);
 
             var message = _folders.FindFolderConflict(copy.Book, PrimaryFolder);
-            Assert.That(message, Does.StartWith("TaleArr: " + PrimaryFolder + " already holds the files of another recording of this book (book 3401)"));
+            Assert.That(message, Does.StartWith("Talearr: " + PrimaryFolder + " already holds the files of another recording of this book (book 3401)"));
             Assert.That(_folders.FindFolderConflict(copy.Book, PrimaryFolder + " (Abridged)"), Is.Null);
             Assert.That(_folders.FindFolderConflict(_world.Books[3401], PrimaryFolder), Is.Null, "the primary imports where it always did");
         }

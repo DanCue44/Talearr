@@ -5,9 +5,9 @@ using NzbDrone.Core.Books;
 
 namespace NzbDrone.Core.Talearr.Import
 {
-    // TaleArr: manual import accepts a provider edition id when the numeric edition id is missing
+    // Talearr: manual import accepts a provider edition id when the numeric edition id is missing
     // (Chaptarr #108). API clients and scripts usually know "hc:edition:123-audiobook" or an ASIN,
-    // not TaleArr's row id, and the request used to fail with "Edition must be selected".
+    // not Talearr's row id, and the request used to fail with "Edition must be selected".
     public static class TalearrManualImportSelection
     {
         public static Edition FindEditionByForeignId(IEnumerable<Edition> editions, string foreignEditionId)

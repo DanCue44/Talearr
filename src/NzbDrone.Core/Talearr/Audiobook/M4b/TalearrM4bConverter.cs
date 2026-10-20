@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
         M4bConversionOutcome Convert(M4bConversionJob job, Action<double, string> progress = null);
     }
 
-    // TaleArr: merges audio files into one chaptered M4B with ffmpeg. The result is written to
+    // Talearr: merges audio files into one chaptered M4B with ffmpeg. The result is written to
     // a partial file in a hidden folder next to the target, checked (audio stream, chapters, duration within
     // 1% of the sources) and only then renamed into place. Source files are never touched here.
     public class TalearrM4bConverter : ITalearrM4bConverter
@@ -137,7 +137,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                 var timeout = TimeSpan.FromSeconds(Math.Max(3600, expected * 2));
                 var lastReported = -1.0;
 
-                _logger.Debug("TaleArr M4B: ffmpeg {0}", string.Join(" ", arguments));
+                _logger.Debug("Talearr M4B: ffmpeg {0}", string.Join(" ", arguments));
                 progress?.Invoke(1, streamCopy ? "Merging (no re-encode)" : string.Format(CultureInfo.InvariantCulture, "Encoding to AAC {0} kbps", bitrate));
 
                 var result = _runner.Run(ffmpeg, arguments, timeout, line =>
@@ -186,7 +186,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr M4B conversion failed for {0}", job.OutputPath);
+                _logger.Warn(ex, "Talearr M4B conversion failed for {0}", job.OutputPath);
                 DeleteQuietly(partialPath);
                 return M4bConversionOutcome.Fail(ex.Message);
             }
@@ -213,7 +213,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "Could not remove TaleArr M4B work folder {0}", workFolder);
+                    _logger.Debug(ex, "Could not remove Talearr M4B work folder {0}", workFolder);
                 }
             }
         }
@@ -253,7 +253,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
 
             if (!result.Succeeded)
             {
-                _logger.Debug("TaleArr M4B: ffprobe failed for {0}: {1}", path, FirstLine(result.StandardError));
+                _logger.Debug("Talearr M4B: ffprobe failed for {0}: {1}", path, FirstLine(result.StandardError));
                 return null;
             }
 
@@ -263,7 +263,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr M4B: unreadable ffprobe output for {0}", path);
+                _logger.Debug(ex, "Talearr M4B: unreadable ffprobe output for {0}", path);
                 return null;
             }
         }

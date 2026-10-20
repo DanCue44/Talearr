@@ -301,7 +301,7 @@ class InteractiveImportRow extends Component {
       <span className={styles.suggestedValue}>{bookTitle}</span> :
       bookTitle;
 
-    // TaleArr: how sure the match is; hover for the reasons.
+    // Talearr: how sure the match is; hover for the reasons.
     const confidence = talearrConfidenceLabels[talearrMatchConfidence];
     const showConfidence = !!confidence && !showBookNumberPlaceholder && !!(hasBook || suggestedBookLabel);
     const confidenceLabel = showConfidence ? (

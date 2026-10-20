@@ -7,7 +7,7 @@ using NzbDrone.Core.Configuration;
 
 namespace NzbDrone.Core.Talearr.FormatPolicy
 {
-    // Which format TaleArr grabs for a wanted book (docs/TALEARR_FORMAT_POLICY.md). Monitoring
+    // Which format Talearr grabs for a wanted book (docs/TALEARR_FORMAT_POLICY.md). Monitoring
     // still decides which books are wanted, per format, exactly as upstream; the policy only
     // filters the grabs.
     public enum FormatPolicyMode
@@ -59,7 +59,7 @@ namespace NzbDrone.Core.Talearr.FormatPolicy
         TalearrFormatPolicySettings Save(TalearrFormatPolicySettings settings);
     }
 
-    // TaleArr: format policy settings as talearr.formatpolicy.* rows in the Config table. Stock
+    // Talearr: format policy settings as talearr.formatpolicy.* rows in the Config table. Stock
     // Chaptarr ignores them.
     public class TalearrFormatPolicyService : ITalearrFormatPolicyService
     {
@@ -114,7 +114,7 @@ namespace NzbDrone.Core.Talearr.FormatPolicy
                 _repository.Upsert(AuthorsKey, JsonSerializer.Serialize(authors));
 
                 _cached = Load();
-                _logger.Info("TaleArr format policy saved: default={0}, fallbackHours={1}, author overrides={2}", _cached.Default, _cached.FallbackHours, _cached.Authors.Count);
+                _logger.Info("Talearr format policy saved: default={0}, fallbackHours={1}, author overrides={2}", _cached.Default, _cached.FallbackHours, _cached.Authors.Count);
                 return _cached.Clone();
             }
         }
@@ -149,7 +149,7 @@ namespace NzbDrone.Core.Talearr.FormatPolicy
                 }
                 catch (JsonException ex)
                 {
-                    _logger.Warn(ex, "TaleArr: ignoring unreadable author format policies");
+                    _logger.Warn(ex, "Talearr: ignoring unreadable author format policies");
                 }
             }
 
@@ -165,7 +165,7 @@ namespace NzbDrone.Core.Talearr.FormatPolicy
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read TaleArr setting {0}, using the default", key);
+                _logger.Debug(ex, "Unable to read Talearr setting {0}, using the default", key);
                 return null;
             }
         }

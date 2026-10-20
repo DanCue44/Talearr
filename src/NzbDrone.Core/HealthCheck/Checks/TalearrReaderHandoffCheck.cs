@@ -4,9 +4,9 @@ using NzbDrone.Core.Talearr.ReaderHandoff;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // TaleArr: System > Status warning when the reader hand-off is on but cannot work as set:
+    // Talearr: System > Status warning when the reader hand-off is on but cannot work as set:
     // the watch folder is missing, or Convert to KEPUB is on without kepubify installed.
-    // English text on purpose: it is TaleArr-only and stays out of the shared translation files.
+    // English text on purpose: it is Talearr-only and stays out of the shared translation files.
     [CheckOn(typeof(TalearrReaderHandoffSettingsChangedEvent))]
     public class TalearrReaderHandoffCheck : HealthCheckBase
     {

@@ -23,7 +23,7 @@ class IndexerSettings extends Component {
     super(props, context);
 
     this._saveCallback = null;
-    // TaleArr: the grab policy section saves with the same toolbar button.
+    // Talearr: the grab policy section saves with the same toolbar button.
     this._talearrSaveCallback = null;
 
     this.state = {
@@ -131,10 +131,10 @@ class IndexerSettings extends Component {
             onChildStateChange={this.onTalearrChildStateChange}
           />
 
-          {/* TaleArr: format policy (docs/TALEARR_FORMAT_POLICY.md), saved with its own button */}
+          {/* Talearr: format policy (docs/TALEARR_FORMAT_POLICY.md), saved with its own button */}
           <TalearrFormatPolicy />
 
-          {/* TaleArr: scheduled missing-books search, saved with its own button */}
+          {/* Talearr: scheduled missing-books search, saved with its own button */}
           <TalearrMissingSearch />
 
           <ManageIndexersModal

@@ -19,7 +19,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
         TalearrMamFillerStatus Run(bool manual);
     }
 
-    // TaleArr: MAM freeleech seeding filler. While unsatisfied-torrent slots are free it grabs a
+    // Talearr: MAM freeleech seeding filler. While unsatisfied-torrent slots are free it grabs a
     // few popular English freeleech audiobooks/ebooks and seeds them, so more torrents pass MAM's
     // 72-hour requirement (satisfied torrents earn bonus points; unsatisfied ones earn none).
     //
@@ -36,7 +36,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
     // any MAM torrent is at risk, and for Filler Pause After Error (12 hours) after any MAM error.
     public class TalearrMamFillerService : ITalearrMamFillerService, IExecute<MamFreeleechFillerCommand>
     {
-        // TaleArr: search depth (Filler Search Pages, Filler Preferred Search Pages) and the
+        // Talearr: search depth (Filler Search Pages, Filler Preferred Search Pages) and the
         // status refresh age (Account Status Refresh) are indexer settings now; they were fixed at
         // 3 pages, 2 pages and one hour.
 
@@ -240,7 +240,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
                         reason = "already grabbed or in the client";
                     }
 
-                    // TaleArr: taste preferences (excluded categories, Only Grab Preferred).
+                    // Talearr: taste preferences (excluded categories, Only Grab Preferred).
                     reason ??= TalearrMamFillerTaste.Reject(candidate, taste);
 
                     if (reason != null)
@@ -275,7 +275,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 }
             }
 
-            // TaleArr: the general search only sees the first pages of freeleech torrents, so the
+            // Talearr: the general search only sees the first pages of freeleech torrents, so the
             // preferred categories get a search of their own (MAM filters by site category id).
             var preferredIds = TalearrMamFillerTaste.PreferredCategoryIds(taste.PreferredCategories, seenCategories);
             var preferredPages = Math.Clamp(settings.FillerPreferredSearchPages, 0, MyAnonaMouseSettings.MaximumFillerSearchPages);
@@ -450,7 +450,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
             }
         }
 
-        // TaleArr: taste preferences. Library authors only when that option is on; a library read
+        // Talearr: taste preferences. Library authors only when that option is on; a library read
         // failure just means no author preferences this run.
         private TalearrMamFillerTasteProfile BuildTaste(MyAnonaMouseSettings settings)
         {

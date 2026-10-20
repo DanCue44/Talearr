@@ -103,7 +103,7 @@ function createMapStateToProps() {
     return {
       ...book,
       author,
-      // TaleArr: book tags (Tags column) from the TaleArr book tags store.
+      // Talearr: book tags (Tags column) from the Talearr book tags store.
       tags: state.talearrBookTags.byBookId[book.id] || EMPTY_TAGS,
       qualityProfile,
       showSearchAction,

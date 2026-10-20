@@ -27,7 +27,7 @@ using NzbDrone.Core.RootFolders;
 namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 {
     /// <summary>
-    /// The TaleArr archive and language steps wired into DownloadedBooksImportService with real
+    /// The Talearr archive and language steps wired into DownloadedBooksImportService with real
     /// files on disk: what reaches ImportApprovedBooks, what happens to the work folder, and that
     /// the original download is left alone.
     /// </summary>
@@ -184,7 +184,7 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 
             Assert.That(results, Has.Count.EqualTo(1));
             Assert.That(results[0].Result, Is.EqualTo(ImportResultType.Rejected));
-            Assert.That(results[0].Errors.Single(), Does.StartWith("TaleArr could not unpack the archives in"));
+            Assert.That(results[0].Errors.Single(), Does.StartWith("Talearr could not unpack the archives in"));
             Assert.That(results[0].Errors.Single(), Does.EndWith("Fix the cause and use Retry Import."));
             Assert.That(_importApprovedBooks.Calls, Is.Empty);
         }

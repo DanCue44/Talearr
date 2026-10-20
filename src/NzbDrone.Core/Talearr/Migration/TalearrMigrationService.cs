@@ -35,7 +35,7 @@ namespace NzbDrone.Core.Talearr.Migration
         string SaveUpload(string fileName, Stream content);
     }
 
-    // TaleArr: guided migration from Readarr, Bookshelf or LazyLibrarian (docs/TALEARR_MIGRATION.md).
+    // Talearr: guided migration from Readarr, Bookshelf or LazyLibrarian (docs/TALEARR_MIGRATION.md).
     // Preview reads the source (API or a readarr.db / backup zip), matches every monitored book to a
     // metadata book (Goodreads id, ASIN, ISBN, then title and author) and writes a dry-run plan:
     // what will be created, what already exists, what did not match and what conflicts. Apply
@@ -222,12 +222,12 @@ namespace NzbDrone.Core.Talearr.Migration
             }
             catch (TalearrMigrationException ex)
             {
-                _logger.Warn("TaleArr: migration stopped: {0}", ex.Message);
+                _logger.Warn("Talearr: migration stopped: {0}", ex.Message);
                 SetStatus("failed", ex.Message, _status.Done, _status.Total);
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "TaleArr: migration failed");
+                _logger.Error(ex, "Talearr: migration failed");
                 SetStatus("failed", ex.Message, _status.Done, _status.Total);
             }
         }
@@ -247,7 +247,7 @@ namespace NzbDrone.Core.Talearr.Migration
             return _apiReader.Read(request);
         }
 
-        // The dry run. Reads TaleArr's own state and looks books up in the metadata; writes nothing.
+        // The dry run. Reads Talearr's own state and looks books up in the metadata; writes nothing.
         internal TalearrMigrationPlan BuildPlan(TalearrMigrationRequest request, TalearrMigrationSnapshot snapshot)
         {
             request = Normalize(request);
@@ -484,7 +484,7 @@ namespace NzbDrone.Core.Talearr.Migration
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "TaleArr: migration could not add '{0}'", author.Name);
+                    _logger.Debug(ex, "Talearr: migration could not add '{0}'", author.Name);
                     report.Add(TalearrMigrationAreas.Author, author.Name, TalearrMigrationActions.Failed, ex.Message);
                 }
             }
@@ -525,7 +525,7 @@ namespace NzbDrone.Core.Talearr.Migration
                 CreateAudiobook = mediaType == BookMediaType.Audiobook,
                 CreateEbook = mediaType == BookMediaType.Ebook,
                 QueueIfUnavailable = true,
-                RequestedBy = "TaleArr migration from " + (appName ?? "Readarr"),
+                RequestedBy = "Talearr migration from " + (appName ?? "Readarr"),
                 AuthorName = author.Name,
                 SearchForMissingBooks = search,
                 AudiobookMonitorExistingMode = MonitorTypes.None,
@@ -676,7 +676,7 @@ namespace NzbDrone.Core.Talearr.Migration
                 .Select(p => (int?)p.Id).FirstOrDefault();
         }
 
-        // The mapped source root folder when TaleArr has it (and it takes this media type), else the
+        // The mapped source root folder when Talearr has it (and it takes this media type), else the
         // media type's default root folder, else the first one set up for it.
         private string RootFor(List<RootFolder> roots, string wanted, BookMediaType mediaType, out ResolvedRootFolderSettings settings)
         {
@@ -786,7 +786,7 @@ namespace NzbDrone.Core.Talearr.Migration
             }
             catch (Exception ex) when (ex is IOException || ex is JsonException || ex is UnauthorizedAccessException)
             {
-                _logger.Debug(ex, "TaleArr: could not read {0}", path);
+                _logger.Debug(ex, "Talearr: could not read {0}", path);
                 return null;
             }
         }
@@ -814,12 +814,12 @@ namespace NzbDrone.Core.Talearr.Migration
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: migration read failed");
+                _logger.Debug(ex, "Talearr: migration read failed");
                 return default;
             }
         }
 
-        // One dry run: compares the source with TaleArr and matches authors and books.
+        // One dry run: compares the source with Talearr and matches authors and books.
         private sealed class PlanContext
         {
             private readonly TalearrMigrationService _service;
@@ -874,7 +874,7 @@ namespace NzbDrone.Core.Talearr.Migration
                     else
                     {
                         _report.Add(TalearrMigrationAreas.RootFolder, path, TalearrMigrationActions.Conflict,
-                            "Not found on this server. Mount the library into TaleArr or add a path mapping (source path to TaleArr path).");
+                            "Not found on this server. Mount the library into Talearr or add a path mapping (source path to Talearr path).");
                     }
                 }
             }
@@ -887,7 +887,7 @@ namespace NzbDrone.Core.Talearr.Migration
                     var mediaType = MediaTypeOfProfile(a => a.QualityProfileId == profile.Id);
                     var match = _service.QualityProfileFor(_snapshot, profile.Id, mediaType);
                     _report.Add(TalearrMigrationAreas.QualityProfile, profile.Name, match.HasValue ? TalearrMigrationActions.Map : TalearrMigrationActions.Unmatched,
-                        match.HasValue ? "Uses the TaleArr profile with the same name" : "No TaleArr profile with this name (qualities differ from Readarr's); the root folder's profile is used");
+                        match.HasValue ? "Uses the Talearr profile with the same name" : "No Talearr profile with this name (qualities differ from Readarr's); the root folder's profile is used");
                 }
 
                 var usedMetadata = _snapshot.Authors.Select(a => a.MetadataProfileId).Concat(_snapshot.RootFolders.Select(r => r.MetadataProfileId ?? 0)).ToHashSet();
@@ -896,7 +896,7 @@ namespace NzbDrone.Core.Talearr.Migration
                     var mediaType = MediaTypeOfProfile(a => a.MetadataProfileId == profile.Id);
                     var match = _service.MetadataProfileFor(_snapshot, profile.Id, mediaType);
                     _report.Add(TalearrMigrationAreas.MetadataProfile, profile.Name, match.HasValue ? TalearrMigrationActions.Map : TalearrMigrationActions.Unmatched,
-                        match.HasValue ? "Uses the TaleArr profile with the same name" : "No TaleArr profile with this name; the root folder's profile is used");
+                        match.HasValue ? "Uses the Talearr profile with the same name" : "No Talearr profile with this name; the root folder's profile is used");
                 }
             }
 
@@ -924,16 +924,16 @@ namespace NzbDrone.Core.Talearr.Migration
                     }
                     else if (localNames.Contains(provider.Name))
                     {
-                        _report.Add(area, provider.Name, TalearrMigrationActions.Exists, "TaleArr already has one with this name; left as it is");
+                        _report.Add(area, provider.Name, TalearrMigrationActions.Exists, "Talearr already has one with this name; left as it is");
                     }
                     else if (!isClient && (provider.Name.IndexOf("prowlarr", StringComparison.OrdinalIgnoreCase) >= 0 ||
                                        (provider.Settings ?? string.Empty).IndexOf(":9696", StringComparison.Ordinal) >= 0))
                     {
-                        _report.Add(area, provider.Name, TalearrMigrationActions.Skip, "Synced by Prowlarr: add TaleArr as an app in Prowlarr instead");
+                        _report.Add(area, provider.Name, TalearrMigrationActions.Skip, "Synced by Prowlarr: add Talearr as an app in Prowlarr instead");
                     }
                     else if (!implementations.Contains(provider.Implementation ?? string.Empty))
                     {
-                        _report.Add(area, provider.Name, TalearrMigrationActions.Conflict, $"TaleArr has no '{provider.Implementation}' {(isClient ? "download client" : "indexer")}");
+                        _report.Add(area, provider.Name, TalearrMigrationActions.Conflict, $"Talearr has no '{provider.Implementation}' {(isClient ? "download client" : "indexer")}");
                     }
                     else
                     {
@@ -1081,11 +1081,11 @@ namespace NzbDrone.Core.Talearr.Migration
                             }
                             else if (local.IsMonitoredForMediaType(mediaType))
                             {
-                                _report.Add(TalearrMigrationAreas.Book, name, TalearrMigrationActions.Exists, "Already monitored in TaleArr");
+                                _report.Add(TalearrMigrationAreas.Book, name, TalearrMigrationActions.Exists, "Already monitored in Talearr");
                             }
                             else
                             {
-                                _report.Add(TalearrMigrationAreas.Book, name, TalearrMigrationActions.Monitor, $"In TaleArr, the {format} gets monitored");
+                                _report.Add(TalearrMigrationAreas.Book, name, TalearrMigrationActions.Monitor, $"In Talearr, the {format} gets monitored");
                             }
                         }
                     }
@@ -1093,8 +1093,8 @@ namespace NzbDrone.Core.Talearr.Migration
                     var inLibrary = _service.FindLocalAuthor(authorProviderId) != null;
                     var root = MapPath(_request, sourceRoot);
                     var rootKnown = root != null && (_plannedRoots.Contains(root) || _localRoots.Any(r => r.Path.PathEquals(root)));
-                    var detail = (inLibrary ? "Already in TaleArr" : $"Added for {format}s ({authorProviderId})") +
-                                 (rootKnown || root == null ? string.Empty : $"; its folder '{root}' is not a TaleArr root folder, so the default {format} root folder is used and files there are not matched");
+                    var detail = (inLibrary ? "Already in Talearr" : $"Added for {format}s ({authorProviderId})") +
+                                 (rootKnown || root == null ? string.Empty : $"; its folder '{root}' is not a Talearr root folder, so the default {format} root folder is used and files there are not matched");
                     _report.Add(TalearrMigrationAreas.Author, author.Name, inLibrary ? TalearrMigrationActions.Exists : TalearrMigrationActions.Create, detail);
                 }
 
@@ -1136,7 +1136,7 @@ namespace NzbDrone.Core.Talearr.Migration
                 }
                 catch (Exception ex)
                 {
-                    _service._logger.Debug(ex, "TaleArr: migration lookup failed for '{0}'", book.Title);
+                    _service._logger.Debug(ex, "Talearr: migration lookup failed for '{0}'", book.Title);
                 }
 
                 cache[book.Id] = match;
@@ -1160,7 +1160,7 @@ namespace NzbDrone.Core.Talearr.Migration
                 }
                 catch (Exception ex)
                 {
-                    _service._logger.Debug(ex, "TaleArr: migration author lookup failed for '{0}'", author.Name);
+                    _service._logger.Debug(ex, "Talearr: migration author lookup failed for '{0}'", author.Name);
                 }
 
                 var probe = books.OrderByDescending(b => b.HasFile).FirstOrDefault();

@@ -229,7 +229,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             return GetAuthorInfo(foreignAuthorId, useCache);
         }
 
-        // TaleArr: add-path fallback (Open Library) while the metadata server is unavailable.
+        // Talearr: add-path fallback (Open Library) while the metadata server is unavailable.
         // Never used by GetAuthorInfo or RefreshAuthorInfo, so refreshes cannot pick it up.
         public bool ShouldUseMetadataFallback(string requestedProviderId, Exception primaryError)
         {
@@ -651,7 +651,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 {
                     var errorMsg = $"Refresh API error for author {authorId}: {httpResponse.StatusCode}";
 
-                    // TaleArr: a server outage is logged once, not once per author.
+                    // Talearr: a server outage is logged once, not once per author.
                     if (TalearrMetadataOutageLog.TryLog(_metadataServerHealthGate, _logger, $"refresh of author {authorId}", $"HTTP {(int)httpResponse.StatusCode}"))
                     {
                         return RefreshResult.Unavailable(errorMsg, httpResponse.StatusCode);
@@ -683,7 +683,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             }
             catch (Exception ex)
             {
-                // TaleArr: a server outage is logged once, not once per author.
+                // Talearr: a server outage is logged once, not once per author.
                 if (TalearrMetadataOutageLog.TryLog(_metadataServerHealthGate, _logger, $"refresh of author {authorId}", ex.Message))
                 {
                     return RefreshResult.Unavailable($"Refresh failed: {ex.Message}");
@@ -2301,7 +2301,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
 
         public List<object> SearchForNewEntity(string title, string provider)
         {
-            // TaleArr: Open Library fallback when the metadata server is down or the search
+            // Talearr: Open Library fallback when the metadata server is down or the search
             // provider failed with a server or network error. The Audible provider is its own
             // catalog and keeps its behaviour. A missing Hardcover token is a configuration
             // problem, not an outage, so it only falls back while the metadata server is down.
@@ -2534,7 +2534,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 }
             }
 
-            // TaleArr: the Goodreads lookup swallows its own errors and returns nothing; while the
+            // Talearr: the Goodreads lookup swallows its own errors and returns nothing; while the
             // metadata server is down, an empty lookup is answered from Open Library instead.
             if (authors.Count == 0 && _metadataFallback?.ShouldUseForSearch(null) == true)
             {

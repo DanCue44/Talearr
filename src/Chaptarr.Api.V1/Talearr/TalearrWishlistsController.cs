@@ -28,7 +28,7 @@ namespace Chaptarr.Api.V1.Talearr
         public int HandledCount { get; set; }
     }
 
-    // TaleArr: wishlists under /api/v1/talearr/wishlists (docs/TALEARR_WISHLISTS.md). New routes
+    // Talearr: wishlists under /api/v1/talearr/wishlists (docs/TALEARR_WISHLISTS.md). New routes
     // only; upstream's import lists are unchanged.
     [V1ApiController("talearr/wishlists")]
     public class TalearrWishlistsController : Controller

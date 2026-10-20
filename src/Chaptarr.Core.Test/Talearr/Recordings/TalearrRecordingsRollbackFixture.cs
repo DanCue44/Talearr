@@ -56,7 +56,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             var versionBefore = MigrationVersion(connectionString);
             Assert.That(schemaBefore, Does.Contain("CREATE TABLE \"Config\""), "the real schema was built");
 
-            // TaleArr writes: settings into Config, cache rows into talearr.db.
+            // Talearr writes: settings into Config, cache rows into talearr.db.
             var database = new Database("main", () =>
             {
                 var connection = new SqliteConnection(connectionString);
@@ -79,7 +79,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             Assert.Multiple(() =>
             {
                 Assert.That(Schema(connectionString), Is.EqualTo(schemaBefore), "chaptarr.db schema must not change");
-                Assert.That(MigrationVersion(connectionString), Is.EqualTo(versionBefore), "no TaleArr migration versions");
+                Assert.That(MigrationVersion(connectionString), Is.EqualTo(versionBefore), "no Talearr migration versions");
                 Assert.That(talearrDatabase.DatabasePath, Is.EqualTo(Path.Combine(folder.Folder, "talearr.db")));
                 Assert.That(File.Exists(talearrDatabase.DatabasePath), Is.True);
 

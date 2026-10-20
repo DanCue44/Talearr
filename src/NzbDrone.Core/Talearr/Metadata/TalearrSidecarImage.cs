@@ -4,7 +4,7 @@ using NzbDrone.Core.Extras.Metadata.Files;
 
 namespace NzbDrone.Core.Talearr.Metadata
 {
-    // TaleArr: a cover sidecar with every candidate image, not just one URL. MetadataService hands it
+    // Talearr: a cover sidecar with every candidate image, not just one URL. MetadataService hands it
     // to ITalearrSidecarCoverWriter, which picks the image by size (TalearrSidecarCover). Url stays
     // the first candidate so upstream's plain download still works without the writer.
     public class TalearrSidecarImage : ImageFileResult
@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Talearr.Metadata
         public string BookTitle { get; }
 
         // What MetadataService remembers as the image's source: the rules version and every
-        // candidate URL. A new candidate (an edition gains a cover) makes TaleArr look again.
+        // candidate URL. A new candidate (an edition gains a cover) makes Talearr look again.
         public string SourceKey => RulesVersion + "|" + string.Join("|", Candidates.Select(c => c.Url));
 
         public static string SourceKeyOf(ImageFileResult image)

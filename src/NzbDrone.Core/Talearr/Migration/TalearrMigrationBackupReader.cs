@@ -14,7 +14,7 @@ namespace NzbDrone.Core.Talearr.Migration
         TalearrMigrationSnapshot Read(string path, string source);
     }
 
-    // TaleArr: reads a readarr.db (Readarr or Bookshelf) or a Readarr backup zip. The file is
+    // Talearr: reads a readarr.db (Readarr or Bookshelf) or a Readarr backup zip. The file is
     // copied to a temp folder first and only the copy is opened, read-only, so the source (which
     // may belong to a running Readarr) is never touched or locked.
     public class TalearrMigrationBackupReader : ITalearrMigrationBackupReader

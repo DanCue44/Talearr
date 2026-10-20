@@ -22,7 +22,7 @@ using NzbDrone.Core.Talearr.MissingSearch;
 
 namespace Chaptarr.Core.Test.Talearr.MissingSearch
 {
-    // TaleArr: scheduled missing-books search (off by default, never user-invoked).
+    // Talearr: scheduled missing-books search (off by default, never user-invoked).
     [TestFixture]
     public class ScheduledMissingSearchFixture
     {

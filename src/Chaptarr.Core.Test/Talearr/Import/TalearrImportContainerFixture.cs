@@ -12,7 +12,7 @@ using NzbDrone.Core.MediaFiles.BookImport.Manual;
 namespace Chaptarr.Core.Test.Talearr.Import
 {
     /// <summary>
-    /// The TaleArr dependencies of these services are optional constructor parameters. The app
+    /// The Talearr dependencies of these services are optional constructor parameters. The app
     /// container must still fill them, or the hardlink monitor, the seeding-safe setting and the
     /// manual import language warning silently do nothing.
     /// </summary>

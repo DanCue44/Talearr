@@ -82,7 +82,7 @@ namespace Chaptarr.Api.V1.Books
         {
             var facadeContext = HttpContext?.GetReadarrFacadeContext();
 
-            // TaleArr: the book index passes books whose series links were just loaded for the
+            // Talearr: the book index passes books whose series links were just loaded for the
             // whole library; loading them a second time doubled the cost of GET /book.
             if (!seriesLinksLoaded)
             {
@@ -126,7 +126,7 @@ namespace Chaptarr.Api.V1.Books
             return result;
         }
 
-        // TaleArr: a page of books (wanted, cutoff, calendar) only needs the statistics of its
+        // Talearr: a page of books (wanted, cutoff, calendar) only needs the statistics of its
         // own authors. The per-author entries are cached separately, so a cold cache costs a few
         // small queries instead of the statistics of the whole library.
         internal const int PerAuthorStatisticsLimit = 50;

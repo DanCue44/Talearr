@@ -35,7 +35,7 @@ namespace Chaptarr.Api.V1.Config
         public bool ImportExtraFiles { get; set; }
         public string ExtraFileExtensions { get; set; }
 
-        // TaleArr: additive fields; Chaptarr clients ignore them.
+        // Talearr: additive fields; Chaptarr clients ignore them.
         public bool TalearrUnpackArchives { get; set; }
         public bool TalearrVerifyFileLanguage { get; set; }
         public bool TalearrSeedingSafeImports { get; set; }

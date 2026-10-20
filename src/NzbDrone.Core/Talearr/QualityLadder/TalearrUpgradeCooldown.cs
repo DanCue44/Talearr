@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Talearr.QualityLadder
         TalearrUpgradeCooldownEntry GetActive(int bookId);
     }
 
-    // TaleArr: stops the upgrade loop where a grab-time size estimate looks like an upgrade, the
+    // Talearr: stops the upgrade loop where a grab-time size estimate looks like an upgrade, the
     // upgrade guard measures the real files at import and rejects them, and the next search grabs
     // the same (or a similar) release again. When the guard rejects an upgrade download:
     //   - the book gets a cooldown (Cooldown, 7 days) in talearr.db, during which automatic
@@ -105,7 +105,7 @@ ON CONFLICT (BookId) DO UPDATE SET
 
             if (ok)
             {
-                _logger.Info("TaleArr: upgrades for '{0}' are paused until {1:yyyy-MM-dd HH:mm} UTC after '{2}' was rejected at import",
+                _logger.Info("Talearr: upgrades for '{0}' are paused until {1:yyyy-MM-dd HH:mm} UTC after '{2}' was rejected at import",
                     book.Title,
                     until,
                     downloadClientItem.Title);
@@ -114,7 +114,7 @@ ON CONFLICT (BookId) DO UPDATE SET
 
         private static string StripPrefix(string reason)
         {
-            const string prefix = "TaleArr: ";
+            const string prefix = "Talearr: ";
             return reason != null && reason.StartsWith(prefix, StringComparison.Ordinal) ? reason.Substring(prefix.Length) : reason;
         }
 
@@ -222,7 +222,7 @@ ON CONFLICT (BookId) DO UPDATE SET
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not {0} in {1}; upgrades are not paused", what, TalearrDatabase.FileName);
+                _logger.Warn(ex, "Talearr: could not {0} in {1}; upgrades are not paused", what, TalearrDatabase.FileName);
                 return fallback;
             }
         }
@@ -238,7 +238,7 @@ ON CONFLICT (BookId) DO UPDATE SET
         }
     }
 
-    // TaleArr: while a book's upgrade cooldown is active, automatic searches do not grab an upgrade
+    // Talearr: while a book's upgrade cooldown is active, automatic searches do not grab an upgrade
     // for it (a book with files). A soft filter, so interactive search can still grab one.
     public class TalearrUpgradeCooldownSpecification : IDecisionEngineSpecification
     {
@@ -270,7 +270,7 @@ ON CONFLICT (BookId) DO UPDATE SET
                 }
 
                 return Decision.RejectSoftFilter(
-                    $"TaleArr: upgrades for this book are paused until {entry.Until:yyyy-MM-dd} after '{entry.ReleaseTitle}' was rejected at import ({entry.Reason})",
+                    $"Talearr: upgrades for this book are paused until {entry.Until:yyyy-MM-dd} after '{entry.ReleaseTitle}' was rejected at import ({entry.Reason})",
                     Category);
             }
 

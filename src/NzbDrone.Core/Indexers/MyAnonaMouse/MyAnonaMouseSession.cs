@@ -6,7 +6,7 @@ using NzbDrone.Common.Http;
 
 namespace NzbDrone.Core.Indexers.MyAnonaMouse
 {
-    // TaleArr: reads MAM responses for the two session signals that matter: a rejected mam_id
+    // Talearr: reads MAM responses for the two session signals that matter: a rejected mam_id
     // (expired, revoked or locked to another IP) and a rotated mam_id that MAM hands back in
     // Set-Cookie. Pure functions over HttpResponse so they can be tested with recorded replies.
     public static class MyAnonaMouseSessionDetector

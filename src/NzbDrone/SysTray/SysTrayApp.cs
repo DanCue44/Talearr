@@ -30,7 +30,7 @@ namespace NzbDrone.SysTray
             _trayMenu.Items.Add(new ToolStripSeparator());
             _trayMenu.Items.Add(new ToolStripMenuItem("Exit", null, OnExit));
 
-            _trayIcon.Text = string.Format("TaleArr - {0}", BuildInfo.TalearrVersion);
+            _trayIcon.Text = string.Format("Talearr - {0}", BuildInfo.TalearrVersion);
             _trayIcon.Icon = Properties.Resources.NzbDroneIcon;
 
             _trayIcon.ContextMenuStrip = _trayMenu;

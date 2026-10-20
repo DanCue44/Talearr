@@ -247,7 +247,7 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("ImportExtraFiles", value); }
         }
 
-        // TaleArr: import settings stored as extra rows in the existing Config table. Chaptarr
+        // Talearr: import settings stored as extra rows in the existing Config table. Chaptarr
         // ignores keys it does not know, so a rollback keeps working on the same database.
         public bool TalearrUnpackArchives
         {
@@ -263,7 +263,7 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("TalearrVerifyFileLanguage", value); }
         }
 
-        // TaleArr: torrent imports copy (hardlink) instead of moving, so the client keeps seeding.
+        // Talearr: torrent imports copy (hardlink) instead of moving, so the client keeps seeding.
         public bool TalearrSeedingSafeImports
         {
             get { return GetValueBoolean("TalearrSeedingSafeImports", true); }

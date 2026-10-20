@@ -106,7 +106,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             var verdict = _guard.Evaluate(book, null, files, new[] { incoming }, null, null);
 
             Assert.That(verdict.Kind, Is.EqualTo(UpgradeVerdictKind.Reject));
-            Assert.That(verdict.Reason, Does.StartWith("TaleArr: different recording"));
+            Assert.That(verdict.Reason, Does.StartWith("Talearr: different recording"));
         }
 
         [Test]

@@ -749,7 +749,7 @@ namespace Chaptarr.Core.Test.Talearr.MetadataFallback
 
             var request = ok.Requests[0];
             Assert.That(request.Url.FullUri, Is.EqualTo("https://openlibrary.org/authors/OL239800A.json"));
-            Assert.That(request.Headers.GetSingleValue("User-Agent"), Does.StartWith("TaleArr/"));
+            Assert.That(request.Headers.GetSingleValue("User-Agent"), Does.StartWith("Talearr/"));
             Assert.That(request.RateLimit, Is.EqualTo(TimeSpan.FromSeconds(1)));
             Assert.That(request.RequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(15)));
 

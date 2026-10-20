@@ -3,7 +3,7 @@ import { createSelector } from 'reselect';
 import FilterModal from 'Components/Filter/FilterModal';
 import { customFilterTypes, filterBuilderProps } from './talearrWantedFilters';
 
-// TaleArr: the custom filter editor for a Wanted page ('missing' or 'cutoffUnmet').
+// Talearr: the custom filter editor for a Wanted page ('missing' or 'cutoffUnmet').
 export default function createWantedFilterModalConnector(sectionKey, setFilterAction) {
   function createMapStateToProps() {
     return createSelector(

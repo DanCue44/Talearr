@@ -39,7 +39,7 @@ class ConversionSettingsConnector extends Component {
   constructor(props, context) {
     super(props, context);
 
-    // TaleArr: the M4B merge section saves with the same toolbar button.
+    // Talearr: the M4B merge section saves with the same toolbar button.
     this._talearrSaveCallback = null;
 
     this.state = {

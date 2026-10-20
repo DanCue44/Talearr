@@ -16,7 +16,7 @@ using NzbDrone.Core.MediaCover;
 
 namespace Chaptarr.Core.Test.Talearr.Catalog
 {
-    // TaleArr: the large-library query rewrites return the same rows as before.
+    // Talearr: the large-library query rewrites return the same rows as before.
     [TestFixture]
     [NonParallelizable]
     public class TalearrLargeLibraryQueryFixture

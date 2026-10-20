@@ -8,7 +8,7 @@ using NzbDrone.Core.Parser;
 namespace NzbDrone.Core.Books.Services
 {
     /// <summary>
-    /// TaleArr: folds Audible-only catalog pockets into the real work.
+    /// Talearr: folds Audible-only catalog pockets into the real work.
     ///
     /// The metadata server returns some Audible products as their own "book" with only an
     /// az: identity (no Hardcover/Goodreads/OpenLibrary work id). Upstream mirrors those pockets

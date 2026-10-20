@@ -11,10 +11,10 @@ using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.Talearr.Audiobookshelf
 {
-    // TaleArr: skips a release when every book it is for is already in Audiobookshelf
+    // Talearr: skips a release when every book it is for is already in Audiobookshelf
     // (docs/TALEARR_AUDIOBOOKSHELF.md). Off per connection with "Skip Books Already in
     // Audiobookshelf". A soft filter: interactive search shows the release as "In Audiobookshelf"
-    // and can still grab it. TaleArr's own imports and rows with TaleArr files never count, so
+    // and can still grab it. Talearr's own imports and rows with Talearr files never count, so
     // upgrades and the recordings upgrade guard work as before.
     public class TalearrInAudiobookshelfSpecification : IDecisionEngineSpecification
     {
@@ -46,7 +46,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: could not read the books of release {0}", subject.Release?.Title);
+                _logger.Debug(ex, "Talearr: could not read the books of release {0}", subject.Release?.Title);
                 return Decision.Accept();
             }
 
@@ -65,7 +65,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "TaleArr: Audiobookshelf check failed for book {0}", book.Id);
+                    _logger.Debug(ex, "Talearr: Audiobookshelf check failed for book {0}", book.Id);
                     return Decision.Accept();
                 }
 

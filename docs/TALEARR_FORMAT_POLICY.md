@@ -1,8 +1,8 @@
-# TaleArr format policy
+# Talearr format policy
 
-Settings > Indexers > **Format policy** decides which format TaleArr grabs for a book it wants:
+Settings > Indexers > **Format policy** decides which format Talearr grabs for a book it wants:
 
-| Policy | What TaleArr grabs |
+| Policy | What Talearr grabs |
 |---|---|
 | **Both** (default) | Every monitored format, each on its own. Upstream behaviour. |
 | **Prefer audiobook, accept ebook, upgrade to audio later** | The audiobook. The ebook only once the audiobook has been searched and has been missing for the fallback time (24 hours by default), and not while the audiobook is downloaded or downloading. The audiobook stays wanted, so when it appears later it is grabbed; the ebook is kept. |
@@ -33,7 +33,7 @@ It is a soft filter: interactive search shows a skipped release with the label "
 and the reason (for example "waiting for the audiobook until 2026-10-17 12:00 UTC before
 accepting the ebook"), and you can still grab it there. The fallback time counts from when the
 audiobook entry was added, and the audiobook must have been searched at least once. Additional
-recordings (TaleArr recordings) are not counted as the book's audiobook.
+recordings (Talearr recordings) are not counted as the book's audiobook.
 
 ## Settings and storage
 

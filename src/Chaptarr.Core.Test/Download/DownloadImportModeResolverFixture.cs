@@ -239,7 +239,7 @@ namespace Chaptarr.Core.Test.Download
             Assert.That(resolver.Resolve(ImportMode.Auto, item), Is.EqualTo(ImportMode.Move));
         }
 
-        // TaleArr: seeding-safe imports.
+        // Talearr: seeding-safe imports.
         [Test]
         public void should_copy_a_torrent_that_reached_its_seed_goal_when_seeding_safe()
         {

@@ -27,7 +27,7 @@ class Profiles extends Component {
         <PageContentBody>
           <DndProvider options={HTML5toTouch}>
             <QualityProfilesConnector />
-            {/* TaleArr: audio quality ladder and ebook format preference, saved with its own button */}
+            {/* Talearr: audio quality ladder and ebook format preference, saved with its own button */}
             <TalearrQualityLadder />
             <MetadataProfilesConnector />
             <DelayProfilesConnector />

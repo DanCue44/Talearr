@@ -100,7 +100,7 @@ namespace NzbDrone.Core.Download
                 indexer = _indexerFactory.GetInstance(_indexerFactory.Get(remoteBook.Release.IndexerId));
             }
 
-            // TaleArr: MAM seed-only and ratio guard, before a slot is reserved.
+            // Talearr: MAM seed-only and ratio guard, before a slot is reserved.
             var mamStanding = _mamStandingGuard?.GetRejection(remoteBook);
             if (mamStanding != null)
             {
