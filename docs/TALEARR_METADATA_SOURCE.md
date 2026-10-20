@@ -110,7 +110,32 @@ requests a day. Each top-level field costs one request. A depth limit of 3 is an
   left today, so search, lists and import lists keep working.
 - Catalogs are cached in memory for 6 hours (200 authors at most).
 
-## Schema assumptions to verify with a real token
+## Checked against the live API (2026-10-20)
+
+Run with a real key (Free plan, scopes `read:catalog`, `read:catalog:data`, `read:catalog:search`)
+using the client's own four queries on Ali Hazelwood (`hc:234021`). All four queries ran with no
+GraphQL errors, so every field below is readable with a catalog-only key.
+
+| # | Result |
+| --- | --- |
+| 1 | Holds. `alternate_names` is an array; `identifiers` holds arrays (`audible`, `goodreads`, `openlibrary`). |
+| 2, 3 | Hold. The nested `contributions` filter works. Values seen: `Author` and `Contributor` (anthologies such as *From a Certain Point of View*); `Contributor` is not a primary role, so those works are skipped. Note `books_count` (32) counts primary works only, while the books query returns every credited book (a full page of 100). |
+| 4 | Holds; all fields are readable. |
+| 5 | Holds, with extra keys: `Tag`, `Mood`, `Genre`, `Group`, `Content Warning`. Only `Genre` and `Mood` are read. |
+| 6 | Holds: `position` 1, `details` "1", `featured`, `compilation`. |
+| 7 | Holds: a full page of 100 editions came back. |
+| 8 | Seen: 1 Physical, 2 Audio, 4 Ebook. Data is noisy: "Kindle Edition" also appears under 1 (Physical). |
+| 9 | Holds. Contributors also carry `contributor_role_name` and `primary`. |
+| 10, 11 | Hold. |
+| 12 | Holds: `RateLimit: "Free";r=8;t=0, "daily";r=4997;t=38394`, plus `RateLimit-Policy` and `X-RateLimit-Daily-*`. |
+| 13 | Dates are `YYYY-MM-DD`. `updated_at` comes both with an offset (`+00:00`) and without one; both are read as UTC. |
+| 14 | Readable: `book_mappings { external_id platform { name } edition_id }` with Goodreads, Google and StoryGraph ids. Useful for Phase 3b matching of server rows that only have Goodreads ids. |
+
+Keys: Hardcover keys are now scoped and can be set to never expire. A catalog-only key gets a 403
+from `me`; Settings validates it with a catalog query instead (0.18.12). Hardcover reading lists
+(import lists) need a key with library access.
+
+## Schema assumptions (as first written)
 
 Built from the docs (hardcoverapp/hardcover-docs, schemas Books, Editions, Authors, Series,
 BookSeries, Contributions, Languages, ReadingFormats) and the queries Talearr already runs. None

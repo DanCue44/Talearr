@@ -12,7 +12,7 @@ function createHealthCheckSelector() {
           source: 'UI',
           type: 'warning',
           message: 'Could not connect to SignalR, UI won\'t update',
-          wikiUrl: 'https://discord.gg/nqFGsGUug2'
+          wikiUrl: 'https://github.com/DanCue44/Talearr/issues'
         });
       }
 

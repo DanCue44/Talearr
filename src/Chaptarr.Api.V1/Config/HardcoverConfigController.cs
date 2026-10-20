@@ -17,6 +17,7 @@ namespace Chaptarr.Api.V1.Config
     public class HardcoverConfigController : Controller
     {
         private readonly IConfigService _configService;
+        private static string _backfillCheckedToken;
         private readonly IHttpClient _httpClient;
         private readonly Logger _logger;
 
@@ -37,8 +38,11 @@ namespace Chaptarr.Api.V1.Config
             var avatarUrl = _configService.HardcoverUserImageUrl ?? "";
 
             // Backfill username/avatar for existing installs that configured Hardcover before these fields existed.
-            if (enabled && hasToken && (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(avatarUrl)))
+            // Talearr: once per token per run, since a catalog-only key never has a username to backfill.
+            if (enabled && hasToken && (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(avatarUrl)) &&
+                _backfillCheckedToken != _configService.HardcoverApiToken)
             {
+                _backfillCheckedToken = _configService.HardcoverApiToken;
                 var validation = ValidateHardcoverToken(_configService.HardcoverApiToken);
                 if (validation.IsValid && validation.UserInfo != null && !string.IsNullOrEmpty(validation.UserInfo.Username))
                 {
@@ -138,64 +142,39 @@ namespace Chaptarr.Api.V1.Config
             }
         }
 
+        private const string ProfileQuery = "query Test { me { username image { url } } }";
+
+        // Talearr: Hardcover keys are scoped. A key made for Talearr only needs read:catalog, which
+        // cannot read `me` (403), so a 403 there is checked again with a catalog query.
+        private const string CatalogQuery = "query TalearrTokenCheck { authors(limit: 1) { id } }";
+
         private HardcoverTokenValidationResult ValidateHardcoverToken(string token)
         {
             try
             {
-                // Simple validation query - get user info to test authentication
-                var query = JsonConvert.SerializeObject(new
-                {
-                    query = "query Test { me { username image { url } } }"
-                });
+                var response = PostQuery(token, ProfileQuery);
+                _logger.Debug("Hardcover token validation response status: {0}", response.StatusCode);
 
-                var request = new HttpRequestBuilder("https://api.hardcover.app/v1/graphql")
-                    .SetHeader("Content-Type", "application/json")
-                    .SetHeader("Accept", "application/json")
-                    .SetHeader("User-Agent", ExternalImageRequestHeaders.GetRandomUserAgent())
-                    .Build();
-
-                request.Method = HttpMethod.Post;
-                request.SuppressHttpError = true;
-                request.LogHttpError = false;
-                request.RequestTimeout = TimeSpan.FromSeconds(8);
-	                request.SetContent(query);
-	                
-	                // Add Authorization AFTER building, like other working code
-	                request.Headers.Add("Authorization", $"Bearer {token}");
-	                _logger.Debug("Hardcover token validation request sent to {0}", request.Url);
-
-                // Short timeout for validation
-                var response = _httpClient.Execute(request);
-                
-	                _logger.Debug("Hardcover token validation response status: {0}", response.StatusCode);
-
-                if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     return HardcoverTokenValidationResult.InvalidToken("Hardcover rejected the API token. Please verify it and try again.");
                 }
 
-                if ((int)response.StatusCode >= 500)
+                if (response.StatusCode == HttpStatusCode.Forbidden)
                 {
-                    return HardcoverTokenValidationResult.ServiceUnavailable("Hardcover's API is currently unavailable. Please try again later.");
+                    return ValidateCatalogOnlyToken(token);
                 }
 
-                // Check if we got a successful response
-                if (response.HasHttpError)
+                var failure = CheckResponse(response);
+                if (failure != null)
                 {
-                    _logger.Debug($"Hardcover token validation failed with status: {response.StatusCode}");
-                    return HardcoverTokenValidationResult.ServiceUnavailable($"Hardcover token validation failed with status: {response.StatusCode}");
-                }
-
-                if (string.IsNullOrWhiteSpace(response.Content))
-                {
-                    return HardcoverTokenValidationResult.ServiceUnavailable("Hardcover returned an empty response while validating the token. Please try again later.");
+                    return failure;
                 }
 
                 // Try to parse the response and extract username
                 try
                 {
-                    var responseData = JsonConvert.DeserializeObject(response.Content);
-                    dynamic data = responseData;
+                    dynamic data = JsonConvert.DeserializeObject(response.Content);
 
                     if (data?.errors != null && data.errors.Count > 0)
                     {
@@ -207,26 +186,26 @@ namespace Chaptarr.Api.V1.Config
 
                         return HardcoverTokenValidationResult.ServiceUnavailable("Hardcover returned an error while validating the token. Please try again later.");
                     }
-                    
+
                     // Extract username from response: data.me[0].username
                     if (data?.data?.me != null && data.data.me.Count > 0 && data.data.me[0].username != null)
                     {
                         string username = data.data.me[0].username;
                         string avatarUrl = data.data.me[0].image?.url;
-	                        _logger.Debug($"Hardcover token validation successful for user: {username}");
+                        _logger.Debug($"Hardcover token validation successful for user: {username}");
                         return HardcoverTokenValidationResult.Success(new HardcoverUserInfo
                         {
                             Username = username,
                             AvatarUrl = avatarUrl
                         });
                     }
-                    
-	                    _logger.Debug("Hardcover token validation failed - no username in response");
+
+                    _logger.Debug("Hardcover token validation failed - no username in response");
                     return HardcoverTokenValidationResult.InvalidToken("Invalid API token. Please check your token and try again.");
                 }
                 catch (JsonException ex)
                 {
-	                    _logger.Debug($"Hardcover token validation failed - invalid JSON response: {ex.Message}");
+                    _logger.Debug($"Hardcover token validation failed - invalid JSON response: {ex.Message}");
                     return HardcoverTokenValidationResult.ServiceUnavailable("Hardcover returned an invalid response while validating the token. Please try again later.");
                 }
             }
@@ -235,6 +214,82 @@ namespace Chaptarr.Api.V1.Config
                 _logger.Warn(ex, "Hardcover token validation failed with exception");
                 return HardcoverTokenValidationResult.ServiceUnavailable("Unable to connect to Hardcover's API. Please try again later.");
             }
+        }
+
+        private HardcoverTokenValidationResult ValidateCatalogOnlyToken(string token)
+        {
+            var response = PostQuery(token, CatalogQuery);
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return HardcoverTokenValidationResult.InvalidToken("This Hardcover key cannot read the catalog. Create a key with the read:catalog permission.");
+            }
+
+            var failure = CheckResponse(response);
+            if (failure != null)
+            {
+                return failure;
+            }
+
+            try
+            {
+                dynamic data = JsonConvert.DeserializeObject(response.Content);
+                if (data?.errors != null && data.errors.Count > 0)
+                {
+                    return HardcoverTokenValidationResult.InvalidToken("This Hardcover key cannot read the catalog. Create a key with the read:catalog permission.");
+                }
+            }
+            catch (JsonException)
+            {
+                return HardcoverTokenValidationResult.ServiceUnavailable("Hardcover returned an invalid response while validating the token. Please try again later.");
+            }
+
+            // No profile access: metadata and search work, Hardcover reading lists need a key with library access.
+            _logger.Debug("Hardcover token validated with catalog access only");
+            return HardcoverTokenValidationResult.Success(new HardcoverUserInfo
+            {
+                Username = "",
+                AvatarUrl = ""
+            });
+        }
+
+        private static HardcoverTokenValidationResult CheckResponse(HttpResponse response)
+        {
+            if ((int)response.StatusCode >= 500)
+            {
+                return HardcoverTokenValidationResult.ServiceUnavailable("Hardcover's API is currently unavailable. Please try again later.");
+            }
+
+            if (response.HasHttpError)
+            {
+                return HardcoverTokenValidationResult.ServiceUnavailable($"Hardcover token validation failed with status: {response.StatusCode}");
+            }
+
+            if (string.IsNullOrWhiteSpace(response.Content))
+            {
+                return HardcoverTokenValidationResult.ServiceUnavailable("Hardcover returned an empty response while validating the token. Please try again later.");
+            }
+
+            return null;
+        }
+
+        private HttpResponse PostQuery(string token, string graphQuery)
+        {
+            var request = new HttpRequestBuilder("https://api.hardcover.app/v1/graphql")
+                .SetHeader("Content-Type", "application/json")
+                .SetHeader("Accept", "application/json")
+                .SetHeader("User-Agent", ExternalImageRequestHeaders.GetRandomUserAgent())
+                .Build();
+
+            request.Method = HttpMethod.Post;
+            request.SuppressHttpError = true;
+            request.LogHttpError = false;
+            request.RequestTimeout = TimeSpan.FromSeconds(8);
+            request.SetContent(JsonConvert.SerializeObject(new { query = graphQuery }));
+
+            // Add Authorization AFTER building, like other working code
+            request.Headers.Add("Authorization", $"Bearer {token}");
+            return _httpClient.Execute(request);
         }
 
         private class HardcoverTokenValidationResult

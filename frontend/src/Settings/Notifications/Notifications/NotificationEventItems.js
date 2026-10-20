@@ -60,7 +60,7 @@ function NotificationEventItems(props) {
       <div>
         <FormInputHelpText
           text="Select which events should trigger this notification"
-          link="https://discord.gg/nqFGsGUug2"
+          link="https://github.com/DanCue44/Talearr/issues"
         />
         <div className={styles.events}>
           {

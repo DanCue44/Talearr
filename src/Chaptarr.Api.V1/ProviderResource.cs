@@ -54,8 +54,8 @@ namespace Chaptarr.Api.V1
                 Tags = definition.Tags,
                 Fields = settings != null ? SchemaBuilder.ToSchema(settings) : new List<Field>(),
 
-                //Discord link for support
-                InfoLink = string.Format("https://discord.gg/nqFGsGUug2",
+                // Talearr: support goes to the GitHub issues page
+                InfoLink = string.Format("https://github.com/DanCue44/Talearr/issues",
                     definition.Implementation.ToLower())
             };
         }

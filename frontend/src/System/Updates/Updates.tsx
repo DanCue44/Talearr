@@ -293,8 +293,8 @@ function Updates() {
               <div>
                 <InlineMarkdown
                   data={translate('InstallMajorVersionUpdateMessageLink', {
-                    domain: 'discord.gg',
-                    url: 'https://discord.gg/nqFGsGUug2',
+                    domain: 'github.com',
+                    url: 'https://github.com/DanCue44/Talearr/issues',
                   })}
                 />
               </div>

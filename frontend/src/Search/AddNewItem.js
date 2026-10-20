@@ -267,7 +267,7 @@ class AddNewItem extends Component {
                 <Alert kind={kinds.WARNING}>{getErrorMessage(error)}</Alert>
 
                 <div>
-                  <Link to="https://discord.gg/nqFGsGUug2">
+                  <Link to="https://github.com/DanCue44/Talearr/issues">
                     {translate('WhySearchesCouldBeFailing')}
                   </Link>
                 </div>

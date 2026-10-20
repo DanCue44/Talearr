@@ -100,7 +100,7 @@ function MetadataProvider(props) {
                       type={inputTypes.SELECT}
                       name="writeBookTags"
                       helpTextWarning={translate('WriteBookTagsHelpTextWarning')}
-                      helpLink="https://discord.gg/nqFGsGUug2"
+                      helpLink="https://github.com/DanCue44/Talearr/issues"
                       values={writeBookTagOptions}
                       onChange={onInputChange}
                       {...settings.writeBookTags}
@@ -146,7 +146,7 @@ function MetadataProvider(props) {
                   type={inputTypes.SELECT}
                   name="writeAudioTags"
                   helpTextWarning={translate('WriteBookTagsHelpTextWarning')}
-                  helpLink="https://discord.gg/nqFGsGUug2"
+                  helpLink="https://github.com/DanCue44/Talearr/issues"
                   values={writeAudioTagOptions}
                   onChange={onInputChange}
                   {...settings.writeAudioTags}

@@ -118,7 +118,7 @@ class FileBrowserModalContent extends Component {
                 className={styles.mappedDrivesWarning}
                 kind={kinds.WARNING}
               >
-                {translate('FileBrowserWindowsServicePrefix')} <Link className={styles.faqLink} to="https://discord.gg/nqFGsGUug2">{translate('FileBrowserFaqLinkText')}</Link> {translate('FileBrowserWindowsServiceSuffix')}
+                {translate('FileBrowserWindowsServicePrefix')} <Link className={styles.faqLink} to="https://github.com/DanCue44/Talearr/issues">{translate('FileBrowserFaqLinkText')}</Link> {translate('FileBrowserWindowsServiceSuffix')}
               </Alert>
           }
 

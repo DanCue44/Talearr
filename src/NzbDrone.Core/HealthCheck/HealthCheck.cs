@@ -39,7 +39,7 @@ namespace NzbDrone.Core.HealthCheck
 
         private static HttpUri MakeWikiUrl(string fragment)
         {
-            return new HttpUri("https://discord.gg/nqFGsGUug2");
+            return new HttpUri("https://github.com/DanCue44/Talearr/issues");
         }
     }
 

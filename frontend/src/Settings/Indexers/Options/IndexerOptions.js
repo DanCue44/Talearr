@@ -100,7 +100,7 @@ function IndexerOptions(props) {
                 unit="minutes"
                 helpText={translate('RssSyncIntervalHelpText')}
                 helpTextWarning={translate('ThisWillApplyToAllIndexersPleaseFollowTheRulesSetForthByThem')}
-                helpLink="https://discord.gg/nqFGsGUug2"
+                helpLink="https://github.com/DanCue44/Talearr/issues"
                 onChange={onInputChange}
                 {...settings.rssSyncInterval}
               />

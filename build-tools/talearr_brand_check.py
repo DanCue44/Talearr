@@ -228,6 +228,9 @@ MUST_NOT_HAVE_IN_TREE = [
     ("src/NzbDrone.Core/Talearr", "*.cs", r"NotificationBase<|IProviderConfig\b", "Talearr adds no provider implementation (stock Chaptarr deletes unknown ones on start)"),
     ("src/NzbDrone.Core/Talearr/Audiobookshelf", "*.cs", r"HttpMethod\.(Post|Put|Patch|Delete)", "Talearr only reads Audiobookshelf; scans stay upstream's"),
     ("src/NzbDrone.Core/Talearr/Wishlists", "*.cs", r"ImportListBase<|IImportListSettings", "wishlists are not import list providers (stock Chaptarr deletes unknown ones on start)"),
+    ("frontend/src", "*.js", r"discord\.gg/nqFGsGUug2", "help links go to the Talearr GitHub issues page, not Chaptarr's Discord"),
+    ("frontend/src", "*.tsx", r"discord\.gg/nqFGsGUug2", "help links go to the Talearr GitHub issues page, not Chaptarr's Discord"),
+    ("src", "*.cs", r"discord\.gg/nqFGsGUug2", "help links go to the Talearr GitHub issues page, not Chaptarr's Discord"),
     ("src/NzbDrone.Core/Talearr/Migration", "*.cs", r"_httpClient\.(Post|Put|Execute)|HttpMethod\.(Post|Put|Patch|Delete)", "migration only reads the source (GET)"),
 ]
 
