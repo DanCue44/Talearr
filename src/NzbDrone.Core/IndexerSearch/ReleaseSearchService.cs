@@ -150,8 +150,34 @@ namespace NzbDrone.Core.IndexerSearch
                 searchSpec.BookYear = book.ReleaseDate.Value.Year;
             }
 
-            var decisions = await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
-            return DeDupeDecisions(decisions);
+            var decisions = DeDupeDecisions(await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec));
+
+            if (!interactiveSearch)
+            {
+                LogRejectedSearch(searchSpec, decisions);
+            }
+
+            return decisions;
+        }
+
+        // Talearr: an automatic search that found releases but approved none used to leave only
+        // "0 reports downloaded" in the log, with the reasons at debug level. Say why, per release.
+        private void LogRejectedSearch(BookSearchCriteria searchSpec, List<DownloadDecision> decisions)
+        {
+            if (decisions.Count == 0 || decisions.Any(d => d.Approved || d.TemporarilyRejected))
+            {
+                return;
+            }
+
+            var lines = decisions
+                .Take(10)
+                .Select(d => $"'{d.RemoteBook?.Release?.Title}' ({d.RemoteBook?.Release?.Indexer}): {string.Join("; ", d.Rejections.Select(r => r.Reason).Distinct())}");
+
+            _logger.Info("Search for {0}: {1} release(s), none approved. {2}{3}",
+                searchSpec,
+                decisions.Count,
+                string.Join(" | ", lines),
+                decisions.Count > 10 ? $" | and {decisions.Count - 10} more" : string.Empty);
         }
 
         internal static string GetSearchBookTitle(Book book, Edition selectedEdition)

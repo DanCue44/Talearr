@@ -103,5 +103,15 @@ namespace Chaptarr.Core.Test.Indexers
 
             Assert.That(criteria.BookQuery, Is.EqualTo("Storm+Front"));
         }
+
+        [TestCase("Men Who Hate Women - The Extremism Nobody is Talking About", "Men Who Hate Women")]
+        [TestCase("Men Who Hate Women – The Extremism Nobody is Talking About", "Men Who Hate Women")]
+        [TestCase("Spider-Man: Forever Young", "Spider-Man")]
+        [TestCase("Spider-Man", "Spider-Man")]
+        [TestCase("A - Z of Birds", "A - Z of Birds")]
+        public void main_search_title_should_strip_spaced_dash_subtitle(string title, string expected)
+        {
+            Assert.That(BookSearchCriteria.GetMainSearchTitle(title, "Laura Bates"), Is.EqualTo(expected));
+        }
     }
 }

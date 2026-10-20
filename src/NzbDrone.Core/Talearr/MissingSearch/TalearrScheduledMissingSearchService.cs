@@ -87,6 +87,14 @@ namespace NzbDrone.Core.Talearr.MissingSearch
                     var decisions = await _releaseSearchService.BookSearch(book, false, false, false);
                     var processed = await _processDownloadDecisions.ProcessDecisions(decisions);
                     grabbed += processed?.Grabbed?.Count ?? 0;
+
+                    // Approved by the decision engine but not sent: say so instead of a silent 0.
+                    var approved = decisions.Count(d => d.Approved);
+                    if (approved > 0 && (processed?.Grabbed?.Count ?? 0) == 0)
+                    {
+                        _logger.Info("Talearr: scheduled missing search for [{0}]: {1} approved release(s) not grabbed ({2} pending, {3} rejected at grab time)",
+                            book, approved, processed?.Pending?.Count ?? 0, processed?.Rejected?.Count ?? 0);
+                    }
                 }
                 catch (Exception ex)
                 {

@@ -26,7 +26,34 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
             }
 
             var mainTitle = titleWithoutAuthor.SplitBookTitle(author).Item1;
-            return string.IsNullOrWhiteSpace(mainTitle) ? titleWithoutAuthor : mainTitle;
+            mainTitle = string.IsNullOrWhiteSpace(mainTitle) ? titleWithoutAuthor : mainTitle;
+            return RemoveDashSubtitle(mainTitle);
+        }
+
+        // Talearr: "Men Who Hate Women - The Extremism Nobody is Talking About" found nothing,
+        // because indexers want every word. A spaced dash marks a subtitle the same way a colon
+        // does ("Spider-Man" has no spaces and is kept).
+        internal static string RemoveDashSubtitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return title;
+            }
+
+            foreach (var separator in new[] { " - ", " \u2013 ", " \u2014 " })
+            {
+                var index = title.IndexOf(separator, StringComparison.Ordinal);
+                if (index > 0)
+                {
+                    var main = title.Substring(0, index).Trim();
+                    if (main.Length >= 3)
+                    {
+                        return main;
+                    }
+                }
+            }
+
+            return title;
         }
 
         internal static string RemoveLeadingAuthorPrefix(string title, string author)
@@ -42,8 +69,8 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
             {
                 $"{trimmedAuthor}:",
                 $"{trimmedAuthor} -",
-                $"{trimmedAuthor} –",
-                $"{trimmedAuthor} —"
+                $"{trimmedAuthor} \u2013",
+                $"{trimmedAuthor} \u2014"
             };
 
             foreach (var prefix in prefixes)
