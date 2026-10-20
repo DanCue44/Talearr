@@ -11,11 +11,11 @@ function MediaTypeTriToggle(props) {
   return (
     <div className={`${styles.toggleContainer} ${className || ''}`}>
       <Button
-        kind={selectedMediaType === 'audiobook' ? kinds.SUCCESS : kinds.DEFAULT}
+        kind={selectedMediaType === 'both' ? kinds.SUCCESS : kinds.DEFAULT}
         buttonGroupPosition={align.LEFT}
-        onPress={() => onMediaTypeChange('audiobook')}
+        onPress={() => onMediaTypeChange('both')}
       >
-        <span className={styles.icon}>{'🎧'}</span> {translate('Audiobooks')}
+        <span className={styles.icon}>{'📚'}</span> {translate('Both')}
       </Button>
 
       <Button
@@ -27,11 +27,11 @@ function MediaTypeTriToggle(props) {
       </Button>
 
       <Button
-        kind={selectedMediaType === 'both' ? kinds.SUCCESS : kinds.DEFAULT}
+        kind={selectedMediaType === 'audiobook' ? kinds.SUCCESS : kinds.DEFAULT}
         buttonGroupPosition={align.RIGHT}
-        onPress={() => onMediaTypeChange('both')}
+        onPress={() => onMediaTypeChange('audiobook')}
       >
-        <span className={styles.icon}>{'📚'}</span> {translate('Both')}
+        <span className={styles.icon}>{'🎧'}</span> {translate('Audiobooks')}
       </Button>
     </div>
   );

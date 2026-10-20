@@ -11,11 +11,6 @@ function MediaTypeTripleToggle(props) {
 
   const options = [
     {
-      key: 'audiobook',
-      label: 'Audiobooks',
-      icon: <span className={styles.icon}>🎧</span>
-    },
-    {
       key: 'all',
       label: 'All'
     },
@@ -23,6 +18,11 @@ function MediaTypeTripleToggle(props) {
       key: 'ebook',
       label: 'eBooks',
       icon: <span className={styles.icon}>📖</span>
+    },
+    {
+      key: 'audiobook',
+      label: 'Audiobooks',
+      icon: <span className={styles.icon}>🎧</span>
     }
   ];
 

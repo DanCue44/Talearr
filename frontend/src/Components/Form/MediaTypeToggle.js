@@ -23,12 +23,6 @@ function MediaTypeToggle(props) {
     : selectedMediaType;
 
   const options = [
-    {
-      key: 'audiobook',
-      label: 'Audiobooks',
-      icon: <span className={styles.icon}>🎧</span>,
-      isDisabled: audiobookDisabled
-    },
     includeBoth ? {
       key: 'both',
       label: 'Both',
@@ -40,6 +34,12 @@ function MediaTypeToggle(props) {
       label: 'eBooks',
       icon: <span className={styles.icon}>📖</span>,
       isDisabled: ebookDisabled
+    },
+    {
+      key: 'audiobook',
+      label: 'Audiobooks',
+      icon: <span className={styles.icon}>🎧</span>,
+      isDisabled: audiobookDisabled
     }
   ].filter(Boolean);
 
