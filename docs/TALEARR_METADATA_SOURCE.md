@@ -4,10 +4,9 @@ Phase 3 of [TALEARR_METADATA_PLAN.md](TALEARR_METADATA_PLAN.md): Talearr's own m
 built on Hardcover, so Talearr no longer depends on Chaptarr's server
 (`https://api2.chaptarr.com`).
 
-**Status: Phase 3a, shadow mode only.** The new source reads Hardcover and compares the result
-with the metadata server. Nothing switches: refresh, add, search, single-book lookups and import
-matching all still use the metadata server, and the comparison never writes an author, book,
-edition, series or sync row. No database migration, no chaptarr.db change; the only stored value
+**Status: Phase 3b.** The source can be selected (see "The switch" below); the default is still
+the metadata server. The shadow comparison reads Hardcover and the server side by side and never
+writes an author, book, edition, series or sync row. No database migration, no chaptarr.db change; the only stored value
 is one `talearr.*` row in the Config table, which Chaptarr ignores (a rollback keeps working).
 
 ## Design
@@ -277,6 +276,31 @@ Id matching: Hardcover's `book_mappings` Goodreads ids are Goodreads *book* (edi
 the server's rows carry Goodreads *work* ids (`GoodreadsWorkId`), so they cannot close the id
 splits directly. Rows that exist only on the server with a Goodreads id and no Hardcover id are
 books Hardcover does not have at all.
+
+## The switch (Phase 3b, built)
+
+With `talearr.metadata.source` set to `talearr` and a Hardcover token saved, `BookInfoProxy`
+serves Hardcover ids itself (`TalearrSourcePayloads`, `TalearrSourceMatcher`):
+
+| Call | With Talearr's source |
+| --- | --- |
+| `GetAuthorInfo("hc:N")` (add author, single-book add, pending imports, series import) | Hardcover catalog, mapped, Open Library dates, same V5 conversion |
+| `RefreshAuthorInfo("hc:N")` | Signature check first; full read only when it changed |
+| `GetBulkAuthorChanges` (scheduled refresh) | Hardcover ids: one `authors` request per 100 authors; other ids still go to the server |
+| `GetWorkInfo` / `GetBookInfo("hc:N")` | The book's primary author is read (cached) and the book picked from it |
+| `GetEditionInfo("hc:edition:N")` | Edition to book, then as above |
+| Import matching (`SearchV5Matching`) | ISBN / ASIN from the tags as Hardcover editions, then Hardcover's book search |
+
+- **Signatures in place of ETags**: `hct-{books_count}-{updated_at ticks}-w{week}`. Adding a book
+  to an author changes `books_count`; editing the author changes `updated_at`. Book and edition
+  edits change neither, so the week number (offset per author, one seventh of the library a day)
+  forces one full read per author per week.
+- Authors refresh by their Hardcover id (`GetRefreshAuthorIdentifier`); the bulk check sends only
+  that id for them. Authors without a Hardcover id keep using the server.
+- An author Hardcover does not return is an error, never a deletion.
+- The shadow comparison's server side always reads the server (`GetServerAuthorInfo`).
+- Cost on a test server (19 authors): about 1 request per scheduled check plus about 9 per author
+  that changed; the weekly full read is about 25 requests a day.
 
 ## Phase 3b (next)
 
