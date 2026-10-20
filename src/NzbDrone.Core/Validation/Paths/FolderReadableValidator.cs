@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Validation.Paths
             catch (UnauthorizedAccessException)
             {
                 // Add more specific error information
-                _errorMessage = "Folder '{path}' is not readable by user '{user}'. Permission denied - please ensure the Chaptarr process has read access to this directory and its subdirectories.{dockerHint}";
+                _errorMessage = "Folder '{path}' is not readable by user '{user}'. Permission denied - please ensure the Talearr process has read access to this directory and its subdirectories.{dockerHint}";
                 context.MessageFormatter.AppendArgument("path", path);
                 context.MessageFormatter.AppendArgument("user", ProcessUserInfo.GetUserNameWithIds());
                 return false;

@@ -68,7 +68,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
                 if (qualityProfile == null || queuedSourceQuality?.Quality == null)
                 {
-                    _logger.Trace("Rejecting release because a matching download is already queued and Chaptarr cannot prove the new release is a profile-approved upgrade. Queue item: {0}", queueItem.Title);
+                    _logger.Trace("Rejecting release because a matching download is already queued and Talearr cannot prove the new release is a profile-approved upgrade. Queue item: {0}", queueItem.Title);
                     return Decision.Reject("A download is already queued for this book");
                 }
 

@@ -1284,7 +1284,7 @@ namespace NzbDrone.Core.Configuration.SettingsBackups
                     var clientLabel = backup.DownloadClientName.IsNotNullOrWhiteSpace()
                         ? $"'{backup.DownloadClientName}'"
                         : $"with source id {backup.DownloadClientId}";
-                    result.Warnings.Add($"Skipped remote path mapping '{backup.RemotePath}' because download client {clientLabel} could not be resolved on this Chaptarr instance.");
+                    result.Warnings.Add($"Skipped remote path mapping '{backup.RemotePath}' because download client {clientLabel} could not be resolved on this Talearr instance.");
                     continue;
                 }
 

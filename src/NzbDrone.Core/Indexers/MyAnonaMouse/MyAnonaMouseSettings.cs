@@ -143,7 +143,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 : value;
         }
 
-        [FieldDefinition(3, Type = FieldType.Checkbox, Label = "Only Use Wedges for Audiobooks", HelpText = "Do not request a wedge for ebook torrents. Chaptarr also avoids requesting wedges for torrents already marked free, personal freeleech, or VIP.")]
+        [FieldDefinition(3, Type = FieldType.Checkbox, Label = "Only Use Wedges for Audiobooks", HelpText = "Do not request a wedge for ebook torrents. Talearr also avoids requesting wedges for torrents already marked free, personal freeleech, or VIP.")]
         public bool UseFreeleechOnlyForAudiobooks { get; set; }
 
         [FieldDefinition(4, Type = FieldType.Textbox, Label = "Minimum Seeders", HelpText = "Minimum number of seeders required. Suggested: 1. 0 is allowed, but a torrent nobody seeds can sit in an unsatisfied slot without finishing.")]
@@ -158,7 +158,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         [FieldDefinition(7, Type = FieldType.Number, Label = "Seed Time", Unit = "hours", HelpText = "Number of hours to seed after download completes. MAM requires 72 hours within 30 days; values below 72 hours will warn.")]
         public int? SeedTimeHours { get; set; }
 
-        [FieldDefinition(8, Type = FieldType.Number, Label = "Early Download Limit", Unit = "days", HelpText = "Time before release date Chaptarr will download from this indexer, empty is no limit", Advanced = true)]
+        [FieldDefinition(8, Type = FieldType.Number, Label = "Early Download Limit", Unit = "days", HelpText = "Time before release date Talearr will download from this indexer, empty is no limit", Advanced = true)]
         public int? EarlyReleaseLimit { get; set; }
 
         // VIP Status - populated during connection test, hidden from editing (display-only elsewhere)
@@ -171,10 +171,10 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         [FieldDefinition(11, Type = FieldType.Checkbox, Label = "Protect Unsatisfied Slots", HelpText = "Pause MAM grabs before your unsatisfied-torrent limit is reached. Disabling this can trigger MAM's 24-hour download suspension.", Advanced = true)]
         public bool ProtectUnsatisfiedSlots { get; set; }
 
-        [FieldDefinition(12, Type = FieldType.Number, Label = "Safety Reserve", Unit = "slots", HelpText = "Slots Chaptarr will always keep free to protect against MAM's reporting delay and downloads started outside Chaptarr. Neither automatic nor Interactive Search grabs can use this reserve. Suggested: 5. Fewer is allowed (even 0), but it uses more unsatisfied slots and makes MAM's 24-hour download suspension more likely.")]
+        [FieldDefinition(12, Type = FieldType.Number, Label = "Safety Reserve", Unit = "slots", HelpText = "Slots Talearr will always keep free to protect against MAM's reporting delay and downloads started outside Talearr. Neither automatic nor Interactive Search grabs can use this reserve. Suggested: 5. Fewer is allowed (even 0), but it uses more unsatisfied slots and makes MAM's 24-hour download suspension more likely.")]
         public int UnsatisfiedSlotReserve { get; set; }
 
-        [FieldDefinition(13, Type = FieldType.Number, Label = "User Buffer", Unit = "slots", HelpText = "Additional slots automatic grabs will keep free for releases you choose in Interactive Search or download outside Chaptarr. Interactive Search can use this buffer, but never the Safety Reserve. Suggested: 0 (the default). Any value is allowed; a larger buffer leaves more slots for your own picks.")]
+        [FieldDefinition(13, Type = FieldType.Number, Label = "User Buffer", Unit = "slots", HelpText = "Additional slots automatic grabs will keep free for releases you choose in Interactive Search or download outside Talearr. Interactive Search can use this buffer, but never the Safety Reserve. Suggested: 0 (the default). Any value is allowed; a larger buffer leaves more slots for your own picks.")]
         public int ManualGrabBuffer { get; set; }
 
         // Talearr: how often the MAM account status (unsatisfied count, class, ratio, VIP,

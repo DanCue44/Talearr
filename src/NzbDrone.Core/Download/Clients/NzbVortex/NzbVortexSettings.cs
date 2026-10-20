@@ -54,14 +54,14 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
         [FieldDefinition(3, Label = "API Key", Type = FieldType.Textbox, Privacy = PrivacyLevel.ApiKey)]
         public string ApiKey { get; set; }
 
-        [FieldDefinition(4, Label = "Audiobook Group", Type = FieldType.Textbox, HelpText = "Adding a category specific to Chaptarr avoids conflicts with unrelated non-Chaptarr downloads. Using a category is optional, but strongly recommended.")]
+        [FieldDefinition(4, Label = "Audiobook Group", Type = FieldType.Textbox, HelpText = "Adding a category specific to Talearr avoids conflicts with unrelated non-Talearr downloads. Using a category is optional, but strongly recommended.")]
         public string AudiobookCategory
         {
             get => _audiobookCategory ?? MusicCategory;
             set => _audiobookCategory = value;
         }
 
-        [FieldDefinition(5, Label = "Ebook Group", Type = FieldType.Textbox, HelpText = "Adding a category specific to Chaptarr avoids conflicts with unrelated non-Chaptarr downloads. Using a category is optional, but strongly recommended.")]
+        [FieldDefinition(5, Label = "Ebook Group", Type = FieldType.Textbox, HelpText = "Adding a category specific to Talearr avoids conflicts with unrelated non-Talearr downloads. Using a category is optional, but strongly recommended.")]
         public string EbookCategory
         {
             get => _ebookCategory ?? MusicCategory;

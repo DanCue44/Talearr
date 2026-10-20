@@ -104,8 +104,8 @@ namespace NzbDrone.Core.RootFolders
                 var dockerHint = dockerEnv == null ? string.Empty : $" (env: {dockerEnv})";
 
                 throw new UnauthorizedAccessException(
-                    $"Folder '{rootFolder.Path}' is not writable by user '{user}'. Permission denied - please ensure the Chaptarr process has write access to this directory and its subdirectories.{dockerHint} " +
-                    "Chaptarr determines this by attempting to create and delete a temporary file in the folder. " +
+                    $"Folder '{rootFolder.Path}' is not writable by user '{user}'. Permission denied - please ensure the Talearr process has write access to this directory and its subdirectories.{dockerHint} " +
+                    "Talearr determines this by attempting to create and delete a temporary file in the folder. " +
                     "If you're using Docker bind mounts, make sure the host folder exists (Docker may create missing folders as root:root) and that its ownership/permissions allow writes for this UID/GID.");
             }
         }

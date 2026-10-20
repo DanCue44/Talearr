@@ -65,14 +65,14 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         [FieldDefinition(6, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
 
-        [FieldDefinition(7, Label = "Audiobook Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Chaptarr avoids conflicts with unrelated non-Chaptarr downloads. Using a category is optional, but strongly recommended.")]
+        [FieldDefinition(7, Label = "Audiobook Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Talearr avoids conflicts with unrelated non-Talearr downloads. Using a category is optional, but strongly recommended.")]
         public string AudiobookCategory
         {
             get => _audiobookCategory ?? MusicCategory;
             set => _audiobookCategory = value;
         }
 
-        [FieldDefinition(8, Label = "Ebook Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Chaptarr avoids conflicts with unrelated non-Chaptarr downloads. Using a category is optional, but strongly recommended.")]
+        [FieldDefinition(8, Label = "Ebook Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Talearr avoids conflicts with unrelated non-Talearr downloads. Using a category is optional, but strongly recommended.")]
         public string EbookCategory
         {
             get => _ebookCategory ?? MusicCategory;
@@ -82,14 +82,14 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         [FieldDefinition(100, Label = "Category", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public string MusicCategory { get; set; }
 
-        [FieldDefinition(9, Label = "Audiobook Post-Import Category", Type = FieldType.Textbox, Advanced = true, HelpText = "After import, move audiobook torrents to this category and leave them there. Chaptarr will not delete torrents in this category. Leave blank if you want Chaptarr to delete torrents after seeding is done.")]
+        [FieldDefinition(9, Label = "Audiobook Post-Import Category", Type = FieldType.Textbox, Advanced = true, HelpText = "After import, move audiobook torrents to this category and leave them there. Talearr will not delete torrents in this category. Leave blank if you want Talearr to delete torrents after seeding is done.")]
         public string AudiobookImportedCategory
         {
             get => _audiobookImportedCategory ?? MusicImportedCategory;
             set => _audiobookImportedCategory = value;
         }
 
-        [FieldDefinition(10, Label = "Ebook Post-Import Category", Type = FieldType.Textbox, Advanced = true, HelpText = "After import, move ebook torrents to this category and leave them there. Chaptarr will not delete torrents in this category. Leave blank if you want Chaptarr to delete torrents after seeding is done.")]
+        [FieldDefinition(10, Label = "Ebook Post-Import Category", Type = FieldType.Textbox, Advanced = true, HelpText = "After import, move ebook torrents to this category and leave them there. Talearr will not delete torrents in this category. Leave blank if you want Talearr to delete torrents after seeding is done.")]
         public string EbookImportedCategory
         {
             get => _ebookImportedCategory ?? MusicImportedCategory;

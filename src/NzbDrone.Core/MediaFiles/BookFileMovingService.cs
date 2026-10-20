@@ -637,8 +637,8 @@ namespace NzbDrone.Core.MediaFiles
             var user = ProcessUserInfo.GetUserNameWithIds();
             var dockerEnv = ProcessUserInfo.GetDockerUserEnvSummary();
             var dockerHint = dockerEnv == null ? string.Empty : $" ({dockerEnv})";
-            var message = $"Cannot create media folder '{directoryName}' because parent folder '{parentFolder}' is not writable by the Chaptarr process '{user}'{dockerHint}. " +
-                          "Fix the host folder ownership/permissions or run Chaptarr with matching PUID/PGID. " +
+            var message = $"Cannot create media folder '{directoryName}' because parent folder '{parentFolder}' is not writable by the Talearr process '{user}'{dockerHint}. " +
+                          "Fix the host folder ownership/permissions or run Talearr with matching PUID/PGID. " +
                           "If you tested this from a Docker shell, make sure you tested as the app user, not root.";
 
             return innerException == null
@@ -651,8 +651,8 @@ namespace NzbDrone.Core.MediaFiles
             var user = ProcessUserInfo.GetUserNameWithIds();
             var dockerEnv = ProcessUserInfo.GetDockerUserEnvSummary();
             var dockerHint = dockerEnv == null ? string.Empty : $" ({dockerEnv})";
-            var message = $"Cannot import media file '{destinationFilePath}' because destination folder '{destinationFolder}' is not writable by the Chaptarr process '{user}'{dockerHint}. " +
-                          "Fix the host folder ownership/permissions or run Chaptarr with matching PUID/PGID. " +
+            var message = $"Cannot import media file '{destinationFilePath}' because destination folder '{destinationFolder}' is not writable by the Talearr process '{user}'{dockerHint}. " +
+                          "Fix the host folder ownership/permissions or run Talearr with matching PUID/PGID. " +
                           "If you tested this from a Docker shell, make sure you tested as the app user, not root.";
 
             return new UnauthorizedAccessException(message);

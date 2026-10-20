@@ -1127,7 +1127,7 @@ namespace NzbDrone.Core.MediaFiles
                 }
 
                 decision.Reject(new Rejection(
-                    $"Completed download was grabbed for edition '{expectedEdition.Title}', but import matched edition '{matchedEdition.Title}'. Chaptarr could not verify the expected edition."));
+                    $"Completed download was grabbed for edition '{expectedEdition.Title}', but import matched edition '{matchedEdition.Title}'. Talearr could not verify the expected edition."));
             }
         }
 
@@ -1512,7 +1512,7 @@ namespace NzbDrone.Core.MediaFiles
             var listedPaths = missingMediaPaths.Take(3).ToList();
             var remainingCount = missingMediaPaths.Count - listedPaths.Count;
             var remainingMessage = remainingCount > 0 ? $", and {remainingCount} more" : string.Empty;
-            var reason = $"Chaptarr cannot read {missingMediaPaths.Count} supported media file(s) reported by the download client yet. Missing: {string.Join(", ", listedPaths)}{remainingMessage}. Chaptarr will retry the import.";
+            var reason = $"Talearr cannot read {missingMediaPaths.Count} supported media file(s) reported by the download client yet. Missing: {string.Join(", ", listedPaths)}{remainingMessage}. Talearr will retry the import.";
             var localBook = new LocalBook { Path = path };
             var rejection = new Rejection(reason, RejectionType.Temporary)
             {
@@ -1523,7 +1523,7 @@ namespace NzbDrone.Core.MediaFiles
 
         private ImportResult InaccessiblePathResult(string path, DownloadClientItem downloadClientItem)
         {
-            var reason = $"Download path is not accessible to Chaptarr: {path}. Check the download client path, remote path mapping, and container volume mappings.";
+            var reason = $"Download path is not accessible to Talearr: {path}. Check the download client path, remote path mapping, and container volume mappings.";
             var localBook = new LocalBook { Path = path };
             var rejection = CreateMissingMediaRejection(reason, downloadClientItem);
             return new ImportResult(new ImportDecision<LocalBook>(localBook, rejection), reason);
@@ -1532,7 +1532,7 @@ namespace NzbDrone.Core.MediaFiles
         private ImportResult NoSupportedMediaFilesResult(string path, IReadOnlyCollection<IFileInfo> visibleFiles, DownloadClientItem downloadClientItem)
         {
             var observedFilesMessage = BuildObservedUnsupportedFilesMessage(path, visibleFiles);
-            var reason = $"No supported audio or ebook files were found in {path}.{observedFilesMessage} Check that the download contains supported audio or ebook files and that Chaptarr can read the completed download folder.";
+            var reason = $"No supported audio or ebook files were found in {path}.{observedFilesMessage} Check that the download contains supported audio or ebook files and that Talearr can read the completed download folder.";
             var localBook = new LocalBook { Path = path };
             var rejection = CreateMissingMediaRejection(reason, downloadClientItem);
             return new ImportResult(new ImportDecision<LocalBook>(localBook, rejection), reason);
@@ -1576,7 +1576,7 @@ namespace NzbDrone.Core.MediaFiles
         {
             if (visibleFiles == null || visibleFiles.Count == 0)
             {
-                return " Chaptarr did not see any files there.";
+                return " Talearr did not see any files there.";
             }
 
             var unsupportedFiles = visibleFiles
@@ -1604,7 +1604,7 @@ namespace NzbDrone.Core.MediaFiles
                 .OrderBy(e => e, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            return $" Chaptarr did see unsupported file(s): {string.Join(", ", listedFiles)}{moreMessage}. Unsupported extension(s): {string.Join(", ", extensions)}.";
+            return $" Talearr did see unsupported file(s): {string.Join(", ", listedFiles)}{moreMessage}. Unsupported extension(s): {string.Join(", ", extensions)}.";
         }
 
         private static string FormatObservedFile(string basePath, IFileInfo file)
@@ -1644,24 +1644,24 @@ namespace NzbDrone.Core.MediaFiles
 
                 if (mount == null)
                 {
-                    _logger.Error("Import failed, path does not exist or is not accessible by Chaptarr: {0}. Unable to find a volume mounted for the path.", path);
+                    _logger.Error("Import failed, path does not exist or is not accessible by Talearr: {0}. Unable to find a volume mounted for the path.", path);
                     return;
                 }
 
                 if (mount.DriveType == DriveType.Network)
                 {
-                    _logger.Error("Import failed, path does not exist or is not accessible by Chaptarr: {0}. It's recommended to avoid mapped network drives when running as a Windows service.", path);
+                    _logger.Error("Import failed, path does not exist or is not accessible by Talearr: {0}. It's recommended to avoid mapped network drives when running as a Windows service.", path);
                     return;
                 }
             }
 
             if (OsInfo.IsWindows && path.StartsWith(@"\\"))
             {
-                _logger.Error("Import failed, path does not exist or is not accessible by Chaptarr: {0}. Ensure the user running Chaptarr has access to the network share", path);
+                _logger.Error("Import failed, path does not exist or is not accessible by Talearr: {0}. Ensure the user running Talearr has access to the network share", path);
                 return;
             }
 
-            _logger.Error("Import failed, path does not exist or is not accessible by Chaptarr: {0}. Ensure the path exists and the user running Chaptarr has the correct permissions", path);
+            _logger.Error("Import failed, path does not exist or is not accessible by Talearr: {0}. Ensure the path exists and the user running Talearr has the correct permissions", path);
         }
 
         private static MatchingContext CreateStrictMatchingContext(bool allowV5Identification, List<int> targetBookIds, bool allowPathFallback = false)

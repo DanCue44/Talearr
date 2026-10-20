@@ -48,7 +48,7 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
 
         public override string Name => "Download Station (Usenet)";
 
-        public override ProviderMessage Message => new ProviderMessage("Chaptarr is unable to connect to Download Station if 2-Factor Authentication is enabled on your DSM account", ProviderMessageType.Warning);
+        public override ProviderMessage Message => new ProviderMessage("Talearr is unable to connect to Download Station if 2-Factor Authentication is enabled on your DSM account", ProviderMessageType.Warning);
 
         private IDownloadStationTaskProxy DsTaskProxy => _dsTaskProxySelector.GetProxy(Settings);
 
@@ -300,7 +300,7 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
                 _logger.Error(ex, "Unable to authenticate");
                 return new NzbDroneValidationFailure("Username", "Authentication failure")
                 {
-                    DetailedDescription = $"Please verify your username and password. Also verify if the host running Chaptarr isn't blocked from accessing {Name} by WhiteList limitations in the {Name} configuration."
+                    DetailedDescription = $"Please verify your username and password. Also verify if the host running Talearr isn't blocked from accessing {Name} by WhiteList limitations in the {Name} configuration."
                 };
             }
             catch (WebException ex)

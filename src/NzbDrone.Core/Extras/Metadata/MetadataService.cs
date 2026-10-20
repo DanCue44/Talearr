@@ -619,7 +619,7 @@ namespace NzbDrone.Core.Extras.Metadata
 
         private void ReleaseMetadataOwnership(MetadataFile metadata, string path)
         {
-            _logger.Debug("Metadata file changed outside Chaptarr, disabling content overwrites and leaving it untouched: {0}", path);
+            _logger.Debug("Metadata file changed outside Talearr, disabling content overwrites and leaving it untouched: {0}", path);
 
             if (metadata == null)
             {

@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Datastore
             if (!ColumnExists(connection, "Authors", "AudiobookRootFolderPath") ||
                 !ColumnExists(connection, "Authors", "EbookRootFolderPath"))
             {
-                throw new InvalidDataException("The restore database is not a Chaptarr database.");
+                throw new InvalidDataException("The restore database is not a Talearr database.");
             }
         }
 

@@ -661,7 +661,7 @@ namespace NzbDrone.Core.Books.Calibre
 
             if (!HasWriteAccess(settings))
             {
-                return new ValidationFailure("Username", "Chaptarr needs write access. Configure a user or trusted IP in calibre. See https://manual.calibre-ebook.com/server.html");
+                return new ValidationFailure("Username", "Talearr needs write access. Configure a user or trusted IP in calibre. See https://manual.calibre-ebook.com/server.html");
             }
 
             var libraryInfo = GetLibraryInfo(settings);

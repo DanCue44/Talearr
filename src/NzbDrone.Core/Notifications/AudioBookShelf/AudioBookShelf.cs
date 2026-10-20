@@ -10,6 +10,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Cache;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
@@ -429,7 +430,7 @@ namespace NzbDrone.Core.Notifications.AudioBookShelf
 
                 var createPayload = new AudioBookShelfApiKeyCreateRequest
                 {
-                    Name = "Chaptarr",
+                    Name = BuildInfo.ProductName,
                     UserId = userId,
                     IsActive = true
                 };

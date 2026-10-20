@@ -482,12 +482,12 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                     case WebExceptionStatus.ConnectionClosed:
                         return new NzbDroneValidationFailure("UseSsl", "Verify SSL settings")
                         {
-                            DetailedDescription = "Please verify your SSL configuration on both Deluge and Chaptarr."
+                            DetailedDescription = "Please verify your SSL configuration on both Deluge and Talearr."
                         };
                     case WebExceptionStatus.SecureChannelFailure:
                         return new NzbDroneValidationFailure("UseSsl", "Unable to connect through SSL")
                         {
-                            DetailedDescription = "Chaptarr is unable to connect to Deluge using SSL. This problem could be computer related. Please try to configure both drone and Deluge to not use SSL."
+                            DetailedDescription = "Talearr is unable to connect to Deluge using SSL. This problem could be computer related. Please try to configure both drone and Deluge to not use SSL."
                         };
                     default:
                         return new NzbDroneValidationFailure(string.Empty, "Unknown exception: " + ex.Message);
@@ -604,7 +604,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                 {
                     return new NzbDroneValidationFailure(pair.Field, "Configuration of label failed")
                     {
-                        DetailedDescription = "Chaptarr was unable to add the label to Deluge."
+                        DetailedDescription = "Talearr was unable to add the label to Deluge."
                     };
                 }
             }

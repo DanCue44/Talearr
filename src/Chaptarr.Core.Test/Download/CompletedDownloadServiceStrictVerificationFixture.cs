@@ -268,7 +268,7 @@ namespace Chaptarr.Core.Test.Download
 
             Assert.That(importService.CallCount, Is.EqualTo(0));
             Assert.That(trackedDownload.State, Is.EqualTo(TrackedDownloadState.Downloading));
-            Assert.That(trackedDownload.StatusMessages.SelectMany(m => m.Messages), Has.Some.Contains("Download wasn't grabbed by Chaptarr and not in a category"));
+            Assert.That(trackedDownload.StatusMessages.SelectMany(m => m.Messages), Has.Some.Contains("Download wasn't grabbed by Talearr and not in a category"));
             Assert.That(eventAggregator.Events, Has.None.InstanceOf<BookImportIncompleteEvent>());
             Assert.That(eventAggregator.Events, Has.None.InstanceOf<DownloadCompletedEvent>());
         }

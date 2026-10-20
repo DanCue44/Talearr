@@ -11,8 +11,8 @@ namespace Chaptarr.Http.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly IRuntimeInfo _runtimeInfo;
-        private static readonly string MESSAGE = "Chaptarr is starting up, please try again later";
-        private static readonly string RESET_MESSAGE = "Chaptarr is restarting after a factory reset, please try again shortly";
+        private static readonly string MESSAGE = "Talearr is starting up, please try again later";
+        private static readonly string RESET_MESSAGE = "Talearr is restarting after a factory reset, please try again shortly";
 
         public StartingUpMiddleware(RequestDelegate next, IRuntimeInfo runtimeInfo)
         {

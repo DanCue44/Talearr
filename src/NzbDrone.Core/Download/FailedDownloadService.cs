@@ -82,7 +82,7 @@ namespace NzbDrone.Core.Download
             {
                 // Not ours to fail: no grab record means no release to blocklist and no target to
                 // search again.
-                trackedDownload.Warn("Download wasn't grabbed by Chaptarr, skipping");
+                trackedDownload.Warn("Download wasn't grabbed by Talearr, skipping");
                 return;
             }
 
@@ -107,7 +107,7 @@ namespace NzbDrone.Core.Download
 
                 if (grabbedItems.Empty())
                 {
-                    trackedDownload.Warn("Download wasn't grabbed by Chaptarr, skipping");
+                    trackedDownload.Warn("Download wasn't grabbed by Talearr, skipping");
                     return;
                 }
 

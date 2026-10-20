@@ -29,7 +29,7 @@ namespace NzbDrone.Host.AccessControl
                 }
                 else if (!passive)
                 {
-                    throw new RemoteAccessException("Failed to register URLs for Chaptarr. Chaptarr will not be accessible remotely");
+                    throw new RemoteAccessException("Failed to register URLs for Talearr. Talearr will not be accessible remotely");
                 }
             }
         }

@@ -629,7 +629,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                     return new NzbDroneValidationFailure(nameof(QBittorrentSettings.AudiobookCategory), "Category is recommended")
                     {
                         IsWarning = true,
-                        DetailedDescription = "Chaptarr will not attempt to import completed downloads without a category."
+                        DetailedDescription = "Talearr will not attempt to import completed downloads without a category."
                     };
                 }
 
@@ -639,7 +639,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                 {
                     return new NzbDroneValidationFailure(string.Empty, "qBittorrent is configured to remove torrents when they reach their Share Ratio Limit")
                     {
-                        DetailedDescription = "Chaptarr will be unable to perform Completed Download Handling as configured. You can fix this in qBittorrent ('Tools -> Options...' in the menu) by changing 'Options -> BitTorrent -> Share Ratio Limiting' from 'Remove them' to 'Pause them'."
+                        DetailedDescription = "Talearr will be unable to perform Completed Download Handling as configured. You can fix this in qBittorrent ('Tools -> Options...' in the menu) by changing 'Options -> BitTorrent -> Share Ratio Limiting' from 'Remove them' to 'Pause them'."
                     };
                 }
             }
@@ -716,7 +716,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                 {
                     return new NzbDroneValidationFailure(pair.Field, "Configuration of label failed")
                     {
-                        DetailedDescription = "Chaptarr was unable to add the label to qBittorrent."
+                        DetailedDescription = "Talearr was unable to add the label to qBittorrent."
                     };
                 }
             }

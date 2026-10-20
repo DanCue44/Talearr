@@ -292,7 +292,7 @@ namespace NzbDrone.Core.Download
             if (actualHash.IsNotNullOrWhiteSpace() && hash != actualHash)
             {
                 _logger.Debug(
-                    "{0} did not return the expected InfoHash for '{1}', Chaptarr could potentially lose track of the download in progress.",
+                    "{0} did not return the expected InfoHash for '{1}', Talearr could potentially lose track of the download in progress.",
                     Definition.Implementation,
                     remoteBook.Release.DownloadUrl);
             }
@@ -324,7 +324,7 @@ namespace NzbDrone.Core.Download
             if (actualHash.IsNotNullOrWhiteSpace() && hash != actualHash)
             {
                 _logger.Debug(
-                    "{0} did not return the expected InfoHash for '{1}', Chaptarr could potentially lose track of the download in progress.",
+                    "{0} did not return the expected InfoHash for '{1}', Talearr could potentially lose track of the download in progress.",
                     Definition.Implementation,
                     remoteBook.Release.DownloadUrl);
             }
