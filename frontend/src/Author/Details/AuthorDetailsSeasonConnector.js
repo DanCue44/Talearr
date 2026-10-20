@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
+import { toggleTalearrOtherListings } from 'Store/Actions/appActions';
 import { setAuthorDetailsId, setAuthorDetailsSort } from 'Store/Actions/authorDetailsActions';
 import { setBooksTableOption, sortPredicates as globalBookSortPredicates, toggleBooksMonitored } from 'Store/Actions/bookActions';
 import { executeCommand } from 'Store/Actions/commandActions';
@@ -12,6 +13,7 @@ import createClientSideCollectionSelector from 'Store/Selectors/createClientSide
 import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
 import createUISettingsSelector from 'Store/Selectors/createUISettingsSelector';
 import getAuthorMediaTypeRootFolderStatus from 'Utilities/Author/getAuthorMediaTypeRootFolderStatus';
+import { splitTalearrGroups } from 'Utilities/Author/talearrAuthorPageGroups';
 import AuthorDetailsSeason from './AuthorDetailsSeason';
 
 function createMapStateToProps() {
@@ -21,9 +23,10 @@ function createMapStateToProps() {
     createDimensionsSelector(),
     createUISettingsSelector(),
     (state) => state.app.hideUnmonitoredMissing,
+    (state) => state.app.talearrOtherListingsExpanded,
     (state) => state.authorDetails.filterValue,
     (state, props) => props.selectedMediaType, // Get selectedMediaType from props
-    (books, author, dimensions, uiSettings, hideUnmonitoredMissing, filterValue, selectedMediaType) => {
+    (books, author, dimensions, uiSettings, hideUnmonitoredMissing, talearrOtherListingsExpanded, filterValue, selectedMediaType) => {
 
       // Use the selectedMediaType passed from parent, fallback to author's preference or audiobook
       const requestedMediaType = selectedMediaType || author.lastSelectedMediaType || 'audiobook';
@@ -143,8 +146,31 @@ function createMapStateToProps() {
         columns = books.columns;
       }
 
+      // Talearr: in the "All" view, main works come first and everything else (collections,
+      // study guides, adaptations, other listings of the same book, other languages) goes into
+      // the collapsed "Other listings" section (docs/TALEARR_AUTHOR_PAGE.md). The "Library" view
+      // only has kept books, which are always main works, so it is not split.
+      let mainBooks = sortedBooks;
+      let otherGroups = [];
+
+      if (!hideUnmonitoredMissing) {
+        const split = splitTalearrGroups(sortedBooks, effectiveMediaType);
+        mainBooks = split.main;
+        otherGroups = split.otherGroups;
+      }
+
+      const isOtherListingsExpanded = otherGroups.length > 0 && !!talearrOtherListingsExpanded;
+      let visibleItems = mainBooks;
+
+      if (isOtherListingsExpanded) {
+        visibleItems = otherGroups.reduce((acc, group) => acc.concat(group.items), mainBooks);
+      }
+
       return {
-        items: sortedBooks,
+        items: mainBooks,
+        otherGroups,
+        isOtherListingsExpanded,
+        visibleItems,
         columns,
         sortKey: books.sortKey,
         sortDirection: books.sortDirection,
@@ -163,7 +189,8 @@ const mapDispatchToProps = {
   setAuthorDetailsSort,
   toggleBooksMonitored,
   setBooksTableOption,
-  executeCommand
+  executeCommand,
+  toggleTalearrOtherListings
 };
 
 class AuthorDetailsSeasonConnector extends Component {
@@ -206,6 +233,10 @@ class AuthorDetailsSeasonConnector extends Component {
     });
   };
 
+  onOtherListingsPress = () => {
+    this.props.toggleTalearrOtherListings();
+  };
+
   //
   // Render
 
@@ -216,6 +247,7 @@ class AuthorDetailsSeasonConnector extends Component {
         onSortPress={this.onSortPress}
         onTableOptionChange={this.onTableOptionChange}
         onMonitorBookPress={this.onMonitorBookPress}
+        onOtherListingsPress={this.onOtherListingsPress}
       />
     );
   }
@@ -228,7 +260,8 @@ AuthorDetailsSeasonConnector.propTypes = {
   setBooksTableOption: PropTypes.func.isRequired,
   setAuthorDetailsId: PropTypes.func.isRequired,
   setAuthorDetailsSort: PropTypes.func.isRequired,
-  executeCommand: PropTypes.func.isRequired
+  executeCommand: PropTypes.func.isRequired,
+  toggleTalearrOtherListings: PropTypes.func.isRequired
 };
 
 export default connect(createMapStateToProps, mapDispatchToProps)(AuthorDetailsSeasonConnector);

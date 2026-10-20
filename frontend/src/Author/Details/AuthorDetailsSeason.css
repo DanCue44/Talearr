@@ -111,6 +111,62 @@
   text-align: center;
 }
 
+/* Talearr: "Other listings" section of the author page (docs/TALEARR_AUTHOR_PAGE.md) */
+.otherListings {
+  border-top: 1px solid var(--borderColor);
+}
+
+.otherListingsToggle {
+  composes: link from '~Components/Link/Link.css';
+
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding: 12px 15px;
+  width: 100%;
+  background-color: var(--collapseButtonBackgroundColor);
+  text-align: left;
+}
+
+.otherListingsIcon {
+  margin-right: 8px;
+}
+
+.otherListingsLabel {
+  margin-right: 10px;
+  font-size: 16px;
+}
+
+.otherListingsHelp {
+  color: #8895aa;
+  font-style: italic;
+  font-size: 13px;
+}
+
+.otherListingsBooks {
+  padding-top: 5px;
+  border-top: 1px solid var(--borderColor);
+}
+
+.otherGroupRow {
+  background-color: transparent;
+}
+
+.otherGroupLabel {
+  padding: 14px 8px 6px;
+  border-bottom: 1px solid var(--borderColor);
+  color: #8895aa;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.otherGroupCount {
+  margin-left: 6px;
+  font-weight: normal;
+}
+
 @media only screen and (max-width: $breakpointSmall) {
   .bookType {
     border-right: 0;

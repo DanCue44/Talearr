@@ -18,6 +18,15 @@ interface CssExports {
   'header': string;
   'left': string;
   'noBooks': string;
+  'otherGroupCount': string;
+  'otherGroupLabel': string;
+  'otherGroupRow': string;
+  'otherListings': string;
+  'otherListingsBooks': string;
+  'otherListingsHelp': string;
+  'otherListingsIcon': string;
+  'otherListingsLabel': string;
+  'otherListingsToggle': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

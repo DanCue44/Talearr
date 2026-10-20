@@ -14,6 +14,7 @@ const PRESERVE_KEYS = [
   // Non-redux UI preferences
   'hideUnmonitoredMissing',
   'talearrLibraryFirst',
+  'talearrOtherListingsExpanded',
   'selectedMediaType'
 ];
 

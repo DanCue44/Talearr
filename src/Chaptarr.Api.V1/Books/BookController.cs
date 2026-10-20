@@ -727,6 +727,16 @@ namespace Chaptarr.Api.V1.Books
 
                 var resources = MapToResource(filteredBooks, false);
 
+                // Talearr: author page groups (main works first, other listings collapsed).
+                try
+                {
+                    TalearrAuthorPageGroupMapper.Apply(resources, filteredBooks, author);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Talearr: author page groups failed for author {0}; showing every book as a main work", authorId.Value);
+                }
+
                 // Ensure narrator search can work client-side even when the book-level Narrator display is gated.
                 // Use the full edition set for each book, so unmonitored editions
                 // still contribute to AvailableNarrators.
