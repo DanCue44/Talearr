@@ -27,7 +27,7 @@ function InteractiveSearchMediaTypeToggle(props) {
 
   const isAlternateDisabled = siblingToggleEnabled !== true;
 
-  const options = ['audiobook', 'ebook'].map((mediaType) => {
+  const options = ['ebook', 'audiobook'].map((mediaType) => {
     const isSelected = mediaType === selectedMediaType;
     const isAlternate = mediaType === alternateMediaType && !isSelected;
 

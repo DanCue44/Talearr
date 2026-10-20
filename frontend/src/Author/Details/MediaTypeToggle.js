@@ -13,16 +13,16 @@ function MediaTypeToggle(props) {
 
   const options = [
     {
-      key: 'audiobook',
-      label: 'Audiobooks',
-      icon: <span className={styles.icon}>🎧</span>,
-      isDisabled: !hasAudiobookRootFolder
-    },
-    {
       key: 'ebook',
       label: 'eBooks',
       icon: <span className={styles.icon}>📖</span>,
       isDisabled: !hasEbookRootFolder
+    },
+    {
+      key: 'audiobook',
+      label: 'Audiobooks',
+      icon: <span className={styles.icon}>🎧</span>,
+      isDisabled: !hasAudiobookRootFolder
     }
   ];
 
