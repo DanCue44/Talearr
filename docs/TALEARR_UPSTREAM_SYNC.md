@@ -22,6 +22,12 @@ dotnet build src/Chaptarr.NoTests.sln -c Release
 dotnet test src/Chaptarr.Core.Test/Chaptarr.Core.Test.csproj -c Release
 ```
 
+The brand check also fails on any new C# string literal under `src/` that still says
+"Chaptarr" to the user (help texts, validation and health messages, exceptions, logs).
+Change the word to Talearr in that string. If it really is a technical identifier or
+means the real Chaptarr project, add it to `VISIBLE_NAME_TOKENS` or
+`VISIBLE_NAME_ALLOWED_TEXT` in the script instead.
+
 Push the `sync/...` branch. **Talearr CI** (`.github/workflows/talearr-ci.yml`) runs the
 same checks. Open a PR into `develop` and merge when green; the Docker workflow then
 publishes `ghcr.io/dancue44/talearr:develop`. Use `git merge`, not rebase, so upstream

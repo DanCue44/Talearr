@@ -238,6 +238,70 @@ MUST_NOT_HAVE = [
 ]
 
 
+# User-visible backend strings. Any C# string literal under src/ that still says "Chaptarr" as a
+# word fails the check unless it is a technical identifier (stripped by VISIBLE_NAME_TOKENS), a
+# phrase about the real Chaptarr project (VISIBLE_NAME_ALLOWED_TEXT), or lives in a file that is
+# not user facing (VISIBLE_NAME_ALLOWED_PATHS). Comments are not string literals, so they are
+# never flagged. Translations are rebranded at runtime by TalearrBranding.Apply instead.
+VISIBLE_NAME_SCAN_ROOT = "src"
+VISIBLE_NAME_WORD = re.compile(r"\bChaptarr\b")
+CS_STRING_LITERAL = re.compile(r'(?:\$@|@\$|\$|@)?"(?:[^"\\\n]|\\.|"")*"')
+
+# Path patterns (regex on the repo-relative path) where every literal is allowed.
+VISIBLE_NAME_ALLOWED_PATHS = [
+    r"(^|/)[^/]*Test[^/]*/",                    # test projects assert upstream text and fixtures
+    r"^src/NzbDrone\.Core/Datastore/Migration/",  # upstream migrations, never edited
+    r"^src/NzbDrone\.Update/",                  # standalone updater for Chaptarr installs (disabled in the Talearr image)
+    r"^src/ServiceHelpers/",                    # Windows service installers that look for Chaptarr.Console.exe
+    r"^src/NzbDrone\.MatchBench/",              # developer bench tool, prints project paths
+    r"^src/NzbDrone\.Core/ImportLists/Chaptarr/",  # import list that talks to a real Chaptarr instance
+    r"^src/NzbDrone\.Core/Localization/TalearrBranding\.cs$",  # the rebranding regex itself
+]
+
+# Technical identifiers inside a literal. They are removed before looking for the name.
+VISIBLE_NAME_TOKENS = [
+    r"^Chaptarr$",                     # bare identifier: technical AppName, process, service, firewall rule, default category, client name
+    r"\bChaptarr(?:\.[A-Za-z0-9]+)+",   # assembly, namespace, process and file names (Chaptarr.Core, Chaptarr.ics, Chaptarr.dll)
+    r"\bChaptarr:[A-Za-z]+",           # configuration sections and the Chaptarr__ environment prefix
+    r"\bX-Chaptarr-[A-Za-z-]+",        # HTTP header names
+    r"\bChaptarr/\d[\d.]*",            # User-Agent sent to the metadata server (the server may depend on it)
+    r"https?://\S+",                   # URLs, including credits to the Chaptarr GitHub
+    r"-//chaptarr\.com//Chaptarr//EN", # iCal PRODID, kept so calendar clients see the same feed
+]
+
+# Phrases that are about the real Chaptarr project, not this app.
+VISIBLE_NAME_ALLOWED_TEXT = [
+    r"based on Chaptarr",              # startup line: Talearr version and the Chaptarr base version
+    r"Chaptarr-compatible",            # API docs: the API stays Chaptarr compatible
+    r"Chaptarr Metadata Server",       # upstream's metadata server, which Talearr still uses
+    r"\(or Chaptarr\)",                # validator accepts either name
+]
+
+
+def visible_name_failures() -> list[str]:
+    failures: list[str] = []
+    allowed_paths = [re.compile(p) for p in VISIBLE_NAME_ALLOWED_PATHS]
+    tokens = [re.compile(p) for p in VISIBLE_NAME_TOKENS]
+    allowed_text = [re.compile(p) for p in VISIBLE_NAME_ALLOWED_TEXT]
+    for path in sorted((ROOT / VISIBLE_NAME_SCAN_ROOT).rglob("*.cs")):
+        rel = path.relative_to(ROOT).as_posix()
+        if any(p.search(rel) for p in allowed_paths):
+            continue
+        for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if "Chaptarr" not in line or line.lstrip().startswith("//"):
+                continue
+            for match in CS_STRING_LITERAL.finditer(line):
+                literal = match.group(0)
+                text = literal[literal.index('"') + 1:-1]
+                if any(p.search(text) for p in allowed_text):
+                    continue
+                for token in tokens:
+                    text = token.sub("", text)
+                if VISIBLE_NAME_WORD.search(text):
+                    failures.append(f"{rel}:{number}: user-visible \"Chaptarr\" in {literal[:120]} (use BuildInfo.ProductName or allowlist it)")
+    return failures
+
+
 def read(rel: str) -> str | None:
     path = ROOT / rel
     if not path.exists():
@@ -271,6 +335,8 @@ def main() -> int:
             if re.search(pattern, path.read_text(encoding="utf-8", errors="replace")):
                 failures.append(f"{path.relative_to(ROOT)}: found /{pattern}/ ({why})")
 
+    failures.extend(visible_name_failures())
+
     if failures:
         print("Talearr brand check failed:")
         for failure in failures:
@@ -279,7 +345,7 @@ def main() -> int:
         return 1
 
     total = (len(MUST_HAVE_BRAND) + len(MUST_KEEP_UPSTREAM) + len(MUST_KEEP_TALEARR_HOOKS) +
-             len(MUST_KEEP_RECORDINGS) + len(MUST_KEEP_AUDIOBOOKSHELF) + len(MUST_KEEP_SERIES) + len(MUST_KEEP_WISHLISTS) + len(MUST_KEEP_FORMAT_POLICY) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE))
+             len(MUST_KEEP_RECORDINGS) + len(MUST_KEEP_AUDIOBOOKSHELF) + len(MUST_KEEP_SERIES) + len(MUST_KEEP_WISHLISTS) + len(MUST_KEEP_FORMAT_POLICY) + len(MUST_NOT_HAVE) + len(MUST_NOT_HAVE_IN_TREE) + 1)
     print(f"Talearr brand check passed ({total} checks).")
     return 0
 
