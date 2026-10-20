@@ -277,6 +277,25 @@ the server's rows carry Goodreads *work* ids (`GoodreadsWorkId`), so they cannot
 splits directly. Rows that exist only on the server with a Goodreads id and no Hardcover id are
 books Hardcover does not have at all.
 
+## Second shadow run (0.18.14, 2026-10-20)
+
+19/19 authors in 3.5 minutes, 189 Hardcover requests, no failures, **no protected book lost**.
+Rows that would lose their match: 598 -> 473 of 1,185 (all unmonitored and fileless).
+
+| Author | Server works | Hardcover before | Hardcover now | Dates from Open Library |
+| --- | --- | --- | --- | --- |
+| Jack Rosewood | 66 | 5 | 41 | 27 |
+| Ryan Becker | 26 | 4 | 11 | 1 |
+| Navessa Allen | 18 | 9 | 16 | 2 |
+| Sandra J. Paul | 9 | 2 | 4 | 0 |
+| George Orwell | 154 | 57 | 86 | 0 |
+| John Grisham | 69 | 72 | 96 | 0 |
+
+Hardcover series are now kept (174 rows across 13 authors). What is left: Jack Rosewood's
+server-only works are mostly coloring and puzzle books and bundles; Ryan Becker's 18 server-only
+works are not on Hardcover at all, so only an Open Library works gap fill (adding titles, not just
+dates) would bring them back. Sandra J. Paul's are mostly undated on both Hardcover and Open Library.
+
 ## The switch (Phase 3b, built)
 
 With `talearr.metadata.source` set to `talearr` and a Hardcover token saved, `BookInfoProxy`
