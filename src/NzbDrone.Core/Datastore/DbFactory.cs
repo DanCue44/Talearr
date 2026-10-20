@@ -178,7 +178,7 @@ namespace NzbDrone.Core.Datastore
 
                 if (IsCorruptSqliteError(sqliteErrorCode))
                 {
-                    throw new CorruptDatabaseException("Database file: {0} is corrupt, restore from backup if available. See: https://discord.gg/nqFGsGUug2", e, fileName);
+                    throw new CorruptDatabaseException("Database file: {0} is corrupt, restore from backup if available.", e, fileName);
                 }
 
                 throw new ChaptarrStartupException(e, GetNonCorruptSqliteErrorMessage(sqliteErrorCode, fileName));

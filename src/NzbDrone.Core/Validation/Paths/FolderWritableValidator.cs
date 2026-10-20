@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Validation.Paths
         }
 
         protected override string GetDefaultMessageTemplate() =>
-            "Folder '{path}' is not writable by user '{user}'. Permission denied - please ensure the Chaptarr process has write access to this directory and its subdirectories.{dockerHint} Chaptarr determines this by attempting to create and delete a temporary file in the folder.";
+            "Folder '{path}' is not writable by user '{user}'. Permission denied - please ensure the Talearr process has write access to this directory and its subdirectories.{dockerHint} Talearr determines this by attempting to create and delete a temporary file in the folder.";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {

@@ -182,7 +182,7 @@ namespace NzbDrone.Core.Download
             {
                 return new NzbDroneValidationFailure(propertyName, "Folder does not exist")
                 {
-                    DetailedDescription = string.Format("The folder you specified does not exist or is inaccessible. Please verify the folder permissions for the user account '{0}', which is used to execute Chaptarr.", ProcessUserInfo.GetUserNameWithIds())
+                    DetailedDescription = string.Format("The folder you specified does not exist or is inaccessible. Please verify the folder permissions for the user account '{0}', which is used to execute Talearr.", ProcessUserInfo.GetUserNameWithIds())
                 };
             }
 
@@ -191,7 +191,7 @@ namespace NzbDrone.Core.Download
                 _logger.Error("Folder '{0}' is not writable.", folder);
                 return new NzbDroneValidationFailure(propertyName, "Unable to write to folder")
                 {
-                    DetailedDescription = string.Format("The folder you specified is not writable. Please verify the folder permissions for the user account '{0}', which is used to execute Chaptarr.", ProcessUserInfo.GetUserNameWithIds())
+                    DetailedDescription = string.Format("The folder you specified is not writable. Please verify the folder permissions for the user account '{0}', which is used to execute Talearr.", ProcessUserInfo.GetUserNameWithIds())
                 };
             }
 

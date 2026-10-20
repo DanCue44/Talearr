@@ -65,7 +65,7 @@ namespace Chaptarr.Http.Authentication
             {
                 if (e.InnerException is XmlException)
                 {
-                    _logger.Error(e, "Failed to authenticate user due to corrupt XML. Please remove all XML files from {0} and restart Chaptarr", Path.Combine(_appFolderInfo.AppDataFolder, "asp"));
+                    _logger.Error(e, "Failed to authenticate user due to corrupt XML. Please remove all XML files from {0} and restart Talearr", Path.Combine(_appFolderInfo.AppDataFolder, "asp"));
                 }
                 else
                 {

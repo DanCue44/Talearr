@@ -81,14 +81,14 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
         [FieldDefinition(4, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
 
-        [FieldDefinition(5, Label = "Audiobook Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Chaptarr avoids conflicts with unrelated non-Chaptarr downloads. Using a category is optional, but strongly recommended. Creates a [category] subdirectory in the output directory.")]
+        [FieldDefinition(5, Label = "Audiobook Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Talearr avoids conflicts with unrelated non-Talearr downloads. Using a category is optional, but strongly recommended. Creates a [category] subdirectory in the output directory.")]
         public string AudiobookCategory
         {
             get => _audiobookCategory ?? MusicCategory;
             set => _audiobookCategory = value;
         }
 
-        [FieldDefinition(6, Label = "Ebook Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Chaptarr avoids conflicts with unrelated non-Chaptarr downloads. Using a category is optional, but strongly recommended. Creates a [category] subdirectory in the output directory.")]
+        [FieldDefinition(6, Label = "Ebook Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Talearr avoids conflicts with unrelated non-Talearr downloads. Using a category is optional, but strongly recommended. Creates a [category] subdirectory in the output directory.")]
         public string EbookCategory
         {
             get => _ebookCategory ?? MusicCategory;

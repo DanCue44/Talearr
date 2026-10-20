@@ -2520,7 +2520,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                     return $"Conversion skipped because the destination is already occupied: {finalDestinationPath}. Remove or rename the existing file, or change naming settings, then retry.";
                 }
 
-                return $"Conversion skipped because an untracked file already exists at the destination: {finalDestinationPath}. It will not appear in Chaptarr's Files tab. Remove or rename the file, or change naming settings, then retry.";
+                return $"Conversion skipped because an untracked file already exists at the destination: {finalDestinationPath}. It will not appear in Talearr's Files tab. Remove or rename the file, or change naming settings, then retry.";
             }
 
             private bool CanReplaceExistingConversionDestination(BookFile existingTracked, Book book, QualityProfile qualityProfile, bool replaceExisting, bool downloadForced)

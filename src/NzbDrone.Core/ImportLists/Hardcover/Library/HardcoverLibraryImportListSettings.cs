@@ -58,10 +58,10 @@ namespace NzbDrone.Core.ImportLists.Hardcover.Library
         [FieldDefinition(3, Label = "Import Read", Type = FieldType.Checkbox, HelpText = "Import books on your Hardcover Read shelf.")]
         public bool ImportRead { get; set; }
 
-        [FieldDefinition(4, Label = "Monitor Audiobooks", Type = FieldType.Checkbox, HelpText = "When enabled, Chaptarr will monitor audiobooks from your Hardcover library (applies to items without an edition, and audiobook editions).")]
+        [FieldDefinition(4, Label = "Monitor Audiobooks", Type = FieldType.Checkbox, HelpText = "When enabled, Talearr will monitor audiobooks from your Hardcover library (applies to items without an edition, and audiobook editions).")]
         public bool MonitorAudiobooks { get; set; }
 
-        [FieldDefinition(5, Label = "Monitor Ebooks", Type = FieldType.Checkbox, HelpText = "When enabled, Chaptarr will monitor ebooks from your Hardcover library (applies to items without an edition, and ebook/print editions).")]
+        [FieldDefinition(5, Label = "Monitor Ebooks", Type = FieldType.Checkbox, HelpText = "When enabled, Talearr will monitor ebooks from your Hardcover library (applies to items without an edition, and ebook/print editions).")]
         public bool MonitorEbooks { get; set; }
 
         [FieldDefinition(6, Label = "Audiobook Quality Profile", Type = FieldType.Select, SelectOptionsProviderAction = "getAudiobookQualityProfiles", HelpText = "Quality profile used when importing audiobooks from Hardcover.")]

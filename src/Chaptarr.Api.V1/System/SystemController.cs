@@ -79,7 +79,7 @@ namespace Chaptarr.Api.V1.System
 
             await _factoryResetService.ResetEverythingAsync();
 
-            return Ok(new SystemResetResource { Message = "Reset complete. Chaptarr is restarting." });
+            return Ok(new SystemResetResource { Message = "Reset complete. Talearr is restarting." });
         }
 
         [HttpGet("status")]

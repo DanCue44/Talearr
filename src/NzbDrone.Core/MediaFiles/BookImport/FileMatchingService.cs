@@ -8384,7 +8384,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                             Type = "edition_selection",
                             Scope = "edition",
                             Source = "catalog",
-                            Detail = "Multiple audiobook editions were available, but the file supplied no usable narrator or full-book duration evidence to distinguish them. Chaptarr selected a native audiobook using its normal deterministic edition order."
+                            Detail = "Multiple audiobook editions were available, but the file supplied no usable narrator or full-book duration evidence to distinguish them. Talearr selected a native audiobook using its normal deterministic edition order."
                         });
                     }
                 }

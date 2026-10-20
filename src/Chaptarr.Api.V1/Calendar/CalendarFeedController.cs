@@ -77,7 +77,7 @@ namespace Chaptarr.Api.V1.Calendar
                     : "-//chaptarr.com//Chaptarr//EN"
             };
 
-            var calendarName = isLegacyReadarrFeed ? "Readarr Book Schedule" : "Chaptarr Book Schedule";
+            var calendarName = isLegacyReadarrFeed ? "Readarr Book Schedule" : "Talearr Book Schedule";
             calendar.AddProperty(new CalendarProperty("NAME", calendarName));
             calendar.AddProperty(new CalendarProperty("X-WR-CALNAME", calendarName));
 

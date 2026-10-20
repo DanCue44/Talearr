@@ -65,14 +65,14 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
         [FieldDefinition(6, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password, Advanced = true)]
         public string Password { get; set; }
 
-        [FieldDefinition(7, Label = "Audiobook Category", Type = FieldType.Select, SelectOptionsProviderAction = "getCategories", HelpText = "Adding a category specific to Chaptarr avoids conflicts with unrelated non-Chaptarr downloads. Using a category is optional, but strongly recommended.")]
+        [FieldDefinition(7, Label = "Audiobook Category", Type = FieldType.Select, SelectOptionsProviderAction = "getCategories", HelpText = "Adding a category specific to Talearr avoids conflicts with unrelated non-Talearr downloads. Using a category is optional, but strongly recommended.")]
         public string AudiobookCategory
         {
             get => _audiobookCategory ?? MusicCategory;
             set => _audiobookCategory = value;
         }
 
-        [FieldDefinition(8, Label = "Ebook Category", Type = FieldType.Select, SelectOptionsProviderAction = "getCategories", HelpText = "Adding a category specific to Chaptarr avoids conflicts with unrelated non-Chaptarr downloads. Using a category is optional, but strongly recommended.")]
+        [FieldDefinition(8, Label = "Ebook Category", Type = FieldType.Select, SelectOptionsProviderAction = "getCategories", HelpText = "Adding a category specific to Talearr avoids conflicts with unrelated non-Talearr downloads. Using a category is optional, but strongly recommended.")]
         public string EbookCategory
         {
             get => _ebookCategory ?? MusicCategory;
