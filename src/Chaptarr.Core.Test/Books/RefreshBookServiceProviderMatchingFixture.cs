@@ -307,7 +307,7 @@ namespace Chaptarr.Core.Test.Books
                 MediaType = BookMediaType.Audiobook,
                 HardcoverBookId = "hc:123",
                 AnyEditionOk = true,
-                Monitored = true,
+                AudiobookMonitored = true,
                 AddOptions = new AddBookOptions { AddType = BookAddType.Automatic }
             };
 

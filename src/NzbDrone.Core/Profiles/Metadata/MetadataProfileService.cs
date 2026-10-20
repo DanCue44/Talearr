@@ -228,10 +228,11 @@ namespace NzbDrone.Core.Profiles.Metadata
 
                 // Talearr: a monitored book is something the user wants (often a request still
                 // waiting on a download), so profile filters never drop it, like manual adds and
-                // books with files.
+                // books with files. Book.Monitored is a legacy column that is always false; the
+                // real flag is per format (IsMonitored reads AudiobookMonitored or EbookMonitored).
                 var localHash = new HashSet<string>(
                     localBooks
-                        .Where(x => x.AddOptions?.AddType == BookAddType.Manual || x.Monitored)
+                        .Where(x => x.AddOptions?.AddType == BookAddType.Manual || x.IsMonitored())
                         .Select(GetBookKey));
 
                 localHash.UnionWith(localFiles
