@@ -182,6 +182,23 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
         }
 
         [Test]
+        public void untitled_books_borrow_an_edition_title_or_are_left_out()
+        {
+            var catalog = HardcoverFixtures.Catalog();
+            var borrowed = catalog.Books.Single(b => b.Id == 100);
+            borrowed.Title = null;
+            borrowed.Editions.First().Title = "Edition Title";
+            var dropped = catalog.Books.First(b => b.Id != 100);
+            dropped.Title = " ";
+            dropped.Editions?.ForEach(e => e.Title = null);
+
+            var response = TalearrHardcoverMapper.BuildAuthorResponse(catalog);
+
+            Assert.That(response.Books.Single(b => b.Id == "hc:100").Title, Is.EqualTo("Edition Title"));
+            Assert.That(response.Books.Any(b => b.Id == $"hc:{dropped.Id}"), Is.False);
+        }
+
+        [Test]
         public void readers_reach_book_ratings()
         {
             var catalog = HardcoverFixtures.Catalog();

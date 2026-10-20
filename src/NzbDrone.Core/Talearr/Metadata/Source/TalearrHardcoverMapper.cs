@@ -114,6 +114,19 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                     continue;
                 }
 
+                // Books.Title is NOT NULL: one untitled Hardcover book failed a whole author's
+                // refresh. Borrow an edition's title, or leave the book out.
+                if (string.IsNullOrWhiteSpace(record.Title))
+                {
+                    record.Title = (record.Editions ?? new List<HardcoverEditionRecord>())
+                        .Select(e => e?.Title)
+                        .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
+                    if (record.Title == null)
+                    {
+                        continue;
+                    }
+                }
+
                 aliasesByCanonical.TryGetValue(record.Id, out var aliases);
                 var book = BuildBook(record, catalog.Series, aliases);
                 if (book != null)

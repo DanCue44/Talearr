@@ -9,8 +9,8 @@ namespace Chaptarr.Api.V1.Talearr
         // chaptarr | talearr
         public string Source { get; set; }
 
-        // Phase 3a: the Talearr source only runs in shadow mode; nothing switches yet.
-        public bool ShadowOnly { get; set; } = true;
+        // True when Talearr is selected and a Hardcover token is saved, so Hardcover is in use.
+        public bool Active { get; set; }
 
         public TalearrHardcoverClientStatus Hardcover { get; set; }
     }
@@ -81,7 +81,7 @@ namespace Chaptarr.Api.V1.Talearr
             return new TalearrMetadataSourceResource
             {
                 Source = TalearrMetadataSourceSettingsService.ToApiValue(_settings.GetSource()),
-                ShadowOnly = true,
+                Active = _settings.GetSource() == TalearrMetadataSource.Talearr && _hardcover.IsConfigured,
                 Hardcover = _hardcover.GetStatus()
             };
         }

@@ -4,8 +4,8 @@ using NzbDrone.Core.Talearr.Metadata.Source;
 namespace NzbDrone.Core.HealthCheck.Checks
 {
     // Talearr: System > Status notice for the talearr.metadata.source setting. With Talearr's
-    // source selected, authors and books with Hardcover ids come from Hardcover; import matching
-    // and books known only by other ids still use the metadata server, and this notice says so.
+    // source selected, authors and books with Hardcover ids come from Hardcover, and so does import
+    // matching; books known only by other ids still use the metadata server, and this notice says so.
     // Without a Hardcover token the setting has no effect (a warning). Silent while the default
     // (the metadata server) is selected. English text on purpose, like TalearrMetadataFallbackCheck.
     [CheckOn(typeof(TalearrMetadataSourceSavedEvent))]
@@ -50,7 +50,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
             }
 
             return "Metadata source is Talearr (Hardcover): authors and books with Hardcover ids are added and refreshed from Hardcover. " +
-                   "Import matching and books known only by other ids still use the metadata server.";
+                   "Import matching uses Hardcover too. Books known only by other ids still use the metadata server.";
         }
     }
 }
