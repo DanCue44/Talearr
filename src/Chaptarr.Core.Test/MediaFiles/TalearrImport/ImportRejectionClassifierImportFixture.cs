@@ -8,7 +8,7 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 {
     /// <summary>
     /// The grab policy fails a download only for rejections ImportRejectionClassifier recognises.
-    /// These pin the two TaleArr import rejections to it: wrong file language always fails,
+    /// These pin the two Talearr import rejections to it: wrong file language always fails,
     /// archives fail only when the release itself is unusable.
     /// </summary>
     [TestFixture]
@@ -18,7 +18,7 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 
         private const string LanguageReason =
             "File language is Swedish (swe) (from EPUB dc:language), but English (eng) is wanted (editions of 'The Pelican Brief'). " +
-            "TaleArr rejected this release so another one can be tried.";
+            "Talearr rejected this release so another one can be tried.";
 
         private static TrackedDownloadStatusMessage[] Status(params string[] messages)
         {
@@ -44,7 +44,7 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
         {
             var reason = ImportRejectionClassifier.Classify(Status(
                 "File language is Danish (dan) (from release name), but English (eng) or German (deu) is wanted (metadata profile 'Ebook'). " +
-                "TaleArr rejected this release so another one can be tried."));
+                "Talearr rejected this release so another one can be tried."));
 
             Assert.That(reason, Is.EqualTo("release is in Danish (dan), not English (eng) or German (deu)"));
         }

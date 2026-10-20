@@ -1,6 +1,6 @@
-name: TaleArr Docker
+name: Talearr Docker
 
-# Builds the TaleArr image from the upstream Dockerfile.cross and pushes it to
+# Builds the Talearr image from the upstream Dockerfile.cross and pushes it to
 # ghcr.io/dancue44/talearr using the workflow's GITHUB_TOKEN.
 #
 # Runs on a self-hosted runner on the Unraid server (amd64). That host has no
@@ -50,7 +50,7 @@ jobs:
 
       # The runner image has no python3; the workspace path is the same on the
       # Unraid host, so it can be bind-mounted into a throwaway python container.
-      - name: Guard - TaleArr rebrand intact
+      - name: Guard - Talearr rebrand intact
         run: docker run --rm -v "$PWD:$PWD" -w "$PWD" "$PY_IMAGE" python3 build-tools/talearr_brand_check.py
 
       - name: Resolve versions
@@ -61,7 +61,7 @@ jobs:
           eval "$(docker run --rm -v "$PWD:$PWD" -w "$PWD" "$PY_IMAGE" bash build-tools/talearr_versions.sh)"
           echo "talearr=$TALEARR_VERSION" >> "$GITHUB_OUTPUT"
           echo "upstream=$UPSTREAM_VERSION" >> "$GITHUB_OUTPUT"
-          echo "TaleArr $TALEARR_VERSION, based on Chaptarr $UPSTREAM_VERSION (linux/amd64)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Talearr $TALEARR_VERSION, based on Chaptarr $UPSTREAM_VERSION (linux/amd64)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Docker tags and labels
         id: docker
@@ -78,8 +78,8 @@ jobs:
             type=ref,event=branch,enable=${{ github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main' }}
             type=sha,prefix=sha-
           labels: |
-            org.opencontainers.image.title=TaleArr
-            org.opencontainers.image.description=TaleArr ebook and audiobook manager (fork of Chaptarr ${{ steps.meta.outputs.upstream }})
+            org.opencontainers.image.title=Talearr
+            org.opencontainers.image.description=Talearr ebook and audiobook manager (fork of Chaptarr ${{ steps.meta.outputs.upstream }})
             org.opencontainers.image.version=${{ steps.meta.outputs.talearr }}
             org.opencontainers.image.licenses=GPL-3.0-only
             io.talearr.upstream.version=${{ steps.meta.outputs.upstream }}
@@ -170,10 +170,10 @@ jobs:
             docker stop "$up" >/dev/null && docker rm "$up" >/dev/null
             docker run --rm -v "$vol:/config" busybox sh -c 'cp /config/config.xml /config/config.upstream.xml; ls -la /config'
           else
-            echo "::notice::$upstream_image is not published; testing TaleArr on a fresh config only."
+            echo "::notice::$upstream_image is not published; testing Talearr on a fresh config only."
           fi
 
-          # 2. Start TaleArr on the same volume.
+          # 2. Start Talearr on the same volume.
           run_app "$app" "$CI_KEY:smoke"
           app_ip="$(ip_of "$app")"
           if ! wait_ready "$app_ip"; then docker logs "$app" | tail -n 200; exit 1; fi
@@ -190,7 +190,7 @@ jobs:
           # Save responses to files before grepping: under pipefail, grep -q closing the
           # pipe early would kill curl with SIGPIPE (exit 141).
           curl -fsS "http://$app_ip:8789/" -o index.html
-          grep '<title>TaleArr</title>' index.html >/dev/null || { echo "UI title is not TaleArr"; exit 1; }
+          grep '<title>Talearr</title>' index.html >/dev/null || { echo "UI title is not Talearr"; exit 1; }
           curl -fsS "http://$app_ip:8789/initialize.json" -H "X-Api-Key: $key" -o initialize.json
           grep '"talearrVersion"' initialize.json >/dev/null || { echo "initialize.json has no talearrVersion"; exit 1; }
           cat initialize.json
@@ -215,7 +215,7 @@ jobs:
           fi
 
           docker logs "$app" > talearr.log 2>&1 || true
-          grep 'Bootstrap: Starting TaleArr' talearr.log || true
+          grep 'Bootstrap: Starting Talearr' talearr.log || true
           docker stop "$app" >/dev/null
 
       - name: Log in to GHCR

@@ -71,7 +71,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
         }
     }
 
-    // TaleArr: OPDS 1.2 (https://specs.opds.io/opds-1.2) Atom documents for the catalog.
+    // Talearr: OPDS 1.2 (https://specs.opds.io/opds-1.2) Atom documents for the catalog.
     public static class TalearrOpdsFeedWriter
     {
         public const string NavigationType = "application/atom+xml;profile=opds-catalog;kind=navigation";
@@ -128,7 +128,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
 
         public static XDocument Root(TalearrOpdsLinks links, TalearrOpdsSnapshot snapshot)
         {
-            var feed = Feed(links, "urn:talearr:opds:root", "TaleArr", snapshot.Updated, NavigationType, links.To(string.Empty), null);
+            var feed = Feed(links, "urn:talearr:opds:root", "Talearr", snapshot.Updated, NavigationType, links.To(string.Empty), null);
 
             feed.Add(Navigation("urn:talearr:opds:recent", "Recently added", $"The newest ebooks first ({snapshot.Books.Count} in all)", links.To("recent"), AcquisitionType, snapshot.Updated, "http://opds-spec.org/sort/new"));
             feed.Add(Navigation("urn:talearr:opds:authors", "Authors", $"{snapshot.Authors.Count} authors with ebooks", links.To("authors"), NavigationType, snapshot.Updated));
@@ -168,8 +168,8 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
         public static XDocument OpenSearchDescription(TalearrOpdsLinks links)
         {
             var root = new XElement(OpenSearch + "OpenSearchDescription",
-                new XElement(OpenSearch + "ShortName", "TaleArr"),
-                new XElement(OpenSearch + "Description", "Search the TaleArr ebook library by title, author or series"),
+                new XElement(OpenSearch + "ShortName", "Talearr"),
+                new XElement(OpenSearch + "Description", "Search the Talearr ebook library by title, author or series"),
                 new XElement(OpenSearch + "InputEncoding", "UTF-8"),
                 new XElement(OpenSearch + "OutputEncoding", "UTF-8"),
                 new XElement(OpenSearch + "Url",
@@ -299,7 +299,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
                 new XElement(Atom + "id", id),
                 new XElement(Atom + "title", title),
                 new XElement(Atom + "updated", Timestamp(updated)),
-                new XElement(Atom + "author", new XElement(Atom + "name", "TaleArr")),
+                new XElement(Atom + "author", new XElement(Atom + "name", "Talearr")),
                 Link("self", self, selfType),
                 Link("start", links.To(string.Empty), NavigationType),
                 Link("search", links.To("opensearch.xml"), OpenSearchType, "Search"));

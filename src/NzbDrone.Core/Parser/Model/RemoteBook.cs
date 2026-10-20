@@ -22,10 +22,10 @@ namespace NzbDrone.Core.Parser.Model
         public TitleMatchResult SearchCriteriaMatch { get; set; }
         public ReleasePackDetection PackDetection { get; set; }
 
-        // TaleArr: the release holds several books (a bundle, box set or discography).
+        // Talearr: the release holds several books (a bundle, box set or discography).
         public bool IsBundle { get; set; }
 
-        // TaleArr: a bundle allowed only as a last resort, grabbed when no single copy is available.
+        // Talearr: a bundle allowed only as a last resort, grabbed when no single copy is available.
         public bool IsBundleFallback { get; set; }
 
         public RemoteBook()

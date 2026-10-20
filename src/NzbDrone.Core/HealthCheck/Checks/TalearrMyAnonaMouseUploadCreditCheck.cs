@@ -8,9 +8,9 @@ using NzbDrone.Core.ThingiProvider.Events;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // TaleArr: a warning when the hourly account refresh says MAM demoted the account to Mouse or
+    // Talearr: a warning when the hourly account refresh says MAM demoted the account to Mouse or
     // made it seed-only (ratio too low). Points at the upload credit that fixes it, and says whether
-    // the Ratio Safety Net can buy it. English text on purpose (TaleArr-only).
+    // the Ratio Safety Net can buy it. English text on purpose (Talearr-only).
     [CheckOn(typeof(ProviderUpdatedEvent<IIndexer>))]
     [CheckOn(typeof(ProviderDeletedEvent<IIndexer>))]
     public class TalearrMyAnonaMouseUploadCreditCheck : HealthCheckBase

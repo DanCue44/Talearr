@@ -1,6 +1,6 @@
-# TaleArr recordings
+# Talearr recordings
 
-TaleArr 0.12.0 can keep more than one recording of the same audiobook: the abridged and the
+Talearr 0.12.0 can keep more than one recording of the same audiobook: the abridged and the
 unabridged reading, or two narrators, each with its own files and folder. It knows which
 recording is which from Audible, and its upgrades never replace one recording with another.
 
@@ -18,7 +18,7 @@ Because they are ordinary Chaptarr entries:
 - they show as separate entries in the book lists (as copies always have),
 - stock Chaptarr understands them after a rollback.
 
-Nothing new is stored in `chaptarr.db`. What TaleArr learns from Audible lives in a separate
+Nothing new is stored in `chaptarr.db`. What Talearr learns from Audible lives in a separate
 cache, `talearr.db`, next to it (see [Storage](#storage)).
 
 ## The book page
@@ -38,7 +38,7 @@ Audiobook pages have a **Recordings** section above the History, Search and File
 
 **Add another recording** offers:
 
-- **Unabridged version** and **Abridged version**: TaleArr picks the best edition of that kind
+- **Unabridged version** and **Abridged version**: Talearr picks the best edition of that kind
   (abridged status known, same language, Audible match, runtime known, popularity). Disabled,
   with the reason, when you already have it or no such edition is known.
 - **Another narrator...**: pick from the narrators that are not a recording yet.
@@ -51,13 +51,13 @@ primary recording is abridged and an unabridged edition is known, the section al
 
 **Remove this recording** (the bin icon) asks first and can delete the recording's files too.
 Only additional recordings can be removed; for the primary recording the dialog explains that
-it is the book itself and points at Delete. TaleArr never removes a recording on its own.
+it is the book itself and points at Delete. Talearr never removes a recording on its own.
 
 ## Folders
 
 Every recording gets its own book folder. When the naming format would give an additional
 recording the same folder as an earlier one (two Scott Brick readings with
-`{Book Title}{ - Narrator}`), TaleArr adds the first thing that tells them apart, using the
+`{Book Title}{ - Narrator}`), Talearr adds the first thing that tells them apart, using the
 normal naming tokens:
 
 1. the narrator, when the format does not already include it: `The Firm (D.W. Moffett)`,
@@ -68,7 +68,7 @@ normal naming tokens:
 A folder that already holds another recording's files counts as taken. The primary
 recording's folder never changes, and a layout without book folders is left alone. An import
 that would still land in a folder holding another recording's files is refused, with a
-"TaleArr:" reason in the queue.
+"Talearr:" reason in the queue.
 
 ## Upgrades
 
@@ -90,7 +90,7 @@ Bitrate, channels and length are measured from the files themselves, because Cha
 store them for imported files. Anything that cannot be measured never blocks an upgrade.
 Manual imports and forced grabs are not checked. When the guard keeps the old files, the import
 shows the reason, for example
-"TaleArr: kept the existing files, the download is 64 kbps lower (64 kbps aac against 128 kbps mp3)".
+"Talearr: kept the existing files, the download is 64 kbps lower (64 kbps aac against 128 kbps mp3)".
 
 **Keep both recordings** (on by default): an unabridged download for a book whose files are
 abridged is imported as its own recording, an additional recording of the best unabridged
@@ -133,10 +133,10 @@ book's value, and its history note says so ("...; abridged policy for this book:
 ### Edition choice
 
 Before a book search (missing book searches, Search, a retry after a failed download, an
-interactive search of a monitored book, a search queued by AllSeerr), TaleArr checks the
+interactive search of a monitored book, a search queued by AllSeerr), Talearr checks the
 monitored edition against the value that applies:
 
-- `abridgedOnly` (the book's own or global) and the monitored edition is not abridged: TaleArr
+- `abridgedOnly` (the book's own or global) and the monitored edition is not abridged: Talearr
   monitors the best abridged edition of the book, chosen the way **Add another recording >
   Abridged version** chooses (abridged status known, same language, Audible match, runtime
   known, popularity), and searches for it,
@@ -144,9 +144,9 @@ monitored edition against the value that applies:
   edition, the same way.
 
 The edition is pinned with Chaptarr's own wanted edition pin (the one the narrator picker uses),
-and the book's history gets a "TaleArr: monitored edition switched to the abridged edition ..."
+and the book's history gets a "Talearr: monitored edition switched to the abridged edition ..."
 entry. When no matching edition is known, nothing changes: the search runs, finds nothing that
-fits (only a release named abridged would), and history says "TaleArr: no abridged edition of
+fits (only a release named abridged would), and history says "Talearr: no abridged edition of
 this book is known, so the search can only find releases marked abridged (...)", at most once a
 day. History entries use the existing Download Ignored type with the text as the message, so
 Chaptarr shows them after a rollback.
@@ -172,7 +172,7 @@ Settings > Metadata > Recordings:
 | Minimum bitrate gain | 16 kbps | `talearr.upgrade.minbitrategainkbps` (0 to 320) |
 | Runtime tolerance | 3% | `talearr.upgrade.runtimetolerancepct` (0 to 50) |
 
-The Audible catalog API is unofficial and needs no account. TaleArr batches lookups, waits at
+The Audible catalog API is unofficial and needs no account. Talearr batches lookups, waits at
 least a second between requests, caches answers for 30 days (7 for "not found") and only looks
 up recordings you have. Audnexus (`api.audnex.us`) is a community run server, so it is only used
 when you choose it or turn on the fallback.
@@ -199,7 +199,7 @@ Local ids in responses (`bookId`, `editionId`) are handles; store `baseBookId`,
 
 - `talearr.db` in the config folder (next to `chaptarr.db`): Audible products, which edition
   matched which product, and which recordings were requested by whom. A rebuildable cache:
-  delete it and TaleArr fetches again. Chaptarr never opens it.
+  delete it and Talearr fetches again. Chaptarr never opens it.
 - Per-book abridged values, in the `BookGrabPolicies` table of `talearr.db` (schema version 3).
   They are keyed by the work, the book's `BaseBookId` (`hc:378630`), the key the recordings use
   for a work: it comes from the metadata server, is shared by the book's audiobook and ebook

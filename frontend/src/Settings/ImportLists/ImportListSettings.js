@@ -94,7 +94,7 @@ class ImportListSettings extends Component {
 
         <PageContentBody>
           <ImportListsConnector />
-          {/* TaleArr: wishlists (docs/TALEARR_WISHLISTS.md) */}
+          {/* Talearr: wishlists (docs/TALEARR_WISHLISTS.md) */}
           <TalearrWishlists />
           <ImportListsExclusionsConnector />
           <ManageImportListsModal

@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         MyAnonaMouseSettings ResolveSettings(ReleaseInfo release);
     }
 
-    // TaleArr: freeleech awareness shared by the ranking step and the Freeleech Only filter.
+    // Talearr: freeleech awareness shared by the ranking step and the Freeleech Only filter.
     public class MyAnonaMouseReleasePolicy : IMyAnonaMouseReleasePolicy
     {
         private static readonly MyAnonaMouseSettings Defaults = new MyAnonaMouseSettings();

@@ -16,7 +16,7 @@ using NzbDrone.Core.MetadataSource.BookInfo.V5;
 
 namespace NzbDrone.Core.Talearr.MetadataFallback
 {
-    // TaleArr: remembers which search results and fetched authors came from the fallback source,
+    // Talearr: remembers which search results and fetched authors came from the fallback source,
     // without adding a property (and so a column) to Author or Book.
     public static class TalearrMetadataFallbackMarker
     {
@@ -76,7 +76,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
     }
 
     /// <summary>
-    /// TaleArr: a second, keyless metadata source (Open Library) so TaleArr survives an outage of
+    /// Talearr: a second, keyless metadata source (Open Library) so Talearr survives an outage of
     /// the Chaptarr metadata server.
     ///
     /// What uses it: search (when the metadata server is down, or the search provider failed
@@ -218,7 +218,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
 
                 if (record == null)
                 {
-                    _logger.Warn("TaleArr: the metadata server is unavailable and Open Library has no author matching {0} ('{1}'); nothing was added",
+                    _logger.Warn("Talearr: the metadata server is unavailable and Open Library has no author matching {0} ('{1}'); nothing was added",
                         requestedProviderId,
                         authorNameHint ?? "no name");
                     RecordFailure("add", "no matching author on Open Library");
@@ -228,14 +228,14 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
                 var works = _openLibrary.GetAuthorWorks(record.Key, 100);
                 var response = TalearrOpenLibraryMapper.BuildAuthorResponse(record, works, requestedProviderId, requestedWorkTitles);
 
-                // TaleArr: narrator, runtime and abridged flag for works Open Library has an Audible ASIN for.
+                // Talearr: narrator, runtime and abridged flag for works Open Library has an Audible ASIN for.
                 var audiobooks = TalearrAudnexusEnricher.Enrich(response, works, _audnexus, _logger);
                 if (audiobooks > 0)
                 {
-                    _logger.Debug("TaleArr: added {0} audiobook edition(s) from {1} for '{2}'", audiobooks, TalearrAudnexusEnricher.SourceName, record.Name);
+                    _logger.Debug("Talearr: added {0} audiobook edition(s) from {1} for '{2}'", audiobooks, TalearrAudnexusEnricher.SourceName, record.Name);
                 }
 
-                _logger.Info("TaleArr: the metadata server is unavailable; added author '{0}' ({1}) from Open Library with {2} book(s). A refresh after the server recovers updates it from the metadata server.",
+                _logger.Info("Talearr: the metadata server is unavailable; added author '{0}' ({1}) from Open Library with {2} book(s). A refresh after the server recovers updates it from the metadata server.",
                     record.Name,
                     requestedProviderId,
                     response?.Books?.Count ?? 0);
@@ -245,7 +245,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
             }
             catch (OpenLibraryException ex)
             {
-                _logger.Warn("TaleArr: Open Library fallback failed for {0}: {1}", requestedProviderId, ex.Message);
+                _logger.Warn("Talearr: Open Library fallback failed for {0}: {1}", requestedProviderId, ex.Message);
                 RecordFailure("add", ex.Message);
                 return null;
             }
@@ -275,7 +275,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
                 results.AddRange(authors);
                 results.AddRange(books);
 
-                _logger.Info("TaleArr: searched Open Library for '{0}' because the metadata server or search provider is unavailable ({1} author(s), {2} book(s))",
+                _logger.Info("Talearr: searched Open Library for '{0}' because the metadata server or search provider is unavailable ({1} author(s), {2} book(s))",
                     term,
                     authors.Count,
                     books.Count);
@@ -285,7 +285,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
             }
             catch (OpenLibraryException ex)
             {
-                _logger.Warn("TaleArr: Open Library fallback search failed for '{0}': {1}", term, ex.Message);
+                _logger.Warn("Talearr: Open Library fallback search failed for '{0}': {1}", term, ex.Message);
                 RecordFailure("search", ex.Message);
                 throw;
             }

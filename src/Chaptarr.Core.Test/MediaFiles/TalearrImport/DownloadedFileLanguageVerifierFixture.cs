@@ -100,7 +100,7 @@ namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
             Assert.That(rejection.Reason, Does.Contain("Swedish (swe)"));
             Assert.That(rejection.Reason, Does.Contain("English (eng)"));
             Assert.That(rejection.Reason, Does.Contain("EPUB dc:language"));
-            Assert.That(rejection.Reason, Does.Contain("TaleArr"));
+            Assert.That(rejection.Reason, Does.Contain("Talearr"));
         }
 
         [Test]

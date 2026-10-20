@@ -16,7 +16,7 @@ using NzbDrone.Core.Talearr.Audiobook.M4b;
 
 namespace Chaptarr.Core.Test.Talearr.Audiobook
 {
-    // TaleArr: "Convert library to M4B" over the existing library, with fakes only (no ffmpeg).
+    // Talearr: "Convert library to M4B" over the existing library, with fakes only (no ffmpeg).
     [TestFixture]
     public class TalearrM4bLibraryFixture
     {

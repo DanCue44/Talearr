@@ -7,7 +7,7 @@ using NzbDrone.Core.Indexers.MyAnonaMouse;
 
 namespace NzbDrone.Core.Talearr.Seeding
 {
-    // TaleArr: pure rules behind the seeding report, kept apart from the client and database reads
+    // Talearr: pure rules behind the seeding report, kept apart from the client and database reads
     // so they can be tested with plain data.
     public static class TalearrSeedingRules
     {
@@ -167,7 +167,7 @@ namespace NzbDrone.Core.Talearr.Seeding
             };
         }
 
-        // A grab TaleArr made from a private tracker that the client no longer has, while it
+        // A grab Talearr made from a private tracker that the client no longer has, while it
         // cannot have seeded long enough yet.
         public static TalearrSeedingTorrent BuildMissingRow(TalearrSeedingGrab grab, TalearrSeedingIndexerInfo indexer)
         {
@@ -226,7 +226,7 @@ namespace NzbDrone.Core.Talearr.Seeding
                         : $"Download client error: {clientMessage.Trim()}";
                     break;
                 case Missing:
-                    row.RiskReason = $"Not in the download client before {hours} of seeding (removed or moved out of the TaleArr category)";
+                    row.RiskReason = $"Not in the download client before {hours} of seeding (removed or moved out of the Talearr category)";
                     break;
                 case Seeding:
                 case Stalled:

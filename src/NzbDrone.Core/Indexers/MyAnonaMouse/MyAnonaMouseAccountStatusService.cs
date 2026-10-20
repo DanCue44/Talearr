@@ -19,7 +19,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         private readonly IMamUnsatisfiedSlotGuard _slotGuard;
         private readonly object _refreshLock = new object();
 
-        // TaleArr: last refresh attempt per indexer. Each MAM indexer is refreshed on its own
+        // Talearr: last refresh attempt per indexer. Each MAM indexer is refreshed on its own
         // Account Status Refresh interval (was one fixed hour for all of them).
         private readonly Dictionary<int, DateTime> _lastRefreshAttemptUtc = new Dictionary<int, DateTime>();
         private bool _refreshInProgress;
@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             RefreshIfDue("health cycle");
         }
 
-        // TaleArr: running the task by hand always refreshes. It used to share the one-hour
+        // Talearr: running the task by hand always refreshes. It used to share the one-hour
         // throttle with the health-cycle trigger, so running it by hand right after any other
         // refresh did nothing (a 3 ms "completed" run) and a class change on MAM (for example
         // Mouse back to User after buying upload credit) stayed stale for up to an hour. The

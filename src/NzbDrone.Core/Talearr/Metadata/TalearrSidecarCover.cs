@@ -79,7 +79,7 @@ namespace NzbDrone.Core.Talearr.Metadata
         public string Reason { get; set; }
     }
 
-    // TaleArr: chooses the image written as cover.jpg next to a book.
+    // Talearr: chooses the image written as cover.jpg next to a book.
     //
     // Upstream wrote the first cover URL of the matched edition, whatever its size. For the 1984
     // import on 2026-10-16 that was a Goodreads thumbnail (`9834606._SX50_.jpg`, 50x67, 1.5 KB) and

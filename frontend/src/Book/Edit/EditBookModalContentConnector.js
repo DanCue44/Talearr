@@ -72,7 +72,7 @@ class EditBookModalContentConnector extends Component {
   constructor(props, context) {
     super(props, context);
 
-    // TaleArr: book tags are saved on their own route; null means unchanged.
+    // Talearr: book tags are saved on their own route; null means unchanged.
     this.state = {
       talearrTags: null
     };

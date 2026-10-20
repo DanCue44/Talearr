@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
         void Remove(string id);
     }
 
-    // TaleArr: wishlists live in the existing Config key/value table, one row per wishlist
+    // Talearr: wishlists live in the existing Config key/value table, one row per wishlist
     // ("talearr.wishlist.<id>", JSON). Stock Chaptarr never reads these keys.
     public class TalearrWishlistStore : ITalearrWishlistStore
     {
@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn(ex, "TaleArr: unable to read the wishlists");
+                    _logger.Warn(ex, "Talearr: unable to read the wishlists");
                     return new List<TalearrWishlist>();
                 }
             }
@@ -123,7 +123,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
             }
             catch (JsonException ex)
             {
-                _logger.Warn(ex, "TaleArr: ignoring an unreadable wishlist {0}", id);
+                _logger.Warn(ex, "Talearr: ignoring an unreadable wishlist {0}", id);
                 return null;
             }
         }

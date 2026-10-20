@@ -21,14 +21,14 @@ using NzbDrone.Core.Qualities;
 namespace Chaptarr.Core.Test.Download
 {
     /// <summary>
-    /// TaleArr: a completed download whose files are in the wrong language is blocked with one
+    /// Talearr: a completed download whose files are in the wrong language is blocked with one
     /// clean language reason, which the grab policy's ImportRejectionClassifier recognises and
     /// fails the normal way (blocklist + replacement search, user grabs exempt).
     /// </summary>
     [TestFixture]
     public class CompletedDownloadServiceWrongLanguageFixture
     {
-        private const string LanguageReason = "File language is Swedish (swe) (from EPUB dc:language), but English (eng) is wanted (editions of 'The Pelican Brief'). TaleArr rejected this release so another one can be tried.";
+        private const string LanguageReason = "File language is Swedish (swe) (from EPUB dc:language), but English (eng) is wanted (editions of 'The Pelican Brief'). Talearr rejected this release so another one can be tried.";
 
         [Test]
         public void should_detect_a_payload_rejected_for_language()

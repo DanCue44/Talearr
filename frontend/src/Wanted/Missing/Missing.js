@@ -28,7 +28,7 @@ import toggleSelected from 'Utilities/Table/toggleSelected';
 import createWantedFilterModalConnector from 'Wanted/createWantedFilterModalConnector';
 import MissingRowConnector from './MissingRowConnector';
 
-// TaleArr: custom filter editor for this page.
+// Talearr: custom filter editor for this page.
 const MissingFilterModalConnector = createWantedFilterModalConnector('missing', setMissingFilter);
 
 function getMonitoredValue(props) {

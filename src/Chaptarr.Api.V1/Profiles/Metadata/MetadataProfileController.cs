@@ -105,7 +105,7 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
             var shouldRefreshAuthors = previousProfile != null && ShouldRefreshAuthorsForProfileFilterChange(previousProfile, model);
             _profileService.Update(model);
 
-            // TaleArr: a change to the genre or content type rules refreshes like any other filter.
+            // Talearr: a change to the genre or content type rules refreshes like any other filter.
             if (resource.TalearrContentFilter != null && _talearrContentFilters != null)
             {
                 var previousContentFilter = _talearrContentFilters.Get(model.Id);

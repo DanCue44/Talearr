@@ -1,6 +1,6 @@
 <Project>
   <!--
-    TaleArr fork settings. Kept in its own file so upstream edits to
+    Talearr fork settings. Kept in its own file so upstream edits to
     Directory.Build.props (including its version bumps) merge cleanly.
 
     TalearrVersion is the fork's own version, shown in System > Status and in the

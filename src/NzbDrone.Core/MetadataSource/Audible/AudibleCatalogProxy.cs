@@ -33,7 +33,7 @@ namespace NzbDrone.Core.MetadataSource.Audible
             "Mozilla/5.0 (X11; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0"
         };
 
-        // TaleArr: the recordings Audible client sends the same browser user agents as this proxy.
+        // Talearr: the recordings Audible client sends the same browser user agents as this proxy.
         internal static IReadOnlyList<string> UserAgents => AudibleUserAgents;
 
         private readonly ICachedHttpResponseService _cachedHttpClient;

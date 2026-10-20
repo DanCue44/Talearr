@@ -23,14 +23,14 @@ namespace NzbDrone.Core.Notifications.Subsonic
 
         public override void OnGrab(GrabMessage grabMessage)
         {
-            const string header = "TaleArr - Grabbed";
+            const string header = "Talearr - Grabbed";
 
             Notify(Settings, header, grabMessage.Message);
         }
 
         public override void OnReleaseImport(BookDownloadMessage message)
         {
-            const string header = "TaleArr - Downloaded";
+            const string header = "Talearr - Downloaded";
 
             Notify(Settings, header, message.Message);
             Update();
@@ -48,14 +48,14 @@ namespace NzbDrone.Core.Notifications.Subsonic
 
         public override void OnBookAdded(Book book)
         {
-            const string header = "TaleArr - Book Added";
+            const string header = "Talearr - Book Added";
 
             Notify(Settings, header, $"{book.Author.Name} - {book.Title}");
         }
 
         public override void OnAuthorDelete(AuthorDeleteMessage deleteMessage)
         {
-            const string header = "TaleArr - Author Deleted";
+            const string header = "Talearr - Author Deleted";
 
             Notify(Settings, header, deleteMessage.Message);
 
@@ -67,7 +67,7 @@ namespace NzbDrone.Core.Notifications.Subsonic
 
         public override void OnBookDelete(BookDeleteMessage deleteMessage)
         {
-            const string header = "TaleArr - Book Deleted";
+            const string header = "Talearr - Book Deleted";
 
             Notify(Settings, header, deleteMessage.Message);
 
@@ -79,7 +79,7 @@ namespace NzbDrone.Core.Notifications.Subsonic
 
         public override void OnBookFileDelete(BookFileDeleteMessage deleteMessage)
         {
-            const string header = "TaleArr - Book File Deleted";
+            const string header = "Talearr - Book File Deleted";
 
             Notify(Settings, header, deleteMessage.Message);
             Update();

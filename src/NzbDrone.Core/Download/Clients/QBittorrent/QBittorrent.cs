@@ -21,7 +21,7 @@ using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
-    // TaleArr: partial, the seeding report part is in QBittorrent.Talearr.cs.
+    // Talearr: partial, the seeding report part is in QBittorrent.Talearr.cs.
     public partial class QBittorrent : TorrentClientBase<QBittorrentSettings>, IPreserveDownloadClientItemAfterImport
     {
         private readonly IQBittorrentProxySelector _proxySelector;
@@ -376,7 +376,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
                 if (version >= new Version("2.6.1") && item.Status == DownloadItemStatus.Completed)
                 {
-                    // TaleArr: compare normalized paths (a trailing slash is not a different folder) and
+                    // Talearr: compare normalized paths (a trailing slash is not a different folder) and
                     // fall back to save path + name when a qBittorrent-compatible debrid proxy
                     // (rdt-client, Decypharr) leaves content_path empty.
                     var contentPath = ResolveContentPath(torrent);
@@ -397,7 +397,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return queueItems;
         }
 
-        // TaleArr: the torrent's own folder or file, or null when it is the client's base folder.
+        // Talearr: the torrent's own folder or file, or null when it is the client's base folder.
         internal static OsPath? ResolveContentPath(QBittorrentTorrent torrent)
         {
             if (torrent == null)

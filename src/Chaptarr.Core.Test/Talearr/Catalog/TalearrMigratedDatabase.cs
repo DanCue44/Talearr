@@ -14,7 +14,7 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace Chaptarr.Core.Test.Talearr.Catalog
 {
-    // TaleArr: a temporary chaptarr.db built by the real migrations, with an insert helper that
+    // Talearr: a temporary chaptarr.db built by the real migrations, with an insert helper that
     // fills every NOT NULL column the test does not care about.
     public sealed class TalearrMigratedDatabase : IDisposable
     {

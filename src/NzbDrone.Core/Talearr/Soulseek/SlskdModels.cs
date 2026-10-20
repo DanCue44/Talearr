@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace NzbDrone.Core.Talearr.Soulseek
 {
-    // TaleArr: the parts of slskd's REST API (api/v0) that TaleArr reads. Only the fields used
+    // Talearr: the parts of slskd's REST API (api/v0) that Talearr reads. Only the fields used
     // here are mapped; slskd sends more.
     public class SlskdSearch
     {
@@ -114,7 +114,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
     // What slskd's enqueue call achieved.
     public class SlskdEnqueueResult
     {
-        // True when slskd accepted a batch with TaleArr's own destination folder (slskd 0.26+).
+        // True when slskd accepted a batch with Talearr's own destination folder (slskd 0.26+).
         public bool UsedBatchDestination { get; set; }
         public string Destination { get; set; }
     }

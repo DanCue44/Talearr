@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace NzbDrone.Core.Talearr.Audiobook.M4b
 {
-    // TaleArr: chapters for a merged M4B.
+    // Talearr: chapters for a merged M4B.
     //
     // A source file that already has chapters keeps them (shifted to its place in the book).
     // Every other file becomes one chapter. Its title is the file's title tag when the files

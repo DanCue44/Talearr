@@ -21,7 +21,7 @@ namespace NzbDrone.Core.Notifications.Webhook
         Retag,
         ApplicationUpdate,
 
-        // TaleArr: Sonarr/Radarr parity, appended so existing values keep their names.
+        // Talearr: Sonarr/Radarr parity, appended so existing values keep their names.
         DownloadFailure,
         ImportFailure,
         ManualInteractionRequired,

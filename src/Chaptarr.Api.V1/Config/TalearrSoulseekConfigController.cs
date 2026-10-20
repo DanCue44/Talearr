@@ -9,7 +9,7 @@ using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Config
 {
-    // TaleArr: Soulseek (slskd) settings. A new route; no existing route or field changes. Stored
+    // Talearr: Soulseek (slskd) settings. A new route; no existing route or field changes. Stored
     // as the talearr.soulseek.settings Config row. The API key is returned masked.
     public class TalearrSoulseekConfigResource : RestResource
     {
@@ -66,7 +66,7 @@ namespace Chaptarr.Api.V1.Config
             return Accepted(ToResource(_settingsService.Save(FromResource(resource))));
         }
 
-        // Checks the (possibly unsaved) settings: slskd answers, the API key works, and TaleArr
+        // Checks the (possibly unsaved) settings: slskd answers, the API key works, and Talearr
         // can see the downloads folder.
         [HttpPost("test")]
         public TalearrSoulseekTestResource Test([FromBody] TalearrSoulseekConfigResource resource)

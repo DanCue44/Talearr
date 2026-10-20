@@ -7,7 +7,7 @@ using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.Talearr.Audiobookshelf
 {
-    // One Audiobookshelf library folder and the TaleArr root folder that holds the same files.
+    // One Audiobookshelf library folder and the Talearr root folder that holds the same files.
     public sealed class TalearrAbsFolderMapping
     {
         public string LibraryId { get; set; }
@@ -16,12 +16,12 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
         // The folder as Audiobookshelf sees it ("/books").
         public string AbsFolderPath { get; set; }
 
-        // The TaleArr root folder for it ("/ebooks").
+        // The Talearr root folder for it ("/ebooks").
         public string LocalRootPath { get; set; }
     }
 
-    // TaleArr: turns Audiobookshelf API items into cache rows, and Audiobookshelf paths into the
-    // paths TaleArr sees. Pure functions, no I/O.
+    // Talearr: turns Audiobookshelf API items into cache rows, and Audiobookshelf paths into the
+    // paths Talearr sees. Pure functions, no I/O.
     public static class TalearrAbsItemReader
     {
         public static TalearrAbsItem Read(AbsLibraryItem item, int connectionId, IReadOnlyCollection<TalearrAbsFolderMapping> mappings, IReadOnlyCollection<string> localRootPaths, DateTime syncedAt)
@@ -213,7 +213,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
             return clean.Length == 10 ? Isbn10To13(clean) : null;
         }
 
-        // Every form of an ISBN-13 TaleArr may have stored (13 digits, and the ISBN-10 for 978).
+        // Every form of an ISBN-13 Talearr may have stored (13 digits, and the ISBN-10 for 978).
         public static List<string> IsbnLookupForms(string isbn13)
         {
             var forms = new List<string>();

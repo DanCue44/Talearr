@@ -4,7 +4,7 @@ using NzbDrone.Core.Configuration;
 
 namespace NzbDrone.Core.Talearr.MetadataFallback
 {
-    // TaleArr: when the keyless fallback metadata source (Open Library) may be used.
+    // Talearr: when the keyless fallback metadata source (Open Library) may be used.
     public enum TalearrMetadataFallbackMode
     {
         // Never use the fallback (upstream Chaptarr behaviour).
@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
         TalearrMetadataFallbackMode SaveMode(TalearrMetadataFallbackMode mode);
     }
 
-    // TaleArr: stored as a talearr.metadatafallback.* row in the existing Config table, which
+    // Talearr: stored as a talearr.metadatafallback.* row in the existing Config table, which
     // Chaptarr ignores, so a rollback to Chaptarr on the same database is unaffected.
     public class TalearrMetadataFallbackSettingsService : ITalearrMetadataFallbackSettingsService
     {
@@ -96,7 +96,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
             {
                 _repository.Upsert(ModeKey, ToApiValue(mode));
                 _cached = null;
-                _logger.Info("TaleArr metadata fallback saved: {0}", ToApiValue(mode));
+                _logger.Info("Talearr metadata fallback saved: {0}", ToApiValue(mode));
                 _cached = Load();
                 return _cached.Value;
             }
@@ -111,7 +111,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read TaleArr setting {0}, using the default", ModeKey);
+                _logger.Debug(ex, "Unable to read Talearr setting {0}, using the default", ModeKey);
                 return DefaultMode;
             }
         }

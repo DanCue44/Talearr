@@ -4,10 +4,10 @@ using NzbDrone.Core.MetadataSource;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // TaleArr: System > Status warning from the active metadata server probe
+    // Talearr: System > Status warning from the active metadata server probe
     // (TalearrMetadataServerProbe). Re-runs whenever the probe state changes, so an outage
     // shows up within a minute or so instead of at the next 6-hourly health check.
-    // English text on purpose: it is TaleArr-only and stays out of the shared translation files.
+    // English text on purpose: it is Talearr-only and stays out of the shared translation files.
     [CheckOn(typeof(MetadataServerProbeStatusChangedEvent))]
     public class TalearrMetadataServerProbeCheck : HealthCheckBase
     {
@@ -63,13 +63,13 @@ namespace NzbDrone.Core.HealthCheck.Checks
         {
             if (!nextProbeAt.HasValue)
             {
-                return "TaleArr will check again shortly.";
+                return "Talearr will check again shortly.";
             }
 
             var wait = nextProbeAt.Value - DateTime.UtcNow;
             if (wait < TimeSpan.FromSeconds(1))
             {
-                return "TaleArr will check again shortly.";
+                return "Talearr will check again shortly.";
             }
 
             return $"Next check in {MetadataServerHealthGate.FormatRetryAfter(wait)}.";

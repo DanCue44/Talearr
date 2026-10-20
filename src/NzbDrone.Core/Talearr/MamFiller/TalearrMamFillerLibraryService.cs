@@ -17,8 +17,8 @@ using NzbDrone.Core.Talearr.Wishlists;
 
 namespace NzbDrone.Core.Talearr.MamFiller
 {
-    // TaleArr: "Filler Import Preferred Picks". Once a preferred filler torrent has finished
-    // downloading, the book is found in the metadata and added the way TaleArr adds one wanted
+    // Talearr: "Filler Import Preferred Picks". Once a preferred filler torrent has finished
+    // downloading, the book is found in the metadata and added the way Talearr adds one wanted
     // book (author added with only that book monitored for that format, no search; an author
     // already in the library just gets that book monitored), then the finished download is
     // imported with ImportMode.Copy, which copies or hardlinks (Use Hardlinks setting) and never
@@ -316,7 +316,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
                 CreateAudiobook = mediaType == BookMediaType.Audiobook,
                 CreateEbook = mediaType == BookMediaType.Ebook,
                 QueueIfUnavailable = true,
-                RequestedBy = "TaleArr MAM freeleech filler",
+                RequestedBy = "Talearr MAM freeleech filler",
                 AuthorName = pick.Author,
                 SearchForMissingBooks = false,
                 AudiobookMonitorExistingMode = MonitorTypes.None,

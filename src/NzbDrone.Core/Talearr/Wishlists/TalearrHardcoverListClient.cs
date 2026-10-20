@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
         (string Name, List<TalearrWishlistRow> Rows) GetList(string url);
     }
 
-    // TaleArr: reads one Hardcover list (https://hardcover.app/@user/lists/slug) with the API token
+    // Talearr: reads one Hardcover list (https://hardcover.app/@user/lists/slug) with the API token
     // from Settings > Metadata. Upstream's Hardcover Library import list covers Owned, Want to Read,
     // Currently Reading and Read; this covers the user's other lists.
     public class TalearrHardcoverListClient : ITalearrHardcoverListClient

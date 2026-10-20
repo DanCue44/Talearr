@@ -11,8 +11,8 @@ using NzbDrone.Core.Languages;
 
 namespace Chaptarr.Core.Test.Books
 {
-    // TaleArr: edition choice follows the preferred language and the work title, not popularity.
-    // Edition data mirrors real catalog rows from the TaleArr test server (book ids in comments).
+    // Talearr: edition choice follows the preferred language and the work title, not popularity.
+    // Edition data mirrors real catalog rows from the Talearr test server (book ids in comments).
     [TestFixture]
     public class TalearrEditionLanguagePreferenceFixture
     {

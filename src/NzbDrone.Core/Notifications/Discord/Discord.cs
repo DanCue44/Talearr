@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Notifications.Discord
 
         public override void OnGrab(GrabMessage message)
         {
-            // TaleArr: cover art and book details; a last-resort bundle says so in the title.
+            // Talearr: cover art and book details; a last-resort bundle says so in the title.
             var remoteBook = message.RemoteBook;
             var book = remoteBook?.Books?.FirstOrDefault();
             var details = TalearrNotificationDetails.Describe(book, null, message.Quality, message.Author);
@@ -53,7 +53,7 @@ namespace NzbDrone.Core.Notifications.Discord
 
         public override void OnReleaseImport(BookDownloadMessage message)
         {
-            // TaleArr: cover art and book details; upgrades are labelled as such.
+            // Talearr: cover art and book details; upgrades are labelled as such.
             var bookFile = message.BookFiles?.FirstOrDefault();
             var isUpgrade = message.OldFiles?.Any() == true;
             var details = TalearrNotificationDetails.Describe(message.Book, bookFile?.Edition, bookFile?.Quality, message.Author);
@@ -116,7 +116,7 @@ namespace NzbDrone.Core.Notifications.Discord
 
         public override void OnBookAdded(Book book)
         {
-            // TaleArr: cover art and book details.
+            // Talearr: cover art and book details.
             var details = TalearrNotificationDetails.Describe(book);
             var attachments = new List<Embed>
             {
@@ -152,7 +152,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Title = $"{deleteMessage.Book.Author.Name} - {deleteMessage.Book.Title}",
                     Description = deleteMessage.DeletedFilesMessage,
 
-                    // TaleArr: cover art on deletes too.
+                    // Talearr: cover art on deletes too.
                     Thumbnail = Cover(TalearrNotificationDetails.CoverUrl(deleteMessage.Book))
                 }
             };
@@ -195,7 +195,7 @@ namespace NzbDrone.Core.Notifications.Discord
             _proxy.SendPayload(payload, Settings);
         }
 
-        // TaleArr: Sonarr/Radarr "Health Restored".
+        // Talearr: Sonarr/Radarr "Health Restored".
         public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
         {
             var attachments = new List<Embed>
@@ -231,7 +231,7 @@ namespace NzbDrone.Core.Notifications.Discord
 
         public override void OnDownloadFailure(DownloadFailedMessage message)
         {
-            // TaleArr: book details when the failed download is still tracked.
+            // Talearr: book details when the failed download is still tracked.
             var book = message.Books?.FirstOrDefault();
             var details = TalearrNotificationDetails.Describe(book, null, message.Quality, message.Author);
             var fields = new List<DiscordField>();
@@ -257,7 +257,7 @@ namespace NzbDrone.Core.Notifications.Discord
 
         public override void OnImportFailure(BookDownloadMessage message)
         {
-            // TaleArr: the reasons, and whether the import waits for the user (Manual Interaction Required).
+            // Talearr: the reasons, and whether the import waits for the user (Manual Interaction Required).
             var details = TalearrNotificationDetails.Describe(message.Book, null, message.RemoteBook?.ParsedBookInfo?.Quality, message.Author);
             var title = message.ManualInteractionRequired ? MANUAL_INTERACTION_REQUIRED_TITLE : IMPORT_FAILURE_TITLE;
             var fields = new List<DiscordField>();
@@ -329,7 +329,7 @@ namespace NzbDrone.Core.Notifications.Discord
         {
             try
             {
-                var message = $"Test message from TaleArr posted at {DateTime.Now}";
+                var message = $"Test message from Talearr posted at {DateTime.Now}";
                 var payload = CreatePayload(message);
 
                 _proxy.SendPayload(payload, Settings);
@@ -342,7 +342,7 @@ namespace NzbDrone.Core.Notifications.Discord
             return null;
         }
 
-        // TaleArr: one embed layout for book events: cover thumbnail, author line, then format,
+        // Talearr: one embed layout for book events: cover thumbnail, author line, then format,
         // narrator and series before the event's own fields.
         private static Embed BookEmbed(TalearrBookDetails details, string authorName, string title, string description, DiscordColors color, List<DiscordField> eventFields)
         {

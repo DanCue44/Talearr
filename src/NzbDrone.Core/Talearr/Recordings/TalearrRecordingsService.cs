@@ -80,7 +80,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         public List<RecordingInfo> Recordings { get; set; } = new List<RecordingInfo>();
         public List<RecordingCandidateInfo> Candidates { get; set; } = new List<RecordingCandidateInfo>();
 
-        // TaleArr: true when the answer may still change shortly: the work's editions are not known
+        // Talearr: true when the answer may still change shortly: the work's editions are not known
         // yet (a book added a moment ago), or its first Audible lookup did not finish in time and
         // goes on in the background. Ask again in a few seconds.
         public bool FactsPending { get; set; }
@@ -163,7 +163,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         Edition FindBestEdition(Book row, string kind);
     }
 
-    // TaleArr: recordings of a work, built on upstream's wanted copy rows. A recording is one
+    // Talearr: recordings of a work, built on upstream's wanted copy rows. A recording is one
     // audiobook row of the identity group with its monitored edition and files. New recordings are
     // created only through IBookService.AddWantedEdition, so stock Chaptarr understands every row.
     public class TalearrRecordingsService : ITalearrRecordingsService
@@ -262,7 +262,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "TaleArr: first Audible lookup for '{0}' failed", primary.Title);
+                    _logger.Debug(ex, "Talearr: first Audible lookup for '{0}' failed", primary.Title);
                 }
                 finally
                 {
@@ -429,7 +429,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 ExternalRef = request.ExternalRef
             });
 
-            _logger.Info("TaleArr: {0} recording for '{1}' ({2}): edition {3}, book row {4}, requested by {5}{6}",
+            _logger.Info("Talearr: {0} recording for '{1}' ({2}): edition {3}, book row {4}, requested by {5}{6}",
                 status,
                 primary.Title,
                 kind,
@@ -462,7 +462,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
 
             _bookService.DeleteBook(book.Id, deleteFiles);
-            _logger.Info("TaleArr: removed recording book row {0} of '{1}' (files {2})", book.Id, group.Primary.Title, deleteFiles ? "deleted" : "kept");
+            _logger.Info("Talearr: removed recording book row {0} of '{1}' (files {2})", book.Id, group.Primary.Title, deleteFiles ? "deleted" : "kept");
 
             return new RemoveRecordingOutcome { Status = RemoveRecordingStatus.Removed };
         }
@@ -670,7 +670,7 @@ namespace NzbDrone.Core.Talearr.Recordings
 
         // Audiobook editions of the primary row that are not already a recording, with near
         // identical ones (same narrators, abridged status and runtime within 5%) folded together.
-        // TaleArr: rowId picks another row's own editions (default: the primary row).
+        // Talearr: rowId picks another row's own editions (default: the primary row).
         private List<Candidate> AllCandidates(Context context, int? rowId = null)
         {
             var taken = context.Group.Books
@@ -759,7 +759,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: abridged resolution failed");
+                _logger.Debug(ex, "Talearr: abridged resolution failed");
                 return AbridgedResolution.Unknown;
             }
         }

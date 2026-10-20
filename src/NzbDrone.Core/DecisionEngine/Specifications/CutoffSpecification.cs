@@ -15,7 +15,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         private readonly UpgradableSpecification _upgradableSpecification;
         private readonly Logger _logger;
         private readonly ICustomFormatCalculationService _formatService;
-        private readonly ITalearrQualityLadder _talearrLadder; // TaleArr
+        private readonly ITalearrQualityLadder _talearrLadder; // Talearr
 
         public CutoffSpecification(UpgradableSpecification upgradableSpecification,
                                    ICustomFormatCalculationService formatService,
@@ -62,7 +62,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                                                            customFormats,
                                                            candidateQuality))
                 {
-                    // TaleArr: files below the Good audio tier (or in a less preferred ebook format)
+                    // Talearr: files below the Good audio tier (or in a less preferred ebook format)
                     // have not met the cutoff for a clearly better copy, when ladder upgrades are on.
                     var ladderReason = _talearrLadder?.UpgradeReason(subject, book, qualityProfile,
                         qualityProfile.CalculateCustomFormatScore(subject.CustomFormats ?? new List<CustomFormat>()),

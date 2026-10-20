@@ -13,7 +13,7 @@ using NzbDrone.Core.Talearr.Catalog;
 
 namespace Chaptarr.Core.Test.Talearr
 {
-    // TaleArr: one author add stored the same audiobook works twice (2026-10-16, Riley Sager).
+    // Talearr: one author add stored the same audiobook works twice (2026-10-16, Riley Sager).
     // Rows below are the live ones from GET /api/v1/book: ebook pass 7486.., audiobook pass
     // 7501.. (from the add's reconcile) and a second audiobook pass 7516.. (from the
     // RefreshAuthorCommand that ran at the same time).

@@ -27,7 +27,7 @@ namespace NzbDrone.Core.DecisionEngine
         private readonly ITalearrAbridgedResolver _abridgedResolver;
         private readonly ITalearrBookGrabPolicyService _bookGrabPolicyService;
         private readonly IMyAnonaMouseReleasePolicy _mamReleasePolicy;
-        private readonly ITalearrQualityLadder _qualityLadder; // TaleArr
+        private readonly ITalearrQualityLadder _qualityLadder; // Talearr
 
         public DownloadDecisionPriorizationService(IConfigService configService, IDelayProfileService delayProfileService, IQualityProfileService qualityProfileService, Logger logger, ITalearrGrabPolicyService grabPolicyService = null, ITalearrAbridgedResolver abridgedResolver = null, ITalearrBookGrabPolicyService bookGrabPolicyService = null, IMyAnonaMouseReleasePolicy mamReleasePolicy = null, ITalearrQualityLadder qualityLadder = null)
         {

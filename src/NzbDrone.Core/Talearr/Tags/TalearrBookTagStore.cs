@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Talearr.Tags
         void RemoveTagsExcept(IEnumerable<int> knownTagIds);
     }
 
-    // TaleArr: reads and writes the BookTags table in talearr.db. Chaptarr keeps tags on authors
+    // Talearr: reads and writes the BookTags table in talearr.db. Chaptarr keeps tags on authors
     // only; book tags never touch chaptarr.db. Every call is best effort like the other talearr.db
     // stores: a failure is logged and reads as "no tags".
     public class TalearrBookTagStore : ITalearrBookTagStore
@@ -117,7 +117,7 @@ namespace NzbDrone.Core.Talearr.Tags
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not {0} in {1}", what, TalearrDatabase.FileName);
+                _logger.Warn(ex, "Talearr: could not {0} in {1}", what, TalearrDatabase.FileName);
                 return fallback;
             }
         }

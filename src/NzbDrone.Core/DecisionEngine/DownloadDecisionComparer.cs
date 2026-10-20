@@ -25,17 +25,17 @@ namespace NzbDrone.Core.DecisionEngine
         private readonly IQualityProfileService _qualityProfileService;
         private readonly Logger _logger;
 
-        // TaleArr: grab policy and recordings abridged resolution for the abridged ranking step.
+        // Talearr: grab policy and recordings abridged resolution for the abridged ranking step.
         private readonly TalearrGrabPolicy _grabPolicy;
         private readonly ITalearrAbridgedResolver _abridgedResolver;
         private readonly ITalearrBookGrabPolicyService _bookGrabPolicyService;
 
-        // TaleArr: MAM freeleech ranking (Prefer Freeleech). Ranks are cached per release because
+        // Talearr: MAM freeleech ranking (Prefer Freeleech). Ranks are cached per release because
         // resolving the governing indexer settings reads the indexer table.
         private readonly IMyAnonaMouseReleasePolicy _mamReleasePolicy;
         private readonly Dictionary<ReleaseInfo, int> _freeleechRanks = new Dictionary<ReleaseInfo, int>(ReferenceEqualityComparer.Instance);
 
-        // TaleArr: audio quality ladder and ebook format preference (ties the profile leaves).
+        // Talearr: audio quality ladder and ebook format preference (ties the profile leaves).
         private readonly ITalearrQualityLadder _qualityLadder;
         private readonly TalearrQualityLadderSettings _ladderSettings;
         private readonly Dictionary<RemoteBook, AudioQualityEstimate> _audioEstimates = new Dictionary<RemoteBook, AudioQualityEstimate>(ReferenceEqualityComparer.Instance);
@@ -70,12 +70,12 @@ namespace NzbDrone.Core.DecisionEngine
                 ("Title Match", CompareTitleMatch),
                 ("Native Category", CompareNativeCategory),
                 ("Format Type", CompareFormatType),
-                ("Unabridged", CompareUnabridged), // TaleArr
-                ("Audio Floor", CompareAudioFloor), // TaleArr
+                ("Unabridged", CompareUnabridged), // Talearr
+                ("Audio Floor", CompareAudioFloor), // Talearr
                 ("Profile Preference", CompareProfilePreference),
-                ("Audio Quality", CompareAudioTier), // TaleArr
-                ("Freeleech", CompareFreeleech), // TaleArr
-                ("Ebook Format", CompareEbookFormat), // TaleArr
+                ("Audio Quality", CompareAudioTier), // Talearr
+                ("Freeleech", CompareFreeleech), // Talearr
+                ("Ebook Format", CompareEbookFormat), // Talearr
                 ("Protocol", CompareProtocol),
                 ("Indexer Priority", CompareIndexerPriority),
                 ("Size", CompareSize),
@@ -114,12 +114,12 @@ namespace NzbDrone.Core.DecisionEngine
                 ("Title Match", CompareTitleMatch),
                 ("Native Category", CompareNativeCategory),
                 ("Format Type", CompareFormatType),
-                ("Unabridged", CompareUnabridged), // TaleArr
-                ("Audio Floor", CompareAudioFloor), // TaleArr
+                ("Unabridged", CompareUnabridged), // Talearr
+                ("Audio Floor", CompareAudioFloor), // Talearr
                 ("Profile Preference", CompareProfilePreference),
-                ("Audio Quality", CompareAudioTier), // TaleArr
-                ("Freeleech", CompareFreeleech), // TaleArr
-                ("Ebook Format", CompareEbookFormat), // TaleArr
+                ("Audio Quality", CompareAudioTier), // Talearr
+                ("Freeleech", CompareFreeleech), // Talearr
+                ("Ebook Format", CompareEbookFormat), // Talearr
                 ("Protocol Preference", CompareProtocol),
                 ("Indexer Priority", CompareIndexerPriority),
                 ("File Size", CompareSize),
@@ -167,12 +167,12 @@ namespace NzbDrone.Core.DecisionEngine
                     return isEbook ? "Ebook format" : "Audiobook format preferred";
 
                 case "Unabridged":
-                    // TaleArr: the abridged step can prefer either reading (per-book policy).
+                    // Talearr: the abridged step can prefer either reading (per-book policy).
                     return AbridgedReleaseDetector.Detect(winner.RemoteBook?.Release?.Title) == AbridgedMarker.Abridged
                         ? "Abridged audiobook preferred (abridged policy)"
                         : "Unabridged audiobook preferred over abridged";
 
-                // TaleArr: audio quality ladder and ebook format preference.
+                // Talearr: audio quality ladder and ebook format preference.
                 case "Audio Floor":
                     var floorLoser = ReferenceEquals(winner, x) ? y : x;
                     return $"Better audio than an implausibly small or very low bitrate release ({AudioEstimate(floorLoser.RemoteBook).Describe()})";
@@ -294,7 +294,7 @@ namespace NzbDrone.Core.DecisionEngine
             return -1; // y (audiobook) is better
         }
 
-        // TaleArr: abridged audiobook releases rank below unabridged or unmarked ones unless the
+        // Talearr: abridged audiobook releases rank below unabridged or unmarked ones unless the
         // grab policy allows any, or the wanted edition is itself abridged; with "abridged only"
         // abridged releases rank first. The policy is the book's own when it has one.
         private int CompareUnabridged(DownloadDecision x, DownloadDecision y)
@@ -308,7 +308,7 @@ namespace NzbDrone.Core.DecisionEngine
             return TalearrAbridgedRules.Rank(decision.RemoteBook, target, _abridgedResolver);
         }
 
-        // TaleArr: among audiobook releases, a known very low bitrate or implausibly small release
+        // Talearr: among audiobook releases, a known very low bitrate or implausibly small release
         // ranks below the others whatever its format.
         private int CompareAudioFloor(DownloadDecision x, DownloadDecision y)
         {
@@ -327,7 +327,7 @@ namespace NzbDrone.Core.DecisionEngine
             return CompareBy(xEstimate, yEstimate, e => e.Tier > AudioQualityTier.VeryLow || e.Source == "none");
         }
 
-        // TaleArr: releases the quality profile ranks equal are ordered by audio tier (Good above
+        // Talearr: releases the quality profile ranks equal are ordered by audio tier (Good above
         // Low; unknown counts as Low). Two copies in the same tier stay tied for the later steps.
         private int CompareAudioTier(DownloadDecision x, DownloadDecision y)
         {
@@ -339,7 +339,7 @@ namespace NzbDrone.Core.DecisionEngine
             return CompareBy(AudioEstimate(x.RemoteBook), AudioEstimate(y.RemoteBook), e => (int)(e.Tier == AudioQualityTier.Unknown ? AudioQualityTier.Low : e.Tier));
         }
 
-        // TaleArr: ebook releases the quality profile ranks equal are ordered by the format preference.
+        // Talearr: ebook releases the quality profile ranks equal are ordered by the format preference.
         private int CompareEbookFormat(DownloadDecision x, DownloadDecision y)
         {
             var xQuality = x.RemoteBook?.ParsedBookInfo?.Quality?.Quality;
@@ -367,7 +367,7 @@ namespace NzbDrone.Core.DecisionEngine
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "TaleArr: audio estimate failed for {0}", remoteBook.Release?.Title);
+                    _logger.Debug(ex, "Talearr: audio estimate failed for {0}", remoteBook.Release?.Title);
                     estimate = AudioQualityEstimate.None;
                 }
 
@@ -388,7 +388,7 @@ namespace NzbDrone.Core.DecisionEngine
 
         // MAM-specific ranking is handled through quality profiles and custom formats.
 
-        // TaleArr: with Prefer Freeleech on, a freeleech MAM release beats an otherwise equal
+        // Talearr: with Prefer Freeleech on, a freeleech MAM release beats an otherwise equal
         // release of the same profile preference. Without a release policy this is a no-op.
         private int CompareFreeleech(DownloadDecision x, DownloadDecision y)
         {

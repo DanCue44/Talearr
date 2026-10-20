@@ -153,7 +153,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             };
         }
 
-        // TaleArr: Sonarr/Radarr "HealthRestored" uses the health payload shape.
+        // Talearr: Sonarr/Radarr "HealthRestored" uses the health payload shape.
         protected WebhookHealthPayload BuildHealthRestoredPayload(HealthCheck.HealthCheck previousCheck)
         {
             var payload = BuildHealthPayload(previousCheck);
@@ -161,7 +161,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             return payload;
         }
 
-        // TaleArr: download failure webhook with book context when the download is still tracked.
+        // Talearr: download failure webhook with book context when the download is still tracked.
         public WebhookDownloadFailedPayload BuildOnDownloadFailurePayload(DownloadFailedMessage message)
         {
             return new WebhookDownloadFailedPayload
@@ -181,7 +181,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             };
         }
 
-        // TaleArr: import failure webhook; a blocked import is sent as ManualInteractionRequired.
+        // Talearr: import failure webhook; a blocked import is sent as ManualInteractionRequired.
         public WebhookImportFailedPayload BuildOnImportFailurePayload(BookDownloadMessage message)
         {
             return new WebhookImportFailedPayload

@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         Abridged = 2
     }
 
-    // TaleArr: detects abridged and unabridged audiobook releases and editions.
+    // Talearr: detects abridged and unabridged audiobook releases and editions.
     public static class AbridgedReleaseDetector
     {
         // "abridged" that is not part of "unabridged" / "un-abridged" / "un abridged".
@@ -78,7 +78,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             return WantsAbridged(remoteBook, null);
         }
 
-        // With a resolver (TaleArr recordings), the wanted edition's abridged status comes from
+        // With a resolver (Talearr recordings), the wanted edition's abridged status comes from
         // Audible facts first, then the same metadata and runtime rules as below.
         public static bool WantsAbridged(RemoteBook remoteBook, ITalearrAbridgedResolver resolver)
         {

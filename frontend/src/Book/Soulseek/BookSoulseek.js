@@ -60,7 +60,7 @@ function postJson(url, data) {
   }).request;
 }
 
-// TaleArr: Search Soulseek for this book through slskd and grab a whole folder
+// Talearr: Search Soulseek for this book through slskd and grab a whole folder
 // (docs/TALEARR_SOULSEEK.md). Hidden unless Soulseek is turned on in Settings > Download Clients.
 class BookSoulseek extends Component {
 

@@ -8,7 +8,7 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Talearr.EbookDelivery
 {
-    // TaleArr: Send to Kindle (README.md, "Ebook delivery"). Emails an ebook to one or more
+    // Talearr: Send to Kindle (README.md, "Ebook delivery"). Emails an ebook to one or more
     // Send-to-Kindle addresses, on request from the book page or after each import.
     public sealed class TalearrKindleSettings
     {
@@ -150,7 +150,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
                 _repository.Upsert(FromKey, settings.From.Trim());
 
                 // Never log the password, and keep the addresses out of the log too.
-                _logger.Info("TaleArr Send to Kindle settings saved: enabled={0}, autoSend={1}, addresses={2}, emailConnection={3}, server='{4}', port={5}",
+                _logger.Info("Talearr Send to Kindle settings saved: enabled={0}, autoSend={1}, addresses={2}, emailConnection={3}, server='{4}', port={5}",
                     settings.Enabled,
                     settings.AutoSendOnImport,
                     settings.KindleAddresses.Count,
@@ -186,7 +186,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read TaleArr Send to Kindle settings, using the defaults");
+                _logger.Debug(ex, "Unable to read Talearr Send to Kindle settings, using the defaults");
                 settings = TalearrKindleSettings.Default;
             }
 

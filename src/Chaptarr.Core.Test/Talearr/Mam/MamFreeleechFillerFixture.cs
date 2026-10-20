@@ -44,7 +44,7 @@ namespace Chaptarr.Core.Test.Talearr.Mam
         public void SavePick(TalearrFillerPick pick) => Picks[pick.TorrentId] = pick;
     }
 
-    // TaleArr: MAM freeleech seeding filler. MAM replies are recorded shapes served by the fake
+    // Talearr: MAM freeleech seeding filler. MAM replies are recorded shapes served by the fake
     // HTTP client; nothing touches the network.
     [TestFixture]
     public partial class MamFreeleechFillerFixture
@@ -303,7 +303,7 @@ namespace Chaptarr.Core.Test.Talearr.Mam
         public void grab_path_never_goes_through_the_library_grab_path()
         {
             // The filler has no IDownloadService, history or tracked download dependency at all,
-            // and adds to its own category, which TaleArr's queue does not read.
+            // and adds to its own category, which Talearr's queue does not read.
             var parameters = typeof(TalearrMamFillerService).GetConstructors().Single().GetParameters().Select(p => p.ParameterType).ToList();
 
             Assert.That(parameters, Has.None.EqualTo(typeof(IDownloadService)));

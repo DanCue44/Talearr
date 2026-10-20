@@ -20,12 +20,12 @@ using NzbDrone.Core.Talearr.Audiobookshelf;
 namespace Chaptarr.Core.Test.Talearr.Audiobookshelf
 {
     // Drop-in guard for Audiobookshelf awareness:
-    //   - the connection is upstream's own AudioBookShelf row; TaleArr only adds keys to its
+    //   - the connection is upstream's own AudioBookShelf row; Talearr only adds keys to its
     //     Settings JSON, which stock Chaptarr's System.Text.Json read skips;
     //   - the library cache lives in talearr.db; chaptarr.db keeps its schema and migration version.
     // A provider implementation Chaptarr does not know would instead be deleted by its
     // ProviderFactory.RemoveMissingImplementations on the first start after a rollback, which
-    // is why TaleArr extends the existing connection rather than adding a new one.
+    // is why Talearr extends the existing connection rather than adding a new one.
     [TestFixture]
     public class TalearrAbsRollbackFixture
     {
@@ -37,7 +37,7 @@ namespace Chaptarr.Core.Test.Talearr.Audiobookshelf
             }
         }
 
-        // Upstream Chaptarr's AudioBookShelfSettings as it is without TaleArr: same public
+        // Upstream Chaptarr's AudioBookShelfSettings as it is without Talearr: same public
         // properties, none of the talearr* ones.
         private sealed class StockAudioBookShelfSettings
         {
@@ -110,7 +110,7 @@ namespace Chaptarr.Core.Test.Talearr.Audiobookshelf
                 Assert.That(stock.ApiKey, Is.EqualTo("abs-key"));
             });
 
-            // And Chaptarr writing it back only drops the TaleArr keys.
+            // And Chaptarr writing it back only drops the Talearr keys.
             var rewritten = JsonSerializer.Serialize(stock, ProviderRepositoryOptions());
             Assert.That(rewritten, Does.Not.Contain("talearr"));
         }
@@ -182,7 +182,7 @@ namespace Chaptarr.Core.Test.Talearr.Audiobookshelf
             Assert.Multiple(() =>
             {
                 Assert.That(Schema(connectionString), Is.EqualTo(schemaBefore), "chaptarr.db schema must not change");
-                Assert.That(MigrationVersion(connectionString), Is.EqualTo(versionBefore), "no TaleArr migration versions");
+                Assert.That(MigrationVersion(connectionString), Is.EqualTo(versionBefore), "no Talearr migration versions");
                 Assert.That(tablesWithAbs, Is.Empty, "the library cache is not in chaptarr.db");
                 Assert.That(stored, Does.Contain("\"talearrSkipOwned\": false"));
                 Assert.That(readBack.TalearrSkipOwned, Is.False);

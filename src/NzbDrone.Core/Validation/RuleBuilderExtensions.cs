@@ -76,9 +76,9 @@ namespace NzbDrone.Core.Validation
 
         public static IRuleBuilderOptions<T, string> ContainsChaptarr<T>(this IRuleBuilder<T, string> ruleBuilder)
         {
-            // TaleArr: accept either name so upstream configs stay valid.
+            // Talearr: accept either name so upstream configs stay valid.
             ruleBuilder.SetValidator(new NotEmptyValidator(null));
-            return ruleBuilder.SetValidator(new RegularExpressionValidator("(chaptarr|talearr)", RegexOptions.IgnoreCase)).WithMessage("Must contain TaleArr (or Chaptarr)");
+            return ruleBuilder.SetValidator(new RegularExpressionValidator("(chaptarr|talearr)", RegexOptions.IgnoreCase)).WithMessage("Must contain Talearr (or Chaptarr)");
         }
     }
 }

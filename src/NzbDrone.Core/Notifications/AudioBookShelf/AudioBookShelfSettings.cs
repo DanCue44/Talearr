@@ -34,7 +34,7 @@ namespace NzbDrone.Core.Notifications.AudioBookShelf
         public string LibraryFolderPath { get; set; }
     }
 
-    // TaleArr: partial, the library awareness fields live in AudioBookShelfSettings.Talearr.cs.
+    // Talearr: partial, the library awareness fields live in AudioBookShelfSettings.Talearr.cs.
     public partial class AudioBookShelfSettings : IProviderConfig, IJsonOnDeserialized
     {
         private static readonly AudioBookShelfSettingsValidator Validator = new AudioBookShelfSettingsValidator();

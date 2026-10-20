@@ -364,7 +364,7 @@ class BookDetailsHeader extends Component {
               </Label>
 
               {
-                // TaleArr: book tags (set them in Edit).
+                // Talearr: book tags (set them in Edit).
                 !!talearrTagLabels.length &&
                   <Label
                     className={styles.detailsLabel}
@@ -382,7 +382,7 @@ class BookDetailsHeader extends Component {
               }
 
               {
-                // TaleArr: the book is already in Audiobookshelf; links to the item there.
+                // Talearr: the book is already in Audiobookshelf; links to the item there.
                 <TalearrAbsBadge
                   bookId={id}
                   className={styles.detailsLabel}

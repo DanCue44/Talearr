@@ -25,7 +25,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
             Assert.That(AbridgedReleaseDetector.Detect(title), Is.EqualTo(AbridgedMarker.Abridged));
         }
 
-        // Real release names from the TaleArr test server history.
+        // Real release names from the Talearr test server history.
         [TestCase("Animal Farm - George Orwell   (Unabridged)")]
         [TestCase("Walter Isaacson - Steve Jobs UNABRIDGED AAC")]
         [TestCase("The Firm (Un-abridged) John Grisham")]

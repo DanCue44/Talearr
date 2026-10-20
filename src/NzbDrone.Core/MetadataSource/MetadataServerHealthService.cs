@@ -50,7 +50,7 @@ namespace NzbDrone.Core.MetadataSource
                 status.ProbeInProgress = false;
                 status.ProbeStartedAt = null;
 
-                // TaleArr: end the outage log window so the next outage gets its own warning.
+                // Talearr: end the outage log window so the next outage gets its own warning.
                 var suppressed = TalearrMetadataOutageLog.Reset(sourceName);
 
                 if (wasUnavailable)

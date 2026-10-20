@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace NzbDrone.Core.Talearr.Recordings
 {
-    // TaleArr: one Audible marketplace (store country). Lookups go to that store's catalog
+    // Talearr: one Audible marketplace (store country). Lookups go to that store's catalog
     // host, and links point at that store's web site.
     public sealed class TalearrAudibleMarketplace
     {

@@ -15,7 +15,7 @@ using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.Talearr.FormatPolicy
 {
-    // TaleArr: the format policy at grab time (docs/TALEARR_FORMAT_POLICY.md). A soft filter, so
+    // Talearr: the format policy at grab time (docs/TALEARR_FORMAT_POLICY.md). A soft filter, so
     // interactive search shows the release as "Format policy" and can still grab it.
     //
     //   Audio only   ebook releases are skipped
@@ -151,7 +151,7 @@ namespace NzbDrone.Core.Talearr.FormatPolicy
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: format policy check failed for book {0}; allowing the release", ebook.Id);
+                _logger.Debug(ex, "Talearr: format policy check failed for book {0}; allowing the release", ebook.Id);
                 return null;
             }
         }

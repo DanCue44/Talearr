@@ -35,7 +35,7 @@ namespace NzbDrone.Core.Books
 		        Book FindByProviderIdAndMediaType(string provider, string providerId, BookMediaType mediaType);
 		        List<Book> FindAllByProviderIdAndMediaType(string provider, string providerId, BookMediaType mediaType);
 		        Book FindBySlug(string titleSlug);
-		        // TaleArr: every row with this slug (case-insensitive), without loading the library.
+		        // Talearr: every row with this slug (case-insensitive), without loading the library.
 		        List<Book> FindAllBySlug(string titleSlug) => throw new NotImplementedException();
 		        List<BookSearchTarget> GetMissingBookSearchTargets(BookMediaType? mediaType, int? authorId) => throw new NotImplementedException();
 		        List<BookSearchTarget> GetCutoffUnmetSearchTargets(List<QualitiesBelowCutoff> qualitiesBelowCutoff, BookMediaType? mediaType, int? authorId) => throw new NotImplementedException();

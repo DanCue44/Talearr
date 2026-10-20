@@ -14,7 +14,7 @@ namespace NzbDrone.Core.Notifications
         public string DownloadClient { get; set; }
         public string DownloadId { get; set; }
 
-        // TaleArr: book context when the failed download is still tracked.
+        // Talearr: book context when the failed download is still tracked.
         public Author Author { get; set; }
         public List<Book> Books { get; set; } = new List<Book>();
         public RemoteBook RemoteBook { get; set; }

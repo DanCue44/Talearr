@@ -291,7 +291,7 @@ namespace Chaptarr.Core.Test.Talearr.Soulseek
             Assert.That(import.RemoteBook.Books.Single().Id, Is.EqualTo(42));
             Assert.That(import.RemoteBook.Author.Id, Is.EqualTo(7));
 
-            // Finished transfers are cleared in slskd and TaleArr's own folder is removed.
+            // Finished transfers are cleared in slskd and Talearr's own folder is removed.
             Assert.That(_client.Cancelled.Count(c => c.Remove), Is.EqualTo(2));
             Assert.That(Directory.Exists(folder), Is.False);
         }

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace NzbDrone.Core.Indexers.MyAnonaMouse
 {
-    // TaleArr: scheduled task intervals that follow the MAM indexer settings, so a shorter Account
+    // Talearr: scheduled task intervals that follow the MAM indexer settings, so a shorter Account
     // Status Refresh or Dynamic Seedbox Interval actually runs that often. The services still check
     // each indexer against its own interval; these only make the task tick often enough.
     public static class MyAnonaMouseSchedule

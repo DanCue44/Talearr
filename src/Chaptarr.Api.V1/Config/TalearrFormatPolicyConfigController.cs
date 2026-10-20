@@ -17,7 +17,7 @@ namespace Chaptarr.Api.V1.Config
         public FormatPolicyMode Policy { get; set; }
     }
 
-    // TaleArr: format policy (docs/TALEARR_FORMAT_POLICY.md). A new route; stored as
+    // Talearr: format policy (docs/TALEARR_FORMAT_POLICY.md). A new route; stored as
     // talearr.formatpolicy.* rows in the Config table, which Chaptarr ignores.
     public class TalearrFormatPolicyConfigResource : RestResource
     {

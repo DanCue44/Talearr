@@ -28,7 +28,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
 
     public class ArchiveUnpackResult
     {
-        public const string FailurePrefix = "TaleArr could not unpack the archives in";
+        public const string FailurePrefix = "Talearr could not unpack the archives in";
         public const string ReleaseProblemSuffix = "The release itself is unusable.";
         public const string TransientSuffix = "Fix the cause and use Retry Import.";
 
@@ -154,7 +154,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
                 result.Success = false;
                 result.Error = ex.Message;
                 result.ReleaseProblem = ex is ArchiveExtractionException extractionException && extractionException.ReleaseProblem;
-                _logger.Warn("TaleArr could not unpack {0}: {1}", downloadPath, ex.Message);
+                _logger.Warn("Talearr could not unpack {0}: {1}", downloadPath, ex.Message);
                 Cleanup(result);
             }
 

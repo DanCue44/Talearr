@@ -37,7 +37,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
             if (subject.PackDetection?.Verdict == ReleasePackDetectionVerdict.MultipleBooks)
             {
-                // TaleArr: a bundle skips title scoring, but outside interactive search it must
+                // Talearr: a bundle skips title scoring, but outside interactive search it must
                 // still name a wanted book ("All-in-One Bundle" is not "All In").
                 return EvaluateBundle(subject, context);
             }
@@ -47,7 +47,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return Decision.Accept();
             }
 
-            // TaleArr: identity checks the title scorer cannot see.
+            // Talearr: identity checks the title scorer cannot see.
             var identityRejection = GetTalearrIdentityRejection(subject, context);
             if (identityRejection != null)
             {

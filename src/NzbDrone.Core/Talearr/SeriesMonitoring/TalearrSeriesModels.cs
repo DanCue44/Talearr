@@ -70,10 +70,10 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
         public bool Monitored { get; set; }
         public bool HasFiles { get; set; }
 
-        // False when the author is not monitored for this format: TaleArr then does not search.
+        // False when the author is not monitored for this format: Talearr then does not search.
         public bool AuthorMonitored { get; set; }
 
-        // Additional recordings of the book (TaleArr recordings); never changed by a series rule.
+        // Additional recordings of the book (Talearr recordings); never changed by a series rule.
         public int Copies { get; set; }
         public bool Handled { get; set; }
     }

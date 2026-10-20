@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Talearr.Catalog
         public List<TalearrBookRowFacts> Kept { get; set; } = new List<TalearrBookRowFacts>();
     }
 
-    // TaleArr: rules for "the same work stored twice for one media type". Two rows are the same
+    // Talearr: rules for "the same work stored twice for one media type". Two rows are the same
     // stored work only when they belong to the same author, have the same media type, the same
     // stable work ids (hc:/gr:/ol:, all of them, not just one in common) and the same normalized
     // title. Distinct works never match: a bundle has its own work id and title, and two works

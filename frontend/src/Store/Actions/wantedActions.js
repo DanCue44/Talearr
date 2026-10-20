@@ -101,7 +101,7 @@ export const defaultState = {
       }
     ],
 
-    // TaleArr: custom filters (book tags, author tags, genres, narrator).
+    // Talearr: custom filters (book tags, author tags, genres, narrator).
     filterBuilderProps
   },
 
@@ -186,7 +186,7 @@ export const defaultState = {
       }
     ],
 
-    // TaleArr: custom filters (book tags, author tags, genres, narrator).
+    // Talearr: custom filters (book tags, author tags, genres, narrator).
     filterBuilderProps
   }
 };

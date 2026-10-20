@@ -28,10 +28,10 @@ namespace NzbDrone.Core.Organizer
         string GetAuthorFolder(Author author, NamingConfig namingConfig = null, string mediaType = "audiobook");
     }
 
-    public partial class FileNameBuilder : IBuildFileNames // TaleArr: partial, see FileNameBuilder.Talearr.cs
+    public partial class FileNameBuilder : IBuildFileNames // Talearr: partial, see FileNameBuilder.Talearr.cs
     {
-        private readonly ITalearrAbridgedResolver _abridgedResolver; // TaleArr
-        private readonly Lazy<ITalearrRecordingFolders> _recordingFolders; // TaleArr
+        private readonly ITalearrAbridgedResolver _abridgedResolver; // Talearr
+        private readonly Lazy<ITalearrRecordingFolders> _recordingFolders; // Talearr
         private readonly INamingConfigService _namingConfigService;
         private readonly IQualityDefinitionService _qualityDefinitionService;
         private readonly ICustomFormatCalculationService _formatCalculator;
@@ -69,10 +69,10 @@ namespace NzbDrone.Core.Organizer
                                ITalearrAbridgedResolver abridgedResolver = null,
                                Lazy<ITalearrRecordingFolders> recordingFolders = null)
         {
-            // TaleArr: {Abridged} and {Abridgement} use the recordings abridged resolution.
+            // Talearr: {Abridged} and {Abridgement} use the recordings abridged resolution.
             _abridgedResolver = abridgedResolver;
 
-            // TaleArr: two recordings of one book never share a book folder (lazy: it reads books).
+            // Talearr: two recordings of one book never share a book folder (lazy: it reads books).
             _recordingFolders = recordingFolders;
             _namingConfigService = namingConfigService;
             _qualityDefinitionService = qualityDefinitionService;
@@ -98,7 +98,7 @@ namespace NzbDrone.Core.Organizer
 
             var renameBooks = namingConfig.RenameBooks;
 
-            // TaleArr: multi-disc files keep apart (and in order) when the original name is kept.
+            // Talearr: multi-disc files keep apart (and in order) when the original name is kept.
             var originalFileName = TalearrNamingTokens.GetOriginalFileName(bookFile);
 
             if (namingConfig.StandardBookFormat.IsNullOrWhiteSpace())
@@ -126,7 +126,7 @@ namespace NzbDrone.Core.Organizer
             // Add narrator tokens for audiobook organization
             AddNarratorTokens(tokenHandlers, edition, bookFile);
 
-            // TaleArr: {Book Year}, {Abridged}, {Abridgement}
+            // Talearr: {Book Year}, {Abridged}, {Abridgement}
             TalearrNamingTokens.Add(tokenHandlers, edition, _abridgedResolver);
 
             // Add GraphicAudio tokens - these override the regular book title tokens when GraphicAudio is detected
@@ -151,7 +151,7 @@ namespace NzbDrone.Core.Organizer
                 }
             }
 
-            // TaleArr: an additional recording whose book folder another recording already has gets
+            // Talearr: an additional recording whose book folder another recording already has gets
             // a disambiguator on its folder (narrator, then abridged/unabridged, then the edition).
             components = TalearrDisambiguateRecordingFolder(author, edition, bookFile, namingConfig, customFormats, components);
 
@@ -430,7 +430,7 @@ namespace NzbDrone.Core.Organizer
 
         private void AddBookTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Edition edition)
         {
-            // TaleArr: names use the book's own title ("1984"), not the edition's store listing
+            // Talearr: names use the book's own title ("1984"), not the edition's store listing
             // ("Nineteen Eighty-Four (MP3 Book)"), without format noise (TalearrBookTitle).
             var bookTitle = TalearrBookTitle.ForNaming(edition) ?? edition.Title;
 
@@ -472,7 +472,7 @@ namespace NzbDrone.Core.Organizer
                 seriesName ?? m.DefaultValue("");
             
             // Series position only (e.g., "3" or "2.5")
-            // TaleArr: zero padding with {Book SeriesPosition:00} ("03", "02.5").
+            // Talearr: zero padding with {Book SeriesPosition:00} ("03", "02.5").
             tokenHandlers["{Book SeriesPosition}"] = m =>
                 seriesPosition.IsNotNullOrWhiteSpace()
                     ? TalearrNamingTokens.FormatSeriesPosition(seriesPosition, m.CustomFormat)
@@ -572,7 +572,7 @@ namespace NzbDrone.Core.Organizer
                 primaryNarrator = narratorList.First();
             }
 
-            // TaleArr: fall back to the narrator read from the file when the edition has none.
+            // Talearr: fall back to the narrator read from the file when the edition has none.
             if (string.IsNullOrWhiteSpace(primaryNarrator) && !string.IsNullOrWhiteSpace(bookFile?.Narrator))
             {
                 primaryNarrator = bookFile.Narrator.Trim();
@@ -761,7 +761,7 @@ namespace NzbDrone.Core.Organizer
             {
                 var graphicAudioSuffix = " - GraphicAudio";
 
-                // TaleArr: the same book title as AddBookTokens.
+                // Talearr: the same book title as AddBookTokens.
                 var bookTitle = TalearrBookTitle.ForNaming(edition) ?? edition.Title;
 
                 // Override the standard book title tokens to include GraphicAudio suffix

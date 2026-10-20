@@ -10,7 +10,7 @@ namespace NzbDrone.Core.Notifications.Pushover
     {
         void SendNotification(string title, string message, PushoverSettings settings);
 
-        // TaleArr: same message with the book cover attached when it can be fetched.
+        // Talearr: same message with the book cover attached when it can be fetched.
         void SendNotification(string title, string message, string imageUrl, PushoverSettings settings);
         ValidationFailure Test(PushoverSettings settings);
     }
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Notifications.Pushover
                 requestBuilder.AddFormParameter("sound", settings.Sound);
             }
 
-            // TaleArr: a cover that cannot be fetched never blocks the notification.
+            // Talearr: a cover that cannot be fetched never blocks the notification.
             var cover = FetchCover(imageUrl);
 
             if (cover != null)
@@ -103,7 +103,7 @@ namespace NzbDrone.Core.Notifications.Pushover
             try
             {
                 const string title = "Test Notification";
-                const string body = "This is a test message from TaleArr";
+                const string body = "This is a test message from Talearr";
 
                 SendNotification(title, body, settings);
             }

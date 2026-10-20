@@ -22,7 +22,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
         public bool CanConvert => SkipReason == null;
     }
 
-    // TaleArr: decides which audiobook files of a book can be merged into one M4B. One plan per
+    // Talearr: decides which audiobook files of a book can be merged into one M4B. One plan per
     // edition, so two recordings of the same book are never merged together.
     public static class M4bLibraryPlanner
     {

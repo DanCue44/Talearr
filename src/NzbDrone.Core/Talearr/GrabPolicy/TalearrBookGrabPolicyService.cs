@@ -59,7 +59,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         BookGrabPolicyResult Set(int bookId, AbridgedAudiobookPolicy? policy);
     }
 
-    // TaleArr: per-book abridged policy overrides (AllSeerr's "Audiobook versions" setting with
+    // Talearr: per-book abridged policy overrides (AllSeerr's "Audiobook versions" setting with
     // "requester chooses"). Overrides live in talearr.db keyed by the work's provider id
     // (Book.BaseBookId, the same key the recordings code uses for a work), never only by row id:
     // the audiobook row and every duplicate row of the same work share it, and it survives a
@@ -175,7 +175,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
 
                     if (!written)
                     {
-                        _logger.Warn("TaleArr: the abridged policy for '{0}' could not be saved to {1}", target.Title, TalearrDatabase.FileName);
+                        _logger.Warn("Talearr: the abridged policy for '{0}' could not be saved to {1}", target.Title, TalearrDatabase.FileName);
                     }
                 }
                 else
@@ -186,7 +186,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 _cache = null;
             }
 
-            _logger.Info("TaleArr: abridged policy for '{0}' ({1}) {2}",
+            _logger.Info("Talearr: abridged policy for '{0}' ({1}) {2}",
                 target.Title,
                 key,
                 policy.HasValue ? "set to " + ToApiValue(policy.Value) : "cleared, it follows the global grab policy");
@@ -247,7 +247,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: could not find the audiobook rows of book {0}", bookId);
+                _logger.Debug(ex, "Talearr: could not find the audiobook rows of book {0}", bookId);
                 group = null;
             }
 

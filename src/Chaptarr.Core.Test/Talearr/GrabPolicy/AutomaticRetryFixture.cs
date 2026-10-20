@@ -56,7 +56,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
 
             var message = _history.Updated.Single().Data["Message"];
             Assert.That(message, Does.StartWith(HealthFailure));
-            Assert.That(message, Does.Contain("TaleArr: release blocklisted, searching all indexers for a replacement (attempt 1 of 3)"));
+            Assert.That(message, Does.Contain("Talearr: release blocklisted, searching all indexers for a replacement (attempt 1 of 3)"));
         }
 
         [Test]
@@ -171,7 +171,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
         [Test]
         public void classifier_should_fail_a_payload_whose_zip_and_rar_archives_held_no_book()
         {
-            // TaleArr unpacks zip, rar and 7z itself (MediaFiles/TalearrImport), so this report
+            // Talearr unpacks zip, rar and 7z itself (MediaFiles/TalearrImport), so this report
             // only appears once the importer could not use them.
             var reason = ImportRejectionClassifier.Classify(Status(
                 "John.Grisham.The.Pelican.Brief.2010.RETAiL.ePub.eBook-LiBRiCiDE-xpost",

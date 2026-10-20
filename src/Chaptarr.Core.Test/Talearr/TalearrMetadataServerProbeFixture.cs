@@ -239,7 +239,7 @@ namespace Chaptarr.Core.Test.Talearr
         }
 
         [Test]
-        public void health_check_and_probe_messages_use_the_TaleArr_spelling_and_no_em_dashes()
+        public void health_check_and_probe_messages_use_the_Talearr_spelling_and_no_em_dashes()
         {
             var down = TalearrMetadataServerProbeCheck.GetMessage(new MetadataServerProbeResult
             {
@@ -248,9 +248,9 @@ namespace Chaptarr.Core.Test.Talearr
                 Error = "HTTP 502"
             });
 
-            Assert.That(down, Does.Contain("TaleArr will check again shortly."));
+            Assert.That(down, Does.Contain("Talearr will check again shortly."));
             Assert.That(down, Does.Not.Contain(((char)0x2014).ToString()));
-            Assert.That(down, Does.Not.Contain("Talearr "));
+            Assert.That(down, Does.Not.Contain("TaleArr"));
         }
     }
 }

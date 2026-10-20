@@ -6,7 +6,7 @@ using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
-    // TaleArr: unabridged audiobooks by default. Abridged audiobook releases are rejected when
+    // Talearr: unabridged audiobooks by default. Abridged audiobook releases are rejected when
     // the grab policy is "unabridged only", unless the wanted edition is itself abridged; with
     // "abridged only" unabridged releases are rejected instead. A per-book override wins over the
     // global policy (TalearrAbridgedRules). "Prefer unabridged" only ranks (DownloadDecisionComparer).

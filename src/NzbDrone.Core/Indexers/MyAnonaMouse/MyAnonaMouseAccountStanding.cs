@@ -6,10 +6,10 @@ using Newtonsoft.Json.Linq;
 
 namespace NzbDrone.Core.Indexers.MyAnonaMouse
 {
-    // TaleArr: MAM account standing (seed-only state and share ratio) from the jsonLoad.php account
+    // Talearr: MAM account standing (seed-only state and share ratio) from the jsonLoad.php account
     // refresh. A new account starts with 0 upload, so a few normal (non-freeleech) grabs drop the
     // ratio to 0 and MAM demotes the account to Mouse and makes it seed-only. These rules keep
-    // TaleArr from causing that:
+    // Talearr from causing that:
     //   1. a seed-only account (class Mouse, or a seed-only / download-disabled flag) gets no MAM
     //      grabs at all, freeleech included;
     //   2. a non-freeleech grab needs uploaded / (downloaded + release size) to stay at or above
@@ -121,7 +121,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                    now - refreshed.Value <= settings.ResolveStatusMaxAge(MaximumStatusAge);
         }
 
-        // TaleArr: the freshness window in hours, for messages ("3" with the default refresh).
+        // Talearr: the freshness window in hours, for messages ("3" with the default refresh).
         public static string StaleHours(MyAnonaMouseSettings settings)
         {
             var age = settings?.ResolveStatusMaxAge(MaximumStatusAge) ?? MaximumStatusAge;

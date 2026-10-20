@@ -290,11 +290,11 @@ namespace NzbDrone.Core.Update
                 return null;
             }
 
-            // TaleArr: update feeds are upstream Chaptarr builds, so inside Docker never install
-            // one over TaleArr. Update by pulling a new TaleArr image.
+            // Talearr: update feeds are upstream Chaptarr builds, so inside Docker never install
+            // one over Talearr. Update by pulling a new Talearr image.
             if (_osInfo.IsDocker)
             {
-                _logger.ProgressDebug("Built-in updater disabled in the TaleArr image. Pull a new image to update.");
+                _logger.ProgressDebug("Built-in updater disabled in the Talearr image. Pull a new image to update.");
                 return null;
             }
 

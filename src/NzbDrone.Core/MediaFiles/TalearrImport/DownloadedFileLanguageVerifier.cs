@@ -24,7 +24,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
         void Verify(List<ImportDecision<LocalBook>> decisions, RemoteBook remoteBook, DownloadClientItem downloadClientItem);
 
         /// <summary>
-        /// TaleArr: the language mismatch sentence for one matched file, or null. Used by manual
+        /// Talearr: the language mismatch sentence for one matched file, or null. Used by manual
         /// import as a warning, never as a rejection.
         /// </summary>
         string DescribeMismatch(LocalBook localBook);
@@ -123,7 +123,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
                     continue;
                 }
 
-                var reason = mismatch + " TaleArr rejected this release so another one can be tried.";
+                var reason = mismatch + " Talearr rejected this release so another one can be tried.";
 
                 _logger.Info("Rejecting {0} from {1}: {2}", Path.GetFileName(localBook.Path), downloadClientItem.Title, reason);
 
@@ -133,7 +133,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
 
         public string DescribeMismatch(LocalBook localBook)
         {
-            // TaleArr: manual import only warns; importing a translation on purpose is the user's call.
+            // Talearr: manual import only warns; importing a translation on purpose is the user's call.
             if (localBook == null || !IsEnabled())
             {
                 return null;

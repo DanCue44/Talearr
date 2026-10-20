@@ -9,7 +9,7 @@ function LoadingPage() {
       <img
         className={styles.logoFull}
         src={`${window.Chaptarr.urlBase}/Content/Images/talearr-icon.png`}
-        alt="TaleArr"
+        alt="Talearr"
       />
       <LoadingMessage />
       <LoadingIndicator />

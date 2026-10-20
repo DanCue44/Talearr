@@ -84,7 +84,7 @@ namespace NzbDrone.Core.Notifications.Email
             SendEmail(Settings, HEALTH_ISSUE_TITLE_BRANDED, message.Message);
         }
 
-        // TaleArr: Sonarr/Radarr "Health Restored".
+        // Talearr: Sonarr/Radarr "Health Restored".
         public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
         {
             SendEmail(Settings, HEALTH_RESTORED_TITLE_BRANDED, $"The following issue is now resolved: {previousCheck.Message}");
@@ -122,7 +122,7 @@ namespace NzbDrone.Core.Notifications.Email
 
             try
             {
-                SendEmail(settings, "TaleArr - Test Notification", body);
+                SendEmail(settings, "Talearr - Test Notification", body);
             }
             catch (Exception ex)
             {

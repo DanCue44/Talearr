@@ -23,7 +23,7 @@ namespace Chaptarr.Api.V1.Indexers
         public bool CanBypass { get; set; }
         public int Severity { get; set; }      // 1=Info, 2=Warning, 3=Error
 
-        // TaleArr: short readable label ("Language", "Wrong book", "Pack", ...) and the
+        // Talearr: short readable label ("Language", "Wrong book", "Pack", ...) and the
         // specification that produced the rejection. Additive fields; older clients ignore them.
         public string Label { get; set; }
         public string Source { get; set; }
@@ -200,7 +200,7 @@ namespace Chaptarr.Api.V1.Indexers
         [JsonPropertyName("formatType")]
         public string FormatType { get; set; }
 
-        // TaleArr: the release holds several books; a fallback bundle is only a last resort.
+        // Talearr: the release holds several books; a fallback bundle is only a last resort.
         public bool IsBundle { get; set; }
         public bool IsBundleFallback { get; set; }
         public string BundleContents { get; set; }
@@ -331,7 +331,7 @@ namespace Chaptarr.Api.V1.Indexers
             };
         }
 
-        // TaleArr: what made the release a bundle ("Trilogy", "Books 1-3", a list of titles).
+        // Talearr: what made the release a bundle ("Trilogy", "Books 1-3", a list of titles).
         private static string GetBundleContents(RemoteBook remoteBook)
         {
             if (remoteBook?.IsBundle != true)

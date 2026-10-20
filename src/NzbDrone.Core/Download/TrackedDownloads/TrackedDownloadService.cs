@@ -432,7 +432,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 .Value;
         }
 
-        // TaleArr: a bundle grab carries its flag back so the import keeps only wanted books.
+        // Talearr: a bundle grab carries its flag back so the import keeps only wanted books.
         private static void ApplyBundleFlags(RemoteBook remoteBook, EntityHistory grabbedEvent)
         {
             if (remoteBook == null || grabbedEvent?.Data == null || !TalearrBundleFallback.IsBundleHistory(grabbedEvent.Data))

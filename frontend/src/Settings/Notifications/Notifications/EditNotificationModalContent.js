@@ -151,7 +151,7 @@ function EditNotificationModalContent(props) {
               }
 
               {
-                // TaleArr: library sync status and "Sync now" for a saved Audiobookshelf connection.
+                // Talearr: library sync status and "Sync now" for a saved Audiobookshelf connection.
                 implementationName === 'AudioBookShelf' && !!id && !!id.value &&
                   <TalearrAbsSyncStatus connectionId={id.value} />
               }

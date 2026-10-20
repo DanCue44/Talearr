@@ -63,7 +63,7 @@ namespace NzbDrone.Core.MediaFiles
             foreach (var editionGroup in files.GroupBy(file => file.EditionId.GetValueOrDefault(defaultEditionId)))
             {
                 var groupFiles = editionGroup.ToList();
-                // TaleArr: disc-folder aware order (CD1/Disc 2/Part 03, word and roman numbers).
+                // Talearr: disc-folder aware order (CD1/Disc 2/Part 03, word and roman numbers).
                 var audioFiles = AudiobookTrackOrder.Order(
                     groupFiles.Where(file => IsAudiobookFile(file.Path)),
                     file => file.Path ?? string.Empty);
@@ -132,7 +132,7 @@ namespace NzbDrone.Core.MediaFiles
             Action<T, int> setPart,
             Action<T, int> setPartCount)
         {
-            // TaleArr: track order from disc/track tags when they are complete, otherwise from
+            // Talearr: track order from disc/track tags when they are complete, otherwise from
             // the path with disc folders (CD1, Disc 2, Part 03) ordered by their number.
             var audioFiles = AudiobookTrackOrder.Order(groupFiles.Where(isAudiobook), getSortKey, getTags);
 

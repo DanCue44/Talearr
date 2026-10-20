@@ -47,7 +47,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
         TalearrWishlistSyncResult Sync(string id);
     }
 
-    // TaleArr: wishlists (docs/TALEARR_WISHLISTS.md). A wishlist is a CSV export (Goodreads,
+    // Talearr: wishlists (docs/TALEARR_WISHLISTS.md). A wishlist is a CSV export (Goodreads,
     // StoryGraph, an Audible wishlist exported with audible-cli, or any title/author/ISBN/ASIN
     // list) or a Hardcover list. Each new row is matched to a book and added the way the add-book
     // modal's "Only this book" adds it: only that book is monitored, in the wishlist's formats,
@@ -121,7 +121,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
             Apply(wishlist, request);
             Validate(wishlist);
             _store.Save(wishlist);
-            _logger.Info("TaleArr: wishlist '{0}' added ({1})", wishlist.Name, wishlist.Kind);
+            _logger.Info("Talearr: wishlist '{0}' added ({1})", wishlist.Name, wishlist.Kind);
             return wishlist;
         }
 
@@ -154,7 +154,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 File.Delete(upload);
             }
 
-            _logger.Info("TaleArr: wishlist '{0}' removed; books it added stay as they are", wishlist.Name);
+            _logger.Info("Talearr: wishlist '{0}' removed; books it added stay as they are", wishlist.Name);
         }
 
         public TalearrWishlistPreview Preview(string id)
@@ -249,7 +249,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 catch (Exception ex) when (ex is TalearrWishlistException || ex is IOException || ex is FormatException || ex is UnauthorizedAccessException)
                 {
                     wishlist.LastError = ex.Message;
-                    _logger.Warn("TaleArr: wishlist '{0}' could not be read: {1}", wishlist.Name, ex.Message);
+                    _logger.Warn("Talearr: wishlist '{0}' could not be read: {1}", wishlist.Name, ex.Message);
                 }
 
                 wishlist.LastSyncAt = DateTime.UtcNow;
@@ -400,7 +400,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: wishlist lookup failed for '{0}'", row.Title);
+                _logger.Debug(ex, "Talearr: wishlist lookup failed for '{0}'", row.Title);
                 item.State = TalearrWishlistStates.Failed;
                 item.Message = "The metadata lookup failed; tried again on the next sync";
             }
@@ -716,7 +716,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
                     CreateAudiobook = false,
                     CreateEbook = false,
                     QueueIfUnavailable = true,
-                    RequestedBy = "TaleArr wishlist: " + _wishlist.Name,
+                    RequestedBy = "Talearr wishlist: " + _wishlist.Name,
                     AuthorName = item.AuthorName,
                     SearchForMissingBooks = _wishlist.SearchOnAdd,
                     AudiobookMonitorExistingMode = MonitorTypes.None,
@@ -808,7 +808,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 }
                 catch (Exception ex)
                 {
-                    _service._logger.Debug(ex, "TaleArr: wishlist read failed");
+                    _service._logger.Debug(ex, "Talearr: wishlist read failed");
                     return default;
                 }
             }

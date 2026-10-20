@@ -44,7 +44,7 @@ namespace NzbDrone.Core.Download
             var qualifiedReports = GetQualifiedReports(decisions);
             var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisions(qualifiedReports);
 
-            // TaleArr: last-resort bundles wait until every single copy had its turn.
+            // Talearr: last-resort bundles wait until every single copy had its turn.
             var bundleFallbacks = prioritizedDecisions.Where(IsBundleFallback).ToList();
             prioritizedDecisions = prioritizedDecisions.Where(d => !IsBundleFallback(d)).ToList();
             var grabbed = new List<DownloadDecision>();
@@ -56,7 +56,7 @@ namespace NzbDrone.Core.Download
             var usenetFailed = false;
             var torrentFailed = false;
 
-            // TaleArr: grabs that failed for a transient reason (429, 5xx, timeout) in this pass.
+            // Talearr: grabs that failed for a transient reason (429, 5xx, timeout) in this pass.
             var talearrFailures = new List<TalearrFailedGrab>();
 
             foreach (var report in prioritizedDecisions)
@@ -82,7 +82,7 @@ namespace NzbDrone.Core.Download
                     continue;
                 }
 
-                // TaleArr: an indexer that just answered 429 is not asked again in this pass.
+                // Talearr: an indexer that just answered 429 is not asked again in this pass.
                 if (TalearrGrabRetryService.ShouldSkipAfterRateLimit(report, talearrFailures, _logger))
                 {
                     continue;
@@ -133,7 +133,7 @@ namespace NzbDrone.Core.Download
                 }
             }
 
-            // TaleArr: a bundle is grabbed only for a book that nothing else covered in this pass.
+            // Talearr: a bundle is grabbed only for a book that nothing else covered in this pass.
             if (bundleFallbacks.Any())
             {
                 var coveredBookIds = qualifiedReports
@@ -225,7 +225,7 @@ namespace NzbDrone.Core.Download
                 _pendingReleaseService.AddMany(pendingAddQueue);
             }
 
-            // TaleArr: nothing could be sent for a book because of transient failures: schedule a short re-search.
+            // Talearr: nothing could be sent for a book because of transient failures: schedule a short re-search.
             if (talearrFailures.Any())
             {
                 try
@@ -234,7 +234,7 @@ namespace NzbDrone.Core.Download
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "Unable to schedule the TaleArr re-search after failed grabs");
+                    _logger.Debug(ex, "Unable to schedule the Talearr re-search after failed grabs");
                 }
             }
 
@@ -353,7 +353,7 @@ namespace NzbDrone.Core.Download
                 {
                     _logger.Warn(ex, "Couldn't add report to download queue. " + remoteBook);
 
-                    // TaleArr: remember transient failures (429, 5xx, timeout) for the re-search.
+                    // Talearr: remember transient failures (429, 5xx, timeout) for the re-search.
                     TalearrGrabRetryService.RecordFailure(talearrFailures, decision, ex, _logger);
 
                     return ProcessedDecisionResult.Skipped;

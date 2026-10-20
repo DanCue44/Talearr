@@ -44,8 +44,8 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
         List<TalearrAbsConnection> GetConnections();
     }
 
-    // TaleArr: the Audiobookshelf connections are upstream's own AudioBookShelf notification
-    // rows. TaleArr adds a few keys to their settings JSON and reads them here; it never creates,
+    // Talearr: the Audiobookshelf connections are upstream's own AudioBookShelf notification
+    // rows. Talearr adds a few keys to their settings JSON and reads them here; it never creates,
     // changes or deletes the rows.
     public class TalearrAbsConnections : ITalearrAbsConnections
     {
@@ -79,7 +79,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not read the Audiobookshelf connections");
+                _logger.Warn(ex, "Talearr: could not read the Audiobookshelf connections");
                 return new List<TalearrAbsConnection>();
             }
         }

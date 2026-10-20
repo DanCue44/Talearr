@@ -4,7 +4,7 @@ using NzbDrone.Core.Download.Clients.QBittorrent;
 
 namespace Chaptarr.Core.Test.Talearr
 {
-    // TaleArr: qBittorrent-compatible debrid proxies (rdt-client, Decypharr) through the stock
+    // Talearr: qBittorrent-compatible debrid proxies (rdt-client, Decypharr) through the stock
     // qBittorrent client (docs/TALEARR_DOWNLOAD_CLIENTS.md).
     [TestFixture]
     public class TalearrQBittorrentProxyCompatFixture

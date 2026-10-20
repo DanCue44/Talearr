@@ -7,8 +7,8 @@ import FormLabel from 'Components/Form/FormLabel';
 import { inputTypes, kinds } from 'Helpers/Props';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 
-// TaleArr: genre and content type rules for a metadata profile. Saved with the profile as
-// talearrContentFilter (stored by TaleArr as a talearr.* Config row, not in MetadataProfiles).
+// Talearr: genre and content type rules for a metadata profile. Saved with the profile as
+// talearrContentFilter (stored by Talearr as a talearr.* Config row, not in MetadataProfiles).
 
 const NAME = 'talearrContentFilter';
 

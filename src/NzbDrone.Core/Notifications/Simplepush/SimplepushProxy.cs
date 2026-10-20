@@ -42,7 +42,7 @@ namespace NzbDrone.Core.Notifications.Simplepush
             try
             {
                 const string title = "Test Notification";
-                const string body = "This is a test message from TaleArr";
+                const string body = "This is a test message from Talearr";
 
                 SendNotification(title, body, settings);
             }

@@ -10,7 +10,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         TalearrGrabPolicy Save(TalearrGrabPolicy policy);
     }
 
-    // TaleArr: a TaleArr-only settings store. Values live in the existing Config key/value
+    // Talearr: a Talearr-only settings store. Values live in the existing Config key/value
     // table under talearr.grabpolicy.* keys. No schema change is involved, the keys are not
     // properties of ConfigService, and Chaptarr ignores rows it does not know, so Chaptarr
     // can run on the same database again after a rollback.
@@ -72,7 +72,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 _repository.Upsert(RetryFailedGrabsKey, policy.RetryFailedGrabs.ToString());
 
                 _cached = null;
-                _logger.Info("TaleArr grab policy saved: abridged={0}, allowBundles={1}, failRejectedImports={2}, maxAutomaticRetries={3}, retryFailedGrabs={4}",
+                _logger.Info("Talearr grab policy saved: abridged={0}, allowBundles={1}, failRejectedImports={2}, maxAutomaticRetries={3}, retryFailedGrabs={4}",
                     policy.AbridgedPolicy,
                     policy.AllowBundles,
                     policy.FailRejectedImports,
@@ -127,7 +127,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read TaleArr setting {0}, using the default", key);
+                _logger.Debug(ex, "Unable to read Talearr setting {0}, using the default", key);
                 return null;
             }
         }

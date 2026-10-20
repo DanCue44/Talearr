@@ -7,7 +7,7 @@ using NzbDrone.Core.Books;
 
 namespace NzbDrone.Core.Talearr.ContentFilter
 {
-    // TaleArr: genre and content type rules a metadata profile adds on top of Chaptarr's own
+    // Talearr: genre and content type rules a metadata profile adds on top of Chaptarr's own
     // (minimum pages, omnibus, ignored terms, languages). Stored per profile as a talearr.* Config
     // row, so the MetadataProfiles table is untouched.
     public class TalearrContentFilter

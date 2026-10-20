@@ -10,7 +10,7 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Talearr.GrabPolicy
 {
-    // TaleArr: when an import is rejected for a reason that retrying can never fix (the
+    // Talearr: when an import is rejected for a reason that retrying can never fix (the
     // release is the wrong book, is in the wrong language, has unusable archives, or holds no
     // audio or ebook files at all), fail the download.
     // Failing it blocklists the release and, through RedownloadFailedDownloadService, searches

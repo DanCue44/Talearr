@@ -116,7 +116,7 @@ function createMapStateToProps() {
         isRenamingAuthorCommand.body.authorIds.indexOf(author.id) > -1
         );
 
-        // TaleArr: Convert to M4B for this book.
+        // Talearr: Convert to M4B for this book.
         const isConvertingToM4bCommand = findCommand(commands, { name: commandNames.TALEARR_CONVERT_TO_M4B, bookId: book.id });
         const isConvertingToM4b = isCommandExecuting(isConvertingToM4bCommand);
 

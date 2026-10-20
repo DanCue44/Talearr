@@ -1,8 +1,8 @@
 import { get, set } from 'lodash';
 
-// TaleArr: Chaptarr's "Add book" modal defaulted to monitoring every book by the author
-// and all new books. TaleArr defaults to "Only this book" and no new books. This runs once
-// per browser: saved defaults from before TaleArr are switched to the safe values, and the
+// Talearr: Chaptarr's "Add book" modal defaulted to monitoring every book by the author
+// and all new books. Talearr defaults to "Only this book" and no new books. This runs once
+// per browser: saved defaults from before Talearr are switched to the safe values, and the
 // marker keeps any choice made after that.
 const MARKER_PATH = 'search.bookDefaults.talearrSafeBookDefaults';
 

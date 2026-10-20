@@ -61,7 +61,7 @@ namespace NzbDrone.Core.Download
             return ApplySeedingSafeImport(ResolveUpstreamPolicy(requestedMode, downloadClientItem), downloadClientItem);
         }
 
-        // TaleArr: a torrent the client still owns is copied (hardlinked), never moved.
+        // Talearr: a torrent the client still owns is copied (hardlinked), never moved.
         private DownloadImportPolicy ApplySeedingSafeImport(DownloadImportPolicy policy, DownloadClientItem downloadClientItem)
         {
             var mode = TalearrSeedingSafeImport.Apply(policy.ImportMode, downloadClientItem, IsSeedingSafeImportsEnabled(), out var reason);

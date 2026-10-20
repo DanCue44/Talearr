@@ -18,7 +18,7 @@ namespace NzbDrone.Core.Notifications.Pushover
         public override string Name => "Pushover";
         public override string Link => "https://pushover.net/";
 
-        // TaleArr: book events carry format, narrator and series lines plus the cover.
+        // Talearr: book events carry format, narrator and series lines plus the cover.
         public override void OnGrab(GrabMessage grabMessage)
         {
             var remoteBook = grabMessage.RemoteBook;
@@ -70,7 +70,7 @@ namespace NzbDrone.Core.Notifications.Pushover
             _proxy.SendNotification(HEALTH_ISSUE_TITLE, healthCheck.Message, Settings);
         }
 
-        // TaleArr: Sonarr/Radarr "Health Restored".
+        // Talearr: Sonarr/Radarr "Health Restored".
         public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
         {
             _proxy.SendNotification(HEALTH_RESTORED_TITLE, $"The following issue is now resolved: {previousCheck.Message}", Settings);

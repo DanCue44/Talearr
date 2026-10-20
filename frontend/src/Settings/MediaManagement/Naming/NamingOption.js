@@ -22,7 +22,7 @@ class NamingOption extends Component {
 
     let tokenValue = token;
 
-    // TaleArr: literal presets (the Audiobookshelf layout) are inserted exactly as shown.
+    // Talearr: literal presets (the Audiobookshelf layout) are inserted exactly as shown.
     if (isLiteral) {
       onPress({ isFullFilename, tokenValue });
       return;

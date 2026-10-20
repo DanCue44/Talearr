@@ -106,7 +106,7 @@ class DownloadClientSettings extends Component {
 
           <RemotePathMappingsConnector />
 
-          {/* TaleArr: opt-in Soulseek through slskd (not a download client provider). */}
+          {/* Talearr: opt-in Soulseek through slskd (not a download client provider). */}
           <TalearrSoulseek />
 
           <ManageDownloadClientsModal

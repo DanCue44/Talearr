@@ -1,13 +1,13 @@
-# TaleArr series monitoring
+# Talearr series monitoring
 
-A series is its own page in TaleArr. Monitor it and TaleArr monitors and searches every book in
+A series is its own page in Talearr. Monitor it and Talearr monitors and searches every book in
 it, now and whenever a new book appears, as audiobooks, ebooks or both.
 
 ## Where
 
 - **Library > Series** lists every series in the library (Chaptarr keeps one series row per
-  media type; TaleArr shows them as one), with how many books it has, how many are downloaded
-  per format, and what TaleArr monitors. "Monitored series only" narrows the list.
+  media type; Talearr shows them as one), with how many books it has, how many are downloaded
+  per format, and what Talearr monitors. "Monitored series only" narrows the list.
 - **The series page** (`/talearr/series/<id>`, either media type's series id works) shows the
   books in order (1, 2, 2.5, 3; box sets by their range), each with its audiobook and ebook
   status (Downloaded, Missing, Not monitored, Author paused, Not in library), links to the book
@@ -16,14 +16,14 @@ it, now and whenever a new book appears, as audiobooks, ebooks or both.
 
 ## Monitoring a series
 
-Tick **Audiobooks**, **Ebooks** or both and save. TaleArr then:
+Tick **Audiobooks**, **Ebooks** or both and save. Talearr then:
 
 1. monitors every main book of the series in those formats (the audiobook row and/or the
    ebook row of each book),
 2. searches for the ones without files (when **Search when books are added** is on, the
    default),
 3. does the same again for every book that appears in the series later. New books arrive with
-   the normal author refresh; TaleArr applies the series rules after every author refresh and
+   the normal author refresh; Talearr applies the series rules after every author refresh and
    every 6 hours (System > Tasks > Apply Series Monitoring), and **Check for new books** does it
    at once.
 
@@ -40,7 +40,7 @@ What it does not do:
 - **Additional recordings** (a second narrator, the abridged reading; see
   [TALEARR_RECORDINGS.md](TALEARR_RECORDINGS.md)) keep their own monitoring. A rule only touches
   each book's primary row per format.
-- **Books by authors TaleArr does not have.** A series that continues with a co-author's book
+- **Books by authors Talearr does not have.** A series that continues with a co-author's book
   picks it up once that author is in the library. Use Add New > series search to add the author.
 
 Downloads go through the normal search, so the grab policy (unabridged only, bundles, failed
@@ -67,7 +67,7 @@ books the rule has already acted on per format. The series key is the provider s
 changes, there are no migrations and `config.xml` is untouched. The rows are user choices, so
 they are not in the rebuildable `talearr.db`.
 
-The scheduled task is a `ScheduledTasks` row like TaleArr's other tasks.
+The scheduled task is a `ScheduledTasks` row like Talearr's other tasks.
 
 ## API
 

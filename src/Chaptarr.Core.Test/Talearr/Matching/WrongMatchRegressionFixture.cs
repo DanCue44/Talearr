@@ -14,7 +14,7 @@ using NzbDrone.Core.Talearr.Import;
 
 namespace Chaptarr.Core.Test.Talearr.Matching
 {
-    // TaleArr: wrong matches seen on the live instance during a Wanted > Search All Missing
+    // Talearr: wrong matches seen on the live instance during a Wanted > Search All Missing
     // (2026-10-17). Release names are copied verbatim from its history.
     [TestFixture]
     public class WrongMatchRegressionFixture

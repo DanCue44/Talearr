@@ -193,7 +193,7 @@ namespace NzbDrone.Core.MediaFiles
             // Swallow any IOException that may be thrown due to "Invalid parameter"
             try
             {
-                // TaleArr: a file that is still hardlinked shares its timestamps with the torrent
+                // Talearr: a file that is still hardlinked shares its timestamps with the torrent
                 // copy; touching it would change the seeding file's mtime and make the client
                 // recheck it. Leave it alone; the bin cleanup then just removes it sooner.
                 var linkCount = _diskProvider.GetFileLinkCount(file);

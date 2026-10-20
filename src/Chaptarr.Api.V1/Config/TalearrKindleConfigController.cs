@@ -7,7 +7,7 @@ using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Config
 {
-    // TaleArr: Send to Kindle settings. A new route; no existing route or field changes. Stored as
+    // Talearr: Send to Kindle settings. A new route; no existing route or field changes. Stored as
     // talearr.kindle.* Config rows. The password is never returned: GET answers "********" when
     // one is stored, and saving "********" back keeps it.
     public class TalearrKindleConfigResource : RestResource

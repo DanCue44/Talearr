@@ -1,9 +1,9 @@
 import { kinds } from 'Helpers/Props';
 
-// TaleArr: shared labels for the series pages (docs/TALEARR_SERIES.md).
+// Talearr: shared labels for the series pages (docs/TALEARR_SERIES.md).
 export function formatStatus(state) {
   if (!state || !state.bookId) {
-    return { label: 'Not in library', kind: kinds.DISABLED, title: 'TaleArr has no entry of this format for the book yet. An author refresh usually adds it.' };
+    return { label: 'Not in library', kind: kinds.DISABLED, title: 'Talearr has no entry of this format for the book yet. An author refresh usually adds it.' };
   }
 
   if (state.hasFiles) {
@@ -11,11 +11,11 @@ export function formatStatus(state) {
   }
 
   if (!state.monitored) {
-    return { label: 'Not monitored', kind: kinds.DISABLED, title: 'TaleArr does not look for this format.' };
+    return { label: 'Not monitored', kind: kinds.DISABLED, title: 'Talearr does not look for this format.' };
   }
 
   if (!state.authorMonitored) {
-    return { label: 'Author paused', kind: kinds.WARNING, title: 'Monitored, but the author is not monitored for this format, so TaleArr does not search. Turn the format on for the author to start searching.' };
+    return { label: 'Author paused', kind: kinds.WARNING, title: 'Monitored, but the author is not monitored for this format, so Talearr does not search. Turn the format on for the author to start searching.' };
   }
 
   return { label: 'Missing', kind: kinds.DANGER, title: 'Monitored and searched for.' };

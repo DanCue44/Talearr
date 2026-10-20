@@ -161,7 +161,7 @@ function renderNarratorDisplay(narrator) {
   );
 }
 
-// TaleArr: bundles are kept visible and marked; automatic grabs use them only as a last resort.
+// Talearr: bundles are kept visible and marked; automatic grabs use them only as a last resort.
 function getBundleTooltip(isBundleFallback, bundleContents) {
   const text = isBundleFallback ?
     'Last resort: only the requested book is kept; other books are removed unless they are on your wanted list' :

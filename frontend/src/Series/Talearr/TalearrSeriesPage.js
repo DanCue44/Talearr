@@ -67,7 +67,7 @@ FormatCell.propTypes = {
   state: PropTypes.object
 };
 
-// TaleArr: a series as a first-class page (docs/TALEARR_SERIES.md). Monitoring a series monitors
+// Talearr: a series as a first-class page (docs/TALEARR_SERIES.md). Monitoring a series monitors
 // its books in the chosen formats and keeps doing so for books that arrive later; the API is
 // /api/v1/talearr/series.
 class TalearrSeriesPage extends Component {

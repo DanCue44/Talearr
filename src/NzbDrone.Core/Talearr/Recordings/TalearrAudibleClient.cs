@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         bool IsBackingOff(string marketplace);
     }
 
-    // TaleArr: direct Audible catalog client for recording facts, marketplace aware.
+    // Talearr: direct Audible catalog client for recording facts, marketplace aware.
     //
     // Politeness: one request per second per host (the shared upstream rate limiter), batch
     // lookups of up to BatchSize ASINs per request, and a back-off on 429 or 503 that starts at
@@ -200,7 +200,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             if (response.HasHttpError)
             {
                 result.Failed = true;
-                _logger.Debug("TaleArr: Audnexus answered HTTP {0} for {1}", (int)response.StatusCode, normalized);
+                _logger.Debug("Talearr: Audnexus answered HTTP {0} for {1}", (int)response.StatusCode, normalized);
                 return result;
             }
 
@@ -243,7 +243,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             if (response.HasHttpError)
             {
                 result.Failed = true;
-                _logger.Debug("TaleArr: Audible {0} answered HTTP {1}", market.Code, (int)response.StatusCode);
+                _logger.Debug("Talearr: Audible {0} answered HTTP {1}", market.Code, (int)response.StatusCode);
                 return null;
             }
 
@@ -266,7 +266,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             catch (Exception ex)
             {
                 result.Failed = true;
-                _logger.Debug(ex, "TaleArr: request to {0} failed", host);
+                _logger.Debug(ex, "Talearr: request to {0} failed", host);
                 return null;
             }
 
@@ -326,7 +326,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 }
 
                 _backoff[host] = new BackoffState { Length = next, Until = _clock() + next };
-                _logger.Warn("TaleArr: {0} is throttling (HTTP {1}); pausing Audible lookups for {2} minutes", host, (int)response.StatusCode, Math.Ceiling(next.TotalMinutes));
+                _logger.Warn("Talearr: {0} is throttling (HTTP {1}); pausing Audible lookups for {2} minutes", host, (int)response.StatusCode, Math.Ceiling(next.TotalMinutes));
             }
         }
 
@@ -348,7 +348,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             catch (JsonException ex)
             {
                 result.Failed = true;
-                _logger.Debug(ex, "TaleArr: unreadable Audible response");
+                _logger.Debug(ex, "Talearr: unreadable Audible response");
                 return null;
             }
         }

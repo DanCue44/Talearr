@@ -67,7 +67,7 @@ function readError(xhr, fallback) {
   return (body && body.message) || fallback;
 }
 
-// TaleArr: the recordings of an audiobook (docs/TALEARR_RECORDINGS.md). Each recording is one of
+// Talearr: the recordings of an audiobook (docs/TALEARR_RECORDINGS.md). Each recording is one of
 // upstream's wanted or copy rows with its own edition and files; the API behind this section is
 // /api/v1/talearr/recordings.
 class BookRecordings extends Component {
@@ -232,7 +232,7 @@ class BookRecordings extends Component {
       picker: {
         mode: 'narrator',
         title: 'Another narrator',
-        message: 'TaleArr picks the best edition read by the narrator you choose.',
+        message: 'Talearr picks the best edition read by the narrator you choose.',
         candidates: this.getOtherNarratorCandidates()
       }
     });

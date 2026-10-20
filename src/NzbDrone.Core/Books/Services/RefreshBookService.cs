@@ -1117,7 +1117,7 @@ namespace NzbDrone.Core.Books
                 .Select(e => e.Book?.MediaType)
                 .FirstOrDefault(mt => mt.HasValue);
 
-            // TaleArr: re-pick an automatically selected foreign edition when the book accepts any
+            // Talearr: re-pick an automatically selected foreign edition when the book accepts any
             // edition and a preferred-language edition exists (explicit picks set AnyEditionOk=false).
             var parentBook = all
                 .Where(e => e.LazyBook?.IsLoaded == true)

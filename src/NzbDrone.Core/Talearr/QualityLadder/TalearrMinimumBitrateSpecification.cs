@@ -6,7 +6,7 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Talearr.QualityLadder
 {
-    // TaleArr: optional bitrate floor for audiobook releases (talearr.ladder.minaudiokbps, off by
+    // Talearr: optional bitrate floor for audiobook releases (talearr.ladder.minaudiokbps, off by
     // default). Only an estimate that is known counts: a "24kbps" title, or a size that is too
     // small for the book's known runtime. A soft filter, so interactive search can still grab it.
     public class TalearrMinimumBitrateSpecification : IDecisionEngineSpecification
@@ -36,13 +36,13 @@ namespace NzbDrone.Core.Talearr.QualityLadder
             var estimate = _ladder.EstimateRelease(subject);
             if (estimate.Tier == AudioQualityTier.Implausible)
             {
-                _logger.Debug("TaleArr: '{0}' is implausibly small for an audiobook", subject.Release.Title);
-                return Decision.RejectSoftFilter($"TaleArr: audio is implausibly small for the book ({estimate.Describe()})", Category);
+                _logger.Debug("Talearr: '{0}' is implausibly small for an audiobook", subject.Release.Title);
+                return Decision.RejectSoftFilter($"Talearr: audio is implausibly small for the book ({estimate.Describe()})", Category);
             }
 
             if (estimate.Kbps > 0 && estimate.Kbps < minimum)
             {
-                return Decision.RejectSoftFilter($"TaleArr: audio bitrate {estimate.Describe()} is below the {minimum} kbps minimum", Category);
+                return Decision.RejectSoftFilter($"Talearr: audio bitrate {estimate.Describe()} is below the {minimum} kbps minimum", Category);
             }
 
             return Decision.Accept();

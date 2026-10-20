@@ -10,7 +10,7 @@ using NzbDrone.Common.Http;
 
 namespace NzbDrone.Core.Talearr.MetadataFallback
 {
-    // TaleArr: one Audible product as Audnexus describes it (only the fields TaleArr uses).
+    // Talearr: one Audible product as Audnexus describes it (only the fields Talearr uses).
     public sealed class AudnexusBook
     {
         public string Asin { get; set; }
@@ -107,7 +107,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
         }
     }
 
-    // TaleArr: keyless client for the public Audnexus API (api.audnex.us), used only to enrich
+    // Talearr: keyless client for the public Audnexus API (api.audnex.us), used only to enrich
     // audiobook rows added from the Open Library fallback. Same manners as OpenLibraryClient: an
     // identifying User-Agent, at most one request per second, a 15s timeout, and a cache (a day
     // for found products, six hours for unknown ASINs).
@@ -204,7 +204,7 @@ namespace NzbDrone.Core.Talearr.MetadataFallback
             catch (Exception ex)
             {
                 _cache.Remove(url);
-                _logger.Debug(ex, "TaleArr: unreadable Audnexus response for {0}", url);
+                _logger.Debug(ex, "Talearr: unreadable Audnexus response for {0}", url);
                 return null;
             }
         }

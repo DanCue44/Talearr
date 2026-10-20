@@ -1,14 +1,14 @@
 # Copyright & Attribution
 
-## TaleArr
+## Talearr
 
-TaleArr is a fork of Chaptarr and is distributed under the same GNU General Public
-License, version 3. TaleArr credits [Chaptarr](https://github.com/Chaptarr/chaptarr)
+Talearr is a fork of Chaptarr and is distributed under the same GNU General Public
+License, version 3. Talearr credits [Chaptarr](https://github.com/Chaptarr/chaptarr)
 and the Chaptarr contributors as its upstream, and the Servarr team and the Readarr,
 Sonarr, Radarr, Lidarr and Prowlarr contributors whose work Chaptarr builds on. The
 upstream notices below are kept unchanged apart from punctuation.
 
-- Copyright 2026 TaleArr contributors.
+- Copyright 2026 Talearr contributors.
 
 ## Upstream: Chaptarr
 

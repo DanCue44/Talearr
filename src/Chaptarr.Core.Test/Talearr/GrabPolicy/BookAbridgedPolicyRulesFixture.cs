@@ -39,7 +39,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
         }
     }
 
-    // TaleArr: the per-book abridged policy in the decision engine. Every policy value is checked
+    // Talearr: the per-book abridged policy in the decision engine. Every policy value is checked
     // as a per-book override and as the global policy (the fallback when a book has none).
     [TestFixture]
     public class BookAbridgedPolicyRulesFixture

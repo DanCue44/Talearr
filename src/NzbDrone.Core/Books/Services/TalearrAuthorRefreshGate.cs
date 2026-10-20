@@ -5,7 +5,7 @@ using NLog;
 namespace NzbDrone.Core.Books.Services
 {
     /// <summary>
-    /// TaleArr: lets the add path's author reconcile (AuthorLibraryService ->
+    /// Talearr: lets the add path's author reconcile (AuthorLibraryService ->
     /// RefreshAuthorService.ReconcileAuthorBlob) share the gate upstream already uses for queued
     /// author refreshes.
     ///
@@ -45,7 +45,7 @@ namespace NzbDrone.Core.Books.Services
 
             if (!acquired)
             {
-                logger?.Warn("TaleArr: author refresh still running after {0}s; continuing {1} without waiting (duplicate rows are folded by the next refresh)",
+                logger?.Warn("Talearr: author refresh still running after {0}s; continuing {1} without waiting (duplicate rows are folded by the next refresh)",
                     (int)Timeout.TotalSeconds, context);
                 return new Releaser(null);
             }

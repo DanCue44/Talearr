@@ -2,7 +2,7 @@ using NzbDrone.Core.Books.Services;
 
 namespace NzbDrone.Core.Books
 {
-    // TaleArr: safe defaults when one book is requested for an author (UI "Add book" or
+    // Talearr: safe defaults when one book is requested for an author (UI "Add book" or
     // POST /api/v1/book, which AllSeerr uses).
     //
     // Chaptarr already limits the one-time initial selection to the requested book unless the

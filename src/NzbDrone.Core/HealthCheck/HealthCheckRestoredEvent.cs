@@ -2,7 +2,7 @@ using NzbDrone.Common.Messaging;
 
 namespace NzbDrone.Core.HealthCheck
 {
-    // TaleArr: a check that was failing now passes (Sonarr/Radarr "On Health Restored").
+    // Talearr: a check that was failing now passes (Sonarr/Radarr "On Health Restored").
     public class HealthCheckRestoredEvent : IEvent
     {
         public HealthCheck PreviousCheck { get; private set; }

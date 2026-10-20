@@ -295,7 +295,7 @@ namespace Chaptarr.Api.V1.Search
                     throw new NotImplementedException($"Bad response from search all proxy - unknown type: {result?.GetType()?.Name ?? "null"}");
                 }
 
-                // TaleArr: label results that came from the Open Library fallback (setting "show source").
+                // Talearr: label results that came from the Open Library fallback (setting "show source").
                 if (_metadataFallback?.ShowSource == true)
                 {
                     resource.MetadataSource = TalearrMetadataFallbackMarker.GetSource(result);

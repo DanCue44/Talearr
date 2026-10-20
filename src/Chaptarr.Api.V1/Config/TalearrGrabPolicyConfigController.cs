@@ -7,7 +7,7 @@ using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Config
 {
-    // TaleArr: grab policy settings (abridged audiobooks, bundles, automatic retry, re-search after failed grabs). A new
+    // Talearr: grab policy settings (abridged audiobooks, bundles, automatic retry, re-search after failed grabs). A new
     // route; no existing route or field changes. Values are stored by TalearrGrabPolicyService
     // as talearr.grabpolicy.* rows in the Config table, which Chaptarr ignores.
     public class TalearrGrabPolicyConfigResource : RestResource

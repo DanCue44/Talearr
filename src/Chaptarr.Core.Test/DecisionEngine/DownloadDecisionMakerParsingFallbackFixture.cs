@@ -1190,7 +1190,7 @@ namespace Chaptarr.Core.Test.DecisionEngine
 
             var decision = decisionMaker.GetSearchDecision(new List<ReleaseInfo> { report }, criteria)[0];
 
-            // TaleArr: the pack spec keeps the bundle as a last resort (visible and flagged in
+            // Talearr: the pack spec keeps the bundle as a last resort (visible and flagged in
             // interactive search) instead of rejecting it; title matching still defers to it.
             Assert.That(decision.Rejected, Is.False);
             Assert.That(decision.RemoteBook.PackDetection.Verdict, Is.EqualTo(ReleasePackDetectionVerdict.MultipleBooks));
@@ -1664,7 +1664,7 @@ namespace Chaptarr.Core.Test.DecisionEngine
             });
 
             Assert.That(decision.Rejected, Is.True);
-            // TaleArr: the release names its author, so the rejection says who it is by.
+            // Talearr: the release names its author, so the rejection says who it is by.
             Assert.That(decision.Rejections.Select(r => r.Reason), Has.Some.EqualTo("Release is by Bethany McLean, not Louise Penny"));
         }
 

@@ -186,7 +186,7 @@ class TagsModalContent extends Component {
 
 TagsModalContent.propTypes = {
   authorTags: PropTypes.arrayOf(PropTypes.number).isRequired,
-  // TaleArr: the book editor reuses this modal with its own wording.
+  // Talearr: the book editor reuses this modal with its own wording.
   howToApplyHelpText: PropTypes.string,
   tagList: PropTypes.arrayOf(PropTypes.object).isRequired,
   onModalClose: PropTypes.func.isRequired,

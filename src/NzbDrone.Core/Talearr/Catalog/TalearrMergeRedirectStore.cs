@@ -9,7 +9,7 @@ using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.Talearr.Catalog
 {
-    // TaleArr: one provider id of a row the merge tool removed, and the row it now means.
+    // Talearr: one provider id of a row the merge tool removed, and the row it now means.
     public sealed class TalearrMergeRedirect
     {
         public const string Author = "author";
@@ -46,7 +46,7 @@ namespace NzbDrone.Core.Talearr.Catalog
         List<TalearrMergeRedirect> GetBookRedirects();
     }
 
-    // TaleArr: reads and writes MergeRedirects in talearr.db. Best effort like the other sidecar
+    // Talearr: reads and writes MergeRedirects in talearr.db. Best effort like the other sidecar
     // stores: a failure is logged and treated as "no redirect", which is the 0.16.0 behavior.
     public class TalearrMergeRedirectStore : ITalearrMergeRedirectStore
     {
@@ -198,7 +198,7 @@ ON CONFLICT (EntityType, MediaType, ProviderId) DO UPDATE SET
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "TaleArr: could not {0} in {1}; merged ids are not redirected", what, TalearrDatabase.FileName);
+                _logger.Warn(ex, "Talearr: could not {0} in {1}; merged ids are not redirected", what, TalearrDatabase.FileName);
                 return fallback;
             }
         }

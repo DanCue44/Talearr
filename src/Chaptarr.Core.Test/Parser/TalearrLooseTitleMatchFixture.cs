@@ -6,9 +6,9 @@ using NzbDrone.Core.Parser;
 
 namespace Chaptarr.Core.Test.Parser
 {
-    // TaleArr: looser release title matching (subtitles, articles, series prefixes and suffixes)
+    // Talearr: looser release title matching (subtitles, articles, series prefixes and suffixes)
     // without matching across different books by the same author. Release names are real-world
-    // shapes taken from indexers and from the TaleArr test server's history.
+    // shapes taken from indexers and from the Talearr test server's history.
     [TestFixture]
     public class TalearrLooseTitleMatchFixture
     {
@@ -161,7 +161,7 @@ namespace Chaptarr.Core.Test.Parser
             Assert.That(Match(release, wrong, right, wrong)?.IsMatch ?? false, Is.False);
         }
 
-        // Book 3129 "The Firm" on the TaleArr test server. Its monitored edition was
+        // Book 3129 "The Firm" on the Talearr test server. Its monitored edition was
         // "The Firm: A Novel (The Firm Series Book 1)" when automatic searches grabbed nothing,
         // and interactive search later approved the sequel and a series listing.
         private static (Book Firm, Book[] Catalog) FirmCatalog(string monitoredTitle, bool withSeries)

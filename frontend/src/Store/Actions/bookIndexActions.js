@@ -216,7 +216,7 @@ export const defaultState = {
       return predicate(item.anyEditionOk, filterValue);
     },
 
-    // TaleArr: book tags come from talearr.db, merged in by the collection selector.
+    // Talearr: book tags come from talearr.db, merged in by the collection selector.
     tags: function(item, filterValue, type, state) {
       const predicate = filterTypePredicates[type];
       const byBookId = (state && state.talearrBookTagsByBookId) || {};
@@ -224,7 +224,7 @@ export const defaultState = {
       return predicate(byBookId[item.id] || [], filterValue);
     },
 
-    // TaleArr: the author's tags for this book's format.
+    // Talearr: the author's tags for this book's format.
     authorTags: function(item, filterValue, type) {
       const predicate = filterTypePredicates[type];
 
@@ -244,7 +244,7 @@ export const defaultState = {
       return predicate(bookFileCount > 0, filterValue);
     },
 
-    // TaleArr: any narrator of any recording, also when the index hides the narrator.
+    // Talearr: any narrator of any recording, also when the index hides the narrator.
     narrators: function(item, filterValue, type) {
       const predicate = filterTypePredicates[type];
       const names = [item.narrator, ...(item.availableNarrators || [])].filter(Boolean);

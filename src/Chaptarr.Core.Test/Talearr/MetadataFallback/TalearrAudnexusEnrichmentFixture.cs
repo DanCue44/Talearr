@@ -13,7 +13,7 @@ namespace Chaptarr.Core.Test.Talearr.MetadataFallback
     [TestFixture]
     public class TalearrAudnexusEnrichmentFixture
     {
-        // Recorded from api.audnex.us/books/{asin} (trimmed to the fields TaleArr reads plus a few others).
+        // Recorded from api.audnex.us/books/{asin} (trimmed to the fields Talearr reads plus a few others).
         private const string InColdBlood = @"{""asin"":""B002V1BPPW"",""authors"":[{""asin"":""B000APJ0OO"",""name"":""Truman Capote""}],
             ""description"":""On November 15, 1959..."",""formatType"":""unabridged"",""genres"":[{""asin"":""18574426011"",""name"":""History"",""type"":""genre""}],
             ""image"":""https://m.media-amazon.com/images/I/51-in-cold-blood.jpg"",""isAdult"":false,""language"":""english"",""literatureType"":""nonfiction"",
@@ -187,7 +187,7 @@ namespace Chaptarr.Core.Test.Talearr.MetadataFallback
                 Assert.That(second.Title, Is.EqualTo("In Cold Blood"));
                 Assert.That(ok.Requests, Has.Count.EqualTo(1), "served from the cache");
                 Assert.That(ok.Requests[0].Url.FullUri, Is.EqualTo("https://api.audnex.us/books/B002V1BPPW"));
-                Assert.That(ok.Requests[0].Headers.GetSingleValue("User-Agent"), Does.StartWith("TaleArr/"));
+                Assert.That(ok.Requests[0].Headers.GetSingleValue("User-Agent"), Does.StartWith("Talearr/"));
                 Assert.That(ok.Requests[0].RateLimit, Is.EqualTo(TimeSpan.FromSeconds(1)));
                 Assert.That(client.GetBook("0451154460"), Is.Null, "never asks for an ISBN-10");
                 Assert.That(ok.Requests, Has.Count.EqualTo(1));

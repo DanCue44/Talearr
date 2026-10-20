@@ -6,11 +6,11 @@ using NzbDrone.Core.Books;
 
 namespace NzbDrone.Core.Talearr.Naming
 {
-    // TaleArr: the title that {Book Title} and its variants put into file and folder names.
+    // Talearr: the title that {Book Title} and its variants put into file and folder names.
     //
     // Upstream uses the edition's title, and audiobook edition titles are often a store listing
     // rather than the book's name: "Nineteen Eighty-Four (MP3 Book)", "Animal Farm (Audible Audio)",
-    // "The King of Torts [Abridged 5-CD Set]". TaleArr uses the book's own title instead (the work,
+    // "The King of Torts [Abridged 5-CD Set]". Talearr uses the book's own title instead (the work,
     // "1984"), falling back to the edition title when the book has none, and strips format noise
     // in brackets from whichever title it uses. Narrator and abridged disambiguation for additional
     // recordings is unchanged (FileNameBuilder.Talearr.cs).

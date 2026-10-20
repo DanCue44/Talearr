@@ -61,7 +61,7 @@ namespace NzbDrone.Core.Talearr.Migration
         // "auto" (a root folder with "audio" in its path holds audiobooks), "ebook" or "audiobook".
         public string MediaType { get; set; } = "auto";
 
-        // Source path prefix to TaleArr path prefix, for containers that mount the library elsewhere.
+        // Source path prefix to Talearr path prefix, for containers that mount the library elsewhere.
         public List<TalearrMigrationPathMapping> PathMappings { get; set; } = new List<TalearrMigrationPathMapping>();
 
         public bool ImportRootFolders { get; set; } = true;

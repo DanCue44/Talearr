@@ -6,7 +6,7 @@ using NzbDrone.Core.Books;
 
 namespace NzbDrone.Core.Talearr.Recordings
 {
-    // One edition with what TaleArr knows about it from Audible.
+    // One edition with what Talearr knows about it from Audible.
     public sealed class EditionAudibleFacts
     {
         public Edition Edition { get; set; }
@@ -50,7 +50,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         bool NeedsRefresh(EditionAudibleLink link, DateTime nowUtc);
     }
 
-    // TaleArr: Audible facts per edition, cache first. Lookup order per edition: its stored
+    // Talearr: Audible facts per edition, cache first. Lookup order per edition: its stored
     // AudibleASIN and ASIN list in one batch call, then (within a search budget) a title + author
     // search constrained by narrator and runtime. Results go to talearr.db only; upstream Editions
     // columns are never written, because metadata refresh owns them.
@@ -237,7 +237,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 }
             }
 
-            _logger.Debug("TaleArr: Audible facts for '{0}' ({1}): {2} editions, {3} matched, {4} unmatched, {5} cached, {6} searches{7}",
+            _logger.Debug("Talearr: Audible facts for '{0}' ({1}): {2} editions, {3} matched, {4} unmatched, {5} cached, {6} searches{7}",
                 bookTitle, market, summary.Editions, summary.Matched, summary.Unmatched, summary.Skipped, summary.Searches, summary.Throttled ? ", throttled" : string.Empty);
 
             return summary;

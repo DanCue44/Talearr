@@ -9,7 +9,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         string GetRejection(RemoteBook remoteBook);
     }
 
-    // TaleArr: seed-only and ratio guard for every MAM grab (native and Prowlarr MAM results that
+    // Talearr: seed-only and ratio guard for every MAM grab (native and Prowlarr MAM results that
     // share the native indexer's account), used by the decision engine and again at grab time in
     // DownloadService so grabs that skip the decision engine are covered too. Rules live in
     // MyAnonaMouseAccountStanding.
@@ -44,7 +44,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             return MyAnonaMouseAccountStanding.Evaluate(settings, IsRatioExempt(release, settings), release.Size, UtcNow());
         }
 
-        // Freeleech for this user (global, personal or VIP), or a wedge TaleArr will request at
+        // Freeleech for this user (global, personal or VIP), or a wedge Talearr will request at
         // grab time while wedges are left.
         public static bool IsRatioExempt(ReleaseInfo release, MyAnonaMouseSettings settings)
         {

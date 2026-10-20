@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Talearr.QualityLadder
         Good = 4
     }
 
-    // What TaleArr estimated about one audiobook copy: a release (size per minute of the known
+    // What Talearr estimated about one audiobook copy: a release (size per minute of the known
     // runtime, or a bitrate in the title) or files in the library (measured bitrate, or size per
     // minute of their duration).
     public sealed class AudioQualityEstimate
@@ -50,7 +50,7 @@ namespace NzbDrone.Core.Talearr.QualityLadder
         }
     }
 
-    // TaleArr: the audio quality ladder (docs/TALEARR_FEATURE_RESEARCH.md item 12). Pure rules:
+    // Talearr: the audio quality ladder (docs/TALEARR_FEATURE_RESEARCH.md item 12). Pure rules:
     //   - AAC/Opus at 64 kbps or more, MP3 at 128 kbps or more and lossless audio are Good;
     //   - below that down to 32 kbps is Low; under 32 kbps is VeryLow;
     //   - under 8 kbps per hour of runtime, or a whole release under 8 MB, is Implausible.

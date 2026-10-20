@@ -37,7 +37,7 @@ function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
-// TaleArr: wishlists on Settings > Import Lists (docs/TALEARR_WISHLISTS.md). Not an import list
+// Talearr: wishlists on Settings > Import Lists (docs/TALEARR_WISHLISTS.md). Not an import list
 // provider (stock Chaptarr deletes provider rows it does not know); stored as talearr.wishlist.*
 // Config rows and served by /api/v1/talearr/wishlists.
 class TalearrWishlists extends Component {

@@ -15,7 +15,7 @@ using NzbDrone.Core.Talearr.MamFiller;
 
 namespace Chaptarr.Core.Test.Talearr.Mam
 {
-    // TaleArr: MAM timing and aggressiveness settings. Old settings JSON keeps the old behavior,
+    // Talearr: MAM timing and aggressiveness settings. Old settings JSON keeps the old behavior,
     // validation only stops values that would break, and the account status refresh, the
     // freshness windows and the task ticks follow the settings.
     [TestFixture]

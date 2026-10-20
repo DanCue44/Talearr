@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Download
                 return;
             }
 
-            // TaleArr: cap automatic retries per book, retry user grabs as user searches (so an
+            // Talearr: cap automatic retries per book, retry user grabs as user searches (so an
             // unmonitored book or a delay profile does not silently block the replacement), and
             // record the step on the DownloadFailed history row.
             var retry = _talearrRetryService?.Evaluate(message);

@@ -117,7 +117,7 @@ namespace Chaptarr.Core.Test.Api
                 }),
                 authorStatisticsService: Proxy<IAuthorStatisticsService>(new Dictionary<string, Func<MethodInfo, object[], object>>
                 {
-                    // TaleArr: one author's books ask for that author's statistics only.
+                    // Talearr: one author's books ask for that author's statistics only.
                     [nameof(IAuthorStatisticsService.AuthorStatistics)] = (method, _) => method.ReturnType == typeof(AuthorStatistics) ? new AuthorStatistics() : new List<AuthorStatistics>()
                 }),
                 mediaFileService: null,

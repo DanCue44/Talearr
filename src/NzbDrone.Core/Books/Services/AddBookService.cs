@@ -523,7 +523,7 @@ namespace NzbDrone.Core.Books
                 ? MonitorTypes.All
                 : MonitorTypes.SpecificBook;
 
-            // TaleArr: unless the request says otherwise, a single-book add keeps future releases unmonitored.
+            // Talearr: unless the request says otherwise, a single-book add keeps future releases unmonitored.
             return TalearrAddMonitoringDefaults.ForSingleBook(new MonitoringConfig
             {
                 IsManualAddition = true,
@@ -558,7 +558,7 @@ namespace NzbDrone.Core.Books
                 AudiobookBooksToSearch = isAudiobook && searchRequested ? requestedIds : null,
                 EbookBooksToSearch = !isAudiobook && searchRequested ? requestedIds : null,
 
-                // TaleArr: an explicit single-book add may use the Open Library fallback during
+                // Talearr: an explicit single-book add may use the Open Library fallback during
                 // an outage; the title lets it find the same work there.
                 AllowMetadataFallback = true,
                 MetadataFallbackWorkTitles = BuildFallbackWorkTitles(requestedIds, book.Title)
@@ -584,12 +584,12 @@ namespace NzbDrone.Core.Books
 
             if (matches.Count > 1)
             {
-                // TaleArr: duplicate rows of the same stored work (same work ids and title) are a
+                // Talearr: duplicate rows of the same stored work (same work ids and title) are a
                 // duplicate pass, not distinct works; use one instead of failing the add.
                 var talearrPick = TalearrDuplicateBooks.PickRequestedBook(matches);
                 if (talearrPick != null)
                 {
-                    _logger.Warn("TaleArr: requested work {0} has {1} local {2} rows ({3}) for the same work; using {4}. The duplicates can be removed with the TaleArr duplicate cleanup.",
+                    _logger.Warn("Talearr: requested work {0} has {1} local {2} rows ({3}) for the same work; using {4}. The duplicates can be removed with the Talearr duplicate cleanup.",
                         workProviderId, matches.Count, mediaType, string.Join(", ", matches.Select(m => m.Id)), talearrPick.Id);
                     return talearrPick;
                 }

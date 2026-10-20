@@ -10,7 +10,7 @@ using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Notifications
 {
-    // TaleArr: book and audiobook details for rich notifications (cover art, format, narrator,
+    // Talearr: book and audiobook details for rich notifications (cover art, format, narrator,
     // series). Pure helpers over objects the notification already carries: no lookups.
     public class TalearrBookDetails
     {
@@ -129,7 +129,7 @@ namespace NzbDrone.Core.Notifications
                 images.AddRange(book.Images);
             }
 
-            // Only absolute URLs: a chat app cannot load TaleArr's local /MediaCover path.
+            // Only absolute URLs: a chat app cannot load Talearr's local /MediaCover path.
             return images
                 .Where(i => i != null)
                 .OrderBy(i => i.CoverType == MediaCoverTypes.Cover ? 0 : 1)

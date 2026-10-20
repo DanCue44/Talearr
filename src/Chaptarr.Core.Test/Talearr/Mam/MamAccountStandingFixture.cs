@@ -18,7 +18,7 @@ using NzbDrone.Core.Talearr.Seeding;
 
 namespace Chaptarr.Core.Test.Talearr.Mam
 {
-    // TaleArr: the seed-only / ratio guard (MyAnonaMouseAccountStanding), the account refresh
+    // Talearr: the seed-only / ratio guard (MyAnonaMouseAccountStanding), the account refresh
     // that feeds it, and the Power User progress card.
     [TestFixture]
     public class MamAccountStandingFixture

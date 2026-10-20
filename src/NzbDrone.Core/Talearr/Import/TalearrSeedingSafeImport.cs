@@ -5,7 +5,7 @@ using NzbDrone.Core.MediaFiles.BookImport;
 
 namespace NzbDrone.Core.Talearr.Import
 {
-    // TaleArr: torrent imports never move the client's files. Upstream moves a torrent once it has
+    // Talearr: torrent imports never move the client's files. Upstream moves a torrent once it has
     // reached its seed goal (CanMoveFiles), and honours an explicit Move from manual import even
     // while the torrent is still seeding; both pull the data out from under the client, and the
     // first also breaks torrents kept in a post-import category. With this on, a torrent import is

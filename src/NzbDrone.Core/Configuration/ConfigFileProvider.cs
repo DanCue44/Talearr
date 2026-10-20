@@ -322,8 +322,8 @@ namespace NzbDrone.Core.Configuration
             {
                 var instanceName = _appOptions.InstanceName ?? GetValue("InstanceName", BuildInfo.AppName);
 
-                // TaleArr: an untouched upstream default reads as the TaleArr product name, so an
-                // existing Chaptarr config.xml shows "TaleArr" without being rewritten.
+                // Talearr: an untouched upstream default reads as the Talearr product name, so an
+                // existing Chaptarr config.xml shows "Talearr" without being rewritten.
                 if (instanceName.Equals(BuildInfo.AppName, StringComparison.OrdinalIgnoreCase))
                 {
                     return BuildInfo.ProductName;

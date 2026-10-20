@@ -4,7 +4,7 @@ import createSaveHandler from 'Store/Actions/Creators/createSaveHandler';
 import createSetSettingValueReducer from 'Store/Actions/Creators/Reducers/createSetSettingValueReducer';
 import { createThunk } from 'Store/thunks';
 
-// TaleArr: Open Library metadata fallback (setting and live status).
+// Talearr: Open Library metadata fallback (setting and live status).
 
 //
 // Variables

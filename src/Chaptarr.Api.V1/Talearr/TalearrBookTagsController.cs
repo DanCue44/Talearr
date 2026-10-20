@@ -32,7 +32,7 @@ namespace Chaptarr.Api.V1.Talearr
         public int BookCount { get; set; }
     }
 
-    // TaleArr: book tags under /api/v1/talearr/booktags (Chaptarr tags authors only). The tag
+    // Talearr: book tags under /api/v1/talearr/booktags (Chaptarr tags authors only). The tag
     // labels are Chaptarr's own Settings > Tags; the book links are kept in talearr.db. New
     // routes only, so BookResource stays the shape Readarr clients expect.
     [V1ApiController("talearr/booktags")]
@@ -104,7 +104,7 @@ namespace Chaptarr.Api.V1.Talearr
         }
     }
 
-    // TaleArr: the genres the metadata server gave the books in the library, for the metadata
+    // Talearr: the genres the metadata server gave the books in the library, for the metadata
     // profile genre lists and the book filters.
     [V1ApiController("talearr/genres")]
     public class TalearrGenresController : Controller

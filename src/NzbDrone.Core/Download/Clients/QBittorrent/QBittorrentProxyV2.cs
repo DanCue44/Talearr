@@ -10,7 +10,7 @@ using NzbDrone.Common.Serializer;
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
     // API https://github.com/qbittorrent/qBittorrent/wiki/Web-API-Documentation
-    // TaleArr: partial, the seeding report part is in QBittorrentProxyV2.Talearr.cs.
+    // Talearr: partial, the seeding report part is in QBittorrentProxyV2.Talearr.cs.
     public partial class QBittorrentProxyV2 : IQBittorrentProxy
     {
         private static readonly HttpStatusCode[] AuthenticationFailureStatusCodes =
@@ -81,7 +81,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return ParseApiVersion(ProcessRequest(request, settings));
         }
 
-        // TaleArr: qBittorrent answers "2.11.4"; qBittorrent-compatible debrid proxies (rdt-client,
+        // Talearr: qBittorrent answers "2.11.4"; qBittorrent-compatible debrid proxies (rdt-client,
         // Decypharr) may answer "v2.8", "2.8.3-rdt" or a bare "2". Read the leading numbers and
         // assume the oldest v2 API when there are none, instead of failing the client.
         internal static Version ParseApiVersion(string value)

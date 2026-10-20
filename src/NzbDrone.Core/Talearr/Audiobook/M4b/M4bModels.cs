@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace NzbDrone.Core.Talearr.Audiobook.M4b
 {
-    // TaleArr: what ffprobe reports about one source file of a multi-file audiobook.
+    // Talearr: what ffprobe reports about one source file of a multi-file audiobook.
     public sealed class M4bSourceTrack
     {
         public string Path { get; set; }

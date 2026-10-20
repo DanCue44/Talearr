@@ -41,7 +41,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         public string Reason { get; }
     }
 
-    // TaleArr: the abridged grab rules shared by AbridgedReleaseSpecification (accept or reject),
+    // Talearr: the abridged grab rules shared by AbridgedReleaseSpecification (accept or reject),
     // DownloadDecisionComparer (ranking), the edition switch and the Audiobookshelf owned-copy check, so all use
     // the same effective policy per book:
     //
@@ -126,7 +126,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                     }
 
                     // Most releases say neither. One is the abridged reading only when the wanted
-                    // edition is (TaleArr switches to an abridged edition before searching).
+                    // edition is (Talearr switches to an abridged edition before searching).
                     if (AbridgedReleaseDetector.WantsAbridged(subject, resolver))
                     {
                         return AbridgedJudgement.Accept;

@@ -62,7 +62,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
         private static TrackedDownload Blocked(string id = "dl-1")
         {
             var trackedDownload = new TrackedDownload { DownloadClient = 1, DownloadItem = Item(id) };
-            trackedDownload.Warn(new TrackedDownloadStatusMessage("The Firm.m4b", "TaleArr: not an upgrade, same quality and no higher bitrate; kept the existing files"));
+            trackedDownload.Warn(new TrackedDownloadStatusMessage("The Firm.m4b", "Talearr: not an upgrade, same quality and no higher bitrate; kept the existing files"));
             trackedDownload.State = TrackedDownloadState.ImportBlocked;
             return trackedDownload;
         }
@@ -84,7 +84,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
         [Test]
         public void a_rejected_upgrade_pauses_upgrades_for_seven_days()
         {
-            _subject.RecordRejectedUpgrade(Firm(), "TaleArr: not an upgrade, same quality and no higher bitrate; kept the existing files", Item());
+            _subject.RecordRejectedUpgrade(Firm(), "Talearr: not an upgrade, same quality and no higher bitrate; kept the existing files", Item());
 
             var entry = _subject.GetActive(3401);
             Assert.Multiple(() =>
@@ -102,7 +102,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
         [Test]
         public void the_cooldown_survives_a_restart()
         {
-            _subject.RecordRejectedUpgrade(Firm(), "TaleArr: not an upgrade", Item());
+            _subject.RecordRejectedUpgrade(Firm(), "Talearr: not an upgrade", Item());
 
             var restarted = new TalearrUpgradeCooldownService(_folder.CreateDatabase(), _failed, null, LogManager.GetCurrentClassLogger()) { UtcNow = () => _now };
 
@@ -115,7 +115,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
             var spec = new TalearrUpgradeCooldownSpecification(_subject);
             Assert.That(spec.IsSatisfiedBy(Release(Firm()), null).Accepted, Is.True, "no pause yet");
 
-            _subject.RecordRejectedUpgrade(Firm(), "TaleArr: not an upgrade", Item());
+            _subject.RecordRejectedUpgrade(Firm(), "Talearr: not an upgrade", Item());
             var decision = spec.IsSatisfiedBy(Release(Firm()), null);
 
             Assert.Multiple(() =>
@@ -129,7 +129,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
         [Test]
         public void a_book_without_files_is_not_an_upgrade_and_is_not_paused()
         {
-            _subject.RecordRejectedUpgrade(Firm(), "TaleArr: not an upgrade", Item());
+            _subject.RecordRejectedUpgrade(Firm(), "Talearr: not an upgrade", Item());
 
             Assert.That(new TalearrUpgradeCooldownSpecification(_subject).IsSatisfiedBy(Release(Firm(withFiles: false)), null).Accepted, Is.True);
         }
@@ -138,7 +138,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
         public void the_rejected_download_is_blocklisted_without_a_new_search()
         {
             GrabbedBy("RssSync");
-            _subject.RecordRejectedUpgrade(Firm(), "TaleArr: not an upgrade, same quality and no higher bitrate; kept the existing files", Item());
+            _subject.RecordRejectedUpgrade(Firm(), "Talearr: not an upgrade, same quality and no higher bitrate; kept the existing files", Item());
 
             _subject.Handle(new BookImportIncompleteEvent(Blocked()));
 
@@ -153,7 +153,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
         public void other_blocked_downloads_and_user_grabs_are_left_alone()
         {
             GrabbedBy("InteractiveSearch", "dl-user");
-            _subject.RecordRejectedUpgrade(Firm(), "TaleArr: not an upgrade", Item("dl-user"));
+            _subject.RecordRejectedUpgrade(Firm(), "Talearr: not an upgrade", Item("dl-user"));
 
             _subject.Handle(new BookImportIncompleteEvent(Blocked("dl-user")));
             _subject.Handle(new BookImportIncompleteEvent(Blocked("dl-unrelated")));
@@ -169,7 +169,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
 
             // 1: an estimate-only "upgrade" is grabbed and the guard rejects it at import.
             Assert.That(spec.IsSatisfiedBy(Release(Firm()), null).Accepted, Is.True);
-            _subject.RecordRejectedUpgrade(Firm(), "TaleArr: not an upgrade", Item());
+            _subject.RecordRejectedUpgrade(Firm(), "Talearr: not an upgrade", Item());
             _subject.Handle(new BookImportIncompleteEvent(Blocked()));
 
             // 2: the next automatic search finds a similar release and does not grab it.
@@ -182,7 +182,7 @@ namespace Chaptarr.Core.Test.Talearr.QualityLadder
         {
             var subject = new TalearrUpgradeCooldownService(new BrokenDatabase(), _failed, null, LogManager.GetCurrentClassLogger());
 
-            subject.RecordRejectedUpgrade(Firm(), "TaleArr: not an upgrade", Item());
+            subject.RecordRejectedUpgrade(Firm(), "Talearr: not an upgrade", Item());
 
             Assert.That(subject.GetActive(3401), Is.Null);
             Assert.That(new TalearrUpgradeCooldownSpecification(subject).IsSatisfiedBy(Release(Firm()), null).Accepted, Is.True);

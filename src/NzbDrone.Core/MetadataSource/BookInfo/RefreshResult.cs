@@ -12,7 +12,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         public HttpStatusCode? HttpStatus { get; set; }
         public string Message { get; set; }
 
-        // TaleArr: the error came from a metadata server outage (circuit open or rate
+        // Talearr: the error came from a metadata server outage (circuit open or rate
         // limited), already logged once by TalearrMetadataOutageLog.
         public bool MetadataServerUnavailable { get; set; }
 

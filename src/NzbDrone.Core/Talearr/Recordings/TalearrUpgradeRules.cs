@@ -6,7 +6,7 @@ using NzbDrone.Core.Talearr.QualityLadder;
 
 namespace NzbDrone.Core.Talearr.Recordings
 {
-    // What TaleArr measured about one side of a replacement: the files already in the library for a
+    // What Talearr measured about one side of a replacement: the files already in the library for a
     // recording, or the files a download would put in their place. Null means unknown.
     public sealed class RecordingAudioFacts
     {
@@ -55,11 +55,11 @@ namespace NzbDrone.Core.Talearr.Recordings
         public string Reason { get; private set; }
 
         public static UpgradeVerdict Allow(string rule, string reason) => new UpgradeVerdict { Kind = UpgradeVerdictKind.Allow, Rule = rule, Reason = reason };
-        public static UpgradeVerdict Reject(string rule, string reason) => new UpgradeVerdict { Kind = UpgradeVerdictKind.Reject, Rule = rule, Reason = "TaleArr: " + reason };
-        public static UpgradeVerdict KeepBoth(string reason) => new UpgradeVerdict { Kind = UpgradeVerdictKind.KeepBoth, Rule = "keep-both", Reason = "TaleArr: " + reason };
+        public static UpgradeVerdict Reject(string rule, string reason) => new UpgradeVerdict { Kind = UpgradeVerdictKind.Reject, Rule = rule, Reason = "Talearr: " + reason };
+        public static UpgradeVerdict KeepBoth(string reason) => new UpgradeVerdict { Kind = UpgradeVerdictKind.KeepBoth, Rule = "keep-both", Reason = "Talearr: " + reason };
     }
 
-    // TaleArr: the recording-aware upgrade rules (docs/TALEARR_RECORDINGS_DESIGN.md, "Upgrade path").
+    // Talearr: the recording-aware upgrade rules (docs/TALEARR_RECORDINGS_DESIGN.md, "Upgrade path").
     // Pure decisions over measured facts; TalearrUpgradeGuard does the measuring. In order:
     //   1. same recording only: same abridged status, not longer by a whole abridgement, narrator
     //      not contradicting, and not shorter than the runtime tolerance;
@@ -223,7 +223,7 @@ namespace NzbDrone.Core.Talearr.Recordings
 
             if (profile.Quality < 0 || profile.Revision < 0)
             {
-                // Upstream's own checks decide lower quality and revisions; TaleArr adds nothing here.
+                // Upstream's own checks decide lower quality and revisions; Talearr adds nothing here.
                 return UpgradeVerdict.Allow(RuleUnknown, "left to the quality profile");
             }
 
@@ -241,7 +241,7 @@ namespace NzbDrone.Core.Talearr.Recordings
                 return UpgradeVerdict.Allow(RuleBetter, "one chaptered M4B replaces several files at the same bitrate");
             }
 
-            // TaleArr: quality ladder, e.g. 32 kbps mp3 files replaced by 64 kbps AAC of the same recording.
+            // Talearr: quality ladder, e.g. 32 kbps mp3 files replaced by 64 kbps AAC of the same recording.
             if (ladderUpgrades && existing.Codec != null && incoming.Codec != null && !sameCodec && gain > 0 &&
                 TalearrAudioLadder.IsClearUpgrade(Estimate(existing), Estimate(incoming), minimum))
             {

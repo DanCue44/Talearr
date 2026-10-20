@@ -3,7 +3,7 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Talearr.MissingSearch
 {
-    // TaleArr: how often the scheduled missing-books search runs.
+    // Talearr: how often the scheduled missing-books search runs.
     public enum MissingSearchSchedule
     {
         Off = 0,
@@ -11,7 +11,7 @@ namespace NzbDrone.Core.Talearr.MissingSearch
         Daily = 2
     }
 
-    // TaleArr: scheduled missing-books search. Readarr and Chaptarr search a book when it is added
+    // Talearr: scheduled missing-books search. Readarr and Chaptarr search a book when it is added
     // and afterwards only RSS catches new uploads, so a book requested before an indexer was added
     // is never found. Off by default. Stored as talearr.missingsearch.* rows in the Config table,
     // which Chaptarr ignores.

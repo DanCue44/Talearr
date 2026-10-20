@@ -10,7 +10,7 @@ using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.Organizer
 {
-    // TaleArr-only half of FileNameBuilder (kept apart so upstream merges stay small).
+    // Talearr-only half of FileNameBuilder (kept apart so upstream merges stay small).
     public partial class FileNameBuilder
     {
         // Copy-folder disambiguation (docs/TALEARR_RECORDINGS_DESIGN.md, "Folder collisions between
@@ -30,7 +30,7 @@ namespace NzbDrone.Core.Organizer
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: recordings unavailable, book folder left as the naming format gives it");
+                _logger.Debug(ex, "Talearr: recordings unavailable, book folder left as the naming format gives it");
                 return components;
             }
 
@@ -73,7 +73,7 @@ namespace NzbDrone.Core.Organizer
             var suffix = resolved.Substring(folder.Length);
             var result = components.ToList();
             result[^2] = CleanFolderName(result[^2] + suffix);
-            _logger.Debug("TaleArr: recording book row {0} shares its folder with another recording; using '{1}'", context.BookId, result[^2]);
+            _logger.Debug("Talearr: recording book row {0} shares its folder with another recording; using '{1}'", context.BookId, result[^2]);
             return result;
         }
 

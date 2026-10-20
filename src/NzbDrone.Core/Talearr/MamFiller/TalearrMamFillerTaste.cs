@@ -7,7 +7,7 @@ using NzbDrone.Core.Indexers.MyAnonaMouse;
 
 namespace NzbDrone.Core.Talearr.MamFiller
 {
-    // TaleArr: the household's taste for the freeleech seeding filler. Built once per run from the
+    // Talearr: the household's taste for the freeleech seeding filler. Built once per run from the
     // MAM indexer settings and the authors in the library.
     public class TalearrMamFillerTasteProfile
     {
@@ -22,7 +22,7 @@ namespace NzbDrone.Core.Talearr.MamFiller
         public bool HasPreferences => PreferredCategories.Count > 0 || ListedAuthors.Count > 0 || LibraryAuthors.Count > 0;
     }
 
-    // TaleArr: pure taste rules (category and author matching, MAM category ids). Category names
+    // Talearr: pure taste rules (category and author matching, MAM category ids). Category names
     // are matched by whole words, case-insensitively, so "True Crime" matches both
     // "Audiobooks - True Crime" and "Ebooks - True Crime" whatever MAM's ids are.
     public static class TalearrMamFillerTaste

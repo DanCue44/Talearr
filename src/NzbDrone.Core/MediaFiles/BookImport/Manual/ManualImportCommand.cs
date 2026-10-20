@@ -14,7 +14,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
         public ImportMode ImportMode { get; set; }
         public bool ReplaceExistingFiles { get; set; }
 
-        // TaleArr: optional, "hardlink" or "copy" for a copy-mode import; omitted means the
+        // Talearr: optional, "hardlink" or "copy" for a copy-mode import; omitted means the
         // "Use Hardlinks instead of Copy" setting decides. Additive, Chaptarr ignores it.
         public string TalearrTransfer { get; set; }
     }

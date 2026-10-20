@@ -9,7 +9,7 @@ import FormLabel from 'Components/Form/FormLabel';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import { inputTypes, kinds } from 'Helpers/Props';
 
-// TaleArr: grab policy settings. Stored by TaleArr only (Chaptarr ignores them).
+// Talearr: grab policy settings. Stored by Talearr only (Chaptarr ignores them).
 const abridgedPolicyOptions = [
   { key: 'unabridgedOnly', value: 'Unabridged only' },
   { key: 'abridgedOnly', value: 'Abridged only' },
@@ -22,7 +22,7 @@ function getAbridgedHelpText(value) {
     case 'preferUnabridged':
       return 'Abridged audiobook releases can be grabbed, but always rank below unabridged ones.';
     case 'abridgedOnly':
-      return 'Only abridged audiobook releases are grabbed. Before searching, TaleArr monitors an abridged edition of the book when one is known; releases marked unabridged are skipped, and unmarked ones too unless the monitored edition is abridged. Books with their own abridged setting (for example from AllSeerr) keep it.';
+      return 'Only abridged audiobook releases are grabbed. Before searching, Talearr monitors an abridged edition of the book when one is known; releases marked unabridged are skipped, and unmarked ones too unless the monitored edition is abridged. Books with their own abridged setting (for example from AllSeerr) keep it.';
     case 'any':
       return 'Abridged and unabridged audiobook releases are treated the same.';
     default:
@@ -51,7 +51,7 @@ function TalearrGrabPolicy(props) {
       {
         !isFetching && error &&
           <Alert kind={kinds.DANGER}>
-            {'Unable to load the TaleArr grab policy'}
+            {'Unable to load the Talearr grab policy'}
           </Alert>
       }
 
@@ -103,7 +103,7 @@ function TalearrGrabPolicy(props) {
                 name="maxAutomaticRetries"
                 min={1}
                 max={10}
-                helpText="Failed downloads per book within 7 days before TaleArr stops searching for a replacement automatically. Each step is written to History. Uses Automatic Redownload under Download Clients."
+                helpText="Failed downloads per book within 7 days before Talearr stops searching for a replacement automatically. Each step is written to History. Uses Automatic Redownload under Download Clients."
                 onChange={onInputChange}
                 {...settings.maxAutomaticRetries}
               />
@@ -115,7 +115,7 @@ function TalearrGrabPolicy(props) {
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="retryFailedGrabs"
-                helpText="When a release cannot be sent to the download client because the indexer is rate limited (429), returns a server error or times out, try the next release and then search the book again after 2, 10 and 30 minutes (up to the retry limit, waiting out Retry-After and indexer back-off). Steps are logged with a TaleArr: prefix."
+                helpText="When a release cannot be sent to the download client because the indexer is rate limited (429), returns a server error or times out, try the next release and then search the book again after 2, 10 and 30 minutes (up to the retry limit, waiting out Retry-After and indexer back-off). Steps are logged with a Talearr: prefix."
                 onChange={onInputChange}
                 {...settings.retryFailedGrabs}
               />

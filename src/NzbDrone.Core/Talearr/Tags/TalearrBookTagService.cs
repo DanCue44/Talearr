@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Talearr.Tags
         Dictionary<int, List<int>> Apply(IEnumerable<int> bookIds, IEnumerable<int> tagIds, TalearrTagApplyMode mode);
     }
 
-    // TaleArr: book level tags. The labels are Chaptarr's own tags (Settings > Tags), so one tag
+    // Talearr: book level tags. The labels are Chaptarr's own tags (Settings > Tags), so one tag
     // can mark authors and books; only the book links live in talearr.db.
     public class TalearrBookTagService : ITalearrBookTagService,
         IHandle<BookDeletedEvent>,
@@ -71,7 +71,7 @@ namespace NzbDrone.Core.Talearr.Tags
                 return ids.ToDictionary(id => id, id => current.TryGetValue(id, out var tags) ? tags : new List<int>());
             }
 
-            _logger.Debug("TaleArr: {0} tags on {1} book(s)", mode, ids.Count);
+            _logger.Debug("Talearr: {0} tags on {1} book(s)", mode, ids.Count);
             return result;
         }
 

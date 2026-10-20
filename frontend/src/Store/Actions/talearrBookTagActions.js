@@ -3,7 +3,7 @@ import createAjaxRequest from 'Utilities/createAjaxRequest';
 import { set } from './baseActions';
 import createHandleActions from './Creators/createHandleActions';
 
-// TaleArr: book tags. Chaptarr tags authors only; the book links come from
+// Talearr: book tags. Chaptarr tags authors only; the book links come from
 // /talearr/booktags (talearr.db) and are merged into books by bookId for display and filters.
 
 //

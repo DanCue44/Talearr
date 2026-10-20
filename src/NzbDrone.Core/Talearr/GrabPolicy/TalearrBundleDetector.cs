@@ -10,7 +10,7 @@ using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.Talearr.GrabPolicy
 {
-    // TaleArr: extra bundle and omnibus detection on top of ReleasePackDetector. Called from
+    // Talearr: extra bundle and omnibus detection on top of ReleasePackDetector. Called from
     // ReleasePackDetector.Detect when the upstream patterns found nothing. Catches the
     // releases that slipped through on a real library:
     //   "1984 - The Complete Novels - George Orwell"
@@ -86,7 +86,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             return BundlePatterns.Any(pattern => pattern.Regex.IsMatch(title));
         }
 
-        // TaleArr: true when the release title names the book ("The Poppy War Box Set (Books 1-3)"
+        // Talearr: true when the release title names the book ("The Poppy War Box Set (Books 1-3)"
         // names "The Poppy War"). Titles shorter than three characters never count: they appear
         // inside too many unrelated release names.
         public static bool ReleaseMentionsTitle(string releaseTitle, string bookTitle)
@@ -103,7 +103,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 return false;
             }
 
-            // TaleArr: "All-in-One Bundle" does not name the book "All In". The title must appear
+            // Talearr: "All-in-One Bundle" does not name the book "All In". The title must appear
             // at least once outside a hyphenated compound, unless the release uses hyphens as its
             // only word separator ("Poppy-War-Box-Set").
             if (!HasHyphenCompound(releaseTitle))

@@ -16,7 +16,7 @@ function formatTime(value) {
   return Number.isNaN(date.getTime()) ? 'never' : date.toLocaleString();
 }
 
-// TaleArr: library sync status of a saved Audiobookshelf connection, with "Sync now"
+// Talearr: library sync status of a saved Audiobookshelf connection, with "Sync now"
 // (docs/TALEARR_AUDIOBOOKSHELF.md). Shown under the library mappings.
 class TalearrAbsSyncStatus extends Component {
 
@@ -93,7 +93,7 @@ class TalearrAbsSyncStatus extends Component {
     if (!status.syncLibrary) {
       return (
         <Alert kind={kinds.INFO}>
-          {'TaleArr does not read this Audiobookshelf library (Sync Library is off, or the connection is incomplete).'}
+          {'Talearr does not read this Audiobookshelf library (Sync Library is off, or the connection is incomplete).'}
         </Alert>
       );
     }
@@ -102,11 +102,11 @@ class TalearrAbsSyncStatus extends Component {
       <div className={styles.container}>
         <div className={styles.text}>
           <div className={styles.title}>
-            {'TaleArr library sync'}
+            {'Talearr library sync'}
           </div>
 
           <div>
-            {`Last read: ${formatTime(status.lastSyncAt)}. ${status.itemCount} items, ${status.matchedCount} matched to books in TaleArr.`}
+            {`Last read: ${formatTime(status.lastSyncAt)}. ${status.itemCount} items, ${status.matchedCount} matched to books in Talearr.`}
             {status.skipOwned ? ' Books already there are not grabbed.' : ' Grabs are not affected.'}
           </div>
 

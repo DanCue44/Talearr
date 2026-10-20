@@ -8,10 +8,10 @@ using NzbDrone.Core.ThingiProvider.Events;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // TaleArr: warns before MAM's unsatisfied-torrent limit is reached. The grab guard
+    // Talearr: warns before MAM's unsatisfied-torrent limit is reached. The grab guard
     // (MamUnsatisfiedSlotGuard) already stops grabs at the limit; this makes the pause visible
     // and warns early when protection is off. Re-runs after every account status refresh,
-    // which saves the indexer definition. English text on purpose (TaleArr-only).
+    // which saves the indexer definition. English text on purpose (Talearr-only).
     [CheckOn(typeof(ProviderUpdatedEvent<IIndexer>))]
     [CheckOn(typeof(ProviderDeletedEvent<IIndexer>))]
     public class TalearrMyAnonaMouseUnsatisfiedCheck : HealthCheckBase

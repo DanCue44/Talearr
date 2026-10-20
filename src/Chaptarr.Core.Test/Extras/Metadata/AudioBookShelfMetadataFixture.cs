@@ -104,7 +104,7 @@ namespace Chaptarr.Core.Test.Extras.Metadata
 
             Assert.Multiple(() =>
             {
-                // TaleArr: the title is the book's own (like the folder), not the edition's store listing.
+                // Talearr: the title is the book's own (like the folder), not the edition's store listing.
                 Assert.That((string)json["title"], Is.EqualTo("Canonical Work Title"));
                 Assert.That((string)json["subtitle"], Is.EqualTo("Matched Edition Subtitle"));
                 Assert.That((string)json["publisher"], Is.EqualTo("Edition Publisher"));
@@ -194,7 +194,7 @@ namespace Chaptarr.Core.Test.Extras.Metadata
             });
         }
 
-        // TaleArr: the book's cover is a candidate when the matched edition has none (upstream wrote nothing).
+        // Talearr: the book's cover is a candidate when the matched edition has none (upstream wrote nothing).
         [Test]
         public void should_write_cover_sidecar_from_book_cover_without_matched_edition_cover()
         {
@@ -217,7 +217,7 @@ namespace Chaptarr.Core.Test.Extras.Metadata
             });
         }
 
-        // TaleArr: the 1984 import of 2026-10-16 (book 5002, edition 39500).
+        // Talearr: the 1984 import of 2026-10-16 (book 5002, edition 39500).
         [Test]
         public void should_write_book_title_and_clean_narrator_for_store_listing_edition()
         {

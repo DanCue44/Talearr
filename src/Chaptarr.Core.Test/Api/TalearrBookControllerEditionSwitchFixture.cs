@@ -21,8 +21,8 @@ using NzbDrone.SignalR;
 
 namespace Chaptarr.Core.Test.Api
 {
-    // TaleArr: PUT /api/v1/book/{id} on a book with several monitored editions (book 3768 on the
-    // TaleArr test server had seven) used to throw "Sequence contains more than one matching element"
+    // Talearr: PUT /api/v1/book/{id} on a book with several monitored editions (book 3768 on the
+    // Talearr test server had seven) used to throw "Sequence contains more than one matching element"
     // and return a 500, so the monitored edition could not be changed.
     [TestFixture]
     public class TalearrBookControllerEditionSwitchFixture

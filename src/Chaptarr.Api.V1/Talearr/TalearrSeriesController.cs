@@ -41,7 +41,7 @@ namespace Chaptarr.Api.V1.Talearr
         public List<TalearrSeriesEntry> Entries { get; set; }
     }
 
-    // TaleArr: series monitoring under /api/v1/talearr/series (docs/TALEARR_SERIES.md). New routes
+    // Talearr: series monitoring under /api/v1/talearr/series (docs/TALEARR_SERIES.md). New routes
     // only; upstream's /api/v1/series is unchanged.
     [V1ApiController("talearr/series")]
     public class TalearrSeriesController : Controller

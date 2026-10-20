@@ -271,7 +271,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
                 // Set basic metadata if available
                 Author = authorInfo,
-                // TaleArr: Newznab categories like Prowlarr reports for MAM (3030 audiobook, 7020 ebook,
+                // Talearr: Newznab categories like Prowlarr reports for MAM (3030 audiobook, 7020 ebook,
                 // site category as 100000 + id), so category-based format and media type checks work.
                 Categories = ToNewznabCategories(mainCategory, categoryId),
                 CommentUrl = commentCount > 0 ? $"{_settings.BaseUrl.TrimEnd('/')}/t/{id}#comments" : null,
@@ -564,7 +564,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
         }
 
-        // TaleArr: MAM main categories: 13 AudioBooks, 14 E-Books, 15 Musicology, 16 Radio.
+        // Talearr: MAM main categories: 13 AudioBooks, 14 E-Books, 15 Musicology, 16 Radio.
         public static List<int> ToNewznabCategories(int? mainCategory, int? categoryId)
         {
             var categories = new List<int>();

@@ -1,9 +1,9 @@
 namespace Chaptarr.Core.Test.Talearr.Audiobookshelf
 {
     // Recorded-shape fixtures for the Audiobookshelf 2.x API (GET /api/libraries and
-    // GET /api/libraries/{id}/items?minified=1), trimmed to the fields TaleArr reads plus a few it
+    // GET /api/libraries/{id}/items?minified=1), trimmed to the fields Talearr reads plus a few it
     // ignores. The layout follows a real Unraid setup: Audiobookshelf mounts the ebooks at /books
-    // while TaleArr mounts the same share at /ebooks; audiobooks are /audiobooks on both. Titles
+    // while Talearr mounts the same share at /ebooks; audiobooks are /audiobooks on both. Titles
     // are public books; ids, paths and keys are made up.
     public static class AbsFixtures
     {

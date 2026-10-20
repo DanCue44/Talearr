@@ -35,7 +35,7 @@ function kindleForm(settings) {
   };
 }
 
-// TaleArr: Send to Kindle. Stored as talearr.kindle.* Config rows through
+// Talearr: Send to Kindle. Stored as talearr.kindle.* Config rows through
 // /api/v1/config/talearrkindle (Chaptarr ignores them). The password comes back masked.
 class TalearrKindle extends Component {
 

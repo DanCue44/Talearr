@@ -9,7 +9,7 @@ namespace Chaptarr.Api.V1.Talearr
         public string Message { get; set; }
     }
 
-    // TaleArr: merge duplicate authors or book rows. New routes only.
+    // Talearr: merge duplicate authors or book rows. New routes only.
     //   GET  /api/v1/talearr/merge/candidates                      possible duplicates
     //   POST /api/v1/talearr/merge/authors {"targetId": 1, "sourceIds": [2], "dryRun": true}
     //   POST /api/v1/talearr/merge/books   {"targetId": 10, "sourceIds": [11], "dryRun": true, "force": false}

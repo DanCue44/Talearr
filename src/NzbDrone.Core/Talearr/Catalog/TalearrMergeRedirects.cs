@@ -7,7 +7,7 @@ using NzbDrone.Core.Books;
 namespace NzbDrone.Core.Talearr.Catalog
 {
     /// <summary>
-    /// TaleArr: keeps merged duplicates merged across author refreshes.
+    /// Talearr: keeps merged duplicates merged across author refreshes.
     ///
     /// When the merge tool folds book row B into row A and the two rows had different provider
     /// ids, the metadata server can keep returning B's id. Without help the next refresh finds no

@@ -4,7 +4,7 @@ using NLog;
 
 namespace NzbDrone.Core.MetadataSource
 {
-    // TaleArr: one log line per metadata server outage instead of one (with a stack trace)
+    // Talearr: one log line per metadata server outage instead of one (with a stack trace)
     // per author. While the metadata server circuit is open, a library refresh would
     // otherwise write an error for every author it skips. The first skipped item of an
     // outage is logged as a warning that says existing data is kept; the rest go to debug.

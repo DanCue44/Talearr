@@ -9,7 +9,7 @@ using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Config
 {
-    // TaleArr: reader hand-off settings (copy imported ebooks to a watch folder). A new route;
+    // Talearr: reader hand-off settings (copy imported ebooks to a watch folder). A new route;
     // no existing route or field changes. Stored as talearr.readerhandoff.* Config rows.
     public class TalearrReaderHandoffConfigResource : RestResource
     {

@@ -30,7 +30,7 @@ function createMapStateToProps() {
         isSearchingForCutoffUnmetBooks,
         isSaving: cutoffUnmet.items.filter((m) => m.isSaving).length > 1,
         ...cutoffUnmet,
-        // TaleArr: custom filters for this page.
+        // Talearr: custom filters for this page.
         customFilters
       };
     }

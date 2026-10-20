@@ -7,7 +7,7 @@ using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Config
 {
-    // TaleArr: OPDS catalog settings. A new route; no existing route or field changes. Stored as
+    // Talearr: OPDS catalog settings. A new route; no existing route or field changes. Stored as
     // talearr.opds.* Config rows.
     public class TalearrOpdsConfigResource : RestResource
     {

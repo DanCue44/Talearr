@@ -19,7 +19,7 @@ using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace Chaptarr.Core.Test.Talearr.GrabPolicy
 {
-    // TaleArr: bundles as a last resort. A box set is grabbed only when a search found no single
+    // Talearr: bundles as a last resort. A box set is grabbed only when a search found no single
     // copy of the wanted book, and never from RSS.
     [TestFixture]
     public class BundleFallbackFixture

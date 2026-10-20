@@ -17,7 +17,7 @@ using NzbDrone.Core.Talearr.Recordings;
 namespace Chaptarr.Core.Test.Talearr.Recordings
 {
     // Pins the upstream Chaptarr behaviour the recordings feature is built on, so an upstream merge
-    // that changes it fails CI instead of quietly breaking recordings. TaleArr does not fork any of
+    // that changes it fails CI instead of quietly breaking recordings. Talearr does not fork any of
     // this code (docs/TALEARR_RECORDINGS_DESIGN.md, "Upstream merges"). If one of these fails after
     // a merge, read the upstream change and adapt TalearrRecordingsService before relaxing the test.
     [TestFixture]
@@ -174,7 +174,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             }
         }
 
-        // --- TaleArr Phase 1 code that must leave copies alone ---
+        // --- Talearr Phase 1 code that must leave copies alone ---
 
         [Test]
         public void catalog_dedupe_never_folds_a_copy_row()

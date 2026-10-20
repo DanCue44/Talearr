@@ -34,7 +34,7 @@ namespace Chaptarr.Api.V1.Talearr
         // path | asin | isbn | title
         public string MatchedBy { get; set; }
 
-        // True when the item is TaleArr's own import.
+        // True when the item is Talearr's own import.
         public bool ManagedByTalearr { get; set; }
         public string Url { get; set; }
     }
@@ -62,7 +62,7 @@ namespace Chaptarr.Api.V1.Talearr
         public int MatchedCount { get; set; }
     }
 
-    // TaleArr: Audiobookshelf library awareness under /api/v1/talearr/audiobookshelf. New routes
+    // Talearr: Audiobookshelf library awareness under /api/v1/talearr/audiobookshelf. New routes
     // only; nothing upstream changes.
     [V1ApiController("talearr/audiobookshelf")]
     public class TalearrAudiobookshelfController : Controller

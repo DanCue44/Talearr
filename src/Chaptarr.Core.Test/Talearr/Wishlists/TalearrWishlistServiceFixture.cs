@@ -201,7 +201,7 @@ namespace Chaptarr.Core.Test.Talearr.Wishlists
             Assert.That(config.AudiobookBooksToSearch, Is.EqualTo(new[] { "gr:54493401" }));
             Assert.That(config.AudiobookRootFolderPath, Is.EqualTo("/audiobooks"));
             Assert.That(config.AudiobookQualityProfileId, Is.EqualTo(2));
-            Assert.That(config.RequestedBy, Is.EqualTo("TaleArr wishlist: StoryGraph"));
+            Assert.That(config.RequestedBy, Is.EqualTo("Talearr wishlist: StoryGraph"));
             Assert.That(_pushed.OfType<ProcessPendingImportsCommand>().Count(), Is.EqualTo(1));
             Assert.That(result.Queued, Is.EqualTo(1));
             Assert.That(result.NoMatch, Is.EqualTo(1));

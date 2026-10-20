@@ -1,9 +1,9 @@
-name: TaleArr CI
+name: Talearr CI
 
-# Builds and tests the TaleArr fork on a self-hosted runner on the Unraid
+# Builds and tests the Talearr fork on a self-hosted runner on the Unraid
 # server, inside a .NET SDK job container (the runner image has no toolchains).
 # This is the check to watch after merging upstream Chaptarr changes: it fails
-# if the merge broke the build, the unit tests, or the TaleArr rebrand
+# if the merge broke the build, the unit tests, or the Talearr rebrand
 # (build-tools/talearr_brand_check.py).
 on:
   push:
@@ -48,7 +48,7 @@ jobs:
             exit 1
           fi
 
-      - name: Guard - TaleArr rebrand intact
+      - name: Guard - Talearr rebrand intact
         run: python3 build-tools/talearr_brand_check.py
 
       - name: Versions

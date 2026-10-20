@@ -1,6 +1,6 @@
-# TaleArr wishlists
+# Talearr wishlists
 
-Settings > Import Lists > **Wishlists** adds the books on a wishlist to TaleArr, monitoring only
+Settings > Import Lists > **Wishlists** adds the books on a wishlist to Talearr, monitoring only
 those books, in the formats you choose.
 
 ## What upstream already has
@@ -18,7 +18,7 @@ Wishlists fill the gaps:
 | Source | How |
 |---|---|
 | **StoryGraph to-read** | StoryGraph has no public API. Export the library (Manage account > Export StoryGraph library) and upload the CSV, or keep the file on the server and point the wishlist at it. Rows with Read Status `to-read` are taken. |
-| **Audible wishlist** | Audible has no official API for wishlists, and the unofficial one needs your Amazon login and a registered device, which TaleArr does not handle. Export the wishlist with [audible-cli](https://github.com/mkb79/audible-cli) (`audible wishlist export --format csv`) and upload it; every row counts and the ASIN is used for matching. |
+| **Audible wishlist** | Audible has no official API for wishlists, and the unofficial one needs your Amazon login and a registered device, which Talearr does not handle. Export the wishlist with [audible-cli](https://github.com/mkb79/audible-cli) (`audible wishlist export --format csv`) and upload it; every row counts and the ASIN is used for matching. |
 | **Hardcover lists** | Any of your other Hardcover lists by URL (`https://hardcover.app/@you/lists/name`), read with the Hardcover API token from Settings > Metadata. |
 | **Goodreads export** | The full "My Books" CSV export (My Books > Import and export), for libraries too big for the shelf RSS. Rows on the `to-read` exclusive shelf are taken. |
 | **Any CSV** | A file with a `title` column and optional `author`/`authors`, `isbn`/`isbn13`, `asin` and `status` columns; comma, semicolon or tab separated. |
@@ -55,7 +55,7 @@ place is picked up.
 - Each wishlist is one row in the existing `Config` table, key `talearr.wishlist.<id>`, holding
   JSON: the source, formats, options, last sync and result, and which rows it has acted on.
 - An uploaded CSV is kept as `<config folder>/talearr-wishlists/<id>.csv`.
-- The Sync Wishlists task is a `ScheduledTasks` row like TaleArr's other tasks.
+- The Sync Wishlists task is a `ScheduledTasks` row like Talearr's other tasks.
 
 No schema change, no migrations, `config.xml` untouched, and no new import list provider:
 stock Chaptarr deletes provider rows whose implementation it does not know, so wishlists are not

@@ -165,7 +165,7 @@ namespace NzbDrone.Core.Notifications.Slack
             _proxy.SendPayload(payload, Settings);
         }
 
-        // TaleArr: Sonarr/Radarr "Health Restored".
+        // Talearr: Sonarr/Radarr "Health Restored".
         public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
         {
             var attachments = new List<Attachment>
@@ -262,7 +262,7 @@ namespace NzbDrone.Core.Notifications.Slack
         {
             try
             {
-                var message = $"Test message from TaleArr posted at {DateTime.Now}";
+                var message = $"Test message from Talearr posted at {DateTime.Now}";
                 var payload = CreatePayload(message);
 
                 _proxy.SendPayload(payload, Settings);

@@ -214,7 +214,7 @@ namespace NzbDrone.Core.Download
 
                 if (importResults.Any(c => c.Result != ImportResultType.Imported))
                 {
-                    // TaleArr: the files are in a language nobody asked for (the file itself says so,
+                    // Talearr: the files are in a language nobody asked for (the file itself says so,
                     // or the release name does when the file is silent). Block with only the language
                     // reason so ImportRejectionClassifier recognises it and the grab policy fails the
                     // download (blocklist, retry cap, user-grab exemption) the same way as other bad
@@ -292,7 +292,7 @@ namespace NzbDrone.Core.Download
         }
 
         /// <summary>
-        /// TaleArr: true when nothing imported and every file considered was refused by the
+        /// Talearr: true when nothing imported and every file considered was refused by the
         /// downloaded-file language check (files refused only by the quality-profile gate may sit
         /// beside them). The category is the signal, never the message text.
         /// </summary>
@@ -444,7 +444,7 @@ namespace NzbDrone.Core.Download
                 ? strictExpectedBookIds.All(importedBookIds.Contains) && importedBookIds.All(strictExpectedBookIds.Contains)
                 : importedBookIds.Count >= Math.Max(1, expectedBooks.Count);
 
-            // TaleArr: a bundle succeeds once every grabbed book imported; other wanted books
+            // Talearr: a bundle succeeds once every grabbed book imported; other wanted books
             // imported from it are a bonus, not a mismatch.
             if (!allItemsImported && trackedDownload.RemoteBook?.IsBundle == true)
             {

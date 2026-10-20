@@ -9,10 +9,10 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Indexers.MyAnonaMouse
 {
-    // TaleArr: bonus points auto-spend for the native MyAnonaMouse indexer. MAM lists the Bonus
+    // Talearr: bonus points auto-spend for the native MyAnonaMouse indexer. MAM lists the Bonus
     // Points Store (json/bonusBuy.php) as allowed automation, with five spend types: VIP, upload,
     // wedges, gift and sendWedge. gift and sendWedge may not be automated, so they are not part of
-    // this enum and nothing in TaleArr can build a request for them. The Millionaire's Vault may
+    // this enum and nothing in Talearr can build a request for them. The Millionaire's Vault may
     // not be automated either and is never called.
     public enum MyAnonaMouseBonusSpendType
     {
@@ -79,7 +79,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
     {
         public const string EndpointPath = "/json/bonusBuy.php";
 
-        // Every spendtype value TaleArr can send. gift and sendWedge are deliberately absent.
+        // Every spendtype value Talearr can send. gift and sendWedge are deliberately absent.
         public static readonly IReadOnlyList<string> AllowedSpendTypes = new[] { "VIP", "upload", "wedges" };
 
         public static string SpendTypeValue(MyAnonaMouseBonusSpendType type)
@@ -258,7 +258,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         }
     }
 
-    // TaleArr: optional jsonLoad.php fields read for auto-spend. Every one may be missing or oddly
+    // Talearr: optional jsonLoad.php fields read for auto-spend. Every one may be missing or oddly
     // typed; a value that cannot be read is null and never fails the account refresh.
     public class MyAnonaMouseAccountExtras
     {
@@ -401,7 +401,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         public List<string> Skipped { get; } = new List<string>();
     }
 
-    // TaleArr: the auto-spend decision, kept pure so it is tested without MAM. One purchase at most
+    // Talearr: the auto-spend decision, kept pure so it is tested without MAM. One purchase at most
     // per run, in this order: ratio safety net (account health), VIP, wedges.
     public static class MyAnonaMouseBonusSpendRules
     {
@@ -412,7 +412,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         public const int PointsPerGiB = 500;
         public const int MinimumUploadGiB = 50;
 
-        // TaleArr: default of Bonus Retry After Refusal (RetryAfterFailure).
+        // Talearr: default of Bonus Retry After Refusal (RetryAfterFailure).
         public static readonly TimeSpan FailureBackoff = TimeSpan.FromHours(24);
         public static readonly TimeSpan CapWindow = TimeSpan.FromHours(24);
 
@@ -438,7 +438,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             return VipBuyerClasses.Any(c => string.Equals(c, userClass?.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
-        // TaleArr: back-off after a refused purchase, from Bonus Retry After Refusal (was a fixed
+        // Talearr: back-off after a refused purchase, from Bonus Retry After Refusal (was a fixed
         // 24 hours).
         public static TimeSpan RetryAfterFailure(MyAnonaMouseSettings settings)
         {

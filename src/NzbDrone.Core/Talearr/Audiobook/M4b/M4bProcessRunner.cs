@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
         public bool Succeeded => !TimedOut && ExitCode == 0;
     }
 
-    // TaleArr: runs ffmpeg/ffprobe with an argument list (no shell, no quoting), streams stdout
+    // Talearr: runs ffmpeg/ffprobe with an argument list (no shell, no quoting), streams stdout
     // lines to a callback for progress and kills the process on timeout or cancellation.
     public interface IM4bProcessRunner
     {

@@ -7,8 +7,8 @@ import TagsModalContent from 'Author/Editor/Tags/TagsModalContent';
 import Modal from 'Components/Modal/Modal';
 import createTagsSelector from 'Store/Selectors/createTagsSelector';
 
-// TaleArr: bulk book tags for the book index editor. Reuses the author editor's tags modal;
-// the current tags come from the TaleArr book tags store.
+// Talearr: bulk book tags for the book index editor. Reuses the author editor's tags modal;
+// the current tags come from the Talearr book tags store.
 function createMapStateToProps() {
   return createSelector(
     (state, { bookIds }) => bookIds,

@@ -14,7 +14,7 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import { describeRecording } from './recordingFormat';
 
-// TaleArr: manual "Remove this recording". Only an additional recording can be removed; the
+// Talearr: manual "Remove this recording". Only an additional recording can be removed; the
 // primary recording is the book itself, so the modal refuses it and points at Delete instead.
 class RemoveRecordingModal extends Component {
 
@@ -83,11 +83,11 @@ class RemoveRecordingModal extends Component {
                   {
                     isPrimary ?
                       <Alert kind={kinds.WARNING}>
-                        {'This is the primary recording, the book itself. TaleArr only removes additional recordings. To remove the primary recording, delete the book with Delete in the toolbar.'}
+                        {'This is the primary recording, the book itself. Talearr only removes additional recordings. To remove the primary recording, delete the book with Delete in the toolbar.'}
                       </Alert> :
                       <div>
                         <p>
-                          {'The other recordings of this book are kept. TaleArr never removes a recording on its own; this only happens when you confirm here.'}
+                          {'The other recordings of this book are kept. Talearr never removes a recording on its own; this only happens when you confirm here.'}
                         </p>
 
                         <FormGroup>

@@ -59,10 +59,10 @@ class PageHeader extends Component {
             <img
               className={styles.logo}
               src={`${window.Chaptarr.urlBase}/Content/Images/talearr-icon.png`}
-              alt="TaleArr Logo"
+              alt="Talearr Logo"
             />
             <span className={styles.wordmark}>
-              {'Tale'}<span className={styles.wordmarkAccent}>{'Arr'}</span>
+              {'Tale'}<span className={styles.wordmarkAccent}>{'arr'}</span>
             </span>
           </Link>
         </div>

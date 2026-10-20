@@ -5,7 +5,7 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
-    // TaleArr: MAM "Freeleech Only". Rejects MAM releases that are not global, personal or VIP
+    // Talearr: MAM "Freeleech Only". Rejects MAM releases that are not global, personal or VIP
     // freeleech for this user. Off by default; applies to native and Prowlarr MAM results.
     public class MyAnonaMouseFreeleechOnlySpecification : IDecisionEngineSpecification
     {

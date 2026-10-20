@@ -16,7 +16,7 @@ namespace Chaptarr.Api.V1.Search
         public BookResource Book { get; set; }
         public SeriesResource Series { get; set; }
 
-        // TaleArr: "Open Library" when the result came from the metadata fallback and the
+        // Talearr: "Open Library" when the result came from the metadata fallback and the
         // fallback setting asks to show the source; otherwise not sent. Additive only.
         public string MetadataSource { get; set; }
     }

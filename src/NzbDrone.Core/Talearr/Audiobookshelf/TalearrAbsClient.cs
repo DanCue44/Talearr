@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
         List<AbsLibraryItem> GetLibraryItems(AudioBookShelfSettings settings, string libraryId);
     }
 
-    // TaleArr: reads an Audiobookshelf library. Only GET requests, with the connection's own API
+    // Talearr: reads an Audiobookshelf library. Only GET requests, with the connection's own API
     // key; nothing is written to Audiobookshelf (scans after import stay upstream's job).
     public class TalearrAbsClient : ITalearrAbsClient
     {
@@ -65,11 +65,11 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                 }
             }
 
-            _logger.Debug("TaleArr: read {0} items from Audiobookshelf library {1}", items.Count, libraryId);
+            _logger.Debug("Talearr: read {0} items from Audiobookshelf library {1}", items.Count, libraryId);
             return items;
         }
 
-        // The Test button: with Sync Library on, check that each library TaleArr would read lets
+        // The Test button: with Sync Library on, check that each library Talearr would read lets
         // this API key list its items (one item per library, GET only). Null when all is well.
         public static ValidationFailure TestLibraryRead(IHttpClient httpClient, AudioBookShelfSettings settings)
         {
@@ -82,7 +82,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
             {
                 var librariesRequest = new HttpRequestBuilder(BuildBaseUrl(settings)).Resource("/api/libraries").Build();
                 librariesRequest.RequestTimeout = RequestTimeout;
-                librariesRequest.Headers.Add("User-Agent", "TaleArr");
+                librariesRequest.Headers.Add("User-Agent", "Talearr");
                 librariesRequest.Headers.Add("Authorization", $"Bearer {settings.ApiKey}");
 
                 var librariesResponse = httpClient.Execute(librariesRequest);
@@ -97,7 +97,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
 
                 if (selected.Count == 0)
                 {
-                    return new ValidationFailure(nameof(AudioBookShelfSettings.TalearrSyncLibrary), "TaleArr found no Audiobookshelf book library to read. Map a library below or turn off Sync Library");
+                    return new ValidationFailure(nameof(AudioBookShelfSettings.TalearrSyncLibrary), "Talearr found no Audiobookshelf book library to read. Map a library below or turn off Sync Library");
                 }
 
                 foreach (var library in selected)
@@ -106,7 +106,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                     var response = httpClient.Execute(request);
                     if (response.HasHttpError)
                     {
-                        return new ValidationFailure(nameof(AudioBookShelfSettings.TalearrSyncLibrary), $"TaleArr cannot read the items of Audiobookshelf library '{library.Name}' (status {(int)response.StatusCode}). The API key's user needs access to it");
+                        return new ValidationFailure(nameof(AudioBookShelfSettings.TalearrSyncLibrary), $"Talearr cannot read the items of Audiobookshelf library '{library.Name}' (status {(int)response.StatusCode}). The API key's user needs access to it");
                     }
                 }
 
@@ -114,11 +114,11 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
             }
             catch (HttpException ex)
             {
-                return new ValidationFailure(nameof(AudioBookShelfSettings.TalearrSyncLibrary), $"TaleArr cannot read the Audiobookshelf library (status {(int)ex.Response.StatusCode})");
+                return new ValidationFailure(nameof(AudioBookShelfSettings.TalearrSyncLibrary), $"Talearr cannot read the Audiobookshelf library (status {(int)ex.Response.StatusCode})");
             }
             catch (Exception ex)
             {
-                return new ValidationFailure(nameof(AudioBookShelfSettings.TalearrSyncLibrary), $"TaleArr cannot read the Audiobookshelf library: {ex.Message}");
+                return new ValidationFailure(nameof(AudioBookShelfSettings.TalearrSyncLibrary), $"Talearr cannot read the Audiobookshelf library: {ex.Message}");
             }
         }
 
@@ -150,7 +150,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
             var request = builder.Build();
 
             request.RequestTimeout = RequestTimeout;
-            request.Headers.Add("User-Agent", "TaleArr");
+            request.Headers.Add("User-Agent", "Talearr");
             request.Headers.Add("Authorization", $"Bearer {settings.ApiKey}");
 
             return request;
@@ -158,7 +158,7 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
     }
 
     // Audiobookshelf API shapes (2.x, GET /api/libraries/{id}/items?minified=1). Only the fields
-    // TaleArr reads; anything else in the response is ignored.
+    // Talearr reads; anything else in the response is ignored.
     public class AbsLibrariesResponse
     {
         public List<AudioBookShelfLibrary> Libraries { get; set; } = new List<AudioBookShelfLibrary>();

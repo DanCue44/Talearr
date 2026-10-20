@@ -11,7 +11,7 @@ using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.Talearr.MetadataFallback
 {
-    // TaleArr: maps Open Library JSON to the shapes the rest of TaleArr already understands.
+    // Talearr: maps Open Library JSON to the shapes the rest of Talearr already understands.
     //
     // Identity rules (see docs in TalearrMetadataFallbackService):
     // - Open Library ids are stored in the existing OpenLibrary* provider id columns with the

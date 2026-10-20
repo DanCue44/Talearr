@@ -29,7 +29,7 @@ function toForm(saved) {
   };
 }
 
-// TaleArr: audio quality ladder and ebook format preference on Settings > Profiles. Stored as
+// Talearr: audio quality ladder and ebook format preference on Settings > Profiles. Stored as
 // talearr.ladder.* rows in the Config table through /api/v1/config/talearrqualityladder.
 class TalearrQualityLadder extends Component {
 
@@ -123,7 +123,7 @@ class TalearrQualityLadder extends Component {
     return (
       <FieldSet legend={LEGEND}>
         <div className={styles.help}>
-          {'TaleArr ranks releases the quality profile ranks equal. Audio tiers: AAC at 64 kbps or more, MP3 at 128 kbps or more and lossless audio are good; under 32 kbps is very low. The bitrate is read from the release title or estimated from its size against the book\'s known runtime. The quality profile always decides first.'}
+          {'Talearr ranks releases the quality profile ranks equal. Audio tiers: AAC at 64 kbps or more, MP3 at 128 kbps or more and lossless audio are good; under 32 kbps is very low. The bitrate is read from the release title or estimated from its size against the book\'s known runtime. The quality profile always decides first.'}
         </div>
 
         <Form>

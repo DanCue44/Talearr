@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace NzbDrone.Core.Talearr.Audiobook
 {
-    // TaleArr: recognises the folder names audiobook rips use for discs and parts
+    // Talearr: recognises the folder names audiobook rips use for discs and parts
     // ("CD1", "CD 02", "Disc 1", "Disk_03", "Part 01", "Part One", "Part II", "Book 1 CD2",
     // "1984 - Disc 3 of 7") and returns the disc number. Used to order tracks of one book
     // and to keep same-named files from different discs apart on import.

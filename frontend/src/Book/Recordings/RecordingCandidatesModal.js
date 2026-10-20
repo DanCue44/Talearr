@@ -32,7 +32,7 @@ function abridgedKind(abridged) {
   return abridged === 'unabridged' ? kinds.SUCCESS : kinds.DISABLED;
 }
 
-// TaleArr: pick the edition (or narrator) for "Add another recording". Lists the work's
+// Talearr: pick the edition (or narrator) for "Add another recording". Lists the work's
 // audiobook editions that are not a recording yet, near-identical ones folded together.
 function RecordingCandidatesModal(props) {
   const {

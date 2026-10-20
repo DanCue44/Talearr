@@ -7,7 +7,7 @@ import { fetchTalearrGrabPolicy, saveTalearrGrabPolicy, setTalearrGrabPolicyValu
 import createSettingsSectionSelector from 'Store/Selectors/createSettingsSectionSelector';
 import TalearrGrabPolicy from './TalearrGrabPolicy';
 
-// TaleArr: grab policy section on Settings > Indexers.
+// Talearr: grab policy section on Settings > Indexers.
 const SECTION = 'talearrGrabPolicy';
 
 function createMapStateToProps() {

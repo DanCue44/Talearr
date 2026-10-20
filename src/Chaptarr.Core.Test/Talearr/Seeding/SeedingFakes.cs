@@ -11,7 +11,7 @@ using NzbDrone.Core.Talearr.Seeding;
 
 namespace Chaptarr.Core.Test.Talearr.Seeding
 {
-    // TaleArr: hand-written fakes for the seeding report. A method without a handler returns the
+    // Talearr: hand-written fakes for the seeding report. A method without a handler returns the
     // default value for its return type.
     public class SeedingFake<T> : DispatchProxy
         where T : class

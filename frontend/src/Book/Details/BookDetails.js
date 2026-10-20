@@ -127,7 +127,7 @@ class BookDetails extends Component {
       statistics = {}
     } = this.props;
 
-    // TaleArr: merging only makes sense for an audiobook made of several audio files.
+    // Talearr: merging only makes sense for an audiobook made of several audio files.
     const mergeableExtension = /\.(mp3|m4a|m4b)$/i;
     const audioFileCount = (bookFiles || []).filter((file) => (file.mediaType || 'audiobook') === 'audiobook' &&
       mergeableExtension.test(file.path || '')).length;
@@ -290,7 +290,7 @@ class BookDetails extends Component {
             }
 
             {
-              // TaleArr: recordings of this audiobook (narrators, abridged, add and remove copies).
+              // Talearr: recordings of this audiobook (narrators, abridged, add and remove copies).
               mediaType !== 'ebook' &&
                 <BookRecordings
                   bookId={id}
@@ -299,7 +299,7 @@ class BookDetails extends Component {
             }
 
             {
-              // TaleArr: opt-in Soulseek search and grab through slskd (hidden unless turned on).
+              // Talearr: opt-in Soulseek search and grab through slskd (hidden unless turned on).
               <BookSoulseek bookId={id} />
             }
 

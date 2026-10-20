@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Talearr.Import
         public List<string> Notes { get; set; } = new List<string>();
     }
 
-    // TaleArr: a visible confidence for each manual import match (Chaptarr #105). The matcher
+    // Talearr: a visible confidence for each manual import match (Chaptarr #105). The matcher
     // only says which book won, so a wrong match looked the same as a right one. This reads the
     // match's own evidence (provider ids, supporting and conflicting signals) and adds one cheap
     // independent check: does the matched title show up in the file's tags, file name or folder?

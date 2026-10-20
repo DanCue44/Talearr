@@ -74,7 +74,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         List<TalearrGrabRetryState> GetScheduled();
     }
 
-    // TaleArr: when sending a release to the download client fails for a transient reason (429
+    // Talearr: when sending a release to the download client fails for a transient reason (429
     // with or without Retry-After, 5xx, timeout), ProcessDownloadDecisions first tries the next
     // approved release of the same search (skipping other releases of an indexer that just said
     // 429), and when nothing could be sent this service searches the book again after 2, 10 and
@@ -88,7 +88,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                                            IHandle<ApplicationStartedEvent>,
                                            IHandle<ApplicationShutdownRequested>
     {
-        public const string LogPrefix = "TaleArr:";
+        public const string LogPrefix = "Talearr:";
 
         public static readonly TimeSpan[] Schedule =
         {
@@ -383,7 +383,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr grab re-search timer failed");
+                _logger.Debug(ex, "Talearr grab re-search timer failed");
             }
         }
 
@@ -430,7 +430,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                         state.DueUtc = now + QueueFullRetry;
                     }
 
-                    _logger.Debug(ex, "Unable to queue the TaleArr re-search for {0}, trying again in {1}", state.Title, QueueFullRetry);
+                    _logger.Debug(ex, "Unable to queue the Talearr re-search for {0}, trying again in {1}", state.Title, QueueFullRetry);
                     continue;
                 }
 

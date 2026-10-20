@@ -6,7 +6,7 @@ using NzbDrone.Core.Talearr.Migration;
 
 namespace Chaptarr.Api.V1.Talearr
 {
-    // TaleArr: migration from Readarr, Bookshelf or LazyLibrarian under /api/v1/talearr/migration
+    // Talearr: migration from Readarr, Bookshelf or LazyLibrarian under /api/v1/talearr/migration
     // (docs/TALEARR_MIGRATION.md). New routes only. Preview and apply run as a command; poll GET
     // for the state and the dry-run report.
     [V1ApiController("talearr/migration")]

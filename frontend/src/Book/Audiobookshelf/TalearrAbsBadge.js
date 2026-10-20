@@ -27,7 +27,7 @@ function formatDuration(seconds) {
 
 function describeMatch(item) {
   if (item.managedByTalearr) {
-    return 'imported by TaleArr';
+    return 'imported by Talearr';
   }
 
   switch (item.matchedBy) {
@@ -76,7 +76,7 @@ function describeItem(item) {
   return parts.join(', ');
 }
 
-// TaleArr: "In Audiobookshelf" on the book page (docs/TALEARR_AUDIOBOOKSHELF.md), linking to the
+// Talearr: "In Audiobookshelf" on the book page (docs/TALEARR_AUDIOBOOKSHELF.md), linking to the
 // Audiobookshelf item. Renders nothing when the book is not in Audiobookshelf or no
 // Audiobookshelf connection syncs its library.
 class TalearrAbsBadge extends Component {
@@ -145,7 +145,7 @@ class TalearrAbsBadge extends Component {
       inflight.delete(bookId);
     });
 
-    // A failure (older TaleArr, Chaptarr, no connection) shows nothing and is not cached.
+    // A failure (older Talearr, Chaptarr, no connection) shows nothing and is not cached.
   }
 
   //
@@ -224,7 +224,7 @@ class TalearrAbsBadge extends Component {
         {
           data.skipsGrabs &&
             <div className={styles.muted}>
-              {'TaleArr does not grab this book while it is in Audiobookshelf.'}
+              {'Talearr does not grab this book while it is in Audiobookshelf.'}
             </div>
         }
       </div>

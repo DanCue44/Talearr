@@ -11,8 +11,8 @@ using NzbDrone.Core.Profiles.Metadata;
 
 namespace Chaptarr.Core.Test.Books
 {
-    // TaleArr: Audible-only (az:) pockets are folded into the real work on add and refresh.
-    // Shapes come from the TaleArr test server: Animal Farm 5003 (hc:356467) vs 5064 (az:B002ZVK8HM),
+    // Talearr: Audible-only (az:) pockets are folded into the real work on add and refresh.
+    // Shapes come from the Talearr test server: Animal Farm 5003 (hc:356467) vs 5064 (az:B002ZVK8HM),
     // 1984 5002 (hc:379760) vs eight az: "1984" audiobook rows, and the Ryan Becker "True Crime Stories" books.
     [TestFixture]
     public class TalearrCatalogDedupeFixture

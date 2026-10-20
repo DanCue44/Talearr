@@ -10,7 +10,7 @@ import createCommandExecutingSelector from 'Store/Selectors/createCommandExecuti
 import createSettingsSectionSelector from 'Store/Selectors/createSettingsSectionSelector';
 import TalearrM4b from './TalearrM4b';
 
-// TaleArr: M4B merge section on Settings > Conversion.
+// Talearr: M4B merge section on Settings > Conversion.
 const SECTION = 'talearrM4b';
 
 function createMapStateToProps() {
@@ -81,7 +81,7 @@ class TalearrM4bConnector extends Component {
     this.props.dispatchSetTalearrM4bValue({ name, value });
   };
 
-  // TaleArr: merge every multi-file audiobook already in the library (manual only).
+  // Talearr: merge every multi-file audiobook already in the library (manual only).
   onConvertLibraryPress = () => {
     this.props.dispatchExecuteCommand({ name: commandNames.TALEARR_CONVERT_LIBRARY_TO_M4B });
   };

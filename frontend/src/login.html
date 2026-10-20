@@ -17,7 +17,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <meta name="description" content="TaleArr" />
+    <meta name="description" content="Talearr" />
 
     <link
       rel="apple-touch-icon"
@@ -55,10 +55,10 @@
     <!-- NOTE: The main UI uses a hashed stylesheet; the login page is intentionally self-styled to avoid hardcoding a build hash here. -->
     <link rel="stylesheet" type="text/css" href="/Content/Fonts/fonts.css" />
 
-    <title>Login - TaleArr</title>
+    <title>Login - Talearr</title>
 
     <style>
-      /* TaleArr sign-in: dark charcoal page, one dark card, orange accents. */
+      /* Talearr sign-in: dark charcoal page, one dark card, orange accents. */
       :root {
         color-scheme: dark;
 
@@ -149,7 +149,7 @@
         height: 88px;
       }
 
-      /* TaleArr wordmark: "Tale" plus "Arr" in the brand orange */
+      /* Talearr wordmark: "Tale" plus "arr" in the brand orange */
       .wordmark {
         margin-top: 10px;
         color: var(--text);
@@ -372,8 +372,8 @@
       <div class="content">
         <div class="panel">
           <div class="brand">
-            <img src="/Content/Images/talearr-icon.png" alt="TaleArr Logo" class="logo" />
-            <div class="wordmark">Tale<span class="wordmark-accent">Arr</span></div>
+            <img src="/Content/Images/talearr-icon.png" alt="Talearr Logo" class="logo" />
+            <div class="wordmark">Tale<span class="wordmark-accent">arr</span></div>
             <div class="sign-in">Sign in to continue</div>
           </div>
 
@@ -453,7 +453,7 @@
           <span>&copy;</span>
           <span id="year"></span>
           <span>-</span>
-          <span>TaleArr</span>
+          <span>Talearr</span>
         </div>
       </div>
     </div>
@@ -493,10 +493,10 @@
 
       if (ssoError === "oidc_discovery_unreachable") {
         message =
-          "SSO sign-in failed. TaleArr could not retrieve the OpenID Connect discovery document from your identity provider. Check DNS/proxy/firewall from the server/container. If you require a proxy, set TaleArr Proxy Mode to 'Proxy Everything'.";
+          "SSO sign-in failed. Talearr could not retrieve the OpenID Connect discovery document from your identity provider. Check DNS/proxy/firewall from the server/container. If you require a proxy, set Talearr Proxy Mode to 'Proxy Everything'.";
       } else if (ssoError === "oidc_backchannel_timeout") {
         message =
-          "SSO sign-in failed. TaleArr timed out while contacting your identity provider. Check DNS/proxy/firewall from the server/container. If you require a proxy, set TaleArr Proxy Mode to 'Proxy Everything'.";
+          "SSO sign-in failed. Talearr timed out while contacting your identity provider. Check DNS/proxy/firewall from the server/container. If you require a proxy, set Talearr Proxy Mode to 'Proxy Everything'.";
       } else if (ssoError === "missing_callback_parameters") {
         message =
           "SSO sign-in failed. The callback URL was reached without the expected parameters. Check your identity provider flow (Authorization Code) and reverse proxy settings.";

@@ -29,7 +29,7 @@ namespace NzbDrone.Core.Extras.Metadata
         private readonly IMediaFileAttributeService _mediaFileAttributeService;
         private readonly IMetadataFileService _metadataFileService;
         private readonly IBookService _bookService;
-        private readonly ITalearrSidecarCoverWriter _talearrCoverWriter; // TaleArr
+        private readonly ITalearrSidecarCoverWriter _talearrCoverWriter; // Talearr
         private readonly Logger _logger;
 
         public MetadataService(IConfigService configService,
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Extras.Metadata
             _mediaFileAttributeService = mediaFileAttributeService;
             _metadataFileService = metadataFileService;
             _bookService = bookService;
-            _talearrCoverWriter = talearrCoverWriter; // TaleArr
+            _talearrCoverWriter = talearrCoverWriter; // Talearr
             _logger = logger;
         }
 
@@ -419,7 +419,7 @@ namespace NzbDrone.Core.Extras.Metadata
             foreach (var image in consumer.BookImages(author, bookFile))
             {
                 var fullPath = Path.Combine(basePath, image.RelativePath);
-                var sourceHash = TalearrSidecarImage.SourceKeyOf(image).SHA256Hash(); // TaleArr: all candidates, not one URL
+                var sourceHash = TalearrSidecarImage.SourceKeyOf(image).SHA256Hash(); // Talearr: all candidates, not one URL
                 var existingMetadata = existingMetadataFiles.FirstOrDefault(c => c.Type == MetadataType.BookImage &&
                                                                                  c.BookId == bookFile.Edition.BookId &&
                                                                                  c.RelativePath == image.RelativePath);
@@ -451,7 +451,7 @@ namespace NzbDrone.Core.Extras.Metadata
                     }
                 }
 
-                // TaleArr: a cover sidecar is chosen by size from every candidate and never replaces a
+                // Talearr: a cover sidecar is chosen by size from every candidate and never replaces a
                 // larger cover (docs/TALEARR_AUDIOBOOKSHELF.md#sidecar-files).
                 TalearrCoverDecision talearrCover = null;
                 if (image is TalearrSidecarImage talearrImage && _talearrCoverWriter != null)
@@ -486,7 +486,7 @@ namespace NzbDrone.Core.Extras.Metadata
                                };
 
                 var written = talearrCover != null
-                    ? _talearrCoverWriter.Save(talearrCover, fullPath) // TaleArr
+                    ? _talearrCoverWriter.Save(talearrCover, fullPath) // Talearr
                     : DownloadImage(author, image, basePath, image.OverwriteExisting);
 
                 if (!written || !_diskProvider.FileExists(fullPath))

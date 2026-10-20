@@ -118,7 +118,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
                 return new List<ImageFileResult>();
             }
 
-            // TaleArr: every candidate image (edition, book, other editions of the same recording, and
+            // Talearr: every candidate image (edition, book, other editions of the same recording, and
             // their full-size forms); MetadataService picks the largest through TalearrSidecarCover.
             var candidates = TalearrSidecarCover.BuildCandidates(book, edition, GetOtherEditions(book, edition), IsEbook(bookFile));
             var first = candidates.FirstOrDefault();
@@ -221,7 +221,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
             var metadata = new Dictionary<string, object>();
             var releaseDate = edition.ReleaseDate ?? book.ReleaseDate;
 
-            // TaleArr: the book's title without format noise (like the folder), a subtitle only when it
+            // Talearr: the book's title without format noise (like the folder), a subtitle only when it
             // is a real one, names with their whitespace collapsed.
             var title = TalearrSidecarText.Title(book, edition);
             AddString(metadata, "title", title);
@@ -376,7 +376,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
 
         private static void AddStringArray(Dictionary<string, object> metadata, string key, IEnumerable<string> values)
         {
-            var cleaned = values == null ? null : TalearrSidecarText.Names(values); // TaleArr: "Samuel  West" -> "Samuel West"
+            var cleaned = values == null ? null : TalearrSidecarText.Names(values); // Talearr: "Samuel  West" -> "Samuel West"
 
             if (cleaned?.Count > 0)
             {

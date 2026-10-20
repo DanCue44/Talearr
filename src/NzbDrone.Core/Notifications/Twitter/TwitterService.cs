@@ -89,7 +89,7 @@ namespace NzbDrone.Core.Notifications.Twitter
         {
             try
             {
-                var body = "TaleArr: Test Message @ " + DateTime.Now;
+                var body = "Talearr: Test Message @ " + DateTime.Now;
 
                 SendNotification(body, settings);
             }

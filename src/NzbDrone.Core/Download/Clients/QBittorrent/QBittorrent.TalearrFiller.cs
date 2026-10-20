@@ -7,7 +7,7 @@ using NzbDrone.Core.Talearr.Seeding;
 
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
-    // TaleArr: the MAM freeleech seeding filler adds torrents here directly, in its own category,
+    // Talearr: the MAM freeleech seeding filler adds torrents here directly, in its own category,
     // so they never create grab history, tracked downloads or imports.
     public partial class QBittorrent : ITalearrMamFillerClient
     {
@@ -64,7 +64,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             Proxy.RemoveTorrent(hash.ToLowerInvariant(), true, Settings);
         }
 
-        // TaleArr: filler taste preferences. Completed once qBittorrent has the whole payload and is
+        // Talearr: filler taste preferences. Completed once qBittorrent has the whole payload and is
         // seeding (or stopped after seeding); the path is the torrent's own folder or file.
         public TalearrFillerDownload GetFillerDownload(string hash, string category)
         {

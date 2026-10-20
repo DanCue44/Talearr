@@ -15,7 +15,7 @@ using NzbDrone.Core.Talearr.Recordings;
 
 namespace Chaptarr.Core.Test.Talearr.Audiobookshelf
 {
-    // A small in-memory TaleArr library plus a real talearr.db, wired to the real TaleArr
+    // A small in-memory Talearr library plus a real talearr.db, wired to the real Talearr
     // Audiobookshelf services. Upstream services are faked by method name.
     internal sealed class AbsWorld : IDisposable
     {

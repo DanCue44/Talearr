@@ -98,7 +98,7 @@ namespace Chaptarr.Api.V1.Commands
                 Id = model.Id,
 
                 Name = model.Name,
-                CommandName = NzbDrone.Core.Talearr.Audiobook.M4b.TalearrConvertToM4bCommand.DisplayName(model.Name) ?? model.Name.SplitCamelCase(), // TaleArr
+                CommandName = NzbDrone.Core.Talearr.Audiobook.M4b.TalearrConvertToM4bCommand.DisplayName(model.Name) ?? model.Name.SplitCamelCase(), // Talearr
                 Message = model.Message,
                 Body = model.Body,
                 Priority = model.Priority,

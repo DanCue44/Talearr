@@ -16,7 +16,7 @@ const columns = [
   { name: 'state', label: 'What happens', isVisible: true }
 ];
 
-// TaleArr: rows of a wishlist with their match and what a sync does (or did) with them.
+// Talearr: rows of a wishlist with their match and what a sync does (or did) with them.
 function WishlistPreviewTable({ preview }) {
   const counts = preview.items.reduce((acc, item) => {
     acc[item.state] = (acc[item.state] || 0) + 1;

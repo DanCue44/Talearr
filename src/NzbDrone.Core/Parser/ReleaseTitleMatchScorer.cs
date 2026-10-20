@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Parser
         SuspiciousAdjacentNumber = 5,
         EmbeddedShortTitle = 6,
 
-        // TaleArr: loose title matching guards (see ReleaseTitleMatchScorer.Talearr.cs).
+        // Talearr: loose title matching guards (see ReleaseTitleMatchScorer.Talearr.cs).
         SeriesNameOnly = 7,
         SubtitleMismatch = 8,
         HyphenatedCompound = 9
@@ -65,10 +65,10 @@ namespace NzbDrone.Core.Parser
         public List<string> PrimaryVariants { get; } = new List<string>();
         public HashSet<string> PrefixAllowanceTokens { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // TaleArr: loose variants (subtitle, article or series bracket dropped) mapped to the text they dropped.
+        // Talearr: loose variants (subtitle, article or series bracket dropped) mapped to the text they dropped.
         public Dictionary<string, string> LooseVariants { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        // TaleArr: token lists of other books by the author, used to spot "Sibling: After Target" releases.
+        // Talearr: token lists of other books by the author, used to spot "Sibling: After Target" releases.
         public List<IReadOnlyList<string>> SiblingTitleTokens { get; } = new List<IReadOnlyList<string>>();
     }
 
@@ -182,7 +182,7 @@ namespace NzbDrone.Core.Parser
                 return null;
             }
 
-            // TaleArr: remember which tokens were joined by a hyphen ("All-in-One").
+            // Talearr: remember which tokens were joined by a hyphen ("All-in-One").
             RegisterTalearrHyphenJoins(releaseTokens, cleanedReleaseTitle);
 
             var authorCatalog = (authorCatalogBooks ?? books)
@@ -213,7 +213,7 @@ namespace NzbDrone.Core.Parser
 
             var contradictoryVariants = BuildContradictoryVariants(book, authorCatalogBooks).ToList();
 
-            // TaleArr: also try loose variants (no subtitle, moved or missing article, no series bracket).
+            // Talearr: also try loose variants (no subtitle, moved or missing article, no series bracket).
             AddTalearrLooseVariants(context, book, authorCatalogBooks);
             return ScoreAgainstVariants(releaseTokens, hasAuthorEvidence, hasAuthorInTitle, book, context.PrimaryVariants.Concat(context.LooseVariants.Keys).ToList(), context, contradictoryVariants);
         }

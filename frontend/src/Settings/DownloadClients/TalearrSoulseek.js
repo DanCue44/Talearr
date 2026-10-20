@@ -44,7 +44,7 @@ function editable(settings) {
   }, {});
 }
 
-// TaleArr: opt-in Soulseek through slskd (docs/TALEARR_SOULSEEK.md). Not a download client
+// Talearr: opt-in Soulseek through slskd (docs/TALEARR_SOULSEEK.md). Not a download client
 // provider, so a rollback to Chaptarr deletes nothing. Stored as the talearr.soulseek.settings
 // Config row through /api/v1/config/talearrsoulseek. Saves with its own button.
 class TalearrSoulseek extends Component {
@@ -225,7 +225,7 @@ class TalearrSoulseek extends Component {
               type={inputTypes.PATH}
               name="downloadsPath"
               value={form.downloadsPath}
-              helpText="slskd's downloads folder as TaleArr sees it, so map it into the TaleArr container too"
+              helpText="slskd's downloads folder as Talearr sees it, so map it into the Talearr container too"
               onChange={this.onInputChange}
             />
           </FormGroup>

@@ -18,10 +18,10 @@ class MetadataSettings extends Component {
 
     this._saveCallback = null;
 
-    // TaleArr: the recordings section saves with the same toolbar button.
+    // Talearr: the recordings section saves with the same toolbar button.
     this._talearrSaveCallback = null;
 
-    // TaleArr: the metadata fallback section saves with the same toolbar button.
+    // Talearr: the metadata fallback section saves with the same toolbar button.
     this._fallbackSaveCallback = null;
 
     this.state = {

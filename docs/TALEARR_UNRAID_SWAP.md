@@ -1,6 +1,6 @@
-# Swapping the Unraid Chaptarr container to TaleArr
+# Swapping the Unraid Chaptarr container to Talearr
 
-TaleArr reads the same `/config` folder, `config.xml` and `chaptarr.db` as Chaptarr and
+Talearr reads the same `/config` folder, `config.xml` and `chaptarr.db` as Chaptarr and
 keeps the same API, port and environment variables. Swapping is a change of the image
 only. Volumes, port, `PUID`/`PGID`/`UMASK` and the container network stay as they are,
 so anything that talks to Chaptarr (AllSeerr, Prowlarr, NPM proxy hosts) keeps working.
@@ -12,11 +12,11 @@ Current container (for reference): image `chaptarr/chaptarr:latest`, `PUID=99`,
 ## 0. Pre-checks
 
 1. **Version.** In Chaptarr, open System > Status and note the Version (for example
-   `0.9.965.0`). Open the TaleArr image's "Based on Chaptarr" version (TaleArr System >
+   `0.9.965.0`). Open the Talearr image's "Based on Chaptarr" version (Talearr System >
    Status, or the `io.talearr.upstream.version` label:
    `docker inspect -f '{{ index .Config.Labels "io.talearr.upstream.version" }}' ghcr.io/dancue44/talearr:develop`).
-   TaleArr must be based on the **same or a newer** Chaptarr version than the one running.
-   If Chaptarr is newer, merge upstream into TaleArr first (see
+   Talearr must be based on the **same or a newer** Chaptarr version than the one running.
+   If Chaptarr is newer, merge upstream into Talearr first (see
    [TALEARR_UPSTREAM_SYNC.md](TALEARR_UPSTREAM_SYNC.md)) and wait for the new image.
 2. **Registry access.** The GHCR package is private while the repo is private. On Unraid:
    ```bash
@@ -69,22 +69,22 @@ docker run -d --name Chaptarr --restart unless-stopped \
 ## 3. Verify
 
 ```bash
-docker logs Chaptarr 2>&1 | grep -m1 'Starting TaleArr'
+docker logs Chaptarr 2>&1 | grep -m1 'Starting Talearr'
 docker exec Chaptarr stat -c '%u:%g' /proc/1          # expect 99:100
 KEY=$(sed -n 's:.*<ApiKey>\(.*\)</ApiKey>.*:\1:p' /mnt/user/appdata/chaptarr/config.xml)
 curl -s -H "X-Api-Key: $KEY" http://localhost:8789/api/v1/system/status | head -20
 ```
 
-Expect `"appName": "Chaptarr"` (unchanged for API clients), `"instanceName": "TaleArr"`
+Expect `"appName": "Chaptarr"` (unchanged for API clients), `"instanceName": "Talearr"`
 and the same `"version"` and `"migrationVersion"` as
 before. The UI tab title and
-System > Status should say TaleArr. Check that the library, wanted list and download
+System > Status should say Talearr. Check that the library, wanted list and download
 clients look the same, and run a test from one notification and one download client.
 
 ## Rollback
 
 1. Docker > Chaptarr > Edit, set **Repository** back to `chaptarr/chaptarr:<version>`.
-   Use the "Based on Chaptarr" version TaleArr reported, or newer. `latest` is fine as long
+   Use the "Based on Chaptarr" version Talearr reported, or newer. `latest` is fine as long
    as it is not older than that.
 2. Apply. Chaptarr starts on the same `/config`.
 3. Only if Chaptarr fails to start or data looks wrong: stop it, restore the tarball from
@@ -96,51 +96,51 @@ clients look the same, and run a test from one notification and one download cli
    docker start Chaptarr
    ```
 
-TaleArr does not add database migrations or rewrite `config.xml`, so a plain image swap
-back is normally enough. Settings changed while running TaleArr are kept. The one
-TaleArr-only behaviour that carries over is cosmetic: an instance name containing
-"TaleArr" is shown as "Chaptarr" by upstream.
+Talearr does not add database migrations or rewrite `config.xml`, so a plain image swap
+back is normally enough. Settings changed while running Talearr are kept. The one
+Talearr-only behaviour that carries over is cosmetic: an instance name containing
+"Talearr" is shown as "Chaptarr" by upstream.
 
-### Recordings (TaleArr 0.12.0 and later)
+### Recordings (Talearr 0.12.0 and later)
 
 Recordings need nothing extra for a rollback, but check these before and after:
 
 - **Additional recordings stay.** They are Chaptarr's own copy entries (`_wanted_` and `_copy_`
-  in the URL), so Chaptarr keeps, searches and upgrades each one by itself. Without TaleArr
+  in the URL), so Chaptarr keeps, searches and upgrades each one by itself. Without Talearr
   there is no upgrade guard and no keep both reroute: an unabridged download may replace an
   abridged recording's files again, as in stock Chaptarr.
-- **Preview before renaming.** TaleArr gives a copy its own folder (` (Abridged)`, the narrator,
+- **Preview before renaming.** Talearr gives a copy its own folder (` (Abridged)`, the narrator,
   the year or the ASIN appended) when the naming format cannot tell two recordings apart.
   Chaptarr does not know that rule. Files stay where they are, but before running Rename files
   in Chaptarr, look at the preview (Preview Rename on the book page, or
   `GET /api/v1/rename?authorId=...`) and skip any move of a copy into the primary recording's
   folder.
-- **`talearr.db`** in `/config` is not used by Chaptarr. Keep it for a return to TaleArr or
+- **`talearr.db`** in `/config` is not used by Chaptarr. Keep it for a return to Talearr or
   delete it (`talearr.db`, `talearr.db-wal`, `talearr.db-shm`); it is a cache and is fetched
   again.
 - **`talearr.*` rows** in the `Config` table (`talearr.recordings.*`, `talearr.upgrade.*`,
   `talearr.grabpolicy.*`, `talearr.audiobook.*`) are ignored by Chaptarr and can stay.
-- **Scheduled task.** TaleArr's "Refresh Audible Recording Facts" task row is dropped by
+- **Scheduled task.** Talearr's "Refresh Audible Recording Facts" task row is dropped by
   Chaptarr on its next start.
 
 ## Notes
 
 - The Unraid "update available" check works with `ghcr.io` images.
-- Inside Docker, TaleArr refuses to install in-app updates, because the update feed serves
-  upstream Chaptarr builds that would replace TaleArr. System > Updates may still list newer Chaptarr versions; ignore them and
-  update the TaleArr image instead.
+- Inside Docker, Talearr refuses to install in-app updates, because the update feed serves
+  upstream Chaptarr builds that would replace Talearr. System > Updates may still list newer Chaptarr versions; ignore them and
+  update the Talearr image instead.
 - Tested locally (native build, macOS): a fresh Chaptarr 0.9.965 config folder was copied
-  and started with TaleArr. The database schema and `config.xml` were byte-for-byte
+  and started with Talearr. The database schema and `config.xml` were byte-for-byte
   unchanged afterwards, no migrations ran, and `/api/v1/system/status` returned the same
-  fields (only `instanceName` differs: `Chaptarr` -> `TaleArr`). The Docker workflow repeats
+  fields (only `instanceName` differs: `Chaptarr` -> `Talearr`). The Docker workflow repeats
   this check with the real images on every build.
 
 ### Audiobookshelf awareness
 
 Nothing extra for a rollback. Chaptarr keeps using its Audiobookshelf connection, mappings and
-scan after import unchanged; it ignores TaleArr's Sync Library, Skip Books Already in
+scan after import unchanged; it ignores Talearr's Sync Library, Skip Books Already in
 Audiobookshelf and Link URL keys in that connection, and drops them only if you save the
-connection in Chaptarr (TaleArr then uses the defaults again). The library cache is in
+connection in Chaptarr (Talearr then uses the defaults again). The library cache is in
 `talearr.db`, and the "Sync Audiobookshelf Library" task row is removed by Chaptarr on start.
-Without TaleArr, Chaptarr no longer skips books that are already in Audiobookshelf. See
+Without Talearr, Chaptarr no longer skips books that are already in Audiobookshelf. See
 [TALEARR_AUDIOBOOKSHELF.md](TALEARR_AUDIOBOOKSHELF.md#storage-and-rollback).

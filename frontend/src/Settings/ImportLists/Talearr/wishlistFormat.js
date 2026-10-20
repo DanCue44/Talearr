@@ -1,6 +1,6 @@
 import { kinds } from 'Helpers/Props';
 
-// TaleArr: labels for wishlists (docs/TALEARR_WISHLISTS.md).
+// Talearr: labels for wishlists (docs/TALEARR_WISHLISTS.md).
 export const stateLabels = {
   new: { label: 'New', kind: kinds.PRIMARY },
   monitored: { label: 'Monitored', kind: kinds.SUCCESS },

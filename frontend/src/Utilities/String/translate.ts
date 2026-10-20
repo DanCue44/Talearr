@@ -35,7 +35,7 @@ export default function translate(
 
   const translation = translations[key] || key;
 
-  tokens.appName = 'TaleArr';
+  tokens.appName = 'Talearr';
 
   // Fallback to the old behaviour for translations not yet updated to use named tokens
   Object.values(tokens).forEach((value, index) => {

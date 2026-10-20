@@ -4,7 +4,7 @@ using NzbDrone.Common.EnvironmentInfo;
 
 namespace NzbDrone.Core.Localization
 {
-    // TaleArr: rebrands upstream translation strings at load time instead of editing every
+    // Talearr: rebrands upstream translation strings at load time instead of editing every
     // language file, so upstream localization changes merge without conflicts. Phrases that
     // refer to the upstream project itself (its servers, its Discord, its donation page)
     // are left alone.

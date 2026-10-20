@@ -14,7 +14,7 @@ namespace NzbDrone.Core.MediaFiles.Commands
         public ImportMode ImportMode { get; set; }
         public bool RequireDefaultRootFolderForMissingAuthors { get; set; }
 
-        // TaleArr: optional "hardlink" or "copy" for a copy-mode import (see ManualImportCommand).
+        // Talearr: optional "hardlink" or "copy" for a copy-mode import (see ManualImportCommand).
         public string TalearrTransfer { get; set; }
     }
 }

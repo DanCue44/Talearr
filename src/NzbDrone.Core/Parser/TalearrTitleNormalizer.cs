@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace NzbDrone.Core.Parser
 {
     /// <summary>
-    /// TaleArr: shared title comparison used for edition selection and catalog dedupe.
+    /// Talearr: shared title comparison used for edition selection and catalog dedupe.
     /// It tokenizes with <see cref="ReleaseTitleMatchScorer.Tokenize"/> so case, diacritics,
     /// punctuation, "&amp;" and possessives behave exactly like release matching.
     /// </summary>

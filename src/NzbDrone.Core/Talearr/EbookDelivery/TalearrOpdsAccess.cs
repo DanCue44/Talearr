@@ -15,11 +15,11 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
         Rejected
     }
 
-    // TaleArr: who may read /opds. Follows TaleArr's own authentication settings:
+    // Talearr: who may read /opds. Follows Talearr's own authentication settings:
     // - the API key, as ?apikey= or the X-Api-Key header (like the calendar feed);
-    // - HTTP Basic with a TaleArr user (Forms or Basic authentication, with the same failed-login
+    // - HTTP Basic with a Talearr user (Forms or Basic authentication, with the same failed-login
     //   lockout as the login page), or any user name with the API key as the password, for readers
-    //   that only speak Basic while TaleArr signs in through Plex, OIDC or a proxy;
+    //   that only speak Basic while Talearr signs in through Plex, OIDC or a proxy;
     // - no credentials from a local address when Authentication Required is
     //   "Disabled for Local Addresses", exactly like the web UI.
     public static class TalearrOpdsAccess

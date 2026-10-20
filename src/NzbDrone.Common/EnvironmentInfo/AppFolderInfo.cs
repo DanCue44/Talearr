@@ -40,8 +40,8 @@ namespace NzbDrone.Common.EnvironmentInfo
             TempFolder = Path.GetTempPath();
         }
 
-        // TaleArr: new installs get a "TaleArr" folder, but an existing "Chaptarr" folder is
-        // reused as-is so TaleArr can start on a Chaptarr install unchanged.
+        // Talearr: new installs get a "Talearr" folder, but an existing "Chaptarr" folder is
+        // reused as-is so Talearr can start on a Chaptarr install unchanged.
         private static string GetDefaultAppDataFolder(string baseFolder)
         {
             var talearrFolder = Path.Combine(baseFolder, BuildInfo.ProductName);

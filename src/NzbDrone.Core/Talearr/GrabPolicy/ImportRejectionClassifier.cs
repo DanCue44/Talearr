@@ -6,8 +6,8 @@ using NzbDrone.Core.Download.TrackedDownloads;
 
 namespace NzbDrone.Core.Talearr.GrabPolicy
 {
-    // TaleArr: decides whether a blocked import was caused by the release itself (so trying
-    // the same files again can never work) or by something TaleArr or the user can fix.
+    // Talearr: decides whether a blocked import was caused by the release itself (so trying
+    // the same files again can never work) or by something Talearr or the user can fix.
     // Only the first kind fails the download. Deliberately conservative: anything not
     // recognised stays blocked in the queue for the user, exactly as before.
     public static class ImportRejectionClassifier
@@ -29,7 +29,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         // "No supported audio or ebook files were found in ... Unsupported extension(s): .diz, .nfo, .zip."
         private const string NoMediaFilesText = "No supported audio or ebook files were found";
 
-        // TaleArr unpacks zip, rar (and its .rNN/.partN volumes) and 7z itself
+        // Talearr unpacks zip, rar (and its .rNN/.partN volumes) and 7z itself
         // (MediaFiles/TalearrImport), so a "no supported files" report that lists those means
         // the importer already looked inside them, or Unpack Archives is off. Formats it does
         // not unpack (tar, gzip, bzip2, xz, .001 splits) are still left for the user.
@@ -38,15 +38,15 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         // "File language is Swedish (swe) (from EPUB dc:language), but English (eng) is wanted
-        //  (editions of 'The Pelican Brief'). TaleArr rejected this release so another one can be tried."
+        //  (editions of 'The Pelican Brief'). Talearr rejected this release so another one can be tried."
         private static readonly Regex WrongLanguageRegex = new Regex(
-            @"File language is (?<found>.+?) \(from .+?\), but (?<wanted>.+?) is wanted \(.*TaleArr rejected this release",
+            @"File language is (?<found>.+?) \(from .+?\), but (?<wanted>.+?) is wanted \(.*Talearr rejected this release",
             RegexOptions.Compiled | RegexOptions.Singleline);
 
-        // "TaleArr could not unpack the archives in <path>: <error>. The release itself is unusable."
+        // "Talearr could not unpack the archives in <path>: <error>. The release itself is unusable."
         // Only the release-problem suffix fails; the transient suffix ("Fix the cause and use Retry
         // Import.") stays blocked.
-        private const string UnpackFailedText = "TaleArr could not unpack the archives in";
+        private const string UnpackFailedText = "Talearr could not unpack the archives in";
         private const string UnpackReleaseProblemText = "The release itself is unusable.";
 
         private static readonly Regex StatusCodeRegex = new Regex(@"^[A-Z0-9_]+$", RegexOptions.Compiled);
@@ -62,7 +62,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 .Select(message => message.Trim())
                 .Where(message => !StatusCodeRegex.IsMatch(message))
 
-                // TaleArr: books a bundle holds besides the wanted one say nothing about the release.
+                // Talearr: books a bundle holds besides the wanted one say nothing about the release.
                 .Where(message => !TalearrBundleFallback.IsBundleExtraReason(message))
                 .ToList();
 
@@ -112,7 +112,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 return string.Format("release contains '{0}', not the wanted book", matched);
             }
 
-            // TaleArr: a different author is a different book, the same as a wrong-book match.
+            // Talearr: a different author is a different book, the same as a wrong-book match.
             var wrongAuthor = WrongAuthorRegex.Match(message);
             if (wrongAuthor.Success)
             {

@@ -30,7 +30,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
         public List<SlskdQueueFile> Files { get; set; } = new List<SlskdQueueFile>();
         public long Size { get; set; }
 
-        // Relative folder under slskd's downloads folder when slskd accepted TaleArr's batch
+        // Relative folder under slskd's downloads folder when slskd accepted Talearr's batch
         // destination; empty when slskd chose the folder itself (older slskd).
         public string Destination { get; set; }
         public string LocalFolder { get; set; }
@@ -51,7 +51,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
         void Remove(string id);
     }
 
-    // TaleArr: Soulseek grabs live in the existing Config key/value table, one row per grab
+    // Talearr: Soulseek grabs live in the existing Config key/value table, one row per grab
     // ("talearr.soulseek.grab.<id>", JSON), so nothing is written to History, Blocklist,
     // PendingReleases or the download client tables. Stock Chaptarr never reads these keys.
     public class TalearrSoulseekGrabStore : ITalearrSoulseekGrabStore
@@ -90,7 +90,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn(ex, "TaleArr: unable to read the Soulseek grabs");
+                    _logger.Warn(ex, "Talearr: unable to read the Soulseek grabs");
                     return new List<TalearrSoulseekGrab>();
                 }
             }
@@ -162,7 +162,7 @@ namespace NzbDrone.Core.Talearr.Soulseek
             }
             catch (JsonException ex)
             {
-                _logger.Warn(ex, "TaleArr: ignoring an unreadable Soulseek grab {0}", id);
+                _logger.Warn(ex, "Talearr: ignoring an unreadable Soulseek grab {0}", id);
                 return null;
             }
         }

@@ -270,7 +270,7 @@ namespace NzbDrone.Core.Notifications.AudioBookShelf
 
             failures.AddIfNotNull(_proxy.Test(Settings));
 
-            // TaleArr: with Sync Library on, also check that the libraries can be read (GET only).
+            // Talearr: with Sync Library on, also check that the libraries can be read (GET only).
             if (failures.Count == 0)
             {
                 failures.AddIfNotNull(NzbDrone.Core.Talearr.Audiobookshelf.TalearrAbsClient.TestLibraryRead(_httpClient, Settings));
@@ -529,7 +529,7 @@ namespace NzbDrone.Core.Notifications.AudioBookShelf
 
                     if (message != null && message.IndexOf("Name or service not known", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        message = $"{message} If you're using a Docker container name (e.g. host 'audiobookshelf'), make sure TaleArr and AudioBookShelf are on the same Docker network, or use a hostname/IP reachable from the TaleArr container.";
+                        message = $"{message} If you're using a Docker container name (e.g. host 'audiobookshelf'), make sure Talearr and AudioBookShelf are on the same Docker network, or use a hostname/IP reachable from the Talearr container.";
                     }
 
                     throw new ValidationException(new[]

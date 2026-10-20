@@ -38,7 +38,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             var verdict = Decide(Audio(360, abridged: AbridgedMarker.Abridged), Audio(1030, abridged: AbridgedMarker.Unabridged));
 
             Assert.That(verdict.Kind, Is.EqualTo(UpgradeVerdictKind.KeepBoth));
-            Assert.That(verdict.Reason, Does.StartWith("TaleArr: the files are abridged and the download is unabridged; keeping both recordings"));
+            Assert.That(verdict.Reason, Does.StartWith("Talearr: the files are abridged and the download is unabridged; keeping both recordings"));
         }
 
         [Test]
@@ -114,7 +114,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
 
             Assert.That(verdict.Kind, Is.EqualTo(UpgradeVerdictKind.Reject));
             Assert.That(verdict.Rule, Is.EqualTo(TalearrUpgradeRules.RuleNeverWorse));
-            Assert.That(verdict.Reason, Is.EqualTo("TaleArr: kept the existing files, the download is 64 kbps lower (64 kbps aac against 128 kbps mp3)"));
+            Assert.That(verdict.Reason, Is.EqualTo("Talearr: kept the existing files, the download is 64 kbps lower (64 kbps aac against 128 kbps mp3)"));
         }
 
         [Test]

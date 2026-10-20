@@ -225,7 +225,7 @@ namespace Chaptarr.Core.Test.Parser
         [TestCase("Tuesdays with Morrie")]
         [TestCase("Mitch Albom - Tuesdays with Morrie (2007) MP3")]
         [TestCase("Tuesdays With Morrie - Mitch Albom audiobook")]
-        // TaleArr: a release without the subtitle matches (upstream rejected it).
+        // Talearr: a release without the subtitle matches (upstream rejected it).
         public void should_match_release_that_omits_the_monitored_edition_subtitle(string releaseTitle)
         {
             var author = new Author { Name = "Mitch Albom" };
@@ -257,7 +257,7 @@ namespace Chaptarr.Core.Test.Parser
         }
 
         [Test]
-        // TaleArr: the marketing subtitle may be missing from the release (upstream rejected it).
+        // Talearr: the marketing subtitle may be missing from the release (upstream rejected it).
         public void should_match_release_without_an_unmapped_marketing_subtitle()
         {
             var author = new Author { Name = "A.F. Kay" };
@@ -1065,7 +1065,7 @@ namespace Chaptarr.Core.Test.Parser
         }
 
         [Test]
-        // TaleArr: "Heretics of Dune: Dune Chronicles" is released as "Heretics of Dune" (upstream rejected it).
+        // Talearr: "Heretics of Dune: Dune Chronicles" is released as "Heretics of Dune" (upstream rejected it).
         public void should_fallback_to_split_main_title_when_primary_title_is_absent()
         {
             var book = new Book

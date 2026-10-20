@@ -56,7 +56,7 @@ namespace NzbDrone.Core.Talearr.Catalog
         TalearrMergeReport MergeBooks(TalearrMergeRequest request);
     }
 
-    // TaleArr: merge duplicate authors or duplicate book rows. Only foreign keys in existing tables
+    // Talearr: merge duplicate authors or duplicate book rows. Only foreign keys in existing tables
     // are reassigned (no schema change), everything runs in one transaction, and files on disk are
     // never touched: book file rows keep their paths and only change the edition/author they hang
     // off. The merged-away rows are deleted directly, not through DeleteBook/DeleteAuthor, so no
@@ -123,7 +123,7 @@ namespace NzbDrone.Core.Talearr.Catalog
 
                 if (!request.DryRun)
                 {
-                    _logger.Info("TaleArr: merged authors {0} into {1} '{2}' ({3})",
+                    _logger.Info("Talearr: merged authors {0} into {1} '{2}' ({3})",
                         string.Join(", ", report.MergedIds), target.Id, target.Name, Describe(report));
                     RecordRedirects(TalearrMergeRedirect.Author, target.Id, redirects);
                     PublishAfterMerge(target.Id, removedBooks, new List<Book>());
@@ -167,7 +167,7 @@ namespace NzbDrone.Core.Talearr.Catalog
 
                 if (!request.DryRun)
                 {
-                    _logger.Info("TaleArr: merged books {0} into {1} '{2}' ({3})",
+                    _logger.Info("Talearr: merged books {0} into {1} '{2}' ({3})",
                         string.Join(", ", report.MergedIds), target.Id, target.Title, Describe(report));
                     RecordRedirects(TalearrMergeRedirect.Book, target.Id, redirects);
                     PublishAfterMerge(target.AuthorId, removed, new List<Book> { new Book { Id = target.Id, AuthorId = target.AuthorId } });
@@ -231,7 +231,7 @@ namespace NzbDrone.Core.Talearr.Catalog
             catch (Exception ex)
             {
                 // The merge is committed; without the redirect a refresh may add the duplicate again.
-                _logger.Warn(ex, "TaleArr: merge committed but its redirects could not be recorded");
+                _logger.Warn(ex, "Talearr: merge committed but its redirects could not be recorded");
             }
         }
 
@@ -375,7 +375,7 @@ namespace NzbDrone.Core.Talearr.Catalog
         {
             try
             {
-                _eventAggregator.PublishEvent(new CachesClearedEvent("TaleArr merge"));
+                _eventAggregator.PublishEvent(new CachesClearedEvent("Talearr merge"));
 
                 var author = new Author { Id = authorId };
 
@@ -387,7 +387,7 @@ namespace NzbDrone.Core.Talearr.Catalog
             catch (Exception ex)
             {
                 // The merge is committed; a failed notification only leaves caches stale for a while.
-                _logger.Warn(ex, "TaleArr: merge committed but cache refresh events failed");
+                _logger.Warn(ex, "Talearr: merge committed but cache refresh events failed");
             }
         }
 

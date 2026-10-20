@@ -69,7 +69,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         string FindFolderConflict(Book target, string destinationFolder);
     }
 
-    // TaleArr: two recordings of one book (say the abridged and unabridged Scott Brick readings)
+    // Talearr: two recordings of one book (say the abridged and unabridged Scott Brick readings)
     // would get the same book folder when the naming format cannot tell them apart. The file name
     // builder asks this service for the other recordings of the work and appends a disambiguator to
     // an additional recording's book folder: the narrator, then Abridged or Unabridged, then the
@@ -158,7 +158,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
 
             var holderBookId = editionToBook[holder.EditionId];
-            return $"TaleArr: {destinationFolder} already holds the files of another recording of this book (book {holderBookId}). " +
+            return $"Talearr: {destinationFolder} already holds the files of another recording of this book (book {holderBookId}). " +
                    "Two recordings never share a folder; give audiobooks a book folder in the naming format, for example {Book Title}{ - Narrator}.";
         }
 
@@ -215,7 +215,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
             catch (Exception ex)
             {
-                logger?.Debug(ex, "TaleArr: recording folder check skipped for book {0}", target.Id);
+                logger?.Debug(ex, "Talearr: recording folder check skipped for book {0}", target.Id);
                 return null;
             }
         }
@@ -373,7 +373,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: unable to read the other recordings of book {0}; folder left as the naming format gives it", book.Id);
+                _logger.Debug(ex, "Talearr: unable to read the other recordings of book {0}; folder left as the naming format gives it", book.Id);
                 return null;
             }
         }
@@ -386,7 +386,7 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "TaleArr: talearr.db unavailable for folder disambiguation");
+                _logger.Debug(ex, "Talearr: talearr.db unavailable for folder disambiguation");
                 return new Dictionary<int, EditionAudibleFacts>();
             }
         }

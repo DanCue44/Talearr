@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
     {
         private readonly IMamUnsatisfiedSlotReservationRepository _slotReservationRepository;
 
-        // TaleArr: session health, rotated cookies and the seedbox proxy list. Optional so the
+        // Talearr: session health, rotated cookies and the seedbox proxy list. Optional so the
         // existing fixtures that build the indexer by hand keep working.
         private readonly IMyAnonaMouseSessionMonitor _sessionMonitor;
         private readonly IProxyService _proxyService;
@@ -146,7 +146,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             return request;
         }
 
-        // TaleArr: watch search replies for an expired session and for a rotated mam_id.
+        // Talearr: watch search replies for an expired session and for a rotated mam_id.
         protected override async Task<IndexerResponse> FetchIndexerResponse(IndexerRequest request)
         {
             var sentMamId = Settings.MamId;
@@ -212,7 +212,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             }
         }
 
-        // TaleArr: returns true when MAM rejected the session. Records the outcome for the health
+        // Talearr: returns true when MAM rejected the session. Records the outcome for the health
         // check and keeps a rotated mam_id (Set-Cookie) both in memory and in the saved settings.
         internal bool ObserveSessionResponse(HttpResponse response, string sentMamId, MyAnonaMouseCookieField field, string source, bool inspectBody)
         {
@@ -262,7 +262,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             return false;
         }
 
-        // TaleArr: tell MAM the torrent client's current public IP. The request has to leave from
+        // Talearr: tell MAM the torrent client's current public IP. The request has to leave from
         // that IP, so it goes through the Seedbox Proxy (or the indexer's own proxy).
         public async Task<MyAnonaMouseSeedboxResult> UpdateDynamicSeedboxAsync()
         {
@@ -486,7 +486,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 throw;
             }
 
-            // TaleArr: expired sessions and rotated cookies (see ObserveSessionResponse).
+            // Talearr: expired sessions and rotated cookies (see ObserveSessionResponse).
             if (ObserveSessionResponse(response, sentMamId, MyAnonaMouseCookieField.MamId, "account status refresh", true))
             {
                 throw new InvalidOperationException(SessionExpiredMessage);
@@ -505,11 +505,11 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 throw new InvalidOperationException("MAM user data response did not include a user class");
             }
 
-            // TaleArr: wedge balance and bonus points sit next to classname, outside snatch_summary.
+            // Talearr: wedge balance and bonus points sit next to classname, outside snatch_summary.
             var wedges = MyAnonaMouseUserDataResponse.ReadInt(userData.Wedges);
             var bonusPoints = MyAnonaMouseUserDataResponse.ReadNumber(userData.SeedBonus);
 
-            // TaleArr: VIP expiry, ratio and seed-only for bonus auto-spend; all optional.
+            // Talearr: VIP expiry, ratio and seed-only for bonus auto-spend; all optional.
             var extras = MyAnonaMouseAccountExtras.Read(userData);
 
             userData = userData.SnatchSummary ?? userData;
@@ -545,7 +545,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             Settings.DownloadedBytes = extras.DownloadedBytes;
             Settings.SeedOnly = extras.SeedOnly;
 
-            // TaleArr: ratio guard and Power User progress fill in what the extras above leave
+            // Talearr: ratio guard and Power User progress fill in what the extras above leave
             // unknown (text upload/download totals, more seed-only flags, the join date).
             MyAnonaMouseAccountStanding.Apply(Settings, response.Content);
 
@@ -567,7 +567,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             };
         }
 
-        // TaleArr: one Bonus Points Store purchase (json/bonusBuy.php, on MAM's allowed automation
+        // Talearr: one Bonus Points Store purchase (json/bonusBuy.php, on MAM's allowed automation
         // list). The request is built only from MyAnonaMouseBonusSpendType, which has no gift or
         // sendWedge value, so those spend types cannot be sent. Never retried here.
         public async Task<MyAnonaMouseBonusPurchaseResult> BuyBonusAsync(MyAnonaMouseBonusPurchase purchase)
@@ -700,7 +700,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         public DateTime SnapshotCreatedUtc { get; set; }
         public DateTime RefreshedUtc { get; set; }
 
-        // TaleArr: null when MAM did not send them.
+        // Talearr: null when MAM did not send them.
         public int? FreeleechWedges { get; set; }
         public double? BonusPoints { get; set; }
         public DateTime? VipUntilUtc { get; set; }
@@ -738,14 +738,14 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         [JsonProperty("unsat")]
         public MyAnonaMouseUnsatisfiedSummary Unsatisfied { get; set; }
 
-        // TaleArr: optional and loosely typed (number or string), never required.
+        // Talearr: optional and loosely typed (number or string), never required.
         [JsonProperty("wedges")]
         public Newtonsoft.Json.Linq.JToken Wedges { get; set; }
 
         [JsonProperty("seedbonus")]
         public Newtonsoft.Json.Linq.JToken SeedBonus { get; set; }
 
-        // TaleArr: optional fields for bonus auto-spend (MyAnonaMouseAccountExtras), loosely typed.
+        // Talearr: optional fields for bonus auto-spend (MyAnonaMouseAccountExtras), loosely typed.
         [JsonProperty("vip_until")]
         public Newtonsoft.Json.Linq.JToken VipUntil { get; set; }
 

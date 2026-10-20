@@ -9,7 +9,7 @@ import FormLabel from 'Components/Form/FormLabel';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import { inputTypes, kinds } from 'Helpers/Props';
 
-// TaleArr: Open Library metadata fallback. Stored as a talearr.metadatafallback.* row in the
+// Talearr: Open Library metadata fallback. Stored as a talearr.metadatafallback.* row in the
 // Config table; Chaptarr ignores it.
 const modeOptions = [
   { key: 'off', value: 'Off' },
@@ -46,7 +46,7 @@ function formatStatus(settings) {
 
   parts.push(lastUsed ?
     `Fallback last used ${new Date(lastUsed).toLocaleString()} (${lastOperation}).` :
-    'Fallback not used since TaleArr started.');
+    'Fallback not used since Talearr started.');
 
   if (lastError) {
     parts.push(`Last fallback problem: ${lastError}.`);
@@ -76,7 +76,7 @@ function TalearrMetadataFallback(props) {
       {
         !isFetching && error &&
           <Alert kind={kinds.DANGER}>
-            {'Unable to load the TaleArr metadata fallback settings'}
+            {'Unable to load the Talearr metadata fallback settings'}
           </Alert>
       }
 

@@ -6,7 +6,7 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Talearr.EbookDelivery
 {
-    // TaleArr: OPDS catalog (README.md, "Ebook delivery"). A read-only OPDS 1.2 feed at /opds
+    // Talearr: OPDS catalog (README.md, "Ebook delivery"). A read-only OPDS 1.2 feed at /opds
     // that ebook readers such as KOReader, Panels, Thorium or Moon+ Reader can browse.
     public sealed class TalearrOpdsSettings
     {
@@ -97,7 +97,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
                 _repository.Upsert(EnabledKey, settings.Enabled.ToString());
                 _repository.Upsert(PageSizeKey, TalearrOpdsSettings.ClampPageSize(settings.PageSize).ToString());
                 _repository.Upsert(KepubKey, settings.OfferKepub.ToString());
-                _logger.Info("TaleArr OPDS settings saved: enabled={0}, pageSize={1}, kepub={2}",
+                _logger.Info("Talearr OPDS settings saved: enabled={0}, pageSize={1}, kepub={2}",
                     settings.Enabled,
                     TalearrOpdsSettings.ClampPageSize(settings.PageSize),
                     settings.OfferKepub);
@@ -127,7 +127,7 @@ namespace NzbDrone.Core.Talearr.EbookDelivery
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to read TaleArr OPDS settings, using the defaults");
+                _logger.Debug(ex, "Unable to read Talearr OPDS settings, using the defaults");
                 settings = TalearrOpdsSettings.Default;
             }
 

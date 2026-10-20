@@ -8,7 +8,7 @@ using NzbDrone.Common;
 
 namespace NzbDrone.Core.Talearr.Audiobook
 {
-    // TaleArr: puts the audio files of one audiobook in playing order.
+    // Talearr: puts the audio files of one audiobook in playing order.
     //
     // 1. When every file carries a track number tag and the (disc, track) pairs are unique, the
     //    tags decide. The disc comes from the disc tag, or from a disc folder (CD1, Disc 2,

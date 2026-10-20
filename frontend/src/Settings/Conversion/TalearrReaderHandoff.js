@@ -31,7 +31,7 @@ function editable(settings) {
   };
 }
 
-// TaleArr: copy imported ebooks to a watch folder such as Calibre-Web-Automated's ingest folder.
+// Talearr: copy imported ebooks to a watch folder such as Calibre-Web-Automated's ingest folder.
 // Stored as talearr.readerhandoff.* rows in the Config table through
 // /api/v1/config/talearrreaderhandoff (Chaptarr ignores them). Saves with its own button.
 class TalearrReaderHandoff extends Component {
@@ -165,7 +165,7 @@ class TalearrReaderHandoff extends Component {
     return (
       <FieldSet legend={LEGEND}>
         <div className={styles.help}>
-          {'After an ebook from a download is imported, TaleArr copies it to a watch folder, for example the ingest folder of Calibre-Web-Automated. The library file is never moved or changed, and audiobooks are skipped.'}
+          {'After an ebook from a download is imported, Talearr copies it to a watch folder, for example the ingest folder of Calibre-Web-Automated. The library file is never moved or changed, and audiobooks are skipped.'}
         </div>
 
         <Form>
@@ -186,7 +186,7 @@ class TalearrReaderHandoff extends Component {
               type={inputTypes.PATH}
               name="path"
               value={form.path}
-              helpText="The folder as TaleArr sees it, so map it into the TaleArr container too"
+              helpText="The folder as Talearr sees it, so map it into the Talearr container too"
               onChange={this.onInputChange}
             />
           </FormGroup>

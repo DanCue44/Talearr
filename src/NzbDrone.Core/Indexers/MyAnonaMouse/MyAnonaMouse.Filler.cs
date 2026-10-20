@@ -13,7 +13,7 @@ using NzbDrone.Core.Indexers.Exceptions;
 
 namespace NzbDrone.Core.Indexers.MyAnonaMouse
 {
-    // TaleArr: the two MAM calls the freeleech seeding filler (Talearr/MamFiller) makes. Both go
+    // Talearr: the two MAM calls the freeleech seeding filler (Talearr/MamFiller) makes. Both go
     // through this indexer's HTTP client (so its proxy applies) and its session handling (an
     // expired session is reported, a rotated mam_id is saved), exactly like normal searches and
     // grabs. Only MAM's documented automation endpoints are used: the JSON torrent search and
@@ -27,7 +27,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         // freeleech flags on every result anyway.
         public const string FreeleechSearchType = "fl";
 
-        // TaleArr: categoryIds limits the search to those MAM site categories (the filler's
+        // Talearr: categoryIds limits the search to those MAM site categories (the filler's
         // preferred categories); null or empty searches all audiobooks and ebooks.
         public async Task<List<JToken>> SearchFillerFreeleechAsync(int page, IReadOnlyCollection<int> categoryIds = null)
         {
@@ -143,7 +143,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 ["startNumber"] = (Math.Max(0, page) * FillerPageSize).ToString()
             };
 
-            // TaleArr: MAM's JSON search takes site category ids in "cat" ("0" means all). The
+            // Talearr: MAM's JSON search takes site category ids in "cat" ("0" means all). The
             // main_cat filter is left out so it cannot widen the result again; the filler still
             // checks the main category of every result.
             var ids = (categoryIds ?? Array.Empty<int>()).Where(id => id > 0).Distinct().OrderBy(id => id).ToList();

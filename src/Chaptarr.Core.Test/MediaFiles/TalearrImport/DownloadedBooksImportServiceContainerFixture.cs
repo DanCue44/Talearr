@@ -11,8 +11,8 @@ using NzbDrone.Core.MediaFiles.TalearrImport;
 namespace Chaptarr.Core.Test.MediaFiles.TalearrImport
 {
     /// <summary>
-    /// DownloadedBooksImportService keeps the upstream constructor next to the TaleArr one. The app
-    /// container must pick the TaleArr constructor, or archives and the language check are skipped.
+    /// DownloadedBooksImportService keeps the upstream constructor next to the Talearr one. The app
+    /// container must pick the Talearr constructor, or archives and the language check are skipped.
     /// </summary>
     [TestFixture]
     public class DownloadedBooksImportServiceContainerFixture

@@ -7,7 +7,7 @@ using NzbDrone.Core.MediaFiles;
 
 namespace NzbDrone.Core.Talearr.Audiobookshelf
 {
-    // TaleArr: the matcher's view of the library during one sync. Reads chaptarr.db through the
+    // Talearr: the matcher's view of the library during one sync. Reads chaptarr.db through the
     // normal services only and memoizes per sync, so a large Audiobookshelf library costs one
     // query per root folder, one per author and one per identifier.
     public sealed class TalearrAbsBookLookup : ITalearrAbsBookLookup

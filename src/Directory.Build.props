@@ -207,6 +207,6 @@
     <RuntimeIdentifier>osx-$(Architecture)</RuntimeIdentifier>
   </PropertyGroup>
 
-  <!-- TaleArr fork settings (version) -->
+  <!-- Talearr fork settings (version) -->
   <Import Project="$(MSBuildThisFileDirectory)Talearr.props" />
 </Project>
