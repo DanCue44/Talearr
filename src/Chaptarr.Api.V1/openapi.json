@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.4",
   "info": {
-    "title": "Chaptarr",
-    "description": "Chaptarr API docs",
+    "title": "Talearr",
+    "description": "Talearr API docs",
     "license": {
       "name": "GPL-3.0-only",
       "url": "https://github.com/Chaptarr/Chaptarr/blob/develop/LICENSE"
