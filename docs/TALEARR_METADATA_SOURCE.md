@@ -135,6 +135,27 @@ Keys: Hardcover keys are now scoped and can be set to never expire. A catalog-on
 from `me`; Settings validates it with a catalog query instead (0.18.12). Hardcover reading lists
 (import lists) need a key with library access.
 
+## First shadow run on a test server (2026-10-20)
+
+All 19 authors compared in about 3 minutes with 177 Hardcover requests; none failed.
+**No protected book (monitored, with files, manual add) would lose its match.** 598 of 1,185
+local rows would lose their match, all unmonitored and fileless.
+
+Three kinds of difference:
+
+1. **Clutter the server has and Hardcover does not** (the main effect). George Orwell: the server
+   keeps 154 audiobook / 140 ebook works after filters, Hardcover 57 / 55; the server-only list is
+   graded readers, translations, bilingual editions, quote books and "10 Masterpieces" bundles.
+2. **Real gaps in Hardcover.** Jack Rosewood: the server has 66 works, Hardcover links 5 to the
+   author; the missing ones are real books (the "True Story of..." series). Ryan Becker (26 vs 4),
+   Sandra J. Paul (9 vs 2) and Navessa Allen (18 vs 9) look the same. Switching needs the Open Library
+   gap fill (Phase 3b step 5) or these authors lose books.
+3. **Id splits.** The same title can carry different work ids on each side (Orwell's "1984"
+   appears on both sides of the diff), so some rows lose their match and come back as new rows.
+   `book_mappings` (Goodreads ids) and title matching can close most of these.
+
+Series: Hardcover sent series for 14 authors, all dropped by the conversion as expected (step 4).
+
 ## Schema assumptions (as first written)
 
 Built from the docs (hardcoverapp/hardcover-docs, schemas Books, Editions, Authors, Series,
