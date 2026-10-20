@@ -438,7 +438,8 @@ namespace NzbDrone.Core.Books
             }
 
             // Talearr: a monitored book without files yet is still wanted, so it is not pruned.
-            if (book.Monitored)
+            // Monitoring is per format; the legacy Book.Monitored column is always false.
+            if (book.IsMonitored())
             {
                 return true;
             }

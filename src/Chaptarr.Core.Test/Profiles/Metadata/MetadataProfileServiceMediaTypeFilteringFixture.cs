@@ -458,7 +458,8 @@ namespace Chaptarr.Core.Test.Profiles.Metadata
             var localBook = CreateSeriesBook("The Orwell Collection", "gr:5470", BookMediaType.Ebook);
             localBook.Id = 10;
             localBook.AuthorId = dbAuthor.Id;
-            localBook.Monitored = monitored;
+            // Monitoring is per format; the legacy Monitored column stays false like in real data
+            localBook.EbookMonitored = monitored;
             var localEdition = localBook.Editions.Single();
             localEdition.Id = 20;
             localEdition.BookId = localBook.Id;
