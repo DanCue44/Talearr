@@ -25,6 +25,17 @@ Authors are **All books** unless something below made them **Only my books**.
 - A request with `addOptions.monitor = "all"` asks for the whole catalog, so its new author is
   **All books**.
 
+## Requested books pass the metadata profile
+
+A book you explicitly request (add-book, `POST /api/v1/book`, Allseerr, wishlists, MAM filler
+imports) is added even when the author's metadata profile would skip it: popularity and rating,
+missing release date, parts and sets, secondary series items, omnibus, ignored terms (book and
+edition titles), Talearr genre and content rules, and minimum pages. This applies to All books
+and Only my books authors, to new and existing authors, and to requests retried from the pending
+import queue (the queue keeps the requested ids per format). Import list exclusions and the
+edition language and identifier rules still apply. Once added, the book is monitored, so later
+refreshes keep it too.
+
 ## Switching
 
 On the author page, **Only my books** (with a confirmation) and **Follow all books**. Either one

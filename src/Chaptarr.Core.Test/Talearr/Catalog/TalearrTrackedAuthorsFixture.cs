@@ -120,7 +120,7 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
             Assert.That(TalearrTrackedCatalogFilter.IsKeptLocalBook(Plain(Audiobook("A", "hc:1")), hasFiles: true), Is.True);
 
             var monitored = Plain(Audiobook("A", "hc:1"));
-            monitored.Monitored = true;
+            monitored.AudiobookMonitored = true;
             Assert.That(TalearrTrackedCatalogFilter.IsKeptLocalBook(monitored, false), Is.True);
 
             var manual = Plain(Audiobook("A", "hc:1"));
@@ -262,7 +262,7 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
         {
             var monitored = Plain(Audiobook("Monitored", "hc:1"), ExistingAuthorId);
             monitored.Id = 11;
-            monitored.Monitored = true;
+            monitored.AudiobookMonitored = true;
             var manual = Plain(Audiobook("Manual", "hc:2"), ExistingAuthorId);
             manual.Id = 12;
             manual.AddOptions = new AddBookOptions { AddType = BookAddType.Manual };
@@ -305,6 +305,84 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
             var result = world.Service.RemoteChildrenRequesting(ExistingAuthor(), Catalog(), book => book.HardcoverBookId == "hc:2");
 
             Assert.That(result.Select(Describe), Is.EquivalentTo(new[] { "Audiobook hc:1", "Audiobook hc:2" }));
+        }
+
+        // Requested books pass the metadata profile
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task requested_omnibus_is_added_for_a_new_author_with_skip_omnibus_on(bool tracked)
+        {
+            var world = new LibraryWorld(OmnibusCatalog(), profiles: SkipOmnibusProfiles());
+
+            await world.Service.AddAuthorAsync("hc:234021", RequestConfig(BookMediaType.Ebook, "hc:2675413", tracked));
+
+            var inserted = world.Inserted.Select(Describe).ToList();
+            Assert.That(inserted, Does.Contain("Ebook hc:2675413"));
+            Assert.That(inserted, Has.No.Member("Ebook hc:777"), "other omnibus books are still skipped");
+            Assert.That(inserted, Has.Count.EqualTo(tracked ? 1 : 3));
+        }
+
+        [Test]
+        public async Task pending_retry_config_carries_the_requested_omnibus_for_a_new_author()
+        {
+            var world = new LibraryWorld(OmnibusCatalog(), profiles: SkipOmnibusProfiles());
+
+            await world.Service.AddAuthorAsync("hc:234021", PendingRetryConfig("hc:2675413"));
+
+            Assert.That(world.Inserted.Select(Describe), Does.Contain("Ebook hc:2675413"));
+            Assert.That(world.Inserted.Select(Describe), Has.No.Member("Ebook hc:777"));
+        }
+
+        [Test]
+        public async Task existing_author_request_and_pending_retry_pass_the_requested_predicate_to_the_reconcile()
+        {
+            var existing = ExistingAuthor();
+            existing.EbookQualityProfileId = 4;
+            existing.EbookRootFolderPath = "/ebooks";
+            var catalog = OmnibusCatalog();
+            var requested = catalog.Books.Single(book => book.HardcoverBookId == "hc:2675413");
+            var otherOmnibus = catalog.Books.Single(book => book.HardcoverBookId == "hc:777");
+
+            foreach (var config in new[] { RequestConfig(BookMediaType.Ebook, "hc:2675413", tracked: true), PendingRetryConfig("hc:2675413") })
+            {
+                var refresh = new CapturingRefreshAuthorService();
+                var world = new LibraryWorld(catalog, existing, new List<Book> { Kept(Ebook("Owned", "hc:1"), ExistingAuthorId) }, SkipOmnibusProfiles(), refresh);
+
+                await world.Service.AddAuthorAsync("hc:234021", config);
+
+                Assert.That(refresh.IsRequested, Is.Not.Null, "the reconcile ran with the requested books");
+                Assert.That(refresh.IsRequested(requested), Is.True);
+                Assert.That(refresh.IsRequested(otherOmnibus), Is.False);
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void reconcile_refresh_keeps_the_requested_omnibus_with_skip_omnibus_on(bool tracked)
+        {
+            var world = new RefreshWorld(new List<Book> { Kept(Ebook("Owned", "hc:1"), ExistingAuthorId) }, SkipOmnibusProfiles());
+            if (tracked)
+            {
+                world.Store.Set(ExistingAuthorId, TalearrAuthorCatalogMode.Tracked);
+            }
+
+            var result = world.Service.RemoteChildrenRequesting(ExistingAuthor(), OmnibusCatalog(), book => book.HardcoverBookId == "hc:2675413");
+
+            var described = result.Select(Describe).ToList();
+            Assert.That(described, Does.Contain("Ebook hc:2675413"));
+            Assert.That(described, Has.No.Member("Ebook hc:777"));
+            Assert.That(described, Has.Count.EqualTo(tracked ? 2 : 3));
+        }
+
+        [Test]
+        public void scheduled_refresh_without_a_request_still_skips_the_omnibus()
+        {
+            var world = new RefreshWorld(new List<Book> { Kept(Ebook("Owned", "hc:1"), ExistingAuthorId) }, SkipOmnibusProfiles());
+
+            var result = world.Service.RemoteChildren(ExistingAuthor(), OmnibusCatalog());
+
+            Assert.That(result.Select(Describe), Has.No.Member("Ebook hc:2675413"));
         }
 
         // Switching
@@ -425,7 +503,9 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
         {
             Plain(book, authorId);
             book.Id = 10;
-            book.Monitored = true;
+            // Per-format flag only; the legacy Book.Monitored column stays false as in real data.
+            book.SetMonitored(true);
+            book.Monitored = false;
             return book;
         }
 
@@ -481,6 +561,71 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
             return root;
         }
 
+        // Skip Omnibus on: drops omnibus books unless the caller's "requested" predicate keeps them.
+        private static IMetadataProfileService SkipOmnibusProfiles()
+        {
+            return Proxy<IMetadataProfileService>.Create((name, args) =>
+            {
+                switch (name)
+                {
+                    case nameof(IMetadataProfileService.Exists):
+                        return true;
+                    case nameof(IMetadataProfileService.FilterBooks):
+                        var isRequested = args.Length > 2 ? args[2] as Func<Book, bool> : null;
+                        return (((Author)args[0])?.Books ?? new List<Book>())
+                            .Where(book => !book.IsOmnibus || isRequested?.Invoke(book) == true)
+                            .ToList();
+                    default:
+                        return Proxy<IMetadataProfileService>.Default;
+                }
+            });
+        }
+
+        private static Author OmnibusCatalog()
+        {
+            var requested = Ebook("Bound and Unbound", "hc:2675413");
+            requested.IsOmnibus = true;
+            var otherOmnibus = Ebook("Another Duology", "hc:777");
+            otherOmnibus.IsOmnibus = true;
+            return new Author
+            {
+                Name = "Existing Author",
+                Books = new List<Book> { Ebook("Owned", "hc:1"), Ebook("Catalog", "hc:3"), requested, otherOmnibus },
+                Series = new List<Series>()
+            };
+        }
+
+        // What ProcessPendingImportsCommandHandler.BuildMonitoringConfig rebuilds from the pending
+        // row: per-format targets only, no SpecificBook fields and no TalearrTrackedCatalog.
+        private static MonitoringConfig PendingRetryConfig(string requestedId)
+        {
+            return new MonitoringConfig
+            {
+                CreateAudiobook = false,
+                CreateEbook = true,
+                EbookQualityProfileId = 4,
+                EbookMetadataProfileId = 3,
+                EbookRootFolderPath = "/ebooks",
+                EbookMonitored = true,
+                EbookMonitorNewItems = NewItemMonitorTypes.None,
+                EbookMonitorExistingMode = MonitorTypes.SpecificBook,
+                EbookBooksToMonitor = new List<string> { requestedId },
+                QueueIfUnavailable = false,
+                IsFromQueue = true
+            };
+        }
+
+        private sealed class CapturingRefreshAuthorService : IRefreshAuthorService
+        {
+            public Func<Book, bool> IsRequested { get; private set; }
+
+            public bool ReconcileAuthorBlob(Author localAuthor, Author authoritativeRemoteAuthor, Func<Book, bool> talearrIsRequested)
+            {
+                IsRequested = talearrIsRequested;
+                return true;
+            }
+        }
+
         private static IMetadataProfileService PassThroughProfiles()
         {
             return Proxy<IMetadataProfileService>.Create((name, args) => name switch
@@ -518,7 +663,7 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
 
         private sealed class LibraryWorld
         {
-            public LibraryWorld(Author remote, Author existingAuthor = null, List<Book> existingBooks = null)
+            public LibraryWorld(Author remote, Author existingAuthor = null, List<Book> existingBooks = null, IMetadataProfileService profiles = null, IRefreshAuthorService refreshAuthorService = null)
             {
                 var (store, _) = CreateStore();
                 Store = store;
@@ -574,7 +719,7 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
                     refreshSeriesService: null,
                     editionService: Editions(new List<Edition>()),
                     narratorLinkService: null,
-                    metadataProfileService: PassThroughProfiles(),
+                    metadataProfileService: profiles ?? PassThroughProfiles(),
                     qualityProfileService: new TestQualityProfileService(),
                     authorPathBuilder: Proxy<IBuildAuthorPaths>.Create((name, args) => name == nameof(IBuildAuthorPaths.BuildPath) ? "/authors/" + ((Author)args[0])?.Name : Proxy<IBuildAuthorPaths>.Default),
                     rootFolderService: new StubRootFolderService(Root("/audiobooks", FolderType.Audiobook), Root("/ebooks", FolderType.Ebook)),
@@ -587,7 +732,7 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
                     syncMetadataService: null,
                     logger: Log,
                     editionSelector: new EditionSelector(Log),
-                    refreshAuthorService: null,
+                    refreshAuthorService: refreshAuthorService,
                     catalogStore: store);
             }
 
@@ -598,7 +743,7 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
 
         private sealed class RefreshWorld
         {
-            public RefreshWorld(List<Book> localBooks)
+            public RefreshWorld(List<Book> localBooks, IMetadataProfileService profiles = null)
             {
                 var (store, _) = CreateStore();
                 Store = store;
@@ -628,7 +773,7 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
                     _ => Proxy<IMediaFileService>.Default
                 });
 
-                Service = new TestableRefreshAuthorService(books, Editions(localEditions), PassThroughProfiles(), MediaFiles, store);
+                Service = new TestableRefreshAuthorService(books, Editions(localEditions), profiles ?? PassThroughProfiles(), MediaFiles, store);
             }
 
             public TalearrAuthorCatalogStore Store { get; }

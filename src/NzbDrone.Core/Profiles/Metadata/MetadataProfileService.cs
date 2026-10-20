@@ -27,6 +27,10 @@ namespace NzbDrone.Core.Profiles.Metadata
         MetadataProfile Get(int id);
         bool Exists(int id);
         List<Book> FilterBooks(Author input, int profileId);
+
+        // Talearr: the same, but remote books the current add explicitly requested pass every
+        // book-level rule, like manual adds (docs/TALEARR_TRACKED_AUTHORS.md).
+        List<Book> FilterBooks(Author input, int profileId, Func<Book, bool> isRequested) => FilterBooks(input, profileId);
     }
 
     public class MetadataProfileService : IMetadataProfileService, IHandle<ApplicationStartedEvent>
@@ -143,6 +147,11 @@ namespace NzbDrone.Core.Profiles.Metadata
 
         public List<Book> FilterBooks(Author input, int profileId)
         {
+            return FilterBooks(input, profileId, null);
+        }
+
+        public List<Book> FilterBooks(Author input, int profileId, Func<Book, bool> isRequested)
+        {
             // Defensive null checks to prevent crashes
             if (input == null)
             {
@@ -212,10 +221,10 @@ namespace NzbDrone.Core.Profiles.Metadata
 
             // Ensure input.Books is not null
             var booksToFilter = input.Books ?? new List<Book>();
-            return FilterBooks(booksToFilter, localBooks, localFiles, seriesLinks, profileId);
+            return FilterBooks(booksToFilter, localBooks, localFiles, seriesLinks, profileId, isRequested);
         }
 
-        private List<Book> FilterBooks(IEnumerable<Book> remoteBooks, List<Book> localBooks, List<BookFile> localFiles, Dictionary<Book, List<SeriesBookLink>> seriesLinks, int metadataProfileId)
+        private List<Book> FilterBooks(IEnumerable<Book> remoteBooks, List<Book> localBooks, List<BookFile> localFiles, Dictionary<Book, List<SeriesBookLink>> seriesLinks, int metadataProfileId, Func<Book, bool> isRequested = null)
         {
             var profile = Get(metadataProfileId);
 
@@ -242,6 +251,14 @@ namespace NzbDrone.Core.Profiles.Metadata
 
                 localHash.UnionWith(GetProtectedBookKeysFromLocalFiles(localFiles, remoteBookKeysByEditionToken));
 
+                // Talearr: a book the user explicitly requested (Allseerr, add-book, wishlists) is
+                // added even when a profile rule would skip it, e.g. an omnibus with Skip Omnibus on.
+                // Edition language and identifier rules still apply.
+                if (isRequested != null)
+                {
+                    localHash.UnionWith(hash.Where(book => isRequested(book)).Select(GetBookKey));
+                }
+
                 FilterByPredicate(hash, GetBookKey, localHash, profile, BookAllowedByRating, "rating criteria not met");
                 FilterByPredicate(hash, GetBookKey, localHash, profile, (x, p) => !p.SkipMissingDate || x.ReleaseDate.HasValue, "release date is missing");
                 FilterByPredicate(hash, GetBookKey, localHash, profile, (x, p) => !p.SkipPartsAndSets || !IsPartOrSet(x, seriesLinks.GetValueOrDefault(x), titles), "book is part of set");
@@ -267,7 +284,7 @@ namespace NzbDrone.Core.Profiles.Metadata
                         .SelectMany(x => x.Editions ?? Enumerable.Empty<Edition>())
                         .ToList();
 
-                    book.Editions = FilterEditions(book.Editions, localEditions, localFiles, profile, book.MediaType);
+                    book.Editions = FilterEditions(book.Editions, localEditions, localFiles, profile, book.MediaType, isRequested?.Invoke(book) == true);
                 }
 
                 FilterByPredicate(hash, GetBookKey, localHash, profile, (x, p) => x.Editions.Any(e => e.PageCount >= p.MinPages) || x.Editions.All(e => e.PageCount == 0), "minimum page count not met");
@@ -276,7 +293,7 @@ namespace NzbDrone.Core.Profiles.Metadata
                 return hash.ToList();
             }
 
-        private List<Edition> FilterEditions(IEnumerable<Edition> editions, List<Edition> localEditions, List<BookFile> localFiles, MetadataProfile profile, BookMediaType mediaType)
+        private List<Edition> FilterEditions(IEnumerable<Edition> editions, List<Edition> localEditions, List<BookFile> localFiles, MetadataProfile profile, BookMediaType mediaType, bool talearrRequested = false)
         {
             EditionMetadataProfileFilter.ParseAllowedLanguages(
                 profile.AllowedLanguages,
@@ -319,7 +336,12 @@ namespace NzbDrone.Core.Profiles.Metadata
             // Language filtering logic: only filter if languages are explicitly configured
             FilterByPredicate(hash, x => x.ForeignEditionId, localHash, profile, (x, p) => EditionMetadataProfileFilter.IsAllowedLanguage(x, allowedLanguages, allowUnknownLanguage, languageFilterConfigured), "edition language not allowed");
             FilterByPredicate(hash, x => x.ForeignEditionId, localHash, profile, EditionMetadataProfileFilter.MeetsIdentifierRequirements, "missing required identifier(s)");
-            FilterByPredicate(hash, x => x.ForeignEditionId, localHash, profile, (x, p) => !p.Ignored.Any(i => MatchesTerms(x.Title, i)), "contains ignored terms");
+            // Talearr: a requested book keeps its editions whatever their title says (the book-level
+            // ignored terms are bypassed for it too).
+            if (!talearrRequested)
+            {
+                FilterByPredicate(hash, x => x.ForeignEditionId, localHash, profile, (x, p) => !p.Ignored.Any(i => MatchesTerms(x.Title, i)), "contains ignored terms");
+            }
 
             return hash.ToList();
         }

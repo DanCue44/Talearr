@@ -602,7 +602,8 @@ namespace NzbDrone.Core.Books
                         ebookMetadataProfileIdOverride: null,
                         editionSelector: null,
                         retainEditions: true,
-                        logContext: "GetRemoteChildren");
+                        logContext: "GetRemoteChildren",
+                        talearrIsRequested: _talearrRequestedBooks);
 
                     AttachOpenLibraryFallbackBooks(local, remoteChildren);
                     return ApplyTalearrTrackedCatalog(local, remoteChildren);
@@ -666,7 +667,8 @@ namespace NzbDrone.Core.Books
                     int? ebookMetadataProfileIdOverride,
                     IEditionSelector editionSelector,
                     bool retainEditions,
-                    string logContext)
+                    string logContext,
+                    Func<Book, bool> talearrIsRequested = null)
                 {
                     var allBooks = (remoteBooks ?? Enumerable.Empty<Book>())
                         .Where(book => book != null)
@@ -688,7 +690,8 @@ namespace NzbDrone.Core.Books
                         metadataProfileService,
                         logger,
                         audiobookMetadataProfileIdOverride,
-                        ebookMetadataProfileIdOverride);
+                        ebookMetadataProfileIdOverride,
+                        talearrIsRequested);
 
                     var afterExclusions = ApplyImportListExclusions(profileFiltered, importListExclusionService);
 
@@ -772,7 +775,8 @@ namespace NzbDrone.Core.Books
                     IMetadataProfileService metadataProfileService,
                     Logger logger,
                     int? audiobookMetadataProfileIdOverride,
-                    int? ebookMetadataProfileIdOverride)
+                    int? ebookMetadataProfileIdOverride,
+                    Func<Book, bool> talearrIsRequested)
                 {
                     var profileFiltered = new List<Book>();
                     var audiobookProfileId = audiobookMetadataProfileIdOverride ?? local?.AudiobookMetadataProfileId;
@@ -814,7 +818,10 @@ namespace NzbDrone.Core.Books
                             Series = seriesList.Where(series => series.MediaType == mediaType).ToList()
                         };
 
-                        profileFiltered.AddRange(metadataProfileService.FilterBooks(authorForFilter, profileId.Value));
+                        // Talearr: explicitly requested books pass the profile rules (exclusions still apply).
+                        profileFiltered.AddRange(talearrIsRequested == null
+                            ? metadataProfileService.FilterBooks(authorForFilter, profileId.Value)
+                            : metadataProfileService.FilterBooks(authorForFilter, profileId.Value, talearrIsRequested));
                     }
 
                     FilterMediaType(BookMediaType.Audiobook, audiobookProfileId);

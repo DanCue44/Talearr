@@ -172,6 +172,9 @@ See [docs/TALEARR_TRACKED_AUTHORS.md](docs/TALEARR_TRACKED_AUTHORS.md).
   Allseerr, wishlists, MAM filler imports) keeps only the books you added, requested, monitor or
   have files for. Refresh updates them and adds none of the rest of the catalog. Adding an author
   still follows all of its books.
+- **Requested books pass the metadata profile.** An explicitly requested book is added even
+  when a profile rule (omnibus, parts and sets, ignored terms, popularity, ...) would skip it.
+  Import list exclusions still apply.
 - **Switch any time** on the author page: **Follow all books** brings the catalog in, **Only my
   books** (confirmed first) removes unmonitored, fileless catalog rows. Files are never touched.
 - **API**: `GET|PUT /api/v1/talearr/authors/{id}/catalog` with `{"mode": "full" | "tracked"}`;

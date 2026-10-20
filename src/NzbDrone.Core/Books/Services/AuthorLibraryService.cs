@@ -2187,6 +2187,9 @@ namespace NzbDrone.Core.Books.Services
                 return Task.CompletedTask;
             }
 
+            // Talearr: books this add explicitly requested pass the metadata profile rules.
+            var talearrRequested = GetRequestedBookProviderIdsByMediaType(config);
+
             books = RefreshAuthorService.NormalizeRemoteBooks(
                 author,
                 books,
@@ -2198,7 +2201,8 @@ namespace NzbDrone.Core.Books.Services
                 ebookMetadataProfileIdOverride: GetEffectiveMetadataProfileId(author, config, BookMediaType.Ebook),
                 editionSelector: _editionSelector,
                 retainEditions: true,
-                logContext: "ProcessBooksForAuthor");
+                logContext: "ProcessBooksForAuthor",
+                talearrIsRequested: talearrRequested.Any() ? book => IsRequestedBook(talearrRequested, book) : null);
 
             books = ApplyTalearrTrackedCatalog(author, books, config);
 

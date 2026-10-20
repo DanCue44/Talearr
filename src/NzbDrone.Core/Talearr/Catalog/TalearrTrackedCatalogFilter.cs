@@ -18,7 +18,8 @@ namespace NzbDrone.Core.Talearr.Catalog
     public static class TalearrTrackedCatalogFilter
     {
         // The same reasons RefreshBookService.ShouldDelete keeps a local row: manual add,
-        // monitored, strict or manually picked edition, or files.
+        // monitored, strict or manually picked edition, or files. Monitoring is per format
+        // (IsMonitored); the legacy Book.Monitored column is always false.
         public static bool IsKeptLocalBook(Book book, bool hasFiles)
         {
             if (book == null)
@@ -27,7 +28,7 @@ namespace NzbDrone.Core.Talearr.Catalog
             }
 
             return hasFiles ||
-                   book.Monitored ||
+                   book.IsMonitored() ||
                    book.AddOptions?.AddType == BookAddType.Manual ||
                    !book.AnyEditionOk ||
                    book.Editions?.Any(edition => edition?.ManualAdd == true) == true;
