@@ -648,7 +648,10 @@ namespace NzbDrone.Core.Profiles.Metadata
             }
 
             // Skip things of form Title1 / Title2 when Title1 and Title2 are already in the list
-            var bookTitles = new[] { book.Title }.Concat(book.Editions.Select(x => x.Title)).ToList();
+            // Talearr: Hardcover editions can have no title of their own.
+            var bookTitles = new[] { book.Title }.Concat((book.Editions ?? new List<Edition>()).Select(x => x?.Title))
+                .Where(x => x.IsNotNullOrWhiteSpace())
+                .ToList();
             foreach (var title in bookTitles)
             {
                 var split = title.Split('/').Select(x => x.Trim()).ToList();
@@ -658,7 +661,7 @@ namespace NzbDrone.Core.Profiles.Metadata
                 }
             }
 
-            var match = PartOrSetRegex.Match(book.Title);
+            var match = PartOrSetRegex.Match(book.Title ?? string.Empty);
 
             if (match.Groups["from"].Success)
             {

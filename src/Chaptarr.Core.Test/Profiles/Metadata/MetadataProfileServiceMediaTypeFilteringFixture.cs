@@ -304,6 +304,20 @@ namespace Chaptarr.Core.Test.Profiles.Metadata
         }
 
         [Test]
+        public void parts_and_sets_rule_tolerates_editions_without_titles()
+        {
+            var profile = CreateProfile(id: 1);
+            profile.SkipPartsAndSets = true;
+
+            var book = CreateSeriesBook("The Law Student", "hc:3022818", BookMediaType.Ebook, null);
+            book.Editions.Add(new Edition { ForeignEditionId = "hc:edition:9-ebook", Title = null });
+
+            var result = CreateService(profile).FilterBooks(new Author { Books = new List<Book> { book } }, profile.Id);
+
+            Assert.That(result.Select(x => x.Title), Is.EqualTo(new[] { "The Law Student" }));
+        }
+
+        [Test]
         public void should_filter_only_books_with_exclusively_secondary_series_links()
         {
             var profile = CreateProfile(id: 1);
