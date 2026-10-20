@@ -39,7 +39,7 @@ using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.MetadataSource.BookInfo
 {
-    public class BookInfoProxy : IProvideAuthorInfoAsync, IProvideBookInfo, ISearchForNewBook, ISearchForNewAuthor, ISearchForNewEntity, ITalearrFallbackAuthorInfo
+    public class BookInfoProxy : IProvideAuthorInfoAsync, IProvideBookInfo, ISearchForNewBook, ISearchForNewAuthor, ISearchForNewEntity, ITalearrFallbackAuthorInfo, ITalearrV5AuthorConverter
     {
         private static readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings
         {
@@ -257,6 +257,13 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             }
 
             return author;
+        }
+
+        // Talearr: the same V5 conversion for a payload built by Talearr's own metadata source
+        // (Hardcover). Used by the read-only shadow comparison; nothing is stored.
+        public Author ConvertV5AuthorResponse(V5.V5AuthorResponse response)
+        {
+            return response?.Author == null ? null : ConvertV5AuthorToDomain(response, response.Author.Id);
         }
 
         private Author GetAuthorInfoFromV5(string authorId, bool useCache = true, bool importAllWorks = true)
