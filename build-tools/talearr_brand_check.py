@@ -24,7 +24,7 @@ MUST_HAVE_BRAND = [
     ("frontend/src/Content/Images/Icons/manifest.json", r'"name": "Talearr"', "PWA manifest name"),
     ("frontend/src/Utilities/String/translate.ts", r"tokens\.appName = 'Talearr'", "UI {appName} token"),
     ("frontend/src/System/Status/About/About.js", r"talearrVersion", "Talearr version in System > Status"),
-    ("frontend/src/System/Status/MoreInfo/MoreInfo.js", r"DanCue44/TaleArr", "More Info source link"),
+    ("frontend/src/System/Status/MoreInfo/MoreInfo.js", r"DanCue44/Talearr", "More Info source link"),
     ("src/NzbDrone.Common/EnvironmentInfo/BuildInfo.cs", r'ProductName \{ get; \} = "Talearr"', "backend product name"),
     ("src/NzbDrone.Common/EnvironmentInfo/BuildInfo.cs", r'"TalearrVersion"', "Talearr version metadata read"),
     ("src/NzbDrone.Core/Localization/LocalizationService.cs", r"TalearrBranding\.Apply", "translation rebranding hook"),

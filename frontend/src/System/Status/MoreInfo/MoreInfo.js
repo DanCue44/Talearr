@@ -17,7 +17,7 @@ class MoreInfo extends Component {
         <DescriptionList>
           <DescriptionListItemTitle>{translate('Source')}</DescriptionListItemTitle>
           <DescriptionListItemDescription>
-            <Link to="https://github.com/DanCue44/TaleArr">{'github.com/DanCue44/TaleArr'}</Link>
+            <Link to="https://github.com/DanCue44/Talearr">{'github.com/DanCue44/Talearr'}</Link>
           </DescriptionListItemDescription>
 
           <DescriptionListItemTitle>{'Upstream'}</DescriptionListItemTitle>

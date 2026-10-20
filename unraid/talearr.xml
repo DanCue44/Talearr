@@ -1,24 +1,24 @@
 <?xml version="1.0"?>
 <!-- Talearr Unraid template (Community Applications format). See README.md "Unraid". -->
 <!-- The repository and image are private for now: the Icon and TemplateURL raw GitHub links only -->
-<!-- resolve once DanCue44/TaleArr is public, and the image needs a docker login to ghcr.io until -->
+<!-- resolve once DanCue44/Talearr is public, and the image needs a docker login to ghcr.io until -->
 <!-- the talearr package is public. -->
 <Container version="2">
   <Name>Talearr</Name>
   <Repository>ghcr.io/dancue44/talearr:latest</Repository>
-  <Registry>https://github.com/DanCue44/TaleArr/pkgs/container/talearr</Registry>
+  <Registry>https://github.com/DanCue44/Talearr/pkgs/container/talearr</Registry>
   <Network>bridge</Network>
   <MyIP/>
   <Shell>bash</Shell>
   <Privileged>false</Privileged>
   <Support>https://talearr.com</Support>
   <Project>https://talearr.com</Project>
-  <ReadMe>https://github.com/DanCue44/TaleArr#readme</ReadMe>
+  <ReadMe>https://github.com/DanCue44/Talearr#readme</ReadMe>
   <Overview>Talearr is an ebook and audiobook collection manager for Usenet and BitTorrent users, a drop-in fork of Chaptarr (itself a Readarr fork). It monitors authors and books, grabs the right edition and recording (unabridged by default, English editions by plain title), keeps abridged and unabridged recordings together, imports into tidy author and book folders and talks to Audiobookshelf. It reads the same /config as Chaptarr, so you can switch either way, and System &gt; Migrate brings a Readarr, Bookshelf or LazyLibrarian library over.[br][br]For hardlinks, keep downloads and the library on the same share and map one parent folder (see the README's Unraid section).</Overview>
   <Category>MediaApp:Books Downloaders:</Category>
   <WebUI>http://[IP]:[PORT:8789]</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/DanCue44/TaleArr/main/unraid/talearr.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/DanCue44/TaleArr/main/Logo/talearr.png</Icon>
+  <TemplateURL>https://raw.githubusercontent.com/DanCue44/Talearr/main/unraid/talearr.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/DanCue44/Talearr/main/Logo/talearr.png</Icon>
   <ExtraParams/>
   <PostArgs/>
   <CPUset/>

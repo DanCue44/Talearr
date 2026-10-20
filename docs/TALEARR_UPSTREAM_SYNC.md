@@ -1,6 +1,6 @@
 # Pulling upstream Chaptarr into Talearr
 
-Remotes: `origin` is `github.com/DanCue44/TaleArr`, `upstream` is
+Remotes: `origin` is `github.com/DanCue44/Talearr`, `upstream` is
 `github.com/Chaptarr/chaptarr`. Talearr's `develop` follows upstream `develop`.
 
 ## Merge
@@ -94,11 +94,11 @@ fixes, minor for Talearr features. Tag `vX.Y.Z` on `main` to publish a versioned
 ## Upstream workflows
 
 The upstream workflows (`build.yml`, `release.yml`, `docker-publish.yml`) stay in the repo
-so merges are clean, but are meant to stay disabled in DanCue44/TaleArr (they target
+so merges are clean, but are meant to stay disabled in DanCue44/Talearr (they target
 Chaptarr's Docker Hub and run a three-OS matrix):
 
 ```bash
-gh workflow disable "Build Chaptarr" -R DanCue44/TaleArr
-gh workflow disable "Release" -R DanCue44/TaleArr
-gh workflow disable "Docker Build and Publish" -R DanCue44/TaleArr
+gh workflow disable "Build Chaptarr" -R DanCue44/Talearr
+gh workflow disable "Release" -R DanCue44/Talearr
+gh workflow disable "Docker Build and Publish" -R DanCue44/Talearr
 ```
