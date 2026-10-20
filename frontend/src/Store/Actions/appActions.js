@@ -25,6 +25,16 @@ function getInitialHideUnmonitoredMissing() {
   }
 }
 
+// Talearr: the author page "Other listings" section (docs/TALEARR_AUTHOR_PAGE.md) is collapsed
+// until opened; the choice is kept per browser.
+function getInitialTalearrOtherListingsExpanded() {
+  try {
+    return localStorage.getItem('talearrOtherListingsExpanded') === 'true';
+  } catch (error) {
+    return false;
+  }
+}
+
 function getDimensions(width, height) {
   const dimensions = {
     width,
@@ -88,6 +98,7 @@ export const defaultState = {
   isRestarting: false,
   isSidebarVisible: !getDimensions(window.innerWidth, window.innerHeight).isSmallScreen,
   hideUnmonitoredMissing: getInitialHideUnmonitoredMissing(),
+  talearrOtherListingsExpanded: getInitialTalearrOtherListingsExpanded(),
   selectedMediaType: localStorage.getItem('selectedMediaType') || 'audiobook',
   translations: {
     isFetching: true,
@@ -107,6 +118,7 @@ export const SET_APP_VALUE = 'app/setAppValue';
 export const SET_IS_SIDEBAR_VISIBLE = 'app/setIsSidebarVisible';
 export const TOGGLE_HIDE_UNMONITORED_MISSING = 'app/toggleHideUnmonitoredMissing';
 export const SET_SELECTED_MEDIA_TYPE = 'app/setSelectedMediaType';
+export const TOGGLE_TALEARR_OTHER_LISTINGS = 'app/toggleTalearrOtherListings';
 export const FETCH_TRANSLATIONS = 'app/fetchTranslations';
 
 export const PING_SERVER = 'app/pingServer';
@@ -119,6 +131,7 @@ export const setVersion = createAction(SET_VERSION);
 export const setIsSidebarVisible = createAction(SET_IS_SIDEBAR_VISIBLE);
 export const toggleHideUnmonitoredMissing = createAction(TOGGLE_HIDE_UNMONITORED_MISSING);
 export const setSelectedMediaType = createAction(SET_SELECTED_MEDIA_TYPE);
+export const toggleTalearrOtherListings = createAction(TOGGLE_TALEARR_OTHER_LISTINGS);
 export const setAppValue = createAction(SET_APP_VALUE);
 export const showMessage = createAction(SHOW_MESSAGE);
 export const hideMessage = createAction(HIDE_MESSAGE);
@@ -281,6 +294,20 @@ export const reducers = createHandleActions({
     
     return Object.assign({}, state, {
       hideUnmonitoredMissing: newValue
+    });
+  },
+
+  [TOGGLE_TALEARR_OTHER_LISTINGS]: function(state) {
+    const newValue = !state.talearrOtherListingsExpanded;
+
+    try {
+      localStorage.setItem('talearrOtherListingsExpanded', JSON.stringify(newValue));
+    } catch (error) {
+      // Not persisted (private window or blocked storage); the choice still applies.
+    }
+
+    return Object.assign({}, state, {
+      talearrOtherListingsExpanded: newValue
     });
   },
 
