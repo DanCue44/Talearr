@@ -145,6 +145,108 @@ namespace Chaptarr.Core.Test.Api
             Assert.That(resources.Select(x => x.Id), Is.EquivalentTo(new[] { 100, 101 }));
         }
 
+        private static BookController CreateAuthorListController(Author author, List<Book> books)
+        {
+            return new BookController(
+                authorService: Proxy<IAuthorService>(new Dictionary<string, Func<MethodInfo, object[], object>>
+                {
+                    [nameof(IAuthorService.GetAuthor)] = (_, _) => author
+                }),
+                bookService: Proxy<IBookService>(new Dictionary<string, Func<MethodInfo, object[], object>>
+                {
+                    [nameof(IBookService.GetBooksForDisplay)] = (_, _) => books
+                }),
+                addBookService: null,
+                editionService: Proxy<IEditionService>(new Dictionary<string, Func<MethodInfo, object[], object>>
+                {
+                    [nameof(IEditionService.GetEditionsByAuthor)] = (_, _) => new List<Edition>()
+                }),
+                editionSelector: null,
+                seriesBookLinkService: Proxy<ISeriesBookLinkService>(new Dictionary<string, Func<MethodInfo, object[], object>>
+                {
+                    [nameof(ISeriesBookLinkService.GetLinksByBook)] = (_, _) => new List<SeriesBookLink>()
+                }),
+                authorStatisticsService: Proxy<IAuthorStatisticsService>(new Dictionary<string, Func<MethodInfo, object[], object>>
+                {
+                    [nameof(IAuthorStatisticsService.AuthorStatistics)] = (method, _) => method.ReturnType == typeof(AuthorStatistics) ? new AuthorStatistics() : new List<AuthorStatistics>()
+                }),
+                mediaFileService: null,
+                coverMapper: Proxy<IMapCoversToLocal>(new Dictionary<string, Func<MethodInfo, object[], object>>
+                {
+                    [nameof(IMapCoversToLocal.ConvertToLocalUrls)] = (_, _) => null
+                }),
+                upgradableSpecification: ThrowingProxy<IUpgradableSpecification>(),
+                signalRBroadcaster: null,
+                commandQueueManager: ThrowingProxy<IManageCommandQueue>(),
+                eventAggregator: ThrowingProxy<IEventAggregator>(),
+                metadataProfileService: ThrowingProxy<IMetadataProfileService>(),
+                qualityProfileService: ThrowingProxy<IQualityProfileService>(),
+                rootFolderService: ThrowingProxy<IRootFolderService>(),
+                qualityProfileExistsValidator: new QualityProfileExistsValidator(new TestQualityProfileService()),
+                metadataProfileExistsValidator: new MetadataProfileExistsValidator(new TestMetadataProfileService()),
+                logger: LogManager.GetCurrentClassLogger());
+        }
+
+        private static Book EbookRow(int id, int authorId, string title, bool monitored = false, int votes = 0)
+        {
+            return new Book
+            {
+                Id = id,
+                AuthorId = authorId,
+                Title = title,
+                TitleSlug = "book-" + id,
+                MediaType = BookMediaType.Ebook,
+                EbookMonitored = monitored,
+                AnyEditionOk = true,
+                LanguageCode = "eng",
+                Ratings = new Ratings { Votes = votes }
+            };
+        }
+
+        // Talearr: author page groups (docs/TALEARR_AUTHOR_PAGE.md).
+        [Test]
+        public void author_book_list_should_carry_talearr_groups()
+        {
+            var author = new Author { Id = 42, Name = "George Orwell", SortNameLastFirst = "Orwell, George" };
+            var books = new List<Book>
+            {
+                EbookRow(100, author.Id, "1984", votes: 4_500_000),
+                EbookRow(101, author.Id, "1984", votes: 12),
+                EbookRow(102, author.Id, "1984 / Animal Farm", votes: 900),
+                EbookRow(103, author.Id, "York Notes on Nineteen Eighty-Four", monitored: true),
+                EbookRow(104, author.Id, "Nineteen Eighty-Four: The Graphic Novel"),
+                EbookRow(105, author.Id, "Level 4: 1984 KPF with Integrated Audio")
+            };
+
+            var resources = CreateAuthorListController(author, books).GetBooks(
+                authorId: author.Id,
+                bookIds: new List<int>(),
+                bookId: null,
+                mediaType: "ebook");
+
+            var groups = resources.ToDictionary(x => x.Id, x => x.TalearrGroup);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(groups[100], Is.EqualTo("main"));
+                Assert.That(groups[101], Is.EqualTo("duplicate"));
+                Assert.That(groups[102], Is.EqualTo("omnibus"));
+                Assert.That(groups[103], Is.EqualTo("main"), "a monitored book is always main");
+                Assert.That(groups[104], Is.EqualTo("adaptation"));
+                Assert.That(groups[105], Is.EqualTo("guide"));
+            });
+        }
+
+        [Test]
+        public void talearr_group_is_left_out_of_json_when_not_set()
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(new BookResource { Id = 1, Title = "1984" });
+            var withGroup = System.Text.Json.JsonSerializer.Serialize(new BookResource { Id = 1, Title = "1984", TalearrGroup = "duplicate" });
+
+            Assert.That(json, Does.Not.Contain("TalearrGroup"));
+            Assert.That(withGroup, Does.Contain("\"TalearrGroup\":\"duplicate\""));
+        }
+
         [Test]
         public void facade_put_should_promote_only_requested_media_side_and_return_monitored_book()
         {

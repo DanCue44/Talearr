@@ -94,6 +94,7 @@ MUST_KEEP_TALEARR_HOOKS = [
     ("src/Chaptarr.Api.V1/Talearr/TalearrBookTagsController.cs", r'V1ApiController\("talearr/booktags"\)', "book tags: additive API route (BookResource unchanged)"),
     ("src/NzbDrone.Core/Profiles/Metadata/MetadataProfileService.cs", r"TalearrContentFilterRules\.Rejection\(", "metadata profiles: genre and content type rules are applied"),
     ("src/NzbDrone.Core/Talearr/ContentFilter/TalearrContentFilterStore.cs", r'KeyPrefix = "talearr\.metadataprofile\."', "metadata profiles: genre rules are talearr.* Config rows"),
+    ("src/Chaptarr.Api.V1/Books/BookController.cs", r"TalearrAuthorPageGroupMapper\.Apply\(resources, filteredBooks, author\)", "author page: book list carries talearrGroup"),
 ]
 
 # Phase 2 recordings wiring (docs/TALEARR_RECORDINGS_DESIGN.md). Talearr-only files, but the

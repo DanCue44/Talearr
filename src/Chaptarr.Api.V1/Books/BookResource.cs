@@ -79,6 +79,12 @@ namespace Chaptarr.Api.V1.Books
         // Omnibus/Collection flag - true for box sets, anthologies, complete series collections
         public bool IsOmnibus { get; set; }
 
+        // Talearr: author page group (main, omnibus, guide, adaptation, duplicate, otherLanguage),
+        // only on one author's book list (GET /api/v1/book?authorId=). Read only, never stored.
+        // Left out of other responses so a single-book update does not clear it on the client.
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string TalearrGroup { get; set; }
+
         // For multi-edition display
         public List<string> Formats { get; set; }
         public string FileSizeOnDisk { get; set; }
@@ -549,7 +555,7 @@ namespace Chaptarr.Api.V1.Books
 
         private static TimeSpan? GetDuration(Book book, Edition edition)
         {
-            // File measurements only — no fallback to server/edition metadata
+            // File measurements only, no fallback to server/edition metadata
             if (edition?.BookFiles?.Any() != true)
             {
                 return book?.DurationMinutes.HasValue == true
@@ -566,7 +572,7 @@ namespace Chaptarr.Api.V1.Books
 
         private static double? GetDurationMinutes(Book book, Edition edition)
         {
-            // File measurements only — no fallback to server/edition metadata
+            // File measurements only, no fallback to server/edition metadata
             if (edition?.BookFiles?.Any() != true)
             {
                 return book?.DurationMinutes;
