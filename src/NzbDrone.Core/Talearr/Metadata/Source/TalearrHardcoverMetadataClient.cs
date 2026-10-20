@@ -66,6 +66,12 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         // The book an edition belongs to, or null.
         int? GetEditionBookId(int hardcoverEditionId);
 
+        // Editions by ISBN-13, ISBN-10 or ASIN (import matching). At most 20 rows.
+        List<HardcoverEditionHit> FindEditions(IReadOnlyCollection<string> isbns, IReadOnlyCollection<string> asins);
+
+        // Hardcover's book search (import matching), best hits first.
+        List<HardcoverBookHit> SearchBooks(string query, int limit);
+
         TalearrHardcoverClientStatus GetStatus();
     }
 
@@ -103,6 +109,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             query TalearrAuthorSignatures($ids: [Int!]!, $limit: Int!) {
                 authors(where: { id: { _in: $ids } }, limit: $limit) {
                     id
+                    name
                     books_count
                     updated_at
                 }
@@ -125,6 +132,22 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 editions(where: { id: { _eq: $id } }, limit: 1) {
                     id
                     book_id
+                }
+            }";
+
+        internal const string EditionsByIdentifierQuery = @"
+            query TalearrEditionsByIdentifier($isbns: [String!]!, $asins: [String!]!) {
+                editions(where: { _or: [{ isbn_13: { _in: $isbns } }, { isbn_10: { _in: $isbns } }, { asin: { _in: $asins } }] }, limit: 20) {
+                    id
+                    book_id
+                    reading_format_id
+                }
+            }";
+
+        internal const string SearchBooksQuery = @"
+            query TalearrSearchBooks($q: String!, $limit: Int!) {
+                search(query: $q, query_type: ""Book"", per_page: $limit, page: 1) {
+                    results
                 }
             }";
 
@@ -345,6 +368,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                         result[id] = new HardcoverAuthorSignature
                         {
                             AuthorId = id,
+                            Name = row.Value<string>("name"),
                             BooksCount = row.Value<int?>("books_count") ?? 0,
                             UpdatedAt = Date(row, "updated_at")
                         };
@@ -401,6 +425,79 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             var row = Query(EditionBookQuery, new { id = hardcoverEditionId }, "editions").FirstOrDefault();
             var bookId = row?.Value<int?>("book_id");
             return bookId > 0 ? bookId : null;
+        }
+
+        public List<HardcoverEditionHit> FindEditions(IReadOnlyCollection<string> isbns, IReadOnlyCollection<string> asins)
+        {
+            RequireToken();
+
+            var isbnList = (isbns ?? Array.Empty<string>()).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().Take(10).ToList();
+            var asinList = (asins ?? Array.Empty<string>()).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().Take(10).ToList();
+            if (isbnList.Count == 0 && asinList.Count == 0)
+            {
+                return new List<HardcoverEditionHit>();
+            }
+
+            return Query(EditionsByIdentifierQuery, new { isbns = isbnList, asins = asinList }, "editions")
+                .Select(row => new HardcoverEditionHit
+                {
+                    EditionId = row.Value<int?>("id") ?? 0,
+                    BookId = row.Value<int?>("book_id") ?? 0,
+                    ReadingFormatId = row.Value<int?>("reading_format_id") ?? 0
+                })
+                .Where(hit => hit.EditionId > 0 && hit.BookId > 0)
+                .ToList();
+        }
+
+        public List<HardcoverBookHit> SearchBooks(string query, int limit)
+        {
+            RequireToken();
+
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return new List<HardcoverBookHit>();
+            }
+
+            var term = query.Trim();
+            if (term.Length > 200)
+            {
+                term = term.Substring(0, 200);
+            }
+
+            // search returns one row whose "results" is the Typesense answer (jsonb).
+            var row = Query(SearchBooksQuery, new { q = term, limit = Math.Max(1, Math.Min(limit, 10)) }, "search").FirstOrDefault();
+            var hits = row?["results"]?["hits"] as JArray ?? new JArray();
+
+            var result = new List<HardcoverBookHit>();
+            foreach (var hit in hits)
+            {
+                var doc = hit?["document"];
+                if (doc == null || !int.TryParse(doc.Value<string>("id"), NumberStyles.None, CultureInfo.InvariantCulture, out var bookId) || bookId <= 0)
+                {
+                    continue;
+                }
+
+                var credit = (doc["contributions"] as JArray ?? new JArray())
+                    .Select(c => (Id: c?["author"]?.Value<int?>("id") ?? 0, Name: c?["author"]?.Value<string>("name"), Role: c?.Value<string>("contribution")))
+                    .Where(c => c.Id > 0)
+                    .OrderByDescending(c => string.IsNullOrWhiteSpace(c.Role) || HardcoverContributionRoles.IsPrimaryAuthor(c.Role))
+                    .FirstOrDefault();
+
+                if (credit.Id <= 0)
+                {
+                    continue;
+                }
+
+                result.Add(new HardcoverBookHit
+                {
+                    BookId = bookId,
+                    Title = doc.Value<string>("title"),
+                    AuthorId = credit.Id,
+                    AuthorName = credit.Name
+                });
+            }
+
+            return result;
         }
 
         private void RequireToken()
@@ -692,7 +789,15 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 throw new TalearrHardcoverException("Hardcover GraphQL error: {0}", string.Join("; ", messages));
             }
 
-            if (parsed["data"]?[root] is not JArray rows)
+            var data = parsed["data"]?[root];
+
+            // search(...) answers with one object, not a list of rows.
+            if (data is JObject single)
+            {
+                return new List<JToken> { single };
+            }
+
+            if (data is not JArray rows)
             {
                 throw new TalearrHardcoverException("Hardcover response has no data.{0}", root);
             }

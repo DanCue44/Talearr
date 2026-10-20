@@ -148,6 +148,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
     public class HardcoverAuthorSignature
     {
         public int AuthorId { get; set; }
+        public string Name { get; set; }
         public int BooksCount { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }
@@ -160,5 +161,22 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
 
         // Primary credits first.
         public List<int> AuthorIds { get; set; } = new List<int>();
+    }
+
+    // editions { id book_id reading_format_id } found by ISBN or ASIN.
+    public class HardcoverEditionHit
+    {
+        public int EditionId { get; set; }
+        public int BookId { get; set; }
+        public int ReadingFormatId { get; set; }
+    }
+
+    // One hit of search(query_type: "Book"): the book and its primary author.
+    public class HardcoverBookHit
+    {
+        public int BookId { get; set; }
+        public string Title { get; set; }
+        public int AuthorId { get; set; }
+        public string AuthorName { get; set; }
     }
 }

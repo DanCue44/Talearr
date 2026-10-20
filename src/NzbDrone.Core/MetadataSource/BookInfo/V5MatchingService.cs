@@ -18,6 +18,7 @@ using NzbDrone.Core.MediaFiles.BookImport;
 using NzbDrone.Core.MediaFiles.BookImport.Identification;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.Metadata.Source;
 
 namespace NzbDrone.Core.MetadataSource.BookInfo
 {
@@ -41,6 +42,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         private readonly IQualityProfileService _qualityProfileService;
         private readonly IMatchingUploadLogger _matchingLogger;
         private readonly IMetadataServerHealthGate _metadataServerHealthGate;
+        private readonly ITalearrSourceMatcher _talearrMatcher;
         private readonly Logger _logger;
 
         public V5MatchingService(
@@ -57,7 +59,8 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             IQualityProfileService qualityProfileService,
             IMatchingUploadLogger matchingLogger,
             Logger logger,
-            IMetadataServerHealthGate metadataServerHealthGate)
+            IMetadataServerHealthGate metadataServerHealthGate,
+            ITalearrSourceMatcher talearrMatcher = null)
         {
             _httpClient = httpClient;
             _authorInfoProxy = authorInfoProxy;
@@ -71,6 +74,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             _qualityProfileService = qualityProfileService;
             _matchingLogger = matchingLogger;
             _metadataServerHealthGate = metadataServerHealthGate ?? throw new ArgumentNullException(nameof(metadataServerHealthGate));
+            _talearrMatcher = talearrMatcher;
             _logger = logger;
         }
 
@@ -84,6 +88,12 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             {
                 _logger.Debug("[V5-MATCHING] Skipping call: empty query for file '{0}'", Path.GetFileName(filePath ?? "unknown"));
                 return new List<V5MatchedAuthor>();
+            }
+
+            // Talearr: with Talearr's own source selected, candidates come from Hardcover.
+            if (_talearrMatcher != null && (_authorInfoProxy as BookInfoProxy)?.TalearrSourceActive == true)
+            {
+                return _talearrMatcher.Match(effectiveQuery, tags);
             }
 
             Dictionary<string, List<string>> logTags = null;
