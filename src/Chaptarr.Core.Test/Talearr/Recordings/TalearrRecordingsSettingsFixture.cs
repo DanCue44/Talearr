@@ -117,7 +117,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             service.Save(new TalearrRecordingsSettings { UpgradeGuard = false, MinBitrateGainKbps = 24 });
             var controller = new TalearrRecordingsConfigController(service);
 
-            // An older client (AllSeerr) sends only the fields it knows.
+            // An older client (Allseerr) sends only the fields it knows.
             controller.SaveConfig(new TalearrRecordingsConfigResource { Id = 1, Marketplace = "us", KeepBoth = true, SearchOnAdd = true });
 
             var settings = service.Get();

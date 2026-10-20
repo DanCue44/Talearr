@@ -3,7 +3,7 @@
 Talearr reads the same `/config` folder, `config.xml` and `chaptarr.db` as Chaptarr and
 keeps the same API, port and environment variables. Swapping is a change of the image
 only. Volumes, port, `PUID`/`PGID`/`UMASK` and the container network stay as they are,
-so anything that talks to Chaptarr (AllSeerr, Prowlarr, NPM proxy hosts) keeps working.
+so anything that talks to Chaptarr (Allseerr, Prowlarr, NPM proxy hosts) keeps working.
 
 Current container (for reference): image `chaptarr/chaptarr:latest`, `PUID=99`,
 `PGID=100`, `UMASK=000`, port `8789`, volumes `/config`, `/audiobooks`, `/ebooks`,

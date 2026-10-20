@@ -174,7 +174,7 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
                 _files.GetFilesByBooks(ids);
             });
 
-            // GET /book?titleSlug=... (AllSeerr links): old path loaded the library (books + series
+            // GET /book?titleSlug=... (Allseerr links): old path loaded the library (books + series
             // links) to find one slug; new path asks for the slug.
             using (var conn = _db.Open())
             {

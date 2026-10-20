@@ -9,7 +9,7 @@ using NzbDrone.Core.Talearr.Recordings;
 
 namespace Chaptarr.Core.Test.Talearr.Recordings
 {
-    // Talearr: AllSeerr's "both" mode asks for a book's recordings right after adding it, before
+    // Talearr: Allseerr's "both" mode asks for a book's recordings right after adding it, before
     // the background Audible lookup has run. The API GET does that first lookup itself, briefly.
     [TestFixture]
     public class TalearrRecordingsFirstLookupFixture

@@ -101,7 +101,7 @@ a download is refused and the abridged files stay.
 
 The grab policy's **Abridged audiobooks** setting (Settings > Indexers > Grab policy, see the
 [README](../README.md#grab-policy)) is the default for every book. A book can have its own value,
-set through the API below. AllSeerr does this when its "Audiobook versions" setting is "requester
+set through the API below. Allseerr does this when its "Audiobook versions" setting is "requester
 chooses"; its other choices (unabridged, abridged, both) map onto the same values or onto an
 additional recording.
 
@@ -133,7 +133,7 @@ book's value, and its history note says so ("...; abridged policy for this book:
 ### Edition choice
 
 Before a book search (missing book searches, Search, a retry after a failed download, an
-interactive search of a monitored book, a search queued by AllSeerr), Talearr checks the
+interactive search of a monitored book, a search queued by Allseerr), Talearr checks the
 monitored edition against the value that applies:
 
 - `abridgedOnly` (the book's own or global) and the monitored edition is not abridged: Talearr
@@ -179,7 +179,7 @@ when you choose it or turn on the fallback.
 
 ## API
 
-For AllSeerr, NoBookEnds and scripts (all additive; nothing upstream changes):
+For Allseerr, NoBookEnds and scripts (all additive; nothing upstream changes):
 
 | Route | What it does |
 |---|---|

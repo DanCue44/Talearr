@@ -166,7 +166,7 @@ namespace Chaptarr.Api.V1.Profiles.Metadata
             return resource;
         }
 
-        // Null means the client did not send the field (stock Chaptarr UI, AllSeerr): keep the rules.
+        // Null means the client did not send the field (stock Chaptarr UI, Allseerr): keep the rules.
         private void SaveTalearrContentFilter(int profileId, TalearrContentFilter filter)
         {
             if (filter != null)

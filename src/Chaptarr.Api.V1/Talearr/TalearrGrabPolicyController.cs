@@ -30,7 +30,7 @@ namespace Chaptarr.Api.V1.Talearr
         public string Message { get; set; }
     }
 
-    // Talearr: per-book grab policy under /api/v1/talearr/grabpolicy (AllSeerr's "Audiobook
+    // Talearr: per-book grab policy under /api/v1/talearr/grabpolicy (Allseerr's "Audiobook
     // versions", requester chooses). New routes only; the global policy stays at
     // /api/v1/config/talearrgrabpolicy. Overrides are stored in talearr.db, never chaptarr.db.
     [V1ApiController("talearr/grabpolicy")]

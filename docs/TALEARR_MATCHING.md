@@ -77,7 +77,7 @@ edition is not under it yet) instead of being blocked.
 
 ## Duplicate rows on add (`TalearrAuthorRefreshGate`)
 
-Adding a book in a second media type for an author that already exists (AllSeerr sends the ebook
+Adding a book in a second media type for an author that already exists (Allseerr sends the ebook
 and the audiobook as two requests) ran the add's author reconcile on the request thread while the
 `RefreshAuthorCommand` queued by the same add ran on a command thread. Both compared the author
 with the same database state, both found the audiobooks missing and both inserted them, so every

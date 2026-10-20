@@ -22,7 +22,7 @@ function getAbridgedHelpText(value) {
     case 'preferUnabridged':
       return 'Abridged audiobook releases can be grabbed, but always rank below unabridged ones.';
     case 'abridgedOnly':
-      return 'Only abridged audiobook releases are grabbed. Before searching, Talearr monitors an abridged edition of the book when one is known; releases marked unabridged are skipped, and unmarked ones too unless the monitored edition is abridged. Books with their own abridged setting (for example from AllSeerr) keep it.';
+      return 'Only abridged audiobook releases are grabbed. Before searching, Talearr monitors an abridged edition of the book when one is known; releases marked unabridged are skipped, and unmarked ones too unless the monitored edition is abridged. Books with their own abridged setting (for example from Allseerr) keep it.';
     case 'any':
       return 'Abridged and unabridged audiobook releases are treated the same.';
     default:

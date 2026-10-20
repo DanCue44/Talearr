@@ -27,7 +27,7 @@ Phase 2 covers three things:
 1. **Audible metadata per recording**: narrator, runtime, abridged or unabridged, publisher,
    release date, ASIN, for a chosen Audible marketplace (US, UK, ...).
 2. **More than one recording of the same book**, each with its own files (abridged and
-   unabridged, or two narrators), and an "add the unabridged version" action that AllSeerr and
+   unabridged, or two narrators), and an "add the unabridged version" action that Allseerr and
    NoBookEnds can trigger too.
 3. **An upgrade path** that replaces a worse copy with a better one (bitrate, codec, ebook format)
    under clear rules, and never replaces one recording with a different recording.
@@ -86,7 +86,7 @@ behave sensibly on the data Talearr left behind.
 So the hard part of "keep both copies" already works in stock Chaptarr. What is missing is knowing
 which edition is the abridged or unabridged recording, a direct action for it, keeping two copies
 with the same narrator from landing in the same folder, a clear view of the recordings of a book,
-and an API for AllSeerr and NoBookEnds.
+and an API for Allseerr and NoBookEnds.
 
 The live library has one copy row today (book 7485, "Caught Up", ebook, `_copy_` slug), so the
 mechanism is in use.
@@ -167,7 +167,7 @@ What has to be stored:
 - Settings (marketplace, provider, upgrade rules): a handful of values.
 - Audible facts per product: rebuildable from Audible at any time.
 - Recording rows and their files: must survive rollback and be understood by Chaptarr.
-- Optional request provenance (which AllSeerr request asked for which copy): nice to have.
+- Optional request provenance (which Allseerr request asked for which copy): nice to have.
 
 ### (a) Separate `talearr.db`, keyed by Chaptarr ids
 
@@ -319,7 +319,7 @@ RecordingRequests                   -- optional provenance, safe to lose
   ForeignEditionId TEXT
   Kind             TEXT  NOT NULL   -- unabridged | abridged | narrator | edition
   RequestedBy      TEXT             -- ui | allseerr | api
-  ExternalRef      TEXT             -- e.g. AllSeerr request id
+  ExternalRef      TEXT             -- e.g. Allseerr request id
   CreatedAt        TEXT  NOT NULL
 ```
 
@@ -487,15 +487,15 @@ hides abridged releases and searching the unabridged copy no longer shows them f
 **Settings > Media Management, "Upgrades" block**: the upgrade guard switch, minimum bitrate gain,
 runtime tolerance, and "Keep both when an unabridged recording arrives".
 
-## AllSeerr and NoBookEnds
+## Allseerr and NoBookEnds
 
-### AllSeerr
+### Allseerr
 
-Today AllSeerr keeps one Chaptarr book id per format (`Media.externalServiceId` for ebook,
+Today Allseerr keeps one Chaptarr book id per format (`Media.externalServiceId` for ebook,
 `externalServiceIdAudio` for audiobook) and drives editions through `chaptarrRequests.ts`
 (`monitorEditionInLanguage`, lookups, monitor and search).
 
-Additions (AllSeerr repo, after Talearr ships the API):
+Additions (Allseerr repo, after Talearr ships the API):
 
 - Detect Talearr: `GET /api/v1/system/status` `instanceName` contains "Talearr" and
   `GET /api/v1/config/talearrrecordings` answers. Without it, hide the feature.
@@ -513,13 +513,13 @@ Additions (AllSeerr repo, after Talearr ships the API):
 
 ### NoBookEnds
 
-NoBookEnds talks to Audiobookshelf and AllSeerr, never to Talearr directly.
+NoBookEnds talks to Audiobookshelf and Allseerr, never to Talearr directly.
 
 - Each recording lives in its own folder, so Audiobookshelf shows two library items. NoBookEnds
   groups them by ASIN, ISBN or title + author into one book with a "Recordings" switcher.
 - The abridged note it already shows (Listen & Read, `abridgedInfo` from alignment coverage) gets an
-  action: "Get the unabridged audiobook", which calls AllSeerr `POST /request` with
-  `recording: "unabridged"`. Shown only when AllSeerr status allows requests and reports
+  action: "Get the unabridged audiobook", which calls Allseerr `POST /request` with
+  `recording: "unabridged"`. Shown only when Allseerr status allows requests and reports
   `canRequestRecording`.
 - When the new item arrives, the book page shows both recordings and lets the user switch.
 - **Phase 3 (not in this design):** carry the listening position across recordings. The natural
@@ -681,7 +681,7 @@ ship on its own.
 
 Outside this repo, after step 5 is released:
 
-10. **AllSeerr**: Talearr detection, `recording` request option, `externalServiceIdAudioAlt`, status
+10. **Allseerr**: Talearr detection, `recording` request option, `externalServiceIdAudioAlt`, status
     from the recordings API, NoBookEnds contract fields.
 11. **NoBookEnds**: group ABS items by identity, Recordings switcher, "Get the unabridged audiobook"
     on the abridged note.
@@ -691,7 +691,7 @@ Outside this repo, after step 5 is released:
 
 - Default marketplace: `us` for everyone, or follow the UI language's country where it has one?
 - Should "Add the unabridged version" search right away by default (assumed yes), and should
-  AllSeerr requests for a second recording need approval like a new book?
+  Allseerr requests for a second recording need approval like a new book?
 - When the unabridged recording is downloaded, keep the abridged one forever, or offer "remove the
   abridged recording" after a while (not automatic)?
 - Is Audnexus acceptable as a fallback provider, given it is a volunteer server?

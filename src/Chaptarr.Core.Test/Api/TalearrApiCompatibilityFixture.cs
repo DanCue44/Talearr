@@ -32,7 +32,7 @@ using NzbDrone.Core.Qualities;
 
 namespace Chaptarr.Core.Test.Api
 {
-    // Talearr: pins the parts of the v1 API that Prowlarr's "Readarr" app sync, AllSeerr and
+    // Talearr: pins the parts of the v1 API that Prowlarr's "Readarr" app sync, Allseerr and
     // other Readarr clients read. A failure here means an outside client breaks: change the
     // client contract on purpose (and docs/README) or put the field/route back.
     [TestFixture]
@@ -105,7 +105,7 @@ namespace Chaptarr.Core.Test.Api
             return routes;
         }
 
-        // Prowlarr ReadarrV1Proxy and common Readarr clients (AllSeerr, dashboards, LunaSea).
+        // Prowlarr ReadarrV1Proxy and common Readarr clients (Allseerr, dashboards, LunaSea).
         [TestCase("GET system/status")]
         [TestCase("GET indexer")]
         [TestCase("GET indexer/{}")]
@@ -143,7 +143,7 @@ namespace Chaptarr.Core.Test.Api
         [Test]
         public void system_status_keeps_the_chaptarr_app_name_and_a_parsable_version()
         {
-            // AllSeerr tells Chaptarr from Readarr by appName; Prowlarr reads X-Application-Version.
+            // Allseerr tells Chaptarr from Readarr by appName; Prowlarr reads X-Application-Version.
             Assert.That(BuildInfo.AppName, Is.EqualTo("Chaptarr"));
             Assert.That(BuildInfo.Version, Is.Not.Null);
             Assert.That(Version.TryParse(BuildInfo.Version.ToString(), out _), Is.True);
@@ -229,7 +229,7 @@ namespace Chaptarr.Core.Test.Api
         [Test]
         public void book_resource_fields()
         {
-            // Readarr fields plus the Chaptarr per-format fields AllSeerr reads.
+            // Readarr fields plus the Chaptarr per-format fields Allseerr reads.
             AssertHasFields(typeof(BookResource),
                 "id", "title", "titleSlug", "overview", "authorId", "author", "foreignBookId", "foreignEditionId", "monitored",
                 "anyEditionOk", "ratings", "releaseDate", "pageCount", "genres", "images", "links", "statistics", "added",

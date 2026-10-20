@@ -74,7 +74,7 @@ namespace Chaptarr.Api.V1.Talearr
             }
 
             // Talearr: a book added a moment ago gets its first Audible lookup here (at most a few
-            // seconds), so AllSeerr sees abridged candidates right after the add.
+            // seconds), so Allseerr sees abridged candidates right after the add.
             var view = _recordingsService.GetRecordingsWithFacts(book, allLanguages, FirstLookupTimeout);
             if (view == null)
             {

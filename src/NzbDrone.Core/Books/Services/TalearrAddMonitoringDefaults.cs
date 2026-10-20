@@ -3,7 +3,7 @@ using NzbDrone.Core.Books.Services;
 namespace NzbDrone.Core.Books
 {
     // Talearr: safe defaults when one book is requested for an author (UI "Add book" or
-    // POST /api/v1/book, which AllSeerr uses).
+    // POST /api/v1/book, which Allseerr uses).
     //
     // Chaptarr already limits the one-time initial selection to the requested book unless the
     // request asks for addOptions.monitor = "all". What it did not pin down is the ongoing

@@ -5,7 +5,7 @@ import styles from './WorksBestWith.css';
 // Talearr: companion apps shown on System > Status.
 const companions = [
   {
-    name: 'AllSeerr',
+    name: 'Allseerr',
     description: 'Request movies, series, music, books and audiobooks.',
     url: 'https://allseerr.com',
     image: 'works-best-with-allseerr.png'

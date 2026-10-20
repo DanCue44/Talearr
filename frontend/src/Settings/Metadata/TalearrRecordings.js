@@ -114,7 +114,7 @@ function TalearrRecordings(props) {
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="searchOnAdd"
-                helpText="Search for a recording right away when it is added from the book page, AllSeerr or the API"
+                helpText="Search for a recording right away when it is added from the book page, Allseerr or the API"
                 onChange={onInputChange}
                 {...settings.searchOnAdd}
               />

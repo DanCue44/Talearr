@@ -333,7 +333,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
         [TestCase(424242)]
         public void api_answers_404_with_a_json_body_for_unknown_ids(int bookId)
         {
-            // AllSeerr probes with id 0 and reads an empty 404 as "route missing".
+            // Allseerr probes with id 0 and reads an empty 404 as "route missing".
             var controller = new TalearrGrabPolicyController(_service);
 
             foreach (var result in new[] { controller.GetBook(bookId), controller.SetBook(bookId, new TalearrBookGrabPolicyBody { AbridgedPolicy = "any" }) })

@@ -59,7 +59,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         BookGrabPolicyResult Set(int bookId, AbridgedAudiobookPolicy? policy);
     }
 
-    // Talearr: per-book abridged policy overrides (AllSeerr's "Audiobook versions" setting with
+    // Talearr: per-book abridged policy overrides (Allseerr's "Audiobook versions" setting with
     // "requester chooses"). Overrides live in talearr.db keyed by the work's provider id
     // (Book.BaseBookId, the same key the recordings code uses for a work), never only by row id:
     // the audiobook row and every duplicate row of the same work share it, and it survives a

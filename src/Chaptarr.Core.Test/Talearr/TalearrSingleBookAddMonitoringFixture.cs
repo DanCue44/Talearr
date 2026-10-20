@@ -79,7 +79,7 @@ namespace Chaptarr.Core.Test.Talearr
         [Test]
         public void allseerr_payload_maps_to_only_this_book_and_no_future_releases()
         {
-            // The shape AllSeerr posts to POST /api/v1/book?mediaType=audiobook for a new author.
+            // The shape Allseerr posts to POST /api/v1/book?mediaType=audiobook for a new author.
             var resource = new AuthorResource
             {
                 AuthorName = "New Author",

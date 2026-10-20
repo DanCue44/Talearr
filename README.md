@@ -20,7 +20,7 @@ ebook root folders, series handling, quality profiles and upgrades, and the usua
 download client and indexer integrations.
 
 Talearr tracks Chaptarr closely. The differences today are the name and icon, a separate
-Talearr version, a "Works best with" block in System > Status (AllSeerr, NoBookEnds), a
+Talearr version, a "Works best with" block in System > Status (Allseerr, NoBookEnds), a
 grab policy (see below), two import additions (completed downloads that only hold archives
 are unpacked before import, and downloaded files whose own language is not the wanted one
 are rejected; see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), fixes to edition choice,
@@ -63,7 +63,7 @@ Talearr behavior changes so far (all without schema changes, new settings or `co
   still sees an old id updates the kept row instead of adding the duplicate again.
 - **Large libraries.** Fewer full-library loads: the book index loads series links once with a
   single scan, Wanted, Cutoff Unmet, the calendar and author pages read statistics for their
-  own authors only, and book routes by `titleSlug` (AllSeerr links) look the slug up instead
+  own authors only, and book routes by `titleSlug` (Allseerr links) look the slug up instead
   of loading every book.
 
 ## Audiobooks
@@ -120,11 +120,11 @@ See [docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md).
   filter; interactive search can still grab). Explicit user grabs stay in the queue. The pause
   is kept in `talearr.db`.
 - **Per-book abridged policy.** A book can have its own Abridged audiobooks value (unabridged
-  only, abridged only, prefer unabridged, any), set by AllSeerr through
+  only, abridged only, prefer unabridged, any), set by Allseerr through
   `GET|PUT /api/v1/talearr/grabpolicy/book/{bookId}`. An abridged only book without files
   monitors its best abridged edition before it is searched; when none is known, its history says
   so. Additional recordings keep their own behaviour.
-- **API** for AllSeerr and NoBookEnds: `GET|POST /api/v1/talearr/recordings`,
+- **API** for Allseerr and NoBookEnds: `GET|POST /api/v1/talearr/recordings`,
   `DELETE /api/v1/talearr/recordings/{bookId}`, `GET|PUT /api/v1/config/talearrrecordings`.
 
 Storage: a separate `talearr.db` next to `chaptarr.db` (a rebuildable cache, plus the per-book
@@ -524,7 +524,7 @@ unchanged, and new data is added as extra fields (`books[].coverUrl`, `mediaType
   the 3xxx categories and ebook searches only the 7xxx ones, so keep both in the app's
   sync categories. MAM results (native indexer or through Prowlarr) carry 3030/7020 plus
   the site category as `100000 + id`, like Prowlarr reports them.
-- **Readarr clients** (AllSeerr, dashboards, mobile apps): `/api/v1/system/status`, `/book`,
+- **Readarr clients** (Allseerr, dashboards, mobile apps): `/api/v1/system/status`, `/book`,
   `/book/lookup`, `/author`, `/author/lookup`, `/queue`, `/queue/status`, `/wanted/missing`,
   `/wanted/cutoff`, `/calendar`, `/command`, `/history` answer with Readarr-shaped resources
   plus Chaptarr's per-format fields. `appName` stays `Chaptarr`. Clients that expect one
@@ -540,7 +540,7 @@ goes wrong:
 
 | Setting | Default | What it does |
 |---|---|---|
-| Abridged audiobooks | Unabridged only | Audiobook releases marked "abridged" are skipped (shown as a soft filter in interactive search, so you can still grab one on purpose). They are allowed when the wanted edition is itself abridged, judged from the edition title or info, or from its runtime being under 60% of the longest edition in the same language. "Abridged only" does the opposite: releases marked unabridged are skipped, unmarked ones are allowed only when the monitored edition is abridged, abridged releases rank first, and before searching a book without files Talearr monitors its best abridged edition (see [docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md#per-book-abridged-policy)). "Prefer unabridged" allows them but always ranks them below unabridged or unmarked releases. "Any" turns this off. A book can have its own value (from AllSeerr), which wins over this one. |
+| Abridged audiobooks | Unabridged only | Audiobook releases marked "abridged" are skipped (shown as a soft filter in interactive search, so you can still grab one on purpose). They are allowed when the wanted edition is itself abridged, judged from the edition title or info, or from its runtime being under 60% of the longest edition in the same language. "Abridged only" does the opposite: releases marked unabridged are skipped, unmarked ones are allowed only when the monitored edition is abridged, abridged releases rank first, and before searching a book without files Talearr monitors its best abridged edition (see [docs/TALEARR_RECORDINGS.md](docs/TALEARR_RECORDINGS.md#per-book-abridged-policy)). "Prefer unabridged" allows them but always ranks them below unabridged or unmarked releases. "Any" turns this off. A book can have its own value (from Allseerr), which wins over this one. |
 | Allow bundles | Off | Series bundles, omnibuses, box sets, collections, "complete novels", "N books" sets and explicit title lists ("Great Innovators (Benjamin Franklin; Einstein; Steve Jobs)") are skipped for single-book searches. A wanted book that is itself an omnibus still matches bundle releases. |
 | Fail rejected imports | On | When an import is rejected because the release is the wrong book, its files are in the wrong language, its archives are unusable, or it holds no audio or ebook files (zip, rar and 7z are unpacked first, see [docs/TALEARR_IMPORT.md](docs/TALEARR_IMPORT.md)), the download is marked failed. That blocklists the release and starts the automatic redownload. Archive formats Talearr does not unpack, same-title matches (usually duplicate metadata), transient errors and explicit interactive grabs stay in the queue as before. |
 | Automatic retry limit | 3 | Failed downloads per book within 7 days before automatic searching stops. |
