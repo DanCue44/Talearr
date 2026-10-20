@@ -143,4 +143,22 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         public int SkippedPartial { get; set; }
         public DateTime FetchedAt { get; set; }
     }
+
+    // authors { id books_count updated_at }: the refresh change check.
+    public class HardcoverAuthorSignature
+    {
+        public int AuthorId { get; set; }
+        public int BooksCount { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+    }
+
+    // books { id canonical_id contributions { author_id contribution } } for one book.
+    public class HardcoverBookAuthors
+    {
+        // The canonical book (a deduped id is followed to its canonical row).
+        public int BookId { get; set; }
+
+        // Primary credits first.
+        public List<int> AuthorIds { get; set; } = new List<int>();
+    }
 }

@@ -55,6 +55,17 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         // Null when Hardcover has no author with that id.
         HardcoverAuthorCatalog GetAuthorCatalog(int hardcoverAuthorId, bool useCache = true);
 
+        // Cheap change check for refresh: books_count and updated_at per author, one request per
+        // 100 authors. Authors Hardcover does not know are missing from the result.
+        Dictionary<int, HardcoverAuthorSignature> GetAuthorSignatures(IReadOnlyCollection<int> hardcoverAuthorIds);
+
+        // The authors credited on a book (primary roles first), for single-book lookups. Null
+        // when Hardcover has no such book; a deduped book answers for its canonical book.
+        HardcoverBookAuthors GetBookAuthors(int hardcoverBookId);
+
+        // The book an edition belongs to, or null.
+        int? GetEditionBookId(int hardcoverEditionId);
+
         TalearrHardcoverClientStatus GetStatus();
     }
 
@@ -87,6 +98,35 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         public static readonly TimeSpan CacheLifetime = TimeSpan.FromHours(6);
         public const int MaxCachedAuthors = 200;
         private const int MaxAttempts = 4;
+
+        internal const string AuthorSignaturesQuery = @"
+            query TalearrAuthorSignatures($ids: [Int!]!, $limit: Int!) {
+                authors(where: { id: { _in: $ids } }, limit: $limit) {
+                    id
+                    books_count
+                    updated_at
+                }
+            }";
+
+        internal const string BookAuthorsQuery = @"
+            query TalearrBookAuthors($id: Int!) {
+                books(where: { id: { _eq: $id } }, limit: 1) {
+                    id
+                    canonical_id
+                    contributions {
+                        author_id
+                        contribution
+                    }
+                }
+            }";
+
+        internal const string EditionBookQuery = @"
+            query TalearrEditionBook($id: Int!) {
+                editions(where: { id: { _eq: $id } }, limit: 1) {
+                    id
+                    book_id
+                }
+            }";
 
         internal const string AuthorQuery = @"
             query TalearrAuthor($id: Int!) {
@@ -286,6 +326,88 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 }
 
                 throw;
+            }
+        }
+
+        public Dictionary<int, HardcoverAuthorSignature> GetAuthorSignatures(IReadOnlyCollection<int> hardcoverAuthorIds)
+        {
+            RequireToken();
+
+            var result = new Dictionary<int, HardcoverAuthorSignature>();
+            var ids = (hardcoverAuthorIds ?? Array.Empty<int>()).Where(id => id > 0).Distinct().OrderBy(id => id).ToList();
+            foreach (var chunk in ids.Chunk(PageSize))
+            {
+                foreach (var row in Query(AuthorSignaturesQuery, new { ids = chunk, limit = chunk.Length }, "authors"))
+                {
+                    var id = row.Value<int?>("id") ?? 0;
+                    if (id > 0)
+                    {
+                        result[id] = new HardcoverAuthorSignature
+                        {
+                            AuthorId = id,
+                            BooksCount = row.Value<int?>("books_count") ?? 0,
+                            UpdatedAt = Date(row, "updated_at")
+                        };
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public HardcoverBookAuthors GetBookAuthors(int hardcoverBookId)
+        {
+            RequireToken();
+
+            var bookId = hardcoverBookId;
+            for (var hop = 0; hop < 3 && bookId > 0; hop++)
+            {
+                var row = Query(BookAuthorsQuery, new { id = bookId }, "books").FirstOrDefault();
+                if (row == null)
+                {
+                    return null;
+                }
+
+                var canonical = row.Value<int?>("canonical_id");
+                if (canonical.HasValue && canonical.Value > 0 && canonical.Value != bookId)
+                {
+                    bookId = canonical.Value;
+                    continue;
+                }
+
+                var credits = (row["contributions"] as JArray ?? new JArray())
+                    .Select(c => (AuthorId: c.Value<int?>("author_id") ?? 0, Role: c.Value<string>("contribution")))
+                    .Where(c => c.AuthorId > 0)
+                    .ToList();
+
+                return new HardcoverBookAuthors
+                {
+                    BookId = bookId,
+                    AuthorIds = credits
+                        .OrderByDescending(c => string.IsNullOrWhiteSpace(c.Role) || HardcoverContributionRoles.IsPrimaryAuthor(c.Role))
+                        .Select(c => c.AuthorId)
+                        .Distinct()
+                        .ToList()
+                };
+            }
+
+            return null;
+        }
+
+        public int? GetEditionBookId(int hardcoverEditionId)
+        {
+            RequireToken();
+
+            var row = Query(EditionBookQuery, new { id = hardcoverEditionId }, "editions").FirstOrDefault();
+            var bookId = row?.Value<int?>("book_id");
+            return bookId > 0 ? bookId : null;
+        }
+
+        private void RequireToken()
+        {
+            if (!IsConfigured)
+            {
+                throw new TalearrHardcoverException("Set the Hardcover API token in Settings > Metadata to use Hardcover as a metadata source.");
             }
         }
 

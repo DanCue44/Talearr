@@ -3,10 +3,11 @@ using NzbDrone.Core.Talearr.Metadata.Source;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // Talearr: System > Status notice for the talearr.metadata.source setting. In Phase 3a the
-    // Talearr (Hardcover) source runs in shadow mode only, so choosing it changes nothing yet;
-    // this notice says so. Silent while the default (the metadata server) is selected. English
-    // text on purpose, like TalearrMetadataFallbackCheck.
+    // Talearr: System > Status notice for the talearr.metadata.source setting. With Talearr's
+    // source selected, authors and books with Hardcover ids come from Hardcover; import matching
+    // and books known only by other ids still use the metadata server, and this notice says so.
+    // Without a Hardcover token the setting has no effect (a warning). Silent while the default
+    // (the metadata server) is selected. English text on purpose, like TalearrMetadataFallbackCheck.
     [CheckOn(typeof(TalearrMetadataSourceSavedEvent))]
     public class TalearrMetadataSourceCheck : HealthCheckBase
     {
@@ -24,10 +25,15 @@ namespace NzbDrone.Core.HealthCheck.Checks
 
         public override HealthCheck Check()
         {
-            var message = GetMessage(_settings?.GetSource() ?? TalearrMetadataSourceSettingsService.DefaultSource, _hardcover?.IsConfigured == true);
-            return message == null
-                ? new HealthCheck(GetType())
-                : new HealthCheck(GetType(), HealthCheckResult.Notice, message, "#metadata-source");
+            var source = _settings?.GetSource() ?? TalearrMetadataSourceSettingsService.DefaultSource;
+            var tokenSet = _hardcover?.IsConfigured == true;
+            var message = GetMessage(source, tokenSet);
+            if (message == null)
+            {
+                return new HealthCheck(GetType());
+            }
+
+            return new HealthCheck(GetType(), tokenSet ? HealthCheckResult.Notice : HealthCheckResult.Warning, message, "#metadata-source");
         }
 
         public static string GetMessage(TalearrMetadataSource source, bool hardcoverTokenSet)
@@ -37,12 +43,14 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 return null;
             }
 
-            var token = hardcoverTokenSet
-                ? string.Empty
-                : " Set a Hardcover API token in Settings > Metadata first; the comparison needs it.";
+            if (!hardcoverTokenSet)
+            {
+                return "Metadata source is set to Talearr (Hardcover), but no Hardcover API token is saved, so Talearr still uses the metadata server. " +
+                       "Set the token in Settings > Metadata.";
+            }
 
-            return "Metadata source is set to Talearr (Hardcover), which is in shadow mode: refresh, add and import matching still use the metadata server. " +
-                   "Run the TalearrMetadataShadowCompare command to see the differences." + token;
+            return "Metadata source is Talearr (Hardcover): authors and books with Hardcover ids are added and refreshed from Hardcover. " +
+                   "Import matching and books known only by other ids still use the metadata server.";
         }
     }
 }

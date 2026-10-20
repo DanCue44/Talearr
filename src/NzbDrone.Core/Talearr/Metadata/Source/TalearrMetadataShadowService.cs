@@ -8,6 +8,7 @@ using NzbDrone.Core.ImportLists.Exclusions;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.MetadataSource.BookInfo;
 using NzbDrone.Core.Profiles.Metadata;
 
 namespace NzbDrone.Core.Talearr.Metadata.Source
@@ -245,7 +246,10 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             var server = new TalearrMetadataShadowComparer.Side();
             try
             {
-                server.Remote = string.IsNullOrWhiteSpace(serverId) ? null : _authorInfo.GetAuthorInfo(serverId, true);
+                // The server side always reads the metadata server, even with Talearr's source selected.
+                server.Remote = string.IsNullOrWhiteSpace(serverId)
+                    ? null
+                    : _authorInfo is BookInfoProxy proxy ? proxy.GetServerAuthorInfo(serverId) : _authorInfo.GetAuthorInfo(serverId, true);
                 server.Error = server.Remote == null ? "no author returned" : null;
             }
             catch (Exception ex)

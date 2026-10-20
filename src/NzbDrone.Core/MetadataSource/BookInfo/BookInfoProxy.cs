@@ -33,6 +33,7 @@ using NzbDrone.Core.MetadataSource.Audible.Resources;
 using NzbDrone.Core.MetadataSource.Hardcover;
 using NzbDrone.Core.MetadataSource.Goodreads;
 using NzbDrone.Core.Parser;
+using NzbDrone.Core.Talearr.Metadata.Source;
 using NzbDrone.Core.Talearr.MetadataFallback;
 using NzbDrone.Core.Validation;
 // using JsonSerializer = System.Text.Json.JsonSerializer; // Removed - using Newtonsoft.Json instead
@@ -69,6 +70,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         private readonly ICached<List<object>> _hardcoverSearchCache;
         private readonly CachingService _authorCache;
         private readonly ITalearrMetadataFallback _metadataFallback;
+        private readonly ITalearrSourcePayloads _talearrSource;
         // private readonly IGoodreadsAutocompleteFallback _autocompleteFallback; // Removed - not used
 
         public BookInfoProxy(IHttpClient httpClient,
@@ -84,7 +86,8 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                              Logger logger,
                              ICacheManager cacheManager,
                              IMetadataServerHealthGate metadataServerHealthGate,
-                             ITalearrMetadataFallback metadataFallback = null)
+                             ITalearrMetadataFallback metadataFallback = null,
+                             ITalearrSourcePayloads talearrSource = null)
         {
             _httpClient = httpClient;
             _cachedHttpClient = cachedHttpClient;
@@ -101,6 +104,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             _logger = logger;
             _metadataServerHealthGate = metadataServerHealthGate ?? throw new ArgumentNullException(nameof(metadataServerHealthGate));
             _metadataFallback = metadataFallback;
+            _talearrSource = talearrSource;
 
             _authorCache = new CachingService(new MemoryCacheProvider(new MemoryCache(new MemoryCacheOptions { SizeLimit = 150 })));
             _authorCache.DefaultCachePolicy = new CacheDefaults
@@ -109,7 +113,82 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             };
         }
 
+        // Talearr: true when author and book data come from Talearr's own source (Hardcover)
+        // rather than the metadata server (docs/TALEARR_METADATA_SOURCE.md, Phase 3b).
+        public bool TalearrSourceActive => _talearrSource?.IsActive == true;
+
         public V5.V5AuthorChangesResponse GetBulkAuthorChanges(List<V5.V5AuthorETag> authorsWithETags)
+        {
+            // Talearr: Hardcover ids are checked against Hardcover; anything else still goes to the
+            // metadata server.
+            if (TalearrSourceActive)
+            {
+                return GetTalearrBulkAuthorChanges(authorsWithETags);
+            }
+
+            return GetServerBulkAuthorChanges(authorsWithETags);
+        }
+
+        private V5.V5AuthorChangesResponse GetTalearrBulkAuthorChanges(List<V5.V5AuthorETag> authorsWithETags)
+        {
+            var items = authorsWithETags ?? new List<V5.V5AuthorETag>();
+            var hardcoverItems = new List<(V5.V5AuthorETag Item, int Id)>();
+            var serverItems = new List<V5.V5AuthorETag>();
+            foreach (var item in items)
+            {
+                if (TalearrSourcePayloads.TryParseId(item?.RequestedId, out var id))
+                {
+                    hardcoverItems.Add((item, id));
+                }
+                else if (item != null)
+                {
+                    serverItems.Add(item);
+                }
+            }
+
+            var response = serverItems.Count > 0
+                ? GetServerBulkAuthorChanges(serverItems) ?? new V5.V5AuthorChangesResponse()
+                : new V5.V5AuthorChangesResponse();
+
+            if (hardcoverItems.Count == 0)
+            {
+                return response;
+            }
+
+            try
+            {
+                var signatures = _talearrSource.GetSignatures(hardcoverItems.Select(h => h.Id).ToList());
+                foreach (var (item, id) in hardcoverItems)
+                {
+                    if (!signatures.TryGetValue(id, out var signature))
+                    {
+                        // Not on Hardcover (or merged away). Reported as rejected so the author is
+                        // neither deleted nor marked as checked.
+                        response.Rejected.Add(new V5.V5RejectedAuthor { RequestedId = item.RequestedId, Reason = "not found on Hardcover" });
+                        continue;
+                    }
+
+                    if (!string.Equals(signature, item.ETag, StringComparison.Ordinal))
+                    {
+                        response.Changed.Add(new V5.V5ChangedAuthor { RequestedId = item.RequestedId, CanonicalId = item.RequestedId, ETag = signature });
+                    }
+                }
+
+                _logger.Info("Hardcover change check complete: {0} of {1} authors changed", response.Changed.Count(c => TalearrSourcePayloads.TryParseId(c.RequestedId, out _)), hardcoverItems.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("Hardcover change check failed, authors keep their current data: {0}", ex.Message);
+                foreach (var (item, _) in hardcoverItems)
+                {
+                    response.Rejected.Add(new V5.V5RejectedAuthor { RequestedId = item.RequestedId, Reason = ex.Message });
+                }
+            }
+
+            return response;
+        }
+
+        private V5.V5AuthorChangesResponse GetServerBulkAuthorChanges(List<V5.V5AuthorETag> authorsWithETags)
         {
             var metadataServerUrl = _configService.MetadataServerUrl;
             var url = $"{metadataServerUrl}/api/v5/authors/diff";
@@ -172,6 +251,12 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 throw new InvalidProviderIdException(foreignAuthorId, $"Invalid author id '{foreignAuthorId}' (looks like a legacy V5 work key).");
             }
 
+            // Talearr: Hardcover ids come from Talearr's own source when it is selected.
+            if (TalearrSourceActive && TalearrSourcePayloads.TryParseId(foreignAuthorId, out var hardcoverAuthorId))
+            {
+                return GetTalearrAuthor(hardcoverAuthorId, useCache) ?? throw new AuthorNotFoundException(foreignAuthorId);
+            }
+
             // Check if this is a V5 ID with provider prefix (hc:123, gr:456, etc.)
             if (foreignAuthorId.Contains(":"))
             {
@@ -210,6 +295,12 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         public async Task<Author> GetAuthorInfoAsync(string foreignAuthorId, bool useCache = true)
         {
             _logger.Debug("Getting Author details (async) for ID: {0}", foreignAuthorId);
+
+            // Talearr: same routing as the sync path.
+            if (TalearrSourceActive && TalearrSourcePayloads.TryParseId(foreignAuthorId, out _))
+            {
+                return GetAuthorInfo(foreignAuthorId, useCache);
+            }
 
             if (foreignAuthorId.Contains(":"))
             {
@@ -264,6 +355,101 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         public Author ConvertV5AuthorResponse(V5.V5AuthorResponse response)
         {
             return response?.Author == null ? null : ConvertV5AuthorToDomain(response, response.Author.Id);
+        }
+
+        // Talearr: always the metadata server, whichever source is selected (the shadow
+        // comparison's server side).
+        public Author GetServerAuthorInfo(string foreignAuthorId)
+        {
+            return foreignAuthorId?.Contains(":") == true
+                ? GetAuthorInfoFromV5(foreignAuthorId, true, importAllWorks: false)
+                : null;
+        }
+
+        // Talearr: one author from Talearr's own source, converted like a server payload.
+        private Author GetTalearrAuthor(int hardcoverAuthorId, bool useCache)
+        {
+            try
+            {
+                return ConvertV5AuthorResponse(_talearrSource.GetAuthor(hardcoverAuthorId, useCache));
+            }
+            catch (TalearrHardcoverException ex)
+            {
+                throw new BookInfoException($"Hardcover: {ex.Message}", ex);
+            }
+        }
+
+        private RefreshResult RefreshTalearrAuthor(int hardcoverAuthorId, string etag, bool forceRefresh, bool bypassEtag)
+        {
+            try
+            {
+                var signatures = _talearrSource.GetSignatures(new[] { hardcoverAuthorId });
+                if (!signatures.TryGetValue(hardcoverAuthorId, out var signature))
+                {
+                    // Not a NotFound: that path reports the author as deleted.
+                    return RefreshResult.Error($"Hardcover has no author hc:{hardcoverAuthorId}");
+                }
+
+                if (!forceRefresh && !bypassEtag && string.Equals(signature, etag, StringComparison.Ordinal))
+                {
+                    return RefreshResult.NoChanges(signature);
+                }
+
+                var author = GetTalearrAuthor(hardcoverAuthorId, useCache: !forceRefresh);
+                if (author == null)
+                {
+                    return RefreshResult.Error($"Hardcover has no author hc:{hardcoverAuthorId}");
+                }
+
+                _logger.Info("Refreshed author hc:{0} ({1}) from Hardcover", hardcoverAuthorId, author.Name);
+                return RefreshResult.Updated(author, signature);
+            }
+            catch (TalearrHardcoverBudgetException ex)
+            {
+                _logger.Warn("Skipping refresh of hc:{0}: {1}", hardcoverAuthorId, ex.Message);
+                return RefreshResult.Unavailable(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error refreshing author hc:{0} from Hardcover", hardcoverAuthorId);
+                return RefreshResult.Error($"Hardcover refresh failed: {ex.Message}");
+            }
+        }
+
+        // Talearr: a single book (work or edition id) from Talearr's own source: the book's
+        // primary author is read in full and the book is picked from that catalog, the same shape
+        // the server's author redirect gives.
+        private Tuple<string, Book, List<Author>> GetTalearrBook(int hardcoverBookId, BookMediaType mediaType, string requestedId)
+        {
+            int? authorId;
+            int canonicalBookId;
+            try
+            {
+                authorId = _talearrSource.GetBookAuthorId(hardcoverBookId, out canonicalBookId);
+            }
+            catch (TalearrHardcoverException ex)
+            {
+                throw new BookInfoException($"Hardcover: {ex.Message}", ex);
+            }
+
+            if (!authorId.HasValue)
+            {
+                throw new BookNotFoundException(requestedId);
+            }
+
+            var author = GetTalearrAuthor(authorId.Value, useCache: true) ?? throw new BookNotFoundException(requestedId);
+            var wanted = new[] { $"hc:{hardcoverBookId}", $"hc:{canonicalBookId}" };
+            var matches = (author.Books ?? new List<Book>())
+                .Where(b => b != null && BookIdentity.GetStableWorkProviderIdentityTokens(b).Overlaps(wanted))
+                .ToList();
+
+            var book = matches.FirstOrDefault(b => b.MediaType == mediaType) ?? matches.FirstOrDefault();
+            if (book == null)
+            {
+                throw new BookNotFoundException(requestedId);
+            }
+
+            return Tuple.Create(GetAuthorMetadataKey(author), book, new List<Author> { author });
         }
 
         private Author GetAuthorInfoFromV5(string authorId, bool useCache = true, bool importAllWorks = true)
@@ -576,6 +762,12 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         {
             _logger.Debug("RefreshAuthorInfo called for author {0}, ETag: {1}, ForceRefresh: {2}, ExpectedPublishedETag: {3}, BypassETag: {4}",
                 authorId, etag ?? "none", forceRefresh, expectedPublishedETag ?? "none", bypassEtag);
+
+            // Talearr: Hardcover ids refresh from Talearr's own source when it is selected.
+            if (TalearrSourceActive && TalearrSourcePayloads.TryParseId(authorId, out var hardcoverAuthorId))
+            {
+                return RefreshTalearrAuthor(hardcoverAuthorId, etag, forceRefresh, bypassEtag);
+            }
 
             try
             {
@@ -2206,6 +2398,12 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         {
             var normalizedForeignBookId = NormalizeGoodreadsProviderId(foreignBookId);
 
+            // Talearr: Hardcover work ids come from Talearr's own source when it is selected.
+            if (TalearrSourceActive && TalearrSourcePayloads.TryParseId(normalizedForeignBookId, out var hardcoverBookId))
+            {
+                return GetTalearrBook(hardcoverBookId, mediaType, normalizedForeignBookId);
+            }
+
             try
             {
                 _logger.Debug("Getting book info for foreignBookId: {0}", normalizedForeignBookId);
@@ -2238,6 +2436,11 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         {
             var normalizedForeignWorkId = NormalizeGoodreadsProviderId(foreignWorkId);
 
+            if (TalearrSourceActive && TalearrSourcePayloads.TryParseId(normalizedForeignWorkId, out var hardcoverWorkId))
+            {
+                return GetTalearrBook(hardcoverWorkId, mediaType, normalizedForeignWorkId);
+            }
+
             try
             {
                 _logger.Debug("Getting work info for foreignWorkId: {0}", normalizedForeignWorkId);
@@ -2267,6 +2470,25 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
 
         public Tuple<string, Book, List<Author>> GetEditionInfo(string foreignEditionId, BookMediaType mediaType = BookMediaType.Audiobook)
         {
+            // Talearr: Hardcover edition ids (hc:edition:N) are checked before normalization,
+            // which only accepts a single ':'.
+            if (TalearrSourceActive && TalearrSourcePayloads.TryParseEditionId(foreignEditionId, out var hardcoverEditionId))
+            {
+                int? editionBookId;
+                try
+                {
+                    editionBookId = _talearrSource.GetEditionBookId(hardcoverEditionId);
+                }
+                catch (TalearrHardcoverException ex)
+                {
+                    throw new BookInfoException($"Hardcover: {ex.Message}", ex);
+                }
+
+                return editionBookId.HasValue
+                    ? GetTalearrBook(editionBookId.Value, mediaType, foreignEditionId)
+                    : throw new BookNotFoundException(foreignEditionId);
+            }
+
             var normalizedForeignEditionId = NormalizeGoodreadsProviderId(foreignEditionId);
 
             try

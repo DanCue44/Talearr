@@ -12,8 +12,8 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         // The Chaptarr metadata server (upstream behaviour, the default).
         Chaptarr = 0,
 
-        // Talearr's own source built on Hardcover. Phase 3a: selecting it changes nothing yet
-        // except the System > Status notice; refresh, add and matching still use the server.
+        // Talearr's own source built on Hardcover: authors and books with Hardcover ids are added,
+        // refreshed and looked up there (BookInfoProxy); import matching still uses the server.
         Talearr = 1
     }
 

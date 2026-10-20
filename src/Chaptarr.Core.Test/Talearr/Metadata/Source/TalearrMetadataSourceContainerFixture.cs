@@ -29,5 +29,28 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
             Assert.That(client.IsConfigured, Is.True);
             Assert.That(typeof(TalearrHardcoverMetadataClient).GetConstructors(BindingFlags.Public | BindingFlags.Instance).Length, Is.EqualTo(1));
         }
+
+        [Test]
+        public void container_builds_the_source_payloads_with_their_public_constructor()
+        {
+            var container = new Container(rules => rules.WithNzbDroneRules());
+            container.RegisterInstance(LogManager.GetCurrentClassLogger());
+            container.RegisterInstance<ITalearrMetadataSourceSettingsService>(new FixedSource());
+            container.RegisterInstance<ITalearrHardcoverMetadataClient>(new TalearrHardcoverMetadataClient(
+                new ScriptedHttpClient(_ => throw new InvalidOperationException("no HTTP")),
+                global::Chaptarr.Core.Test.Talearr.MetadataFallback.HardcoverConfigProxy.Create(),
+                LogManager.GetCurrentClassLogger()));
+            container.RegisterInstance<ITalearrSourceGapFill>(new TalearrSourceGapFill(null, LogManager.GetCurrentClassLogger()));
+            container.Register<ITalearrSourcePayloads, TalearrSourcePayloads>();
+
+            Assert.That(container.Resolve<ITalearrSourcePayloads>().IsActive, Is.True);
+            Assert.That(typeof(TalearrSourcePayloads).GetConstructors(BindingFlags.Public | BindingFlags.Instance).Length, Is.EqualTo(1));
+        }
+
+        private sealed class FixedSource : ITalearrMetadataSourceSettingsService
+        {
+            public TalearrMetadataSource GetSource() => TalearrMetadataSource.Talearr;
+            public TalearrMetadataSource SaveSource(TalearrMetadataSource source) => source;
+        }
     }
 }

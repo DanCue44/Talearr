@@ -29,6 +29,7 @@ using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Books.Calibre;
 using NzbDrone.Core.Books.Services;
 using NzbDrone.Core.Talearr.Catalog;
+using NzbDrone.Core.Talearr.Metadata.Source;
 using NzbDrone.Core.Talearr.MetadataFallback;
 
 namespace NzbDrone.Core.Books
@@ -177,7 +178,7 @@ namespace NzbDrone.Core.Books
             try
             {
                 var authorIdentifier = authorIdentifierOverride.IsNullOrWhiteSpace()
-                    ? GetPreferredAuthorIdentifier(author)
+                    ? GetRefreshAuthorIdentifier(author)
                     : authorIdentifierOverride;
 
                 if (string.IsNullOrEmpty(authorIdentifier))
@@ -322,6 +323,19 @@ namespace NzbDrone.Core.Books
         private static string GetPreferredAuthorIdentifier(Author author)
         {
             return AuthorIdentity.GetPreferredProviderId(author);
+        }
+
+        // Talearr: with Talearr's own source selected, authors with a Hardcover id refresh by it.
+        private bool TalearrSourceActive => (_authorInfo as BookInfoProxy)?.TalearrSourceActive == true;
+
+        private string GetRefreshAuthorIdentifier(Author author)
+        {
+            if (TalearrSourceActive && TalearrSourcePayloads.TryParseId(author?.HardcoverAuthorId, out _))
+            {
+                return author.HardcoverAuthorId.Trim();
+            }
+
+            return GetPreferredAuthorIdentifier(author);
         }
 
         private bool RefreshEntityInfoIfRemoteDataAvailable(Author author, Author remoteData, bool forceChildRefresh, bool forceUpdateFileTags, DateTime? lastUpdate)
@@ -2382,10 +2396,15 @@ namespace NzbDrone.Core.Books
                 var authorsWithETags = new List<MetadataSource.BookInfo.V5.V5AuthorETag>();
                 var authorDiffItemGroups = new List<(int AuthorId, List<MetadataSource.BookInfo.V5.V5AuthorETag> Items)>();
                 var requestedIdsByAuthorId = new Dictionary<int, HashSet<string>>();
+                var talearrSource = TalearrSourceActive;
 
                 foreach (var author in authors)
                 {
-                    var providerIds = GetAuthorDiffProviderIds(author);
+                    // Talearr: with Talearr's own source selected, an author with a Hardcover id is
+                    // checked by that id alone (against Hardcover); the others still ask the server.
+                    var providerIds = talearrSource && TalearrSourcePayloads.TryParseId(author.HardcoverAuthorId, out _)
+                        ? new List<string> { author.HardcoverAuthorId.Trim() }
+                        : GetAuthorDiffProviderIds(author);
                     if (providerIds.Count == 0)
                     {
                         _logger.Warn("[BULK-SYNC] Author {0} has no provider IDs, skipping", author.Name);
