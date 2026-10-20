@@ -3,6 +3,7 @@ import migrateAuthorSortKey from './migrateAuthorSortKey';
 import migrateBlacklistToBlocklist from './migrateBlacklistToBlocklist';
 import migrateSeriesPageCountColumn from './migrateSeriesPageCountColumn';
 import migrateTalearrBookDefaults from './migrateTalearrBookDefaults';
+import migrateTalearrLibraryFirst from './migrateTalearrLibraryFirst';
 
 export default function migrate(persistedState) {
   migrateAddAuthorDefaults(persistedState);
@@ -10,4 +11,5 @@ export default function migrate(persistedState) {
   migrateBlacklistToBlocklist(persistedState);
   migrateSeriesPageCountColumn(persistedState);
   migrateTalearrBookDefaults(persistedState);
+  migrateTalearrLibraryFirst(persistedState);
 }

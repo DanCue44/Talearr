@@ -13,6 +13,7 @@ const PRESERVE_KEYS = [
   'chaptarr_filter_preferences',
   // Non-redux UI preferences
   'hideUnmonitoredMissing',
+  'talearrLibraryFirst',
   'selectedMediaType'
 ];
 

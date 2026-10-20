@@ -448,6 +448,41 @@ namespace Chaptarr.Core.Test.Profiles.Metadata
             Assert.That(result, Has.Count.EqualTo(1));
         }
 
+        [TestCase(true, 1)]
+        [TestCase(false, 0)]
+        public void should_keep_monitored_book_without_files_when_profile_filters_it(bool monitored, int expectedCount)
+        {
+            var profile = CreateProfile(id: 1, skipOmnibus: true);
+            profile.Ignored = new List<string> { "Collection" };
+            var dbAuthor = new Author { Id = 1, Name = "George Orwell" };
+            var localBook = CreateSeriesBook("The Orwell Collection", "gr:5470", BookMediaType.Ebook);
+            localBook.Id = 10;
+            localBook.AuthorId = dbAuthor.Id;
+            localBook.Monitored = monitored;
+            var localEdition = localBook.Editions.Single();
+            localEdition.Id = 20;
+            localEdition.BookId = localBook.Id;
+            localEdition.Book = localBook;
+            var remoteBook = CreateSeriesBook(localBook.Title, localBook.GoodreadsWorkId, BookMediaType.Ebook);
+            remoteBook.IsOmnibus = true;
+            var remoteAuthor = new Author
+            {
+                Id = dbAuthor.Id,
+                Name = dbAuthor.Name,
+                Books = new List<Book> { remoteBook }
+            };
+
+            var result = CreateService(
+                profile,
+                dbAuthor,
+                new List<Book> { localBook },
+                new List<Edition> { localEdition },
+                new List<BookFile>())
+                .FilterBooks(remoteAuthor, profile.Id);
+
+            Assert.That(result, Has.Count.EqualTo(expectedCount));
+        }
+
         [Test]
         public void should_keep_book_when_page_count_equals_minimum_pages()
         {

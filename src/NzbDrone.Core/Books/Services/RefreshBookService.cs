@@ -437,6 +437,11 @@ namespace NzbDrone.Core.Books
                 return true;
             }
 
+            // Talearr: a monitored book without files yet is still wanted, so it is not pruned.
+            if (book.Monitored)
+            {
+                return true;
+            }
 
             if (!book.AnyEditionOk)
             {

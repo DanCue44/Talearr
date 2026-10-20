@@ -226,9 +226,12 @@ namespace NzbDrone.Core.Profiles.Metadata
 
                 var remoteBookKeysByEditionToken = BuildRemoteBookKeysByEditionToken(hash);
 
+                // Talearr: a monitored book is something the user wants (often a request still
+                // waiting on a download), so profile filters never drop it, like manual adds and
+                // books with files.
                 var localHash = new HashSet<string>(
                     localBooks
-                        .Where(x => x.AddOptions?.AddType == BookAddType.Manual)
+                        .Where(x => x.AddOptions?.AddType == BookAddType.Manual || x.Monitored)
                         .Select(GetBookKey));
 
                 localHash.UnionWith(localFiles
