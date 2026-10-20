@@ -5,6 +5,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books.Calibre;
 using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.Profiles.Releases;
+using NzbDrone.Core.Talearr.MetadataProfiles;
 
 namespace NzbDrone.Core.Books.Services
 {
@@ -168,7 +169,20 @@ namespace NzbDrone.Core.Books.Services
             }
 
             var language = NormalizeLanguageBucket(edition?.Language);
-            return language == null ? allowUnknownLanguage : allowedLanguages.Contains(language);
+            if (language != null)
+            {
+                return allowedLanguages.Contains(language);
+            }
+
+            // Talearr: an unknown language passes only when the title does not plainly say otherwise.
+            // The guess only knows English from not-English, so it applies to English-only profiles.
+            return allowUnknownLanguage &&
+                !(IsEnglishOnly(allowedLanguages) && TalearrTitleLanguageGuess.LooksNonEnglish(edition?.Title));
+        }
+
+        private static bool IsEnglishOnly(IReadOnlySet<string> allowedLanguages)
+        {
+            return allowedLanguages != null && allowedLanguages.Count > 0 && allowedLanguages.All(l => l == "eng");
         }
 
         public static bool MeetsIdentifierRequirements(Edition edition, MetadataProfile metadataProfile)
