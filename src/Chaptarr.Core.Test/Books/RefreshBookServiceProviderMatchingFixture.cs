@@ -296,6 +296,28 @@ namespace Chaptarr.Core.Test.Books
         }
 
         [Test]
+        public void should_preserve_monitored_fileless_book_when_author_scoped_snapshot_has_no_match()
+        {
+            var service = new TestableRefreshBookService(new StubMediaFileService(), LogManager.GetCurrentClassLogger());
+
+            var local = new Book
+            {
+                Id = 1,
+                Title = "Requested Omnibus",
+                MediaType = BookMediaType.Audiobook,
+                HardcoverBookId = "hc:123",
+                AnyEditionOk = true,
+                Monitored = true,
+                AddOptions = new AddBookOptions { AddType = BookAddType.Automatic }
+            };
+
+            var match = service.MatchRemote(local, new List<Book>());
+
+            Assert.That(match, Is.Null);
+            Assert.That(service.ShouldDeletePublic(local), Is.False);
+        }
+
+        [Test]
         public void should_preserve_manual_add_book_when_author_scoped_snapshot_has_no_match()
         {
             var service = new TestableRefreshBookService(new StubMediaFileService(), LogManager.GetCurrentClassLogger());

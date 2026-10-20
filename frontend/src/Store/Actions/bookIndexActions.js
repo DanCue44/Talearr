@@ -191,7 +191,10 @@ export const defaultState = {
     }
   },
 
-  selectedFilterKey: 'all',
+  // Talearr: the Books page shows the library (monitored books) by default; the whole
+  // catalog is one filter away
+  selectedFilterKey: 'monitored',
+  talearrLibraryFirst: 0,
 
   filters,
 
@@ -380,6 +383,7 @@ export const persistState = [
   'bookIndex.sortKey',
   'bookIndex.sortDirection',
   'bookIndex.selectedFilterKey',
+  'bookIndex.talearrLibraryFirst',
   'bookIndex.customFilters',
   'bookIndex.view',
   'bookIndex.columns',

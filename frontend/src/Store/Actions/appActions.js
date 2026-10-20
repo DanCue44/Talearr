@@ -7,6 +7,24 @@ import updateSectionState from 'Utilities/State/updateSectionState';
 import { fetchTranslations as fetchAppTranslations } from 'Utilities/String/translate';
 import createHandleActions from './Creators/createHandleActions';
 
+// Talearr: author pages show the library ("Library", unmonitored books without files hidden)
+// by default. Browsers that saved "All" before this are switched once; the marker keeps any
+// choice made after that.
+function getInitialHideUnmonitoredMissing() {
+  try {
+    if (!localStorage.getItem('talearrLibraryFirst')) {
+      localStorage.setItem('talearrLibraryFirst', '1');
+      localStorage.setItem('hideUnmonitoredMissing', 'true');
+
+      return true;
+    }
+
+    return JSON.parse(localStorage.getItem('hideUnmonitoredMissing') || 'true');
+  } catch (error) {
+    return true;
+  }
+}
+
 function getDimensions(width, height) {
   const dimensions = {
     width,
@@ -69,7 +87,7 @@ export const defaultState = {
   isDisconnected: false,
   isRestarting: false,
   isSidebarVisible: !getDimensions(window.innerWidth, window.innerHeight).isSmallScreen,
-  hideUnmonitoredMissing: JSON.parse(localStorage.getItem('hideUnmonitoredMissing') || 'false'),
+  hideUnmonitoredMissing: getInitialHideUnmonitoredMissing(),
   selectedMediaType: localStorage.getItem('selectedMediaType') || 'audiobook',
   translations: {
     isFetching: true,
