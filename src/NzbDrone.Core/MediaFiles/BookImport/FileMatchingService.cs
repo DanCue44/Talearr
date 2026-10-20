@@ -467,6 +467,36 @@ namespace NzbDrone.Core.MediaFiles.BookImport
 
         private static readonly Regex AsinRegex = new Regex(@"\bB[0-9A-Z]{9}\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        // Talearr: the text after the first ": " or spaced dash of an edition title, for editions
+        // stored without a subtitle field. Null when there is no such split.
+        internal static string DeriveEditionSubtitle(string editionTitle)
+        {
+            if (string.IsNullOrWhiteSpace(editionTitle))
+            {
+                return null;
+            }
+
+            var cut = -1;
+            var length = 0;
+            foreach (var separator in new[] { ": ", " - ", " – ", " — " })
+            {
+                var index = editionTitle.IndexOf(separator, StringComparison.Ordinal);
+                if (index > 0 && (cut < 0 || index < cut))
+                {
+                    cut = index;
+                    length = separator.Length;
+                }
+            }
+
+            if (cut < 3)
+            {
+                return null;
+            }
+
+            var subtitle = editionTitle.Substring(cut + length).Trim();
+            return subtitle.Length > 0 ? subtitle : null;
+        }
+
         public FileMatchingService(
             IMatchingUploadLogger matchingLogger,
             IV5MatchingService v5MatchingService,
@@ -6505,9 +6535,12 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                         return true;
                     }
 
+                    var otherSubtitle = string.IsNullOrWhiteSpace(candidate.EditionSubTitle)
+                        ? DeriveEditionSubtitle(candidate.EditionTitle)
+                        : candidate.EditionSubTitle;
                     return ReleaseTitleMatchScorer.TryGetKnownSubtitleBaseTitle(
                                candidate.EditionTitle,
-                               candidate.EditionSubTitle,
+                               otherSubtitle,
                                out var otherBaseTitle) &&
                            (_containmentValidator.GetEditionTitleEvidence(otherBaseTitle, singleFieldTags)?.Count ?? 0) > 0;
                 }
@@ -6518,14 +6551,26 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                     bool includeDurationGatedNearExact,
                     Func<EditionTitleEvidence, bool> evidenceIsEligible)
                 {
+                    // Talearr: Hardcover keeps most subtitles inside the edition title and leaves the
+                    // subtitle field empty, so a file tagged only "Men Who Hate Women" could not be
+                    // rescued. Derive the subtitle from the title, but then only an exact base-title
+                    // field counts ("Star Wars: Heir to the Empire" must not prove "Star Wars: Thrawn").
+                    var subtitle = candidate?.EditionSubTitle;
+                    var derivedSubtitle = false;
+                    if (candidate != null && string.IsNullOrWhiteSpace(subtitle))
+                    {
+                        subtitle = DeriveEditionSubtitle(candidate.EditionTitle);
+                        derivedSubtitle = subtitle != null;
+                    }
+
                     if (candidate == null ||
                         directEvidence?.Count > 0 ||
                         !ReleaseTitleMatchScorer.TryGetKnownSubtitleBaseTitle(
                             candidate.EditionTitle,
-                            candidate.EditionSubTitle,
+                            subtitle,
                             out var baseTitle) ||
-                        !HasOnlyAttestedSubtitleDelta(candidate.EditionTitle, baseTitle, candidate.EditionSubTitle) ||
-                        SeriesPositionTokenHelper.HasPositionIdentity(candidate.EditionSubTitle) ||
+                        !HasOnlyAttestedSubtitleDelta(candidate.EditionTitle, baseTitle, subtitle) ||
+                        SeriesPositionTokenHelper.HasPositionIdentity(subtitle) ||
                         BaseTitleMatchesSeriesPrefix(candidate, baseTitle))
                     {
                         return Array.Empty<EditionTitleEvidence>();
@@ -6541,6 +6586,12 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                     foreach (var item in baseEvidence)
                     {
                         if (item == null || (evidenceIsEligible != null && !evidenceIsEligible(item)))
+                        {
+                            continue;
+                        }
+
+                        if (derivedSubtitle &&
+                            !TokenizeForLeftoverGateSequence(item.FieldValue).SequenceEqual(TokenizeForLeftoverGateSequence(baseTitle), StringComparer.OrdinalIgnoreCase))
                         {
                             continue;
                         }

@@ -5259,6 +5259,45 @@ namespace Chaptarr.Core.Test.MediaFiles.BookImport
                     Assert.That(match, Is.Null);
                 }
 
+                [TestCase("Men Who Hate Women - The Extremism Nobody is Talking About", "Men Who Hate Women", true)]
+                [TestCase("Men Who Hate Women: From Incels to Pickup Artists: The Truth about Extreme Misogyny", "Men Who Hate Women", true)]
+                [TestCase("Thrawn: Alliances", "Thrawn: Treason", false)]
+                public void should_rescue_an_exact_base_title_when_the_subtitle_field_is_empty(string fullTitle, string fileTitle, bool expectMatch)
+                {
+                    var candidate = new EditionFtsMatch
+                    {
+                        EditionId = 901,
+                        BookId = 901,
+                        EditionTitle = fullTitle,
+                        EditionSubTitle = null,
+                        BookTitle = fullTitle,
+                        AuthorId = 508,
+                        AuthorName = "Laura Bates",
+                        ReadingFormatId = 2
+                    };
+
+                    var match = MatchSubtitleRescueScenario(
+                        new[] { candidate },
+                        new[]
+                        {
+                            new Book
+                            {
+                                Id = 901,
+                                AuthorId = 508,
+                                Title = fullTitle,
+                                BaseBookId = "hc:derived-subtitle",
+                                MediaType = BookMediaType.Audiobook
+                            }
+                        },
+                        new Dictionary<string, List<string>>
+                        {
+                            { "TITLE", new List<string> { fileTitle } },
+                            { "ARTIST", new List<string> { "Laura Bates" } }
+                        });
+
+                    Assert.That(match?.BookId, expectMatch ? Is.EqualTo(901) : Is.Null);
+                }
+
                 [Test]
                 public void should_not_rescue_when_explicit_subtitle_carries_position_identity()
                 {
