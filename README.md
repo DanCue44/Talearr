@@ -183,6 +183,13 @@ See [docs/TALEARR_TRACKED_AUTHORS.md](docs/TALEARR_TRACKED_AUTHORS.md).
 Storage: one `talearr.authorcatalog.*` row per "Only my books" author in the `Config` table. A
 rollback to Chaptarr treats every author as followed in full again.
 
+## Author page groups
+
+In the author page **All** view, the author's main works come first and collections, study
+guides and graded readers, adaptations, other listings of the same book and other languages are
+in a collapsed **Other listings** section. Monitored books and books with files are always main
+works; nothing is hidden or removed. See [docs/TALEARR_AUTHOR_PAGE.md](docs/TALEARR_AUTHOR_PAGE.md).
+
 ## Book tags and genre filters
 
 - **Book tags.** Tag single books with the same tags as authors (Settings > Tags): in the book's
