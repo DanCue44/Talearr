@@ -1079,7 +1079,9 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                     var baseSeries = ConvertV5SeriesToDomain(v5Series);
 
                     // Enforce Goodreads-backed series only. Amazon-only series are considered invalid and are not persisted.
-                    if (string.IsNullOrWhiteSpace(baseSeries.GoodreadsSeriesId))
+                    // Talearr: payloads from Talearr's own source (Hardcover) keep Hardcover-backed series.
+                    var talearrHardcoverSeries = v5Response.TalearrSource && !string.IsNullOrWhiteSpace(baseSeries.HardcoverSeriesId);
+                    if (string.IsNullOrWhiteSpace(baseSeries.GoodreadsSeriesId) && !talearrHardcoverSeries)
                     {
                         _logger.Debug("[SERIES-V5] Skipping series '{0}' for author {1} because it has no Goodreads series ID",
                             baseSeries.Title, author.Name);
@@ -1698,7 +1700,10 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 Ratings = new Ratings
                 {
                     Votes = v5Book.RatingCount,
-                    Value = v5Book.RatingAverage
+                    Value = v5Book.RatingAverage,
+
+                    // Talearr: readers from Talearr's own source (0 for the metadata server).
+                    Readers = v5Book.TalearrReaders
                 },
 
                 // Monitoring is seeded by AuthorLibraryService from the explicit

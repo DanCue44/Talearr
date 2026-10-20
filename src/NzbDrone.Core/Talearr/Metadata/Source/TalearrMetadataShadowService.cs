@@ -36,6 +36,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         private readonly IProvideAuthorInfo _authorInfo;
         private readonly ITalearrV5AuthorConverter _converter;
         private readonly ITalearrHardcoverMetadataClient _hardcover;
+        private readonly ITalearrSourceGapFill _gapFill;
         private readonly IMetadataProfileService _metadataProfileService;
         private readonly IImportListExclusionService _importListExclusionService;
         private readonly Logger _logger;
@@ -49,6 +50,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                                             IProvideAuthorInfo authorInfo,
                                             ITalearrV5AuthorConverter converter,
                                             ITalearrHardcoverMetadataClient hardcover,
+                                            ITalearrSourceGapFill gapFill,
                                             IMetadataProfileService metadataProfileService,
                                             IImportListExclusionService importListExclusionService,
                                             Logger logger)
@@ -60,6 +62,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             _authorInfo = authorInfo;
             _converter = converter;
             _hardcover = hardcover;
+            _gapFill = gapFill;
             _metadataProfileService = metadataProfileService;
             _importListExclusionService = importListExclusionService;
             _logger = logger;
@@ -264,6 +267,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 {
                     var response = TalearrHardcoverMapper.BuildAuthorResponse(catalog);
                     hardcover.SeriesFromSource = response.Series.Count;
+                    hardcover.DatesFilled = _gapFill?.FillMissingDates(response) ?? 0;
                     hardcover.Remote = _converter.ConvertV5AuthorResponse(response);
                 }
             }

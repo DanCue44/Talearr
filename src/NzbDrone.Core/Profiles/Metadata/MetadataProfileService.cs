@@ -15,6 +15,7 @@ using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Profiles.Releases;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Talearr.ContentFilter;
+using NzbDrone.Core.Talearr.Metadata.Source;
 
 namespace NzbDrone.Core.Profiles.Metadata
 {
@@ -580,6 +581,7 @@ namespace NzbDrone.Core.Profiles.Metadata
                 if (allFiltered.Any())
                 {
                     _logger.Debug($"Skipping {allFiltered.Count}/{totalItems} {typeof(T).Name} because {message}");
+                    TalearrFilterTrace.Add(typeof(T).Name, message, allFiltered.Count);
                     remoteItems.RemoveWhere(x => allFiltered.Contains(x));
                 }
             }
@@ -590,6 +592,7 @@ namespace NzbDrone.Core.Profiles.Metadata
                 if (filtered.Any())
                 {
                     _logger.Trace($"Skipping {filtered.Count} {typeof(T).Name} because {message}:\n{filtered.ConcatToString(x => x.ToString(), "\n")}");
+                    TalearrFilterTrace.Add(typeof(T).Name, message, filtered.Count);
                     remoteItems.RemoveWhere(x => filtered.Contains(x));
                 }
             }
@@ -603,7 +606,10 @@ namespace NzbDrone.Core.Profiles.Metadata
                 return false;
             }
 
-            return (b.Ratings.Popularity >= p.MinPopularity) || b.ReleaseDate > DateTime.UtcNow;
+            // Talearr: readers count as popularity too (Talearr source only; see Ratings.Readers).
+            return (b.Ratings.Popularity >= p.MinPopularity) ||
+                   (b.Ratings.Readers > 0 && b.Ratings.Readers >= p.MinPopularity) ||
+                   b.ReleaseDate > DateTime.UtcNow;
         }
 
         private static bool OmnibusAllowedByProfile(Book book, MetadataProfile profile)

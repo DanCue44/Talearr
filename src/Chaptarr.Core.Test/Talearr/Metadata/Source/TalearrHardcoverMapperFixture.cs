@@ -158,10 +158,38 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
 
             Assert.That(author.Books.Where(b => b.HardcoverBookId == "hc:101").All(b => b.IsOmnibus), Is.True);
 
-            // Hardcover series reach the V5 payload; the current conversion keeps only Goodreads
-            // backed series (Phase 3b accepts Hardcover ids).
+            // Payloads from Talearr's source keep Hardcover-backed series (one row per media type),
+            // and the members link to their books.
+            Assert.That(response.TalearrSource, Is.True);
             Assert.That(response.Series.Count, Is.EqualTo(1));
+            Assert.That(author.Series.Select(s => (s.HardcoverSeriesId, s.MediaType)), Is.EquivalentTo(new[]
+            {
+                ("hc:7", BookMediaType.Audiobook),
+                ("hc:7", BookMediaType.Ebook)
+            }));
+            Assert.That(audiobook.SeriesLinks.Single().Series.Value.Title, Is.EqualTo("Wind Cycle"));
+        }
+
+        [Test]
+        public void server_payloads_still_drop_series_without_goodreads_ids()
+        {
+            var response = TalearrHardcoverMapper.BuildAuthorResponse(HardcoverFixtures.Catalog());
+            response.TalearrSource = false;
+
+            var author = CreateProxy().ConvertV5AuthorResponse(response);
+
             Assert.That(author.Series, Is.Empty);
+        }
+
+        [Test]
+        public void readers_reach_book_ratings()
+        {
+            var catalog = HardcoverFixtures.Catalog();
+            catalog.Books.Single(b => b.Id == 100).UsersCount = 37;
+
+            var author = CreateProxy().ConvertV5AuthorResponse(TalearrHardcoverMapper.BuildAuthorResponse(catalog));
+
+            Assert.That(author.Books.Where(b => b.HardcoverBookId == "hc:100").Select(b => b.Ratings.Readers), Is.All.EqualTo(37));
         }
 
         [Test]

@@ -133,6 +133,8 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
 
             return new V5AuthorResponse
             {
+                TalearrSource = true,
+
                 // Not the server's ETag; a stamp of the newest Hardcover updated_at, for logs.
                 ETag = lastUpdated > DateTime.MinValue ? $"hc-{lastUpdated.ToUniversalTime().Ticks}" : null,
                 Author = authorData,
@@ -278,6 +280,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 SeriesPosition = featured == null ? null : FormatPosition(featured.Position, featured.Details),
                 RatingAverage = record.Rating ?? 0m,
                 RatingCount = record.RatingsCount,
+                TalearrReaders = record.UsersCount,
                 PageCount = record.Pages,
                 DurationSeconds = record.AudioSeconds ?? defaultAudio?.AudioSeconds,
                 CoverUrl = record.ImageUrl,

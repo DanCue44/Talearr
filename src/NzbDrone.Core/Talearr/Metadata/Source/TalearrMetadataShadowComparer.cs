@@ -24,6 +24,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             public Author Remote { get; set; }
             public string Error { get; set; }
             public int? SeriesFromSource { get; set; }
+            public int DatesFilled { get; set; }
         }
 
         public static TalearrShadowAuthorReport Compare(Author local,
@@ -150,11 +151,17 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             sideReport.EditionsBeforeFilter = CountEditions(raw);
             sideReport.SeriesKept = side.Remote.Series?.Count(s => s != null) ?? 0;
             sideReport.SeriesFromSource = side.SeriesFromSource;
+            sideReport.DatesFilled = side.DatesFilled;
 
             // Match the unfiltered rows before normalization trims their editions.
             var matchedUnfiltered = MatchLocal(localBooks, raw);
 
-            var filtered = normalize(local, raw, side.Remote.Series?.ToList() ?? new List<Series>()) ?? new List<Book>();
+            List<Book> filtered;
+            using (TalearrFilterTrace.Begin(sideReport.FilterReasons))
+            {
+                filtered = normalize(local, raw, side.Remote.Series?.ToList() ?? new List<Series>()) ?? new List<Book>();
+            }
+
             sideReport.BooksAfterFilter = CountBooks(filtered);
             sideReport.EditionsAfterFilter = CountEditions(filtered);
             sideReport.WorksAfterFilter = GroupWorks(filtered).Count;

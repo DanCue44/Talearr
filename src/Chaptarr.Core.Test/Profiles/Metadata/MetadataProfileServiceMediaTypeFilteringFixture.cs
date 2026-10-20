@@ -286,6 +286,24 @@ namespace Chaptarr.Core.Test.Profiles.Metadata
         }
 
         [Test]
+        public void readers_count_as_popularity_for_books_without_ratings()
+        {
+            var profile = CreateProfile(id: 1);
+            profile.MinPopularity = 1;
+
+            var shelved = CreateSeriesBook("Shelved", "hc:1", BookMediaType.Ebook, null);
+            shelved.Ratings = new Ratings { Votes = 0, Value = 0, Readers = 2 };
+            var rated = CreateSeriesBook("Rated", "hc:2", BookMediaType.Ebook, null);
+            rated.Ratings = new Ratings { Votes = 3, Value = 4 };
+            var unread = CreateSeriesBook("Unread", "hc:3", BookMediaType.Ebook, null);
+            unread.Ratings = new Ratings();
+
+            var result = CreateService(profile).FilterBooks(new Author { Books = new List<Book> { shelved, rated, unread } }, profile.Id);
+
+            Assert.That(result.Select(x => x.Title), Is.EquivalentTo(new[] { "Shelved", "Rated" }));
+        }
+
+        [Test]
         public void should_filter_only_books_with_exclusively_secondary_series_links()
         {
             var profile = CreateProfile(id: 1);

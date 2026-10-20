@@ -251,6 +251,33 @@ PUT /api/v1/talearr/metadata/source   {"source": "talearr"}   (or "chaptarr", th
 Stored as `talearr.metadata.source`. In Phase 3a it only changes the System > Status notice
 (`TalearrMetadataSourceCheck`), which says the source is in shadow mode.
 
+## Closing the gaps (0.18.13)
+
+Looking closer at the thin authors, Hardcover mostly has the books; the metadata profiles drop
+them. Jack Rosewood has 49 works on Hardcover (5 survive the filters), Ryan Becker 15 (4), Navessa
+Allen 28 (9). The server's rows carry Goodreads ratings and dates; Hardcover's records for small
+and self-published authors usually have no release date on the book or any edition and no
+ratings, only readers (`users_count`). the test profiles skip missing dates and need a popularity of
+at least 1 (rating times number of ratings), so those books fall out.
+
+- **Readers count as popularity.** `Ratings.Readers` (Hardcover `users_count`, stored inside the
+  Ratings JSON, so no schema change and Chaptarr ignores it on a rollback) passes the minimum
+  popularity rule when it reaches the minimum. Rows from the metadata server have 0 readers, so
+  nothing changes for them.
+- **Release dates from Open Library.** `TalearrSourceGapFill` runs only when a book has no date on
+  the book, its year or any edition: one Open Library author lookup (skipped when Hardcover links
+  the author) and one works list (`search.json?author_key=`, up to 200 works), then a match by
+  normalized title, then by the part before the subtitle. Only a single unambiguous year is used.
+- **Hardcover series are kept** for payloads from Talearr's source (`V5AuthorResponse.TalearrSource`);
+  payloads from the metadata server keep the Goodreads-only rule, so the live path is unchanged.
+- **The shadow report says why rows were filtered**: `filterReasons` per side
+  ("Book: release date is missing" -> count) and `datesFilled` on the Hardcover side.
+
+Id matching: Hardcover's `book_mappings` Goodreads ids are Goodreads *book* (edition) ids, while
+the server's rows carry Goodreads *work* ids (`GoodreadsWorkId`), so they cannot close the id
+splits directly. Rows that exist only on the server with a Goodreads id and no Hardcover id are
+books Hardcover does not have at all.
+
 ## Phase 3b (next)
 
 1. **Switch refresh.** When `talearr.metadata.source` is `talearr`, `RefreshAuthorService` reads
@@ -261,8 +288,7 @@ Stored as `talearr.metadata.source`. In Phase 3a it only changes the System > St
    refresh, canonical id search) served from Hardcover `books_by_pk` / `editions` queries.
 3. **Local import matching** replacing `/api/v5/match`: ISBN and ASIN from file tags against
    local editions, then title and author against local books, then a Hardcover search.
-4. **Series from Hardcover.** Accept Hardcover series ids in `ConvertV5AuthorToDomain` (today only
-   Goodreads-backed series are kept).
+4. **Series from Hardcover.** Done in 0.18.13 for payloads from Talearr's source.
 5. **Gaps.** Open Library for works and ISBNs Hardcover lacks; Audible / Audnexus for audiobook
    editions, narrators, runtime and chapters (the recordings client exists); possibly
    `book_mappings` for Goodreads and Open Library edition ids.

@@ -17,6 +17,12 @@ namespace NzbDrone.Core.MetadataSource.BookInfo.V5
         public V5Pagination Pagination { get; set; }
         public List<V5Book> Books { get; set; } = new List<V5Book>();
         public List<V5Series> Series { get; set; } = new List<V5Series>();
+
+        // Talearr: set on payloads built by Talearr's own source (Hardcover). Their series carry
+        // Hardcover ids only, so the conversion keeps Hardcover-backed series for them; payloads
+        // from the metadata server keep the Goodreads-only rule.
+        [JsonIgnore]
+        public bool TalearrSource { get; set; }
     }
 
 	    // Author data model
@@ -183,6 +189,10 @@ namespace NzbDrone.Core.MetadataSource.BookInfo.V5
         public int RatingCount { get; set; }
         [JsonProperty("reviewCount")]
         public int ReviewCount { get; set; }
+
+        // Talearr: readers who shelved the book (Hardcover users_count), see Ratings.Readers.
+        [JsonIgnore]
+        public int TalearrReaders { get; set; }
 
         // Physical attributes
         public int? PageCount { get; set; }

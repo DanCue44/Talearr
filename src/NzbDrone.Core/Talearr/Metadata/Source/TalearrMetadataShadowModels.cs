@@ -29,11 +29,18 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         public TalearrShadowMediaCounts EditionsBeforeFilter { get; set; } = new TalearrShadowMediaCounts();
         public TalearrShadowMediaCounts EditionsAfterFilter { get; set; } = new TalearrShadowMediaCounts();
 
-        // Series rows the conversion keeps (today only Goodreads-backed series survive it).
+        // Series rows the conversion keeps (Goodreads-backed, or Hardcover-backed on the Hardcover side).
         public int SeriesKept { get; set; }
 
         // Series the source sent before conversion, when known (Hardcover side).
         public int? SeriesFromSource { get; set; }
+
+        // Why profile rules dropped rows ("Book: release date is missing" -> count), both media
+        // types together. Book rows count once per media type.
+        public Dictionary<string, int> FilterReasons { get; set; } = new Dictionary<string, int>();
+
+        // Book rows given a release year by the Open Library gap fill (Hardcover side).
+        public int DatesFilled { get; set; }
 
         // Local book rows that a remote book on this side matches by provider id.
         public int MatchedLocalBooks { get; set; }

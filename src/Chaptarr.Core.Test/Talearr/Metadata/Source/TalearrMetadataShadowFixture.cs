@@ -143,7 +143,7 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
             Assert.That(report.Hardcover.BooksAfterFilter.Ebook, Is.EqualTo(2));
             Assert.That(report.Hardcover.WorksAfterFilter, Is.EqualTo(2));
             Assert.That(report.Hardcover.SeriesFromSource, Is.EqualTo(1));
-            Assert.That(report.Hardcover.SeriesKept, Is.EqualTo(0));
+            Assert.That(report.Hardcover.SeriesKept, Is.EqualTo(2), "Hardcover series are kept, one row per media type");
             Assert.That(report.Hardcover.EditionsBeforeFilter.Total, Is.GreaterThan(report.Hardcover.EditionsAfterFilter.Total));
         }
 
