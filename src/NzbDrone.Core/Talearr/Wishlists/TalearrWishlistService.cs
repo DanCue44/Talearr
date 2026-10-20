@@ -720,7 +720,10 @@ namespace NzbDrone.Core.Talearr.Wishlists
                     AuthorName = item.AuthorName,
                     SearchForMissingBooks = _wishlist.SearchOnAdd,
                     AudiobookMonitorExistingMode = MonitorTypes.None,
-                    EbookMonitorExistingMode = MonitorTypes.None
+                    EbookMonitorExistingMode = MonitorTypes.None,
+
+                    // A new author keeps only the wishlist's books (docs/TALEARR_TRACKED_AUTHORS.md).
+                    TalearrTrackedCatalog = true
                 };
 
                 foreach (var mediaType in missing)

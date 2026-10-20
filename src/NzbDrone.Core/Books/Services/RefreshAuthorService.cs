@@ -36,6 +36,11 @@ namespace NzbDrone.Core.Books
     public interface IRefreshAuthorService
     {
         bool ReconcileAuthorBlob(Author localAuthor, Author authoritativeRemoteAuthor) => false;
+
+        // Talearr: the same, for an add that requested specific books. A Tracked author keeps the
+        // requested books from the blob (TalearrTrackedCatalogFilter).
+        bool ReconcileAuthorBlob(Author localAuthor, Author authoritativeRemoteAuthor, Func<Book, bool> talearrIsRequested) =>
+            ReconcileAuthorBlob(localAuthor, authoritativeRemoteAuthor);
     }
 
     public class RefreshAuthorService : RefreshEntityServiceBase<Author, Book>,
@@ -65,9 +70,11 @@ namespace NzbDrone.Core.Books
         private readonly IEditionSelector _editionSelector;
         private readonly IMainDatabase _mainDatabase;
         private readonly ITalearrMergeRedirectStore _mergeRedirects;
+        private readonly ITalearrAuthorCatalogStore _catalogStore;
         private readonly Logger _logger;
         private BookRefreshMatchingIndex _bookRefreshMatchingIndex;
         private List<Book> _authorRefreshRehomeBlueprint;
+        private Func<Book, bool> _talearrRequestedBooks;
 
         private static readonly SemaphoreSlim AuthorMetadataRefreshGate = new SemaphoreSlim(1, 1);
         // SMS /authors/diff hard-rejects requests above 10,000 items and caps the body at 1MB;
@@ -96,7 +103,8 @@ namespace NzbDrone.Core.Books
                                     Logger logger,
                                     IEditionSelector editionSelector = null,
                                     IMainDatabase mainDatabase = null,
-                                    ITalearrMergeRedirectStore mergeRedirects = null)
+                                    ITalearrMergeRedirectStore mergeRedirects = null,
+                                    ITalearrAuthorCatalogStore catalogStore = null)
         : base(logger)
         {
             _authorInfo = authorInfo;
@@ -122,6 +130,7 @@ namespace NzbDrone.Core.Books
             _editionSelector = editionSelector ?? new EditionSelector(logger);
             _mainDatabase = mainDatabase;
             _mergeRedirects = mergeRedirects;
+            _catalogStore = catalogStore;
         }
 
         private IDisposable EnterAuthorMetadataRefreshGate(string context, CancellationToken cancellationToken)
@@ -337,6 +346,11 @@ namespace NzbDrone.Core.Books
 
         public bool ReconcileAuthorBlob(Author localAuthor, Author authoritativeRemoteAuthor)
         {
+            return ReconcileAuthorBlob(localAuthor, authoritativeRemoteAuthor, null);
+        }
+
+        public bool ReconcileAuthorBlob(Author localAuthor, Author authoritativeRemoteAuthor, Func<Book, bool> talearrIsRequested)
+        {
             if (localAuthor?.Id <= 0 || authoritativeRemoteAuthor == null)
             {
                 return false;
@@ -346,12 +360,21 @@ namespace NzbDrone.Core.Books
             // same add cannot insert the same missing books at the same time (duplicate rows on add).
             using var talearrGate = TalearrAuthorRefreshGate.Enter(AuthorMetadataRefreshGate, _logger, $"add reconcile for author '{localAuthor?.Name}'");
 
-            return RefreshEntityInfoIfRemoteDataAvailable(
-                localAuthor,
-                authoritativeRemoteAuthor,
-                forceChildRefresh: true,
-                forceUpdateFileTags: false,
-                lastUpdate: null);
+            // Talearr: read under the gate by GetRemoteChildren, so a Tracked author keeps the requested books.
+            _talearrRequestedBooks = talearrIsRequested;
+            try
+            {
+                return RefreshEntityInfoIfRemoteDataAvailable(
+                    localAuthor,
+                    authoritativeRemoteAuthor,
+                    forceChildRefresh: true,
+                    forceUpdateFileTags: false,
+                    lastUpdate: null);
+            }
+            finally
+            {
+                _talearrRequestedBooks = null;
+            }
         }
 
         protected override RemoteData GetRemoteData(Author local, List<Author> remote, Author data)
@@ -579,10 +602,38 @@ namespace NzbDrone.Core.Books
                         ebookMetadataProfileIdOverride: null,
                         editionSelector: null,
                         retainEditions: true,
-                        logContext: "GetRemoteChildren");
+                        logContext: "GetRemoteChildren",
+                        talearrIsRequested: _talearrRequestedBooks);
 
                     AttachOpenLibraryFallbackBooks(local, remoteChildren);
-                    return remoteChildren;
+                    return ApplyTalearrTrackedCatalog(local, remoteChildren);
+                }
+
+                // Talearr: a Tracked author's refresh keeps updating its kept books but adds none of
+                // the rest of the catalog; local rows that are not kept lose their remote match and are
+                // pruned by RefreshBookService (docs/TALEARR_TRACKED_AUTHORS.md). Runs after the Open
+                // Library attach so fallback-added books still find their server book.
+                private List<Book> ApplyTalearrTrackedCatalog(Author local, List<Book> remoteChildren)
+                {
+                    if (_catalogStore == null || local == null || local.Id <= 0 || _bookService == null)
+                    {
+                        return remoteChildren;
+                    }
+
+                    if (_catalogStore.Get(local.Id) != TalearrAuthorCatalogMode.Tracked)
+                    {
+                        return remoteChildren;
+                    }
+
+                    // A failure here fails this author's refresh (nothing added or removed) rather
+                    // than silently bringing the whole catalog in.
+                    var localBooks = _bookService.GetBooksForRefresh(local.Id, foreignIds: null) ?? new List<Book>();
+                    HydrateLocalChildrenForRefresh(local, localBooks);
+                    var kept = localBooks
+                        .Where(book => TalearrTrackedCatalogFilter.IsKeptLocalBook(book, HasKnownFiles(book)))
+                        .ToList();
+
+                    return TalearrTrackedCatalogFilter.Apply(remoteChildren, kept, _talearrRequestedBooks, _logger, local, "GetRemoteChildren");
                 }
 
                 // Talearr: books added from the Open Library fallback during an outage carry only an
@@ -616,7 +667,8 @@ namespace NzbDrone.Core.Books
                     int? ebookMetadataProfileIdOverride,
                     IEditionSelector editionSelector,
                     bool retainEditions,
-                    string logContext)
+                    string logContext,
+                    Func<Book, bool> talearrIsRequested = null)
                 {
                     var allBooks = (remoteBooks ?? Enumerable.Empty<Book>())
                         .Where(book => book != null)
@@ -638,7 +690,8 @@ namespace NzbDrone.Core.Books
                         metadataProfileService,
                         logger,
                         audiobookMetadataProfileIdOverride,
-                        ebookMetadataProfileIdOverride);
+                        ebookMetadataProfileIdOverride,
+                        talearrIsRequested);
 
                     var afterExclusions = ApplyImportListExclusions(profileFiltered, importListExclusionService);
 
@@ -722,7 +775,8 @@ namespace NzbDrone.Core.Books
                     IMetadataProfileService metadataProfileService,
                     Logger logger,
                     int? audiobookMetadataProfileIdOverride,
-                    int? ebookMetadataProfileIdOverride)
+                    int? ebookMetadataProfileIdOverride,
+                    Func<Book, bool> talearrIsRequested)
                 {
                     var profileFiltered = new List<Book>();
                     var audiobookProfileId = audiobookMetadataProfileIdOverride ?? local?.AudiobookMetadataProfileId;
@@ -764,7 +818,10 @@ namespace NzbDrone.Core.Books
                             Series = seriesList.Where(series => series.MediaType == mediaType).ToList()
                         };
 
-                        profileFiltered.AddRange(metadataProfileService.FilterBooks(authorForFilter, profileId.Value));
+                        // Talearr: explicitly requested books pass the profile rules (exclusions still apply).
+                        profileFiltered.AddRange(talearrIsRequested == null
+                            ? metadataProfileService.FilterBooks(authorForFilter, profileId.Value)
+                            : metadataProfileService.FilterBooks(authorForFilter, profileId.Value, talearrIsRequested));
                     }
 
                     FilterMediaType(BookMediaType.Audiobook, audiobookProfileId);

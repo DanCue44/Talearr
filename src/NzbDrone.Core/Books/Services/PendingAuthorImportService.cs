@@ -14,6 +14,7 @@ using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.Talearr.Catalog;
 
 namespace NzbDrone.Core.Books.Services
 {
@@ -41,17 +42,20 @@ namespace NzbDrone.Core.Books.Services
         private readonly IPendingAuthorImportRepository _repository;
         private readonly IAuthorService _authorService;
         private readonly IEventAggregator _eventAggregator;
+        private readonly ITalearrAuthorCatalogStore _catalogStore;
         private readonly Logger _logger;
 
         public PendingAuthorImportService(
             IPendingAuthorImportRepository repository,
             IAuthorService authorService,
             IEventAggregator eventAggregator,
-            Logger logger)
+            Logger logger,
+            ITalearrAuthorCatalogStore catalogStore = null)
         {
             _repository = repository;
             _authorService = authorService;
             _eventAggregator = eventAggregator;
+            _catalogStore = catalogStore;
             _logger = logger;
         }
 
@@ -65,6 +69,11 @@ namespace NzbDrone.Core.Books.Services
             }
 
             config ??= new MonitoringConfig();
+
+            // Talearr: the queued config does not keep TalearrTrackedCatalog, so remember it per
+            // author; a Full request for the same author clears it (TalearrAuthorCatalogStore).
+            _catalogStore?.MarkPendingRequest(providerId, config.TalearrTrackedCatalog);
+
             var incomingAudiobookTags = ResolveMediaTags(config.CreateAudiobook, config.AudiobookTags, config.Tags);
             var incomingEbookTags = ResolveMediaTags(config.CreateEbook, config.EbookTags, config.Tags);
 

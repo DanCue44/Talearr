@@ -448,6 +448,32 @@ namespace Chaptarr.Core.Test.Profiles.Metadata
             Assert.That(result, Has.Count.EqualTo(1));
         }
 
+        // Talearr: an explicitly requested book passes the book-level profile rules.
+        [TestCase(true, 1)]
+        [TestCase(false, 0)]
+        public void should_keep_requested_omnibus_when_skip_omnibus_is_on(bool requested, int expectedCount)
+        {
+            var profile = CreateProfile(id: 1, skipOmnibus: true);
+            profile.Ignored = new List<string> { "Unbound" };
+            var dbAuthor = new Author { Id = 1, Name = "Ali Hazelwood" };
+            var remoteBook = CreateSeriesBook("Bound and Unbound", "gr:2675413", BookMediaType.Ebook);
+            remoteBook.IsOmnibus = true;
+            var other = CreateSeriesBook("Another Omnibus", "gr:999", BookMediaType.Ebook);
+            other.IsOmnibus = true;
+            var remoteAuthor = new Author
+            {
+                Id = dbAuthor.Id,
+                Name = dbAuthor.Name,
+                Books = new List<Book> { remoteBook, other }
+            };
+
+            var result = CreateService(profile, dbAuthor, new List<Book>(), new List<Edition>(), new List<BookFile>())
+                .FilterBooks(remoteAuthor, profile.Id, book => requested && book.GoodreadsWorkId == "gr:2675413");
+
+            Assert.That(result, Has.Count.EqualTo(expectedCount));
+            Assert.That(result.Select(book => book.Title), Has.No.Member("Another Omnibus"));
+        }
+
         [TestCase(true, 1)]
         [TestCase(false, 0)]
         public void should_keep_monitored_book_without_files_when_profile_filters_it(bool monitored, int expectedCount)
