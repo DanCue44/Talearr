@@ -508,7 +508,7 @@ namespace Chaptarr.Api.V1.Author
                 return Accepted(new
                 {
                     pendingId,
-                    message = "The author isn't available yet on the metadata server. Chaptarr has queued the import and will automatically add them when they become available (you can visit the chaptarrbot channel in our discord to ask for updates)."
+                    message = "The author isn't available yet on the metadata server. Talearr has queued the import and will add them automatically when they become available."
                 });
             }
 
@@ -887,7 +887,7 @@ namespace Chaptarr.Api.V1.Author
                     return Accepted(new
                     {
                         pendingId,
-                        message = "The author isn't available yet on the metadata server. Chaptarr has queued the import and will automatically add them when they become available (you can visit the chaptarrbot channel in our discord to ask for updates)."
+                        message = "The author isn't available yet on the metadata server. Talearr has queued the import and will add them automatically when they become available."
                     });
                 }
 

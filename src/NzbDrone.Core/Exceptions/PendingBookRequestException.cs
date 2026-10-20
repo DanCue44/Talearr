@@ -4,7 +4,7 @@ namespace NzbDrone.Core.Exceptions
 {
     public class PendingBookRequestException : NzbDroneException
     {
-        public const string UserMessage = "The author and requested book are being prepared by the metadata server. Chaptarr saved your request and will add it automatically when it becomes available.";
+        public const string UserMessage = "The author and requested book are being prepared by the metadata server. Talearr saved your request and will add it automatically when it becomes available.";
 
         public int PendingId { get; }
 
