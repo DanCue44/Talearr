@@ -176,11 +176,11 @@ namespace NzbDrone.Core.Books.Services
 
             // Talearr: an unknown language passes only when the title does not plainly say otherwise.
             // The guess only knows English from not-English, so it applies to English-only profiles.
-            // A bare listing (no ISBN or ASIN) needs at least one common English word in its title.
+            // A bare listing (no ISBN or ASIN, few readers) needs a common English word in its title.
             return allowUnknownLanguage &&
                 !(IsEnglishOnly(allowedLanguages) &&
                   (TalearrTitleLanguageGuess.LooksNonEnglish(edition?.Title) ||
-                   TalearrTitleLanguageGuess.LooksLikeBareTranslation(edition?.Title, edition?.Isbn13, edition?.Isbn10, edition?.Asin)));
+                   TalearrTitleLanguageGuess.LooksLikeBareTranslation(edition?.Title, edition?.Isbn13, edition?.Isbn10, edition?.Asin, edition?.Ratings?.Votes ?? 0)));
         }
 
         private static bool IsEnglishOnly(IReadOnlySet<string> allowedLanguages)

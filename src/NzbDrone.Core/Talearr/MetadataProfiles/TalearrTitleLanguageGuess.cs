@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Talearr.MetadataProfiles
             "nederlandse", "deutsche", "española", "espanol", "español", "française", "francaise", "italiana"
         };
 
-        // Common English title words. Only used for bare listings (no ISBN or ASIN), where a
+        // Common English title words. Only used for bare listings (no ISBN or ASIN, few readers), where a
         // title with none of these and none of EnglishWords is most likely a translation
         // somebody typed in ("Nauczyciele", "Idealny syn", "Menajera").
         private static readonly HashSet<string> CommonEnglishTitleWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -96,13 +96,16 @@ namespace NzbDrone.Core.Talearr.MetadataProfiles
             return foreign > english;
         }
 
+        // Translations typed in by one reader have 0 to 3 readers; "Grim" and "Oro" have 25 or more.
+        private const int BareListingMaxReaders = 3;
+
         /// <summary>
-        /// Talearr: a bare listing (no ISBN or ASIN) whose title has no common English word. Used
-        /// only for editions without a language in English-only profiles.
+        /// Talearr: a bare listing (no ISBN or ASIN, at most a few readers) whose title has no
+        /// common English word. Used only for editions without a language in English-only profiles.
         /// </summary>
-        public static bool LooksLikeBareTranslation(string title, string isbn13, string isbn10, string asin)
+        public static bool LooksLikeBareTranslation(string title, string isbn13, string isbn10, string asin, int readers)
         {
-            if (string.IsNullOrWhiteSpace(title) ||
+            if (string.IsNullOrWhiteSpace(title) || readers > BareListingMaxReaders ||
                 !string.IsNullOrWhiteSpace(isbn13) || !string.IsNullOrWhiteSpace(isbn10) || !string.IsNullOrWhiteSpace(asin))
             {
                 return false;

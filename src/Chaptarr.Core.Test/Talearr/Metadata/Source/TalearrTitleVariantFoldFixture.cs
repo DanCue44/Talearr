@@ -104,13 +104,19 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
         [TestCase("Love on the Brain", false)]
         public void bare_listing_translation_guess(string title, bool expected)
         {
-            Assert.That(TalearrTitleLanguageGuess.LooksLikeBareTranslation(title, null, null, null), Is.EqualTo(expected));
+            Assert.That(TalearrTitleLanguageGuess.LooksLikeBareTranslation(title, null, null, null, 1), Is.EqualTo(expected));
         }
 
         [Test]
         public void a_listing_with_an_isbn_is_never_a_bare_translation()
         {
-            Assert.That(TalearrTitleLanguageGuess.LooksLikeBareTranslation("Nauczyciele", "9788383611234", null, null), Is.False);
+            Assert.That(TalearrTitleLanguageGuess.LooksLikeBareTranslation("Nauczyciele", "9788383611234", null, null, 1), Is.False);
+        }
+
+        [Test]
+        public void a_bare_listing_many_people_read_is_kept()
+        {
+            Assert.That(TalearrTitleLanguageGuess.LooksLikeBareTranslation("Grim", null, null, null, 27), Is.False);
         }
 
         [Test]
