@@ -83,8 +83,18 @@ namespace NzbDrone.Core.IndexerSearch
                 return new List<DownloadDecision>();
             }
 
-            var searchSpec = Get<AuthorSearchCriteria>(author, books, authorCatalog, userInvokedSearch, interactiveSearch);
-            return await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
+            // One search per media type, like book search, so each query only asks the indexer's
+            // categories for that type (audio for audiobooks, books for ebooks). A single mixed query
+            // asks every category, and ebook releases then land on audiobook rows.
+            var decisions = new List<DownloadDecision>();
+
+            foreach (var mediaTypeBooks in books.GroupBy(book => book.MediaType))
+            {
+                var searchSpec = Get<AuthorSearchCriteria>(author, mediaTypeBooks.ToList(), authorCatalog, userInvokedSearch, interactiveSearch);
+                decisions.AddRange(await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec));
+            }
+
+            return decisions;
         }
 
         public Task<List<DownloadDecision>> BookSearch(Book book, bool missingOnly, bool userInvokedSearch, bool interactiveSearch, bool allowUnmonitored = false)

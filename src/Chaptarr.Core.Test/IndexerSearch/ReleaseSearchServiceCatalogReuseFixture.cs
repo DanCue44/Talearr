@@ -89,6 +89,37 @@ namespace Chaptarr.Core.Test.IndexerSearch
             Assert.That(((DecisionMakerProxy)(object)decisionMaker).SearchBookIds, Is.EqualTo(new[] { 102 }));
         }
 
+        [Test]
+        public void author_search_should_search_each_media_type_on_its_own()
+        {
+            var author = new Author
+            {
+                Id = 11,
+                Name = "Both Formats Author",
+                AudiobookMonitored = true,
+                EbookMonitored = true,
+                AudiobookQualityProfileId = 1,
+                EbookQualityProfileId = 2
+            };
+            author.Books = new List<Book>
+            {
+                BuildMonitoredBook(201, BookMediaType.Audiobook, author),
+                BuildMonitoredBook(202, BookMediaType.Ebook, author),
+                BuildMonitoredBook(203, BookMediaType.Audiobook, author)
+            };
+            var decisionMaker = DispatchProxy.Create<IMakeDownloadDecision, DecisionMakerProxy>();
+            var subject = BuildSubject(decisionMaker);
+
+            subject.AuthorSearch(author, false, true, false).GetAwaiter().GetResult();
+
+            // Each query only holds one media type, so the indexer is asked only that type's categories
+            Assert.That(((DecisionMakerProxy)(object)decisionMaker).SearchCalls, Is.EquivalentTo(new[]
+            {
+                new List<int> { 201, 203 },
+                new List<int> { 202 }
+            }));
+        }
+
         [TestCase(false, false)]
         [TestCase(true, false)]
         [TestCase(false, true)]
@@ -267,6 +298,7 @@ namespace Chaptarr.Core.Test.IndexerSearch
         {
             public int AuthorCatalogCount { get; private set; }
             public List<int> SearchBookIds { get; set; } = new();
+            public List<List<int>> SearchCalls { get; } = new();
             public bool MonitoredBooksOnly { get; private set; } = true;
 
             protected override object Invoke(MethodInfo targetMethod, object[] args)
@@ -276,6 +308,7 @@ namespace Chaptarr.Core.Test.IndexerSearch
                     var criteria = (SearchCriteriaBase)args[1];
                     AuthorCatalogCount = criteria.AuthorCatalog?.Count ?? 0;
                     SearchBookIds = criteria.Books?.ConvertAll(book => book.Id) ?? new List<int>();
+                    SearchCalls.Add(SearchBookIds);
                     MonitoredBooksOnly = criteria.MonitoredBooksOnly;
                     return new List<DownloadDecision>();
                 }
