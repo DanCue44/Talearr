@@ -29,9 +29,12 @@ namespace NzbDrone.Core.Download
 
 	    public class CompletedDownloadService : ICompletedDownloadService
 	    {
-	        // Restore the pre-d60 three-cycle grace for files arriving through a remote
-	        // mount, but never keep a completed download retrying for missing files forever.
+	        // Files that arrive through a remote mount or a separate copy job (seedbox + rclone) can
+	        // take a long time to appear. Keep retrying while they are missing, and only block once
+	        // at least three checks have failed AND the files have been missing for the grace period,
+	        // so a completed download never retries for missing files forever.
 	        private const int MissingAuthoritativeMediaFileBlockThreshold = 3;
+	        private static readonly TimeSpan MissingAuthoritativeMediaFileGracePeriod = TimeSpan.FromHours(24);
 	        private readonly IEventAggregator _eventAggregator;
 	        private readonly IHistoryService _historyService;
 	        private readonly IProvideImportItemService _provideImportItemService;
@@ -130,6 +133,7 @@ namespace NzbDrone.Core.Download
                 if (importResults.Any(result => result.Result == ImportResultType.Pending))
                 {
                     trackedDownload.MissingAuthoritativeMediaFileAttempts = 0;
+                    trackedDownload.MissingAuthoritativeMediaFileSince = null;
                     trackedDownload.State = TrackedDownloadState.ImportPending;
                     trackedDownload.ClearStatus();
                     PublishTrackedDownloadUpdated(trackedDownload);
@@ -158,6 +162,7 @@ namespace NzbDrone.Core.Download
                 if (AreAllImportRejectionsMissingAuthoritativeMediaFiles(importResults))
                 {
                     trackedDownload.MissingAuthoritativeMediaFileAttempts++;
+                    trackedDownload.MissingAuthoritativeMediaFileSince ??= DateTime.UtcNow;
                     var statusMessages = importResults
                         .Where(result => result.ImportDecision.Item != null)
                         .Select(result => new TrackedDownloadStatusMessage(Path.GetFileName(result.ImportDecision.Item.Path), result.Errors))
@@ -165,11 +170,15 @@ namespace NzbDrone.Core.Download
 
                     trackedDownload.Warn(statusMessages);
 
-                    if (trackedDownload.MissingAuthoritativeMediaFileAttempts >= MissingAuthoritativeMediaFileBlockThreshold)
+                    var missingFor = DateTime.UtcNow - trackedDownload.MissingAuthoritativeMediaFileSince.Value;
+
+                    if (trackedDownload.MissingAuthoritativeMediaFileAttempts >= MissingAuthoritativeMediaFileBlockThreshold &&
+                        missingFor >= MissingAuthoritativeMediaFileGracePeriod)
                     {
-                        _logger.Warn("Declared download files did not become readable for {0} after {1} attempts; blocking automatic retries until user action.",
+                        _logger.Warn("Declared download files did not become readable for {0} after {1} attempts over {2:0.#} hours; blocking automatic retries until user action.",
                             trackedDownload.DownloadItem.Title,
-                            trackedDownload.MissingAuthoritativeMediaFileAttempts);
+                            trackedDownload.MissingAuthoritativeMediaFileAttempts,
+                            missingFor.TotalHours);
                         BlockImportWithCurrentStatus(trackedDownload);
                         return;
                     }
@@ -180,6 +189,7 @@ namespace NzbDrone.Core.Download
                 }
 
                 trackedDownload.MissingAuthoritativeMediaFileAttempts = 0;
+                trackedDownload.MissingAuthoritativeMediaFileSince = null;
 
                 if (AreAllImportRejectionsTemporary(importResults))
                 {
