@@ -129,7 +129,7 @@ namespace NzbDrone.Core.Talearr.Comics
                 catch (Exception ex)
                 {
                     _logger.Debug(ex, "Comics: AniList search failed");
-                    response.Notices.Add($"AniList could not be searched: {ex.Message}. Results come from Hardcover only.");
+                    response.Notices.Add($"AniList could not be searched: {ex.Message.TrimEnd('.')}. Results come from Hardcover only.");
                 }
             }
 
