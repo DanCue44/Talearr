@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import TalearrHistoryWhy from 'Book/Explain/TalearrHistoryWhy';
 import Button from 'Components/Link/Button';
 import SpinnerButton from 'Components/Link/SpinnerButton';
 import Modal from 'Components/Modal/Modal';
@@ -47,6 +48,8 @@ function HistoryDetailsModal(props) {
     eventType,
     sourceTitle,
     data,
+    bookId,
+    downloadId,
     isMarkingAsFailed,
     shortDateFormat,
     timeFormat,
@@ -71,6 +74,13 @@ function HistoryDetailsModal(props) {
             data={data}
             shortDateFormat={shortDateFormat}
             timeFormat={timeFormat}
+          />
+
+          <TalearrHistoryWhy
+            bookId={bookId}
+            eventType={eventType}
+            sourceTitle={sourceTitle}
+            downloadId={downloadId ?? data?.downloadId}
           />
         </ModalBody>
 
@@ -103,6 +113,8 @@ HistoryDetailsModal.propTypes = {
   eventType: PropTypes.string.isRequired,
   sourceTitle: PropTypes.string.isRequired,
   data: PropTypes.object.isRequired,
+  bookId: PropTypes.number,
+  downloadId: PropTypes.string,
   isMarkingAsFailed: PropTypes.bool.isRequired,
   shortDateFormat: PropTypes.string.isRequired,
   timeFormat: PropTypes.string.isRequired,

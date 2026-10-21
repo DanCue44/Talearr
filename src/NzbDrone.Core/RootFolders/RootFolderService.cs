@@ -8,6 +8,7 @@ using NzbDrone.Common;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.MediaFiles;
@@ -15,6 +16,7 @@ using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.RemotePathMappings;
+using NzbDrone.Core.Talearr.ReadOnlyLibrary;
 
 namespace NzbDrone.Core.RootFolders
 {
@@ -40,13 +42,16 @@ namespace NzbDrone.Core.RootFolders
         private readonly IDiskProvider _diskProvider;
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly Logger _logger;
+        private readonly IConfigRepository _configRepository;
 
         public RootFolderService(IRootFolderRepository rootFolderRepository,
                                  IIngestQueueRepository ingestQueueRepository,
                                  IDiskProvider diskProvider,
                                  IManageCommandQueue commandQueueManager,
-                                 Logger logger)
+                                 Logger logger,
+                                 IConfigRepository configRepository = null)
         {
+            _configRepository = configRepository;
             _rootFolderRepository = rootFolderRepository;
             _ingestQueueRepository = ingestQueueRepository;
             _diskProvider = diskProvider;
@@ -97,7 +102,9 @@ namespace NzbDrone.Core.RootFolders
                 throw new DirectoryNotFoundException("Can't add root directory that doesn't exist.");
             }
 
-            if (!_diskProvider.FolderWritable(rootFolder.Path))
+            // Talearr: a read-only library folder is only scanned, so it needs no write access.
+            if (!TalearrReadOnlyLibraryService.IsStoredReadOnly(_configRepository, rootFolder.Path) &&
+                !_diskProvider.FolderWritable(rootFolder.Path))
             {
                 var user = ProcessUserInfo.GetUserNameWithIds();
                 var dockerEnv = ProcessUserInfo.GetDockerUserEnvSummary();

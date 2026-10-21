@@ -66,7 +66,15 @@ namespace NzbDrone.Core.Extras.Metadata
         public override IEnumerable<ExtraFile> CreateAfterAuthorScan(Author author, List<BookFile> bookFiles)
         {
             var metadataFiles = _metadataFileService.GetFilesByAuthor(author.Id);
-            _cleanMetadataService.Clean(author);
+
+            // Talearr: nothing is written into (or cleaned out of) a read-only library folder.
+            var authorReadOnly = ReadOnlyPathGuard.IsReadOnly(author.Path);
+            bookFiles = bookFiles.Where(f => !ReadOnlyPathGuard.IsReadOnly(f.Path)).ToList();
+
+            if (!authorReadOnly)
+            {
+                _cleanMetadataService.Clean(author);
+            }
 
             if (!_diskProvider.FolderExists(author.Path))
             {
@@ -80,8 +88,11 @@ namespace NzbDrone.Core.Extras.Metadata
             {
                 var consumerFiles = GetMetadataFilesForConsumer(consumer, metadataFiles);
 
-                files.AddIfNotNull(ProcessAuthorMetadata(consumer, author, consumerFiles));
-                files.AddRange(ProcessAuthorImages(consumer, author, consumerFiles));
+                if (!authorReadOnly)
+                {
+                    files.AddIfNotNull(ProcessAuthorMetadata(consumer, author, consumerFiles));
+                    files.AddRange(ProcessAuthorImages(consumer, author, consumerFiles));
+                }
 
                 foreach (var bookFile in bookFiles)
                 {
@@ -98,6 +109,11 @@ namespace NzbDrone.Core.Extras.Metadata
         public override IEnumerable<ExtraFile> CreateAfterBookImport(Author author, BookFile bookFile)
         {
             var files = new List<MetadataFile>();
+
+            if (ReadOnlyPathGuard.IsReadOnly(bookFile?.Path))
+            {
+                return files;
+            }
 
             foreach (var consumer in _metadataFactory.Enabled())
             {
@@ -125,7 +141,7 @@ namespace NzbDrone.Core.Extras.Metadata
             {
                 var consumerFiles = GetMetadataFilesForConsumer(consumer, metadataFiles);
 
-                if (authorFolder.IsNotNullOrWhiteSpace())
+                if (authorFolder.IsNotNullOrWhiteSpace() && !ReadOnlyPathGuard.IsReadOnly(author.Path))
                 {
                     files.AddIfNotNull(ProcessAuthorMetadata(consumer, author, consumerFiles));
                     files.AddRange(ProcessAuthorImages(consumer, author, consumerFiles));
@@ -141,7 +157,7 @@ namespace NzbDrone.Core.Extras.Metadata
         {
             var metadataFiles = _metadataFileService.GetFilesByAuthor(author.Id);
             var movedFiles = new List<MetadataFile>();
-            var distinctTrackFilePaths = bookFiles.DistinctBy(s => Path.GetDirectoryName(s.Path)).ToList();
+            var distinctTrackFilePaths = bookFiles.Where(f => !ReadOnlyPathGuard.IsReadOnly(f.Path)).DistinctBy(s => Path.GetDirectoryName(s.Path)).ToList();
 
             // TODO: Move EpisodeImage and EpisodeMetadata metadata files, instead of relying on consumers to do it
             // (Xbmc's EpisodeImage is more than just the extension)
@@ -517,6 +533,11 @@ namespace NzbDrone.Core.Extras.Metadata
             var fullPath = Path.Combine(basePath, image.RelativePath);
             var downloaded = true;
 
+            if (ReadOnlyPathGuard.IsReadOnly(fullPath))
+            {
+                return false;
+            }
+
             try
             {
                 if (image.Url.StartsWith("http"))
@@ -557,6 +578,12 @@ namespace NzbDrone.Core.Extras.Metadata
 
         private void SaveMetadataFile(string path, string contents)
         {
+            if (ReadOnlyPathGuard.IsReadOnly(path))
+            {
+                _logger.Debug("Not writing {0}: it is in a read-only library folder", path);
+                return;
+            }
+
             _diskProvider.WriteAllText(path, contents);
             _mediaFileAttributeService.SetFilePermissions(path);
         }

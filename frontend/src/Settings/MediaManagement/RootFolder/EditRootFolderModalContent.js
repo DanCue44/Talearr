@@ -178,6 +178,7 @@ class EditRootFolderModalContent extends Component {
       path,
       folderType,
       placeEbooksWithAudiobooks,
+      readOnly,
       defaultSyncMonitoredAcrossFormats,
       isCalibreLibrary,
       host,
@@ -289,6 +290,24 @@ class EditRootFolderModalContent extends Component {
                               translate('ImportMixedContentDisabledHelpText')
                           }
                           onChange={this.onAcceptsMixedContentChange}
+                        />
+                      </FormGroup>
+                  }
+
+                  {
+                    !isCalibreLibrary?.value &&
+                      <FormGroup>
+                        <FormLabel>
+                          {'Read-only library'}
+                        </FormLabel>
+
+                        <FormInputGroup
+                          type={inputTypes.CHECK}
+                          name="readOnly"
+                          helpText={'Track the books in this folder but never move, rename, retag or delete anything in it. Use it for a library another app manages, such as Libation. New downloads go to another root folder of the same type.'}
+                          helpTextWarning={readOnly?.value ? 'Add a writable root folder of the same type, or downloads for authors in this folder cannot be imported.' : undefined}
+                          {...readOnly}
+                          onChange={onInputChange}
                         />
                       </FormGroup>
                   }

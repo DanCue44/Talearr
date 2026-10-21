@@ -315,6 +315,30 @@ namespace Chaptarr.Core.Test.MediaFiles
         }
 
         [Test]
+        [NonParallelizable]
+        public void should_refuse_to_delete_a_file_in_a_read_only_library_folder()
+        {
+            var root = new RootFolder { Id = 1, Path = @"C:\libation".AsOsAgnostic() };
+            var subject = BuildTrackFileDeleteSubject(root);
+            var author = new Author { Id = 1, Name = "Navessa Allen", Path = Path.Combine(root.Path, "Navessa Allen"), AudiobookRootFolderPath = root.Path };
+            var filePath = Path.Combine(root.Path, "Navessa Allen", "Caught Up", "Caught Up.m4b");
+            subject.Disk.ExistingFiles.Add(filePath);
+
+            ReadOnlyPathGuard.SetRoots(new[] { root.Path });
+            try
+            {
+                var ex = Assert.Throws<NzbDroneClientException>(() => subject.Service.DeleteTrackFile(author, new BookFile { Id = 1, EditionId = 1, MediaType = "audiobook", Path = filePath }));
+
+                Assert.That(ex.Message, Does.Contain("read-only library folder"));
+                Assert.That(subject.RecycleBin.DeletedFiles, Is.Empty);
+            }
+            finally
+            {
+                ReadOnlyPathGuard.SetRoots(Array.Empty<string>());
+            }
+        }
+
+        [Test]
         public void should_delete_every_file_and_replica_and_remove_the_folder_on_whole_book_delete()
         {
             var author = new Author

@@ -191,6 +191,13 @@ namespace NzbDrone.Core.MediaFiles
 
         public void WriteTags(BookFile trackfile, bool newDownload, bool force = false)
         {
+            // Talearr: files in a read-only library folder are never retagged.
+            if (ReadOnlyPathGuard.IsReadOnly(trackfile?.Path))
+            {
+                _logger.Debug("Skipping tag write in a read-only library folder: {0}", trackfile?.Path);
+                return;
+            }
+
             if (MediaFileExtensions.IsMatroskaAudioExtension(Path.GetExtension(trackfile?.Path)))
             {
                 _logger.Debug("Skipping tag write for Matroska audio file: {0}", trackfile?.Path);
@@ -302,7 +309,7 @@ namespace NzbDrone.Core.MediaFiles
 
         private IEnumerable<RetagBookFilePreview> GetPreviews(List<BookFile> files)
         {
-            foreach (var f in files.Where(x => MediaFileExtensions.CanWriteAudioTags(Path.GetExtension(x.Path)) && x.Edition != null).OrderBy(x => x.Edition?.Title ?? string.Empty))
+            foreach (var f in files.Where(x => MediaFileExtensions.CanWriteAudioTags(Path.GetExtension(x.Path)) && x.Edition != null && !ReadOnlyPathGuard.IsReadOnly(x.Path)).OrderBy(x => x.Edition?.Title ?? string.Empty))
             {
                 var file = f;
 

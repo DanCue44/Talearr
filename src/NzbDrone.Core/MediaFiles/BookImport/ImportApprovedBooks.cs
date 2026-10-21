@@ -1158,6 +1158,13 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                         filesToReplace.Clear();
                     }
 
+                    // Talearr: a copy in a read-only library folder is never replaced or removed.
+                    if (filesToReplace.Any(f => ReadOnlyPathGuard.IsReadOnly(f.Path)))
+                    {
+                        _logger.Info("Talearr: not replacing '{0}': the current copy is in a read-only library folder", book.Title);
+                        return (new ImportResult(decision, "The current copy is in a read-only library folder, so Talearr does not replace it."), null);
+                    }
+
                     if (filesToReplace.Any())
                     {
                         _logger.Debug("[MULTI-FILE] Found {0} files to potentially replace for edition {1}",
@@ -1357,6 +1364,17 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                     if (relocateExistingFile != null)
                     {
                         copyOnly = false;
+                    }
+
+                    // Talearr: a file inside a read-only library folder is copied, never moved out of it.
+                    if (ReadOnlyPathGuard.IsReadOnly(localBook.Path))
+                    {
+                        if (relocateExistingFile != null)
+                        {
+                            return (new ImportResult(decision, "The file is in a read-only library folder, so Talearr does not move it."), null);
+                        }
+
+                        copyOnly = true;
                     }
 
                     // Upgrade safety: never delete/recycle existing files before the new file is successfully transferred.

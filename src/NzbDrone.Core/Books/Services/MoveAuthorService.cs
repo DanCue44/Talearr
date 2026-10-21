@@ -57,6 +57,15 @@ namespace NzbDrone.Core.Books
                 _logger.ProgressInfo("Moving {0} from '{1}' to '{2}'", author.Name, sourcePath, destinationPath);
             }
 
+            // Talearr: files in a read-only library folder are never moved; the move would also
+            // delete them from that folder.
+            if (ReadOnlyPathGuard.IsReadOnly(sourcePath) || ReadOnlyPathGuard.IsReadOnly(destinationPath))
+            {
+                _logger.ProgressInfo("Not moving {0}: '{1}' is in a read-only library folder.", author.Name, ReadOnlyPathGuard.IsReadOnly(sourcePath) ? sourcePath : destinationPath);
+                RevertPathIfNeeded(author.Id, sourcePath, destinationPath, mediaType);
+                return false;
+            }
+
             if (sourcePath.PathEquals(destinationPath))
             {
                 _logger.ProgressInfo("{0} is already in the specified location '{1}'.", author, destinationPath);

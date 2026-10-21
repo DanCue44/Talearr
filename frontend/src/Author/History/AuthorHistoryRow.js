@@ -4,6 +4,7 @@ import HistoryDetailsConnector from 'Activity/History/Details/HistoryDetailsConn
 import HistoryEventTypeCell from 'Activity/History/HistoryEventTypeCell';
 import BookFormats from 'Book/BookFormats';
 import BookQuality from 'Book/BookQuality';
+import TalearrHistoryWhy from 'Book/Explain/TalearrHistoryWhy';
 import Icon from 'Components/Icon';
 import IconButton from 'Components/Link/IconButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
@@ -85,7 +86,9 @@ class AuthorHistoryRow extends Component {
       customFormatScore,
       date,
       data,
-      book
+      book,
+      bookId,
+      downloadId
     } = this.props;
 
     const {
@@ -137,11 +140,20 @@ class AuthorHistoryRow extends Component {
             }
             title={getTitle(eventType)}
             body={
-              <HistoryDetailsConnector
-                eventType={eventType}
-                sourceTitle={sourceTitle}
-                data={data}
-              />
+              <div>
+                <HistoryDetailsConnector
+                  eventType={eventType}
+                  sourceTitle={sourceTitle}
+                  data={data}
+                />
+
+                <TalearrHistoryWhy
+                  bookId={bookId ?? book?.id}
+                  eventType={eventType}
+                  sourceTitle={sourceTitle}
+                  downloadId={downloadId ?? data?.downloadId}
+                />
+              </div>
             }
             position={tooltipPositions.LEFT}
           />
@@ -184,6 +196,8 @@ AuthorHistoryRow.propTypes = {
   fullAuthor: PropTypes.bool.isRequired,
   author: PropTypes.object,
   book: PropTypes.object,
+  bookId: PropTypes.number,
+  downloadId: PropTypes.string,
   onMarkAsFailedPress: PropTypes.func.isRequired
 };
 
