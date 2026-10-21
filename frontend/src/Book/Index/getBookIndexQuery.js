@@ -37,8 +37,8 @@ export default function getBookIndexQuery(bookIndex = {}, selectedMediaType) {
 
   return {
     queryKey: `${sortKey}_${sortDirection}_${filterKey}_${mediaType}`,
-    // Talearr: All formats groups each work's rows, which needs every row, so it stays client side
-    useClientSidePosters: mediaType === 'all' || !isServerSideBookIndexFilter(filterKey),
+    // Talearr: All formats pages are grouped by work on the server (groupFormats)
+    useClientSidePosters: !isServerSideBookIndexFilter(filterKey),
     queryParams: {
       sortKey,
       sortDirection,

@@ -56,6 +56,9 @@ namespace NzbDrone.Core.Books
 	        PagedBookResource GetBooksPaged(int offset, int pageSize, string sortKey, string sortDirection, bool includeUnmonitored = false, string mediaType = null, bool? downloaded = null);
 	        PagedBookResource GetBooksPaged(int offset, int pageSize, string sortKey, string sortDirection, bool includeUnmonitored, string mediaType, bool? downloaded, bool? monitored, bool? missing = null, bool? wanted = null) => GetBooksPaged(offset, pageSize, sortKey, sortDirection, includeUnmonitored, mediaType, downloaded);
 	        List<int> GetBookIds(bool includeUnmonitored = false, string mediaType = null, bool? downloaded = null, bool? monitored = null, bool? missing = null, bool? wanted = null) => throw new NotImplementedException();
+
+	        // Talearr: every matching row in the book index sort order, for grouping a work's formats
+	        List<Book> GetSortedBooks(string sortKey, string sortDirection, bool includeUnmonitored, string mediaType, bool? downloaded, bool? monitored, bool? missing = null, bool? wanted = null) => throw new NotImplementedException();
 	    }
 
     public class BookRepository : BasicRepository<Book>, IBookRepository
@@ -1073,6 +1076,47 @@ namespace NzbDrone.Core.Books
             offset = Math.Max(0, offset);
             pageSize = Math.Clamp(pageSize, 1, 500);
 
+            var tableName = TableMapping.Mapper.TableNameMapping(typeof(Book));
+            var countBuilder = CreatePagedBooksBuilder(includeUnmonitored, mediaType, downloaded, monitored, missing, wanted);
+            var countTemplate = countBuilder.AddTemplate($"SELECT COUNT(*) FROM \"{tableName}\" /**where**/");
+
+            using (var conn = _database.OpenConnection())
+            {
+                var totalCount = conn.QuerySingle<int>(countTemplate.RawSql, countTemplate.Parameters);
+                var builder = CreateSortedBooksBuilder(sortKey, sortDirection, includeUnmonitored, mediaType, downloaded, monitored, missing, wanted);
+                var template = builder.AddTemplate(
+                    $"SELECT /**select**/ FROM \"{tableName}\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/ LIMIT {pageSize} OFFSET {offset}"
+                );
+
+                var books = conn.Query<Book>(template.RawSql, template.Parameters).ToList();
+
+                return new PagedBookResource
+                {
+                    Records = books,
+                    TotalCount = totalCount,
+                    Offset = offset,
+                    PageSize = pageSize
+                };
+            }
+        }
+
+        public List<Book> GetSortedBooks(string sortKey, string sortDirection, bool includeUnmonitored, string mediaType, bool? downloaded, bool? monitored, bool? missing = null, bool? wanted = null)
+        {
+            var tableName = TableMapping.Mapper.TableNameMapping(typeof(Book));
+            var builder = CreateSortedBooksBuilder(sortKey, sortDirection, includeUnmonitored, mediaType, downloaded, monitored, missing, wanted);
+            var template = builder.AddTemplate(
+                $"SELECT /**select**/ FROM \"{tableName}\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/"
+            );
+
+            using (var conn = _database.OpenConnection())
+            {
+                return conn.Query<Book>(template.RawSql, template.Parameters).ToList();
+            }
+        }
+
+        // The book index filters plus its ORDER BY; shared by the paged list and the full sorted list.
+        private SqlBuilder CreateSortedBooksBuilder(string sortKey, string sortDirection, bool includeUnmonitored, string mediaType, bool? downloaded, bool? monitored, bool? missing, bool? wanted)
+        {
             var allowedSortKeys = new HashSet<string> { "cleantitle", "title", "authortitle", "releasedate", "added", "id", "sizeondisk" };
             if (string.IsNullOrWhiteSpace(sortKey) || !allowedSortKeys.Contains(sortKey.ToLowerInvariant()))
             {
@@ -1095,48 +1139,29 @@ namespace NzbDrone.Core.Books
 
             var normalizedSortKey = sortKey.ToLowerInvariant();
             var sortColumn = columnMap[normalizedSortKey];
-            var countBuilder = CreatePagedBooksBuilder(includeUnmonitored, mediaType, downloaded, monitored, missing, wanted);
-            var countTemplate = countBuilder.AddTemplate($"SELECT COUNT(*) FROM \"{tableName}\" /**where**/");
+            var builder = CreatePagedBooksBuilder(includeUnmonitored, mediaType, downloaded, monitored, missing, wanted);
+            builder.Select(typeof(Book));
 
-            using (var conn = _database.OpenConnection())
+            if (normalizedSortKey == "sizeondisk")
             {
-                var totalCount = conn.QuerySingle<int>(countTemplate.RawSql, countTemplate.Parameters);
-                var builder = CreatePagedBooksBuilder(includeUnmonitored, mediaType, downloaded, monitored, missing, wanted);
-                builder.Select(typeof(Book));
-
-                if (normalizedSortKey == "sizeondisk")
-                {
-                    builder.LeftJoin($@"({BookFileStatisticsSql.GroupedByBook}) AS ""FileStatistics"" ON ""FileStatistics"".""BookId"" = ""{tableName}"".""Id""");
-                }
-
-                if (normalizedSortKey == "authortitle")
-                {
-                    builder.InnerJoin($"\"Authors\" ON \"Authors\".\"Id\" = \"{tableName}\".\"AuthorId\"");
-                    builder.OrderBy($"{sortColumn} {sortDirection}, LOWER(COALESCE(\"{tableName}\".\"CleanTitle\", \"{tableName}\".\"Title\", '')) {sortDirection}, \"{tableName}\".\"Id\" {sortDirection}");
-                }
-                else if (normalizedSortKey == "id")
-                {
-                    builder.OrderBy($"{sortColumn} {sortDirection}");
-                }
-                else
-                {
-                    builder.OrderBy($"{sortColumn} {sortDirection}, \"{tableName}\".\"Id\" {sortDirection}");
-                }
-
-                var template = builder.AddTemplate(
-                    $"SELECT /**select**/ FROM \"{tableName}\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/ LIMIT {pageSize} OFFSET {offset}"
-                );
-
-                var books = conn.Query<Book>(template.RawSql, template.Parameters).ToList();
-
-                return new PagedBookResource
-                {
-                    Records = books,
-                    TotalCount = totalCount,
-                    Offset = offset,
-                    PageSize = pageSize
-                };
+                builder.LeftJoin($@"({BookFileStatisticsSql.GroupedByBook}) AS ""FileStatistics"" ON ""FileStatistics"".""BookId"" = ""{tableName}"".""Id""");
             }
+
+            if (normalizedSortKey == "authortitle")
+            {
+                builder.InnerJoin($"\"Authors\" ON \"Authors\".\"Id\" = \"{tableName}\".\"AuthorId\"");
+                builder.OrderBy($"{sortColumn} {sortDirection}, LOWER(COALESCE(\"{tableName}\".\"CleanTitle\", \"{tableName}\".\"Title\", '')) {sortDirection}, \"{tableName}\".\"Id\" {sortDirection}");
+            }
+            else if (normalizedSortKey == "id")
+            {
+                builder.OrderBy($"{sortColumn} {sortDirection}");
+            }
+            else
+            {
+                builder.OrderBy($"{sortColumn} {sortDirection}, \"{tableName}\".\"Id\" {sortDirection}");
+            }
+
+            return builder;
         }
 
         public PagedBookResource GetBooksPaged(int offset, int pageSize, string sortKey, string sortDirection, bool includeUnmonitored = false, string mediaType = null, bool? downloaded = null)

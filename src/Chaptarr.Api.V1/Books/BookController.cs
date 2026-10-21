@@ -1136,11 +1136,17 @@ namespace Chaptarr.Api.V1.Books
             [FromQuery] bool? downloaded = null,
             [FromQuery] bool? monitored = null,
             [FromQuery] bool? missing = null,
-            [FromQuery] bool? wanted = null)
+            [FromQuery] bool? wanted = null,
+            [FromQuery] bool groupFormats = false)
         {
             _logger.Debug("[API-INFINITE-SCROLL] GetBookBuckets called: includeUnmonitored={0}, sortKey={1}, sortDirection={2}, mediaType={3}, downloaded={4}, monitored={5}, missing={6}, wanted={7}",
                 includeUnmonitored, sortKey, sortDirection, mediaType, downloaded, monitored, missing, wanted);
             var normalizedMediaType = MediaTypeParameterParser.NormalizeOptional(mediaType);
+
+            if (groupFormats && normalizedMediaType == null)
+            {
+                return Ok(GetGroupedBookBuckets(sortKey, sortDirection, includeUnmonitored, downloaded, monitored, missing, wanted));
+            }
 
             var buckets = _bookService.GetBookBuckets(sortKey, sortDirection, includeUnmonitored, normalizedMediaType, downloaded, monitored, missing, wanted);
 
@@ -1157,10 +1163,129 @@ namespace Chaptarr.Api.V1.Books
             [FromQuery] bool? downloaded = null,
             [FromQuery] bool? monitored = null,
             [FromQuery] bool? missing = null,
-            [FromQuery] bool? wanted = null)
+            [FromQuery] bool? wanted = null,
+            [FromQuery] bool groupFormats = false)
         {
             var normalizedMediaType = MediaTypeParameterParser.NormalizeOptional(mediaType);
+
+            if (groupFormats && normalizedMediaType == null)
+            {
+                // Every row, a work's rows together, so selecting all covers both formats
+                var groups = GetFormatGroups("title", "ASC", includeUnmonitored, downloaded, monitored, missing, wanted);
+                return Ok(groups.SelectMany(g => g).Select(b => b.Id).ToList());
+            }
+
             return Ok(_bookService.GetBookIds(includeUnmonitored, normalizedMediaType, downloaded, monitored, missing, wanted));
+        }
+
+        // Talearr: the All formats book index, one entry per work (see BookFormatGroups).
+        private List<List<Book>> GetFormatGroups(string sortKey, string sortDirection, bool includeUnmonitored, bool? downloaded, bool? monitored, bool? missing, bool? wanted)
+        {
+            var sorted = _bookService.GetSortedBooks(sortKey, sortDirection, includeUnmonitored, null, downloaded, monitored, missing, wanted);
+            return BookFormatGroups.Group(sorted, BookResourceMapper.GetNativeForeignBookId);
+        }
+
+        private static string GetBucket(string sortText)
+        {
+            var first = (sortText ?? string.Empty).Trim().ToUpperInvariant().FirstOrDefault();
+
+            if (first >= 'A' && first <= 'Z')
+            {
+                return first.ToString();
+            }
+
+            return first >= '0' && first <= '9' ? "0-9" : "#";
+        }
+
+        private NzbDrone.Core.Books.BookBucketResource GetGroupedBookBuckets(string sortKey, string sortDirection, bool includeUnmonitored, bool? downloaded, bool? monitored, bool? missing, bool? wanted)
+        {
+            var groups = GetFormatGroups(sortKey, sortDirection, includeUnmonitored, downloaded, monitored, missing, wanted);
+
+            // Files, size and authors are the same grouped or not; works replace rows in the counts
+            var result = _bookService.GetBookBuckets(sortKey, sortDirection, includeUnmonitored, null, downloaded, monitored, missing, wanted);
+            var byAuthorName = string.Equals(sortKey, "authorTitle", StringComparison.OrdinalIgnoreCase)
+                ? _authorService.GetAllAuthors().ToDictionary(a => a.Id, a => a.Name)
+                : null;
+
+            var buckets = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var cumulativeIndexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            for (var i = 0; i < groups.Count; i++)
+            {
+                var first = groups[i][0];
+                var sortText = byAuthorName != null
+                    ? (byAuthorName.TryGetValue(first.AuthorId, out var name) ? name : string.Empty)
+                    : (first.CleanTitle ?? first.Title);
+                var bucket = GetBucket(sortText);
+
+                buckets[bucket] = buckets.TryGetValue(bucket, out var count) ? count + 1 : 1;
+
+                if (!cumulativeIndexes.ContainsKey(bucket))
+                {
+                    cumulativeIndexes[bucket] = i;
+                }
+            }
+
+            result.Buckets = buckets;
+            result.CumulativeIndexes = cumulativeIndexes;
+            result.TotalCount = groups.Count;
+            result.FooterStatistics.TotalBooks = groups.Count;
+            result.FooterStatistics.MonitoredBooks = groups.Count(g => g.Any(BookFormatGroups.IsMonitored));
+
+            return result;
+        }
+
+        private PagedBookApiResource GetGroupedBooksPage(int offset, int pageSize, string sortKey, string sortDirection, bool includeUnmonitored, bool? downloaded, bool? monitored, bool? missing, bool? wanted, string include)
+        {
+            var groups = GetFormatGroups(sortKey, sortDirection, includeUnmonitored, downloaded, monitored, missing, wanted);
+            var pageGroups = groups.Skip(offset).Take(pageSize).ToList();
+            var pageRows = pageGroups.SelectMany(g => g).ToList();
+
+            _bookService.LoadIndexRelations(pageRows);
+
+            var statsByBookId = BuildBookStatisticsById(_authorStatisticsService.AuthorStatistics(null));
+            bool HasFile(Book book) => statsByBookId.TryGetValue(book.Id, out var stats) && stats.BookFileCount > 0;
+
+            var resourcesById = MapToResource(pageRows,
+                    IncludeRequested(include, "author"),
+                    statsByBookId,
+                    includeOverview: IncludeRequested(include, "overview"),
+                    includeLinks: IncludeRequested(include, "links"))
+                .ToDictionary(r => r.Id);
+
+            var records = new List<BookResource>();
+
+            foreach (var group in pageGroups)
+            {
+                var primary = resourcesById[BookFormatGroups.PickPrimary(group, HasFile).Id];
+                var ebook = group.FirstOrDefault(b => b.MediaType == BookMediaType.Ebook);
+
+                if (group.Count > 1)
+                {
+                    primary.WorkFormats = BookFormatGroups.ToFormats(group, HasFile);
+                    primary.GroupStatistics = BookFormatGroups.SumStatistics(group.Select(b => resourcesById[b.Id].Statistics));
+
+                    var ebookImages = ebook != null ? resourcesById[ebook.Id].Images : null;
+                    if (ebookImages != null && ebookImages.Any())
+                    {
+                        primary.WorkImages = ebookImages;
+                    }
+                }
+                else
+                {
+                    primary.WorkFormats = BookFormatGroups.ToFormats(group, HasFile);
+                }
+
+                records.Add(primary);
+            }
+
+            return new PagedBookApiResource
+            {
+                Records = records,
+                TotalCount = groups.Count,
+                Offset = offset,
+                PageSize = pageSize
+            };
         }
 
         [HttpGet("paged")]
@@ -1175,7 +1300,8 @@ namespace Chaptarr.Api.V1.Books
             [FromQuery] bool? monitored = null,
             [FromQuery] bool? missing = null,
             [FromQuery] bool? wanted = null,
-            [FromQuery] string include = null)
+            [FromQuery] string include = null,
+            [FromQuery] bool groupFormats = false)
         {
             _logger.Debug("[API-INFINITE-SCROLL] GetBooksPaged called: offset={0}, pageSize={1}, sortKey={2}, sortDirection={3}, includeUnmonitored={4}, mediaType={5}, downloaded={6}, monitored={7}, missing={8}, wanted={9}",
                 offset, pageSize, sortKey, sortDirection, includeUnmonitored, mediaType, downloaded, monitored, missing, wanted);
@@ -1190,6 +1316,11 @@ namespace Chaptarr.Api.V1.Books
             if (offset < 0)
             {
                 return BadRequest("Offset must be non-negative");
+            }
+
+            if (groupFormats && normalizedMediaType == null)
+            {
+                return Ok(GetGroupedBooksPage(offset, pageSize, sortKey, sortDirection, includeUnmonitored, downloaded, monitored, missing, wanted, include));
             }
 
             var pagedBooks = _bookService.GetBooksPaged(offset, pageSize, sortKey, sortDirection, includeUnmonitored, normalizedMediaType, downloaded, monitored, missing, wanted);

@@ -70,6 +70,11 @@ function createMapStateToProps() {
       const siblingCount = (authorId && bookMediaType) ?
         books.items.filter((b) => b.authorId === authorId && (b.mediaType || '').toString().toLowerCase() === bookMediaType).length :
         0;
+      // Talearr: the book page switches between the ebook and audiobook of a work, so the
+      // other format's row has to be loaded too.
+      const hasOtherFormat = !!book?.foreignBookId && books.items.some((b) => b.authorId === authorId &&
+        b.foreignBookId === book.foreignBookId &&
+        (b.mediaType || '').toString().toLowerCase() !== bookMediaType);
 
       // Check if we need to fetch data
       const needsBookFetch = !isFetching && !hasBook && !!routeBookKey;
@@ -84,6 +89,7 @@ function createMapStateToProps() {
         book,
         bookMediaType,
         siblingCount,
+        hasOtherFormat,
         needsBookFetch,
         needsAuthorFetch,
         isFetching,
@@ -138,7 +144,8 @@ class BookDetailsPageConnector extends Component {
       authorId,
       book,
       bookMediaType,
-      siblingCount
+      siblingCount,
+      hasOtherFormat
     } = this.props;
 
     if (needsBookFetch && routeBookKey) {
@@ -160,14 +167,14 @@ class BookDetailsPageConnector extends Component {
 
     // Deep-link safety net: the book details connector computes previous/next from
     // books in the Redux store. When a book page is loaded directly, we only have
-    // a single book in-state; fetch siblings for navigation.
-    if (book && authorId && bookMediaType && siblingCount < 2) {
-      const mediaType = bookMediaType;
-      const key = `${authorId}_${mediaType}`;
+    // a single book in-state; fetch siblings for navigation. Both formats are fetched
+    // (mediaType all) so the format switch finds the other row of the work.
+    if (book && authorId && bookMediaType && (siblingCount < 2 || !hasOtherFormat)) {
+      const key = `${authorId}_all`;
 
       if (this._lastSiblingFetchKey !== key) {
         this._lastSiblingFetchKey = key;
-        this.props.fetchBooks({ authorId, mediaType });
+        this.props.fetchBooks({ authorId, mediaType: 'all' });
       }
     }
 
@@ -236,6 +243,7 @@ BookDetailsPageConnector.propTypes = {
   book: PropTypes.object,
   bookMediaType: PropTypes.string,
   siblingCount: PropTypes.number,
+  hasOtherFormat: PropTypes.bool,
   needsBookFetch: PropTypes.bool,
   needsAuthorFetch: PropTypes.bool,
   match: PropTypes.shape({ params: PropTypes.shape({ bookId: PropTypes.string.isRequired }).isRequired }).isRequired,

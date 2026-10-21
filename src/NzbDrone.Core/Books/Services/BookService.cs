@@ -87,6 +87,8 @@ namespace NzbDrone.Core.Books
             PagedBookResource GetBooksPaged(int offset, int pageSize, string sortKey, string sortDirection, bool includeUnmonitored = false, string mediaType = null, bool? downloaded = null);
             PagedBookResource GetBooksPaged(int offset, int pageSize, string sortKey, string sortDirection, bool includeUnmonitored, string mediaType, bool? downloaded, bool? monitored, bool? missing = null, bool? wanted = null) => GetBooksPaged(offset, pageSize, sortKey, sortDirection, includeUnmonitored, mediaType, downloaded);
             List<int> GetBookIds(bool includeUnmonitored = false, string mediaType = null, bool? downloaded = null, bool? monitored = null, bool? missing = null, bool? wanted = null) => throw new NotImplementedException();
+            List<Book> GetSortedBooks(string sortKey, string sortDirection, bool includeUnmonitored, string mediaType, bool? downloaded, bool? monitored, bool? missing = null, bool? wanted = null) => throw new NotImplementedException();
+            void LoadIndexRelations(List<Book> books) => throw new NotImplementedException();
         }
 
     public class BookService : IBookService,
@@ -2884,42 +2886,54 @@ namespace NzbDrone.Core.Books
                 return _bookRepository.GetBookIds(includeUnmonitored, mediaType, downloaded, monitored, missing, wanted);
             }
 
+            public List<Book> GetSortedBooks(string sortKey, string sortDirection, bool includeUnmonitored, string mediaType, bool? downloaded, bool? monitored, bool? missing = null, bool? wanted = null)
+            {
+                return _bookRepository.GetSortedBooks(sortKey, sortDirection, includeUnmonitored, mediaType, downloaded, monitored, missing, wanted);
+            }
+
                 public PagedBookResource GetBooksPaged(int offset, int pageSize, string sortKey, string sortDirection, bool includeUnmonitored, string mediaType, bool? downloaded, bool? monitored, bool? missing = null, bool? wanted = null)
                 {
                     var books = _bookRepository.GetBooksPaged(offset, pageSize, sortKey, sortDirection, includeUnmonitored, mediaType, downloaded, monitored, missing, wanted);
 
-                    // Load author relationships for the returned books
-                    if (books.Records != null && books.Records.Any())
-                    {
-                        LoadAuthorRelationships(books.Records);
-                        LoadSeriesLinks(books.Records);
-
-                        // Paged index responses are lean: the monitored edition is the display truth.
-                        var bookIds = books.Records.Select(b => b.Id).ToList();
-                        var bookIdSet = bookIds.ToHashSet();
-                        var allEditions = _editionService.GetEditionsByBook(bookIds)
-                            .Where(e => e != null && bookIdSet.Contains(e.BookId))
-                            .Where(e => e.Monitored)
-                            .ToList();
-                        var editionsByBook = allEditions.GroupBy(e => e.BookId).ToDictionary(g => g.Key, g => g.ToList());
-
-                        foreach (var book in books.Records)
-                        {
-                            book.Editions = editionsByBook.TryGetValue(book.Id, out var eds) && eds != null
-                                ? eds
-                                : new List<Edition>();
-
-                        book.BookFiles = new List<BookFile>();
-
-                            foreach (var edition in book.Editions)
-                            {
-                                edition.BookFiles = null;
-                            }
-                        }
-                    }
+                    LoadIndexRelations(books.Records);
 
 	                    return books;
 	                }
+
+                // Paged index rows get their author, series links and monitored edition only.
+                public void LoadIndexRelations(List<Book> books)
+                {
+                    if (books == null || !books.Any())
+                    {
+                        return;
+                    }
+
+                    LoadAuthorRelationships(books);
+                    LoadSeriesLinks(books);
+
+                    // Paged index responses are lean: the monitored edition is the display truth.
+                    var bookIds = books.Select(b => b.Id).ToList();
+                    var bookIdSet = bookIds.ToHashSet();
+                    var allEditions = _editionService.GetEditionsByBook(bookIds)
+                        .Where(e => e != null && bookIdSet.Contains(e.BookId))
+                        .Where(e => e.Monitored)
+                        .ToList();
+                    var editionsByBook = allEditions.GroupBy(e => e.BookId).ToDictionary(g => g.Key, g => g.ToList());
+
+                    foreach (var book in books)
+                    {
+                        book.Editions = editionsByBook.TryGetValue(book.Id, out var eds) && eds != null
+                            ? eds
+                            : new List<Edition>();
+
+                        book.BookFiles = new List<BookFile>();
+
+                        foreach (var edition in book.Editions)
+                        {
+                            edition.BookFiles = null;
+                        }
+                    }
+                }
 
                 public PagedBookResource GetBooksPaged(int offset, int pageSize, string sortKey, string sortDirection, bool includeUnmonitored = false, string mediaType = null, bool? downloaded = null)
                 {

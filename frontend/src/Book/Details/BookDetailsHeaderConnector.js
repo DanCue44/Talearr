@@ -33,14 +33,17 @@ function createMapStateToProps() {
     createDimensionsSelector(),
     (state) => state.talearrBookTags.byBookId,
     createTagsSelector(),
-    (book, bookDetails, queueItem, uiSettings, dimensions, talearrBookTags, tagList) => {
+    (state, { coverImages }) => coverImages,
+    (book, bookDetails, queueItem, uiSettings, dimensions, talearrBookTags, tagList, coverImages) => {
       // Talearr: book tags from talearr.db, shown by label.
       const talearrTagLabels = (talearrBookTags[book.id] || [])
         .map((tagId) => tagList.find((t) => t.id === tagId))
         .filter(Boolean)
         .map((t) => t.label);
 
-      const images = (bookDetails.images && bookDetails.images.length) ? bookDetails.images : (book.images || []);
+      // Talearr: a work with an ebook and an audiobook shows the ebook's cover on both formats
+      const editionImages = (bookDetails.images && bookDetails.images.length) ? bookDetails.images : (book.images || []);
+      const images = (coverImages && coverImages.length && book.mediaType !== 'ebook') ? coverImages : editionImages;
 
       // Use book's own properties if available, fallback to edition details
       return {
@@ -88,6 +91,7 @@ class BookDetailsHeaderConnector extends Component {
 
 BookDetailsHeaderConnector.propTypes = {
   bookId: PropTypes.number,
+  coverImages: PropTypes.arrayOf(PropTypes.object),
   toggleBooksMonitored: PropTypes.func.isRequired,
   author: PropTypes.object
 };

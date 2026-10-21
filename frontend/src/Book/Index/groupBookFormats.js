@@ -50,6 +50,21 @@ export default function groupBookFormats(books) {
   });
 }
 
+// A work from a grouped server page (groupFormats): its rows and formats in the shape the
+// client-side grouping gives combined items.
+export function getServerGroup(book) {
+  const workFormats = book?.workFormats;
+
+  if (!workFormats || !workFormats.length) {
+    return {};
+  }
+
+  return {
+    groupBookIds: workFormats.length > 1 ? workFormats.map((f) => f.bookId) : undefined,
+    formats: workFormats.map((format) => ({ mediaType: format.mediaType, hasFile: format.hasFile }))
+  };
+}
+
 // Expands combined item ids to every row in their group.
 export function expandGroupIds(ids, items) {
   const groupById = new Map();
@@ -60,5 +75,5 @@ export function expandGroupIds(ids, items) {
     }
   });
 
-  return ids.flatMap((id) => groupById.get(id) || [id]);
+  return [...new Set(ids.flatMap((id) => groupById.get(id) || [id]))];
 }

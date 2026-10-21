@@ -55,6 +55,16 @@ namespace Chaptarr.Api.V1.Books
         public List<MediaCover> Images { get; set; }
         public List<Links> Links { get; set; }
         public BookStatisticsResource Statistics { get; set; }
+
+        // Talearr: set only on grouped book index pages (groupFormats=true), one entry per work
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<BookFormatResource> WorkFormats { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public BookStatisticsResource GroupStatistics { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<MediaCover> WorkImages { get; set; }
         public AddBookOptions AddOptions { get; set; }
         public string RemoteCover { get; set; }
         public List<BookFileResource> BookFiles { get; set; }
@@ -801,6 +811,12 @@ namespace Chaptarr.Api.V1.Books
 
             var idx = value.IndexOf(':');
             return idx > 0 ? value.Substring(idx + 1) : value;
+        }
+
+        // Talearr: the native foreignBookId the API reports, which ties a work's ebook and audiobook rows
+        public static string GetNativeForeignBookId(Book model)
+        {
+            return BuildForeignBookId(model, null);
         }
 
         private static string BuildForeignBookId(Book model, ReadarrFacadeContext facadeContext)

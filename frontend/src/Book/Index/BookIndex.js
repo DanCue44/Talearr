@@ -346,7 +346,21 @@ class BookIndex extends Component {
 
   onSelectedChange = ({ id, value, shiftKey = false }) => {
     this.setState((state) => {
-      return toggleSelected(state, this.props.items, id, value, shiftKey);
+      const nextState = toggleSelected(state, this.props.items, id, value, shiftKey);
+      const groupBookIds = this.props.items.find((item) => item.id === id)?.groupBookIds;
+
+      // Talearr: Select All marks every format row; unselecting a combined card drops them all
+      if (!value && groupBookIds) {
+        const selectedState = { ...nextState.selectedState };
+
+        groupBookIds.forEach((bookId) => {
+          delete selectedState[bookId];
+        });
+
+        return { ...nextState, selectedState };
+      }
+
+      return nextState;
     });
   };
 

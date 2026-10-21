@@ -17,6 +17,7 @@ import createCommandExecutingSelector from 'Store/Selectors/createCommandExecuti
 import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
 import BookIndex from './BookIndex';
 import getBookIndexQuery from './getBookIndexQuery';
+import { getServerGroup } from './groupBookFormats';
 
 function createMapStateToProps() {
   return createSelector(
@@ -55,7 +56,11 @@ function createMapStateToProps() {
       // Provide the currently loaded poster items to BookIndex so editor selection
       // (Select All / bulk actions) works consistently across views.
       const selectionItems = useInfinitePosters ?
-        selectQueryBooks({ bookInfiniteScroll }, posterQueryKey).map((b) => ({ id: b.id })) :
+        selectQueryBooks({ bookInfiniteScroll }, posterQueryKey).map((b) => ({
+          id: b.id,
+          // Talearr: a grouped All formats entry selects every format row of its work
+          groupBookIds: mediaType === 'all' ? getServerGroup(b).groupBookIds : undefined
+        })) :
         book.items;
 
       return {
