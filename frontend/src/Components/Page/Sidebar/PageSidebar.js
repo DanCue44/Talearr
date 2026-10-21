@@ -3,11 +3,14 @@ import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
+import { connect } from 'react-redux';
+import { createSelector } from 'reselect';
 import QueueStatusConnector from 'Activity/Queue/Status/QueueStatusConnector';
 import OverlayScroller from 'Components/Scroller/OverlayScroller';
 import Scroller from 'Components/Scroller/Scroller';
 import { icons } from 'Helpers/Props';
 import locationShape from 'Helpers/Props/Shapes/locationShape';
+import { fetchDownloadClients, fetchIndexers, fetchRootFolders } from 'Store/Actions/settingsActions';
 import dimensions from 'Styles/Variables/dimensions';
 import HealthStatusConnector from 'System/Status/Health/HealthStatusConnector';
 import translate from 'Utilities/String/translate';
@@ -33,23 +36,11 @@ const links = [
         title: () => translate('Books'),
         to: '/books'
       },
-      // Talearr: series monitoring.
-      {
-        title: () => translate('Series'),
-        to: '/talearr/series'
-      },
-      // Talearr: possible duplicates and merge.
-      {
-        title: () => 'Duplicates',
-        to: '/talearr/duplicates'
-      },
+      // Talearr: Series, Duplicates (Books toolbar) and Bookshelf (Authors toolbar) are
+      // opened from their pages, so the menu stays as short as Sonarr's.
       {
         title: () => translate('AddNew'),
         to: '/add/search'
-      },
-      {
-        title: () => translate('Bookshelf'),
-        to: '/shelf'
       },
       {
         title: () => translate('UnmappedFiles'),
@@ -68,6 +59,8 @@ const links = [
     iconName: icons.ACTIVITY,
     title: () => translate('Activity'),
     to: '/activity/queue',
+    // Talearr: Ignored Downloads opens from Blocklist and still belongs to Activity.
+    alias: '/activity',
     children: [
       {
         title: () => translate('Queue'),
@@ -81,10 +74,6 @@ const links = [
       {
         title: () => translate('Blocklist'),
         to: '/activity/blocklist'
-      },
-      {
-        title: () => translate('IgnoredDownloads'),
-        to: '/activity/ignored'
       },
       // Talearr: seeding status and hit-and-run risk.
       {
@@ -170,6 +159,8 @@ const links = [
     iconName: icons.SYSTEM,
     title: () => translate('System'),
     to: '/system/status',
+    // Talearr: Migrate opens from Backup and still belongs to System.
+    alias: '/system',
     children: [
       {
         title: () => translate('Status'),
@@ -183,11 +174,6 @@ const links = [
       {
         title: () => translate('Backup'),
         to: '/system/backup'
-      },
-      // Talearr: migration from Readarr, Bookshelf or LazyLibrarian.
-      {
-        title: () => 'Migrate',
-        to: '/system/migrate'
       },
       {
         title: () => translate('Updates'),
@@ -207,14 +193,16 @@ const links = [
   {
     iconName: icons.QUICK_IMPORT,
     title: () => translate('Quickstart'),
-    to: '/system/quickstart'
+    to: '/system/quickstart',
+    // Talearr: shown until root folders, indexers and download clients are set up.
+    hideWhenSetUp: true
   }
 ];
 
-function getActiveParent(pathname) {
-  let activeParent = links[0].to;
+function getActiveParent(pathname, visibleLinks) {
+  let activeParent = visibleLinks[0].to;
 
-  links.forEach((link) => {
+  visibleLinks.forEach((link) => {
     if (link.to && link.to === pathname) {
       activeParent = link.to;
 
@@ -290,6 +278,8 @@ class PageSidebar extends Component {
   }
 
   componentDidMount() {
+    this.props.dispatchFetchSetupState();
+
     if (this.props.isSmallScreen) {
       window.addEventListener('click', this.onWindowClick, { capture: true });
       window.addEventListener('scroll', this.onWindowScroll);
@@ -459,7 +449,8 @@ class PageSidebar extends Component {
   render() {
     const {
       location,
-      isSmallScreen
+      isSmallScreen,
+      isSetUp
     } = this.props;
 
     const {
@@ -471,7 +462,8 @@ class PageSidebar extends Component {
 
     const urlBase = window.Chaptarr.urlBase;
     const pathname = urlBase ? location.pathname.substr(urlBase.length) || '/' : location.pathname;
-    const activeParent = getActiveParent(pathname);
+    const visibleLinks = links.filter((link) => !(link.hideWhenSetUp && isSetUp));
+    const activeParent = getActiveParent(pathname, visibleLinks);
 
     let containerStyle = {};
     let sidebarStyle = {};
@@ -504,7 +496,7 @@ class PageSidebar extends Component {
         >
           <div className={styles.sidebarContent}>
             {
-              links.map((link) => {
+              visibleLinks.map((link) => {
                 const childWithStatusComponent = _.find(link.children, (child) => {
                   return !!child.statusComponent;
                 });
@@ -562,7 +554,37 @@ PageSidebar.propTypes = {
   location: locationShape.isRequired,
   isSmallScreen: PropTypes.bool.isRequired,
   isSidebarVisible: PropTypes.bool.isRequired,
-  onSidebarVisibleChange: PropTypes.func.isRequired
+  isSetUp: PropTypes.bool.isRequired,
+  onSidebarVisibleChange: PropTypes.func.isRequired,
+  dispatchFetchSetupState: PropTypes.func.isRequired
 };
 
-export default PageSidebar;
+// Talearr: setup counts as done once root folders, indexers and download clients exist.
+// Until all three have loaded it also counts as done, so the menu does not flash Quickstart.
+function createMapStateToProps() {
+  return createSelector(
+    (state) => state.settings.rootFolders,
+    (state) => state.settings.indexers,
+    (state) => state.settings.downloadClients,
+    (rootFolders, indexers, downloadClients) => {
+      const sections = [rootFolders, indexers, downloadClients];
+      const isLoaded = sections.every((section) => section && section.isPopulated);
+
+      return {
+        isSetUp: !isLoaded || sections.every((section) => (section.items || []).length > 0)
+      };
+    }
+  );
+}
+
+function createMapDispatchToProps(dispatch) {
+  return {
+    dispatchFetchSetupState() {
+      dispatch(fetchRootFolders());
+      dispatch(fetchIndexers());
+      dispatch(fetchDownloadClients());
+    }
+  };
+}
+
+export default connect(createMapStateToProps, createMapDispatchToProps)(PageSidebar);

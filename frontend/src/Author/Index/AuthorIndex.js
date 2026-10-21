@@ -438,6 +438,13 @@ class AuthorIndex extends Component {
                 null
             }
 
+            {/* Talearr: Bookshelf (bulk monitoring) lives here instead of in the sidebar. */}
+            <PageToolbarButton
+              label={translate('Bookshelf')}
+              iconName={icons.MONITORED}
+              to="/shelf"
+            />
+
           </PageToolbarSection>
 
           <PageToolbarSection

@@ -404,6 +404,13 @@ class TalearrDuplicates extends Component {
       <PageContent title="Duplicates">
         <PageToolbar>
           <PageToolbarSection>
+            {/* Talearr: opened from the Books toolbar, so offer the way back. */}
+            <PageToolbarButton
+              label="Books"
+              iconName={icons.BOOK}
+              to="/books"
+            />
+
             <PageToolbarButton
               label="Refresh"
               iconName={icons.REFRESH}

@@ -116,6 +116,13 @@ class IgnoredDownloads extends Component {
       <PageContent title={translate('IgnoredDownloads')}>
         <PageToolbar>
           <PageToolbarSection>
+            {/* Talearr: opened from the Blocklist toolbar, so offer the way back. */}
+            <PageToolbarButton
+              label={translate('Blocklist')}
+              iconName={icons.BAN}
+              to="/activity/blocklist"
+            />
+
             <PageToolbarButton
               label={translate('RemoveSelected')}
               iconName={icons.REMOVE}

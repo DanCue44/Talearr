@@ -137,13 +137,15 @@ $hoverScale: 1.05;
   justify-self: start;
 }
 
+/* Talearr: each profile sizes to its own name, so a short one ("E-Book") leaves room
+   for a longer one ("Audiobook") instead of both being cut to half the card. */
 .mediaProfile {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 0;
+  flex: 0 1 auto;
   overflow: hidden;
-  padding: 0 4px;
+  padding: 0 2px;
   min-width: 0;
   gap: 3px;
 }

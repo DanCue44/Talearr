@@ -516,6 +516,21 @@ class BookIndex extends Component {
                 null
             }
 
+            {/* Talearr: Series and Duplicates live here instead of in the sidebar. */}
+            <PageToolbarSeparator />
+
+            <PageToolbarButton
+              label={translate('Series')}
+              iconName={icons.OVERVIEW}
+              to="/talearr/series"
+            />
+
+            <PageToolbarButton
+              label={translate('FindDuplicates')}
+              iconName={icons.CLONE}
+              to="/talearr/duplicates"
+            />
+
           </PageToolbarSection>
 
           <PageToolbarSection

@@ -14,6 +14,18 @@ function Settings() {
       />
 
       <PageContentBody>
+        {/* Talearr: the sidebar hides Quickstart once setup is done, so it stays reachable here. */}
+        <Link
+          className={styles.link}
+          to="/system/quickstart"
+        >
+          {translate('Quickstart')}
+        </Link>
+
+        <div className={styles.summary}>
+          {translate('QuickstartSettingsSummary')}
+        </div>
+
         <Link
           className={styles.link}
           to="/settings/mediamanagement"

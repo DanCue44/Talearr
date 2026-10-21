@@ -122,6 +122,13 @@ class TalearrSeriesIndex extends Component {
       <PageContent title="Series">
         <PageToolbar>
           <PageToolbarSection>
+            {/* Talearr: opened from the Books toolbar, so offer the way back. */}
+            <PageToolbarButton
+              label="Books"
+              iconName={icons.BOOK}
+              to="/books"
+            />
+
             <PageToolbarButton
               label="Refresh"
               iconName={icons.REFRESH}

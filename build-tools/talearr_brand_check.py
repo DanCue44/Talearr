@@ -178,7 +178,7 @@ MUST_KEEP_SERIES = [
     ("src/NzbDrone.Core/Jobs/TaskManager.cs", r"ApplySeriesMonitoringCommand", "series: scheduled apply"),
     ("src/Chaptarr.Api.V1/Talearr/TalearrSeriesController.cs", r'V1ApiController\("talearr/series"\)', "series: additive API route"),
     ("frontend/src/App/AppRoutes.js", r'path="/talearr/series/:seriesId', "series: series page route"),
-    ("frontend/src/Components/Page/Sidebar/PageSidebar.js", r"to: '/talearr/series'", "series: Library > Series"),
+    ("frontend/src/Book/Index/BookIndex.js", r'to="/talearr/series"', "series: Series button on the Books toolbar"),
     ("frontend/src/Author/Details/AuthorDetailsSeries.js", r"to=\{`/talearr/series/\$\{this\.props\.id\}`\}", "series: series page link on the author page"),
 ]
 
@@ -211,7 +211,7 @@ MUST_KEEP_MIGRATION = [
     ("src/NzbDrone.Core/Talearr/Migration/TalearrMigrationModels.cs", r"public bool EnableImportedProviders \{ get; set; \}\n", "migration: imported providers are disabled by default"),
     ("src/NzbDrone.Core/Talearr/Migration/TalearrMigrationService.cs", r"_pendingAuthorImportService\.EnqueueAsync\(", "migration: authors go through upstream's pending author import"),
     ("src/Chaptarr.Api.V1/Talearr/TalearrMigrationController.cs", r'V1ApiController\("talearr/migration"\)', "migration: additive API route"),
-    ("frontend/src/Components/Page/Sidebar/PageSidebar.js", r"to: '/system/migrate'", "migration: System > Migrate"),
+    ("frontend/src/System/Backup/Backups.js", r'to="/system/migrate"', "migration: Migrate button on System > Backup"),
 ]
 
 # (folder, file glob, regex, why). No file under the folder may match.
