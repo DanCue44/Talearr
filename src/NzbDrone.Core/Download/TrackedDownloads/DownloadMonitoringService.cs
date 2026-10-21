@@ -10,6 +10,7 @@ using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.RemotePathMappings;
+using NzbDrone.Core.Talearr.Comics.Search;
 
 namespace NzbDrone.Core.Download.TrackedDownloads
 {
@@ -29,6 +30,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
         private readonly IFailedDownloadService _failedDownloadService;
         private readonly ICompletedDownloadService _completedDownloadService;
         private readonly ITrackedDownloadService _trackedDownloadService;
+        private readonly IComicDownloadTracker _comicDownloads;
         private readonly Logger _logger;
         private readonly Debouncer _refreshDebounce;
 
@@ -40,6 +42,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                                          IFailedDownloadService failedDownloadService,
                                          ICompletedDownloadService completedDownloadService,
                                          ITrackedDownloadService trackedDownloadService,
+                                         IComicDownloadTracker comicDownloads,
                                          Logger logger)
         {
             _downloadClientStatusService = downloadClientStatusService;
@@ -50,6 +53,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             _failedDownloadService = failedDownloadService;
             _completedDownloadService = completedDownloadService;
             _trackedDownloadService = trackedDownloadService;
+            _comicDownloads = comicDownloads;
             _logger = logger;
 
             _refreshDebounce = new Debouncer(QueueRefresh, TimeSpan.FromSeconds(5));
@@ -111,6 +115,12 @@ namespace NzbDrone.Core.Download.TrackedDownloads
 
             foreach (var downloadItem in downloadClientItems)
             {
+                // Talearr: comic downloads are followed and imported by comics, never as books.
+                if (_comicDownloads.Claim(downloadClient, downloadItem))
+                {
+                    continue;
+                }
+
                 var item = ProcessClientItem(downloadClient, downloadItem);
                 trackedDownloads.AddIfNotNull(item);
             }

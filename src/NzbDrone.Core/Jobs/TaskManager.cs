@@ -261,6 +261,22 @@ namespace NzbDrone.Core.Jobs
                         Priority = CommandPriority.Low
                     },
 
+                    // Talearr: comics. Refresh series daily and search for missing volumes twice a
+                    // day; both do nothing until a comic series exists. Stock Chaptarr drops the rows.
+                    new ScheduledTask
+                    {
+                        Interval = 24 * 60,
+                        TypeName = typeof(NzbDrone.Core.Talearr.Comics.RefreshComicSeriesCommand).FullName,
+                        Priority = CommandPriority.Low
+                    },
+
+                    new ScheduledTask
+                    {
+                        Interval = 12 * 60,
+                        TypeName = typeof(NzbDrone.Core.Talearr.Comics.SearchMissingComicsCommand).FullName,
+                        Priority = CommandPriority.Low
+                    },
+
                     // Talearr: wishlists (CSV exports, Hardcover lists) add their new rows. Stock
                     // Chaptarr drops this row on its next start.
                     new ScheduledTask
