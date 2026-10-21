@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -36,7 +37,10 @@ namespace Chaptarr.Core.Test
             var (status, content) = Handler(request);
             var response = new HttpResponse(request, new HttpHeader(), content ?? string.Empty, status);
 
-            if ((int)status >= 400 && !request.SuppressHttpError)
+            var suppressed = request.SuppressHttpError ||
+                             (request.SuppressHttpErrorStatusCodes?.Contains(status) ?? false);
+
+            if ((int)status >= 400 && !suppressed)
             {
                 throw new HttpException(request, response);
             }
