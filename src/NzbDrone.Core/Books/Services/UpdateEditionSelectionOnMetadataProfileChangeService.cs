@@ -10,7 +10,9 @@ using NzbDrone.Core.Profiles.Metadata.Events;
 
 namespace NzbDrone.Core.Books.Services
 {
-    public class UpdateEditionSelectionOnMetadataProfileChangeService : IHandle<MetadataProfileUpdatedEvent>
+    // Runs off the request thread: re-selecting editions for every author on a profile can take
+    // minutes on a large library, and the profile save should return at once.
+    public class UpdateEditionSelectionOnMetadataProfileChangeService : IHandleAsync<MetadataProfileUpdatedEvent>
     {
         private readonly IAuthorService _authorService;
         private readonly IBookService _bookService;
@@ -38,7 +40,7 @@ namespace NzbDrone.Core.Books.Services
             _logger = logger;
         }
 
-        public void Handle(MetadataProfileUpdatedEvent message)
+        public void HandleAsync(MetadataProfileUpdatedEvent message)
         {
             var profile = message.MetadataProfile;
 

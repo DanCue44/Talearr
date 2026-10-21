@@ -6,6 +6,7 @@ using NUnit.Framework;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Books.Services;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.Profiles.Metadata.Events;
 
@@ -186,6 +187,15 @@ namespace Chaptarr.Core.Test.Books
             public List<BookFile> GetFilesByAuthorAndMediaType(int authorId, string mediaType) => throw new NotImplementedException();
         }
 
+        [Test]
+        public void should_run_off_the_request_thread()
+        {
+            // The event aggregator runs IHandle handlers inside the profile save request and
+            // IHandleAsync handlers in the background; a library wide re-selection must be the latter.
+            Assert.That(typeof(IHandleAsync<MetadataProfileUpdatedEvent>).IsAssignableFrom(typeof(UpdateEditionSelectionOnMetadataProfileChangeService)), Is.True);
+            Assert.That(typeof(IHandle<MetadataProfileUpdatedEvent>).IsAssignableFrom(typeof(UpdateEditionSelectionOnMetadataProfileChangeService)), Is.False);
+        }
+
         private static UpdateEditionSelectionOnMetadataProfileChangeService CreateSut(
             StubAuthorService authorService,
             StubBookService bookService,
@@ -230,7 +240,7 @@ namespace Chaptarr.Core.Test.Books
                 new StubEditionService(new Dictionary<int, List<Edition>> { [book.Id] = editions }),
                 new StubMediaFileService());
 
-            sut.Handle(new MetadataProfileUpdatedEvent(profile));
+            sut.HandleAsync(new MetadataProfileUpdatedEvent(profile));
 
             Assert.That(editions.Single(e => e.ForeignEditionId == "eng-audio").Monitored, Is.True);
             Assert.That(editions.Single(e => e.ForeignEditionId == "fra-audio").Monitored, Is.False);
@@ -266,7 +276,7 @@ namespace Chaptarr.Core.Test.Books
                 new StubEditionService(new Dictionary<int, List<Edition>> { [book.Id] = editions }),
                 new StubMediaFileService());
 
-            sut.Handle(new MetadataProfileUpdatedEvent(profile));
+            sut.HandleAsync(new MetadataProfileUpdatedEvent(profile));
 
             Assert.That(editions.Single(e => e.ForeignEditionId == "null-audio").Monitored, Is.True);
             Assert.That(editions.Single(e => e.ForeignEditionId == "eng-audio").Monitored, Is.False);
@@ -303,7 +313,7 @@ namespace Chaptarr.Core.Test.Books
                 editionService,
                 new StubMediaFileService());
 
-            sut.Handle(new MetadataProfileUpdatedEvent(profile, previousProfile));
+            sut.HandleAsync(new MetadataProfileUpdatedEvent(profile, previousProfile));
 
             Assert.That(editions.Single(e => e.ForeignEditionId == "fra-audio").Monitored, Is.True);
             Assert.That(editions.Single(e => e.ForeignEditionId == "eng-audio").Monitored, Is.False);
@@ -341,7 +351,7 @@ namespace Chaptarr.Core.Test.Books
                 editionService,
                 new StubMediaFileService());
 
-            sut.Handle(new MetadataProfileUpdatedEvent(profile, previousProfile));
+            sut.HandleAsync(new MetadataProfileUpdatedEvent(profile, previousProfile));
 
             Assert.That(editionService.UpdatedEditions, Is.Null);
             Assert.That(bookService.UpdatedBooks, Is.Empty);
