@@ -373,6 +373,7 @@ class BookIndexPostersInfinite extends Component {
   cellRenderer = ({ key, rowIndex, columnIndex, style }) => {
     const {
       items,
+      totalCount,
       getBookAtIndex,
       sortKey,
       posterOptions,
@@ -400,6 +401,12 @@ class BookIndexPostersInfinite extends Component {
 
     const bookIdx = rowIndex * columnCount + columnIndex;
     const book = getBookAtIndex ? getBookAtIndex(bookIdx) : items[bookIdx];
+
+    // Talearr: the last row is usually short. Cells past the end stay empty instead of
+    // showing a loading box that never fills in.
+    if (!book && totalCount != null && bookIdx >= totalCount) {
+      return <div key={key} style={style} />;
+    }
 
     if (!book) {
       // Return placeholder for unloaded items

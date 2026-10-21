@@ -221,7 +221,7 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
         public void health_notice_only_when_talearr_source_is_chosen()
         {
             Assert.That(TalearrMetadataSourceCheck.GetMessage(TalearrMetadataSource.Chaptarr, true), Is.Null);
-            Assert.That(TalearrMetadataSourceCheck.GetMessage(TalearrMetadataSource.Talearr, true), Does.Contain("refreshed from Hardcover"));
+            Assert.That(TalearrMetadataSourceCheck.GetMessage(TalearrMetadataSource.Talearr, true), Is.Null);
             Assert.That(TalearrMetadataSourceCheck.GetMessage(TalearrMetadataSource.Talearr, false), Does.Contain("Hardcover API token"));
         }
     }

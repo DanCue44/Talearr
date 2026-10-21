@@ -3,11 +3,10 @@ using NzbDrone.Core.Talearr.Metadata.Source;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    // Talearr: System > Status notice for the talearr.metadata.source setting. With Talearr's
-    // source selected, authors and books with Hardcover ids come from Hardcover, and so does import
-    // matching; books known only by other ids still use the metadata server, and this notice says so.
-    // Without a Hardcover token the setting has no effect (a warning). Silent while the default
-    // (the metadata server) is selected. English text on purpose, like TalearrMetadataFallbackCheck.
+    // Talearr: System > Status warning for the talearr.metadata.source setting. Talearr's source
+    // without a Hardcover token has no effect, so that is a warning. A working setup is not a health
+    // problem and stays silent (Settings > Metadata explains what each source does). English text on
+    // purpose, like TalearrMetadataFallbackCheck.
     [CheckOn(typeof(TalearrMetadataSourceSavedEvent))]
     public class TalearrMetadataSourceCheck : HealthCheckBase
     {
@@ -33,24 +32,18 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 return new HealthCheck(GetType());
             }
 
-            return new HealthCheck(GetType(), tokenSet ? HealthCheckResult.Notice : HealthCheckResult.Warning, message, "#metadata-source");
+            return new HealthCheck(GetType(), HealthCheckResult.Warning, message, "#metadata-source");
         }
 
         public static string GetMessage(TalearrMetadataSource source, bool hardcoverTokenSet)
         {
-            if (source != TalearrMetadataSource.Talearr)
+            if (source != TalearrMetadataSource.Talearr || hardcoverTokenSet)
             {
                 return null;
             }
 
-            if (!hardcoverTokenSet)
-            {
-                return "Metadata source is set to Talearr (Hardcover), but no Hardcover API token is saved, so Talearr still uses the metadata server. " +
-                       "Set the token in Settings > Metadata.";
-            }
-
-            return "Metadata source is Talearr (Hardcover): authors and books with Hardcover ids are added and refreshed from Hardcover. " +
-                   "Import matching uses Hardcover too. Books known only by other ids still use the metadata server.";
+            return "Metadata source is set to Talearr (Hardcover), but no Hardcover API token is saved, so Talearr still uses the metadata server. " +
+                   "Set the token in Settings > Metadata.";
         }
     }
 }

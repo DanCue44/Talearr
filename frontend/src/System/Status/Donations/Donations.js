@@ -19,20 +19,28 @@ class Donations extends Component {
 
           <div className={styles.donationButtons}>
             <Link
-              to="https://ko-fi.com/chaptarr"
+              to="https://github.com/DanCue44/Talearr"
               className={styles.donationButton}
-              title={translate('DonationsKofiTitle')}
+              title={translate('DonationsGitHubTitle')}
             >
               <div className={styles.buttonContent}>
-                <span className={styles.buttonIcon}>{'☕'}</span>
-                <span className={styles.buttonText}>{translate('DonationsKofiLabel')}</span>
-                <span className={styles.buttonSubtext}>{translate('DonationsKofiSubtext')}</span>
+                <span className={styles.buttonIcon}>{'⭐'}</span>
+                <span className={styles.buttonText}>{translate('DonationsGitHubLabel')}</span>
+                <span className={styles.buttonSubtext}>{translate('DonationsGitHubSubtext')}</span>
               </div>
             </Link>
           </div>
 
           <div className={styles.donationFooter}>
-            <p><small>{translate('DonationsFooter')}</small></p>
+            <p>
+              <small>
+                {translate('DonationsFooter')}
+                {' '}
+                <Link to="https://ko-fi.com/chaptarr" title={translate('DonationsKofiTitle')}>
+                  {translate('DonationsKofiLabel')}
+                </Link>
+              </small>
+            </p>
           </div>
         </div>
       </FieldSet>

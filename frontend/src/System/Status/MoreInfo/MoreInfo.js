@@ -27,7 +27,12 @@ class MoreInfo extends Component {
 
           <DescriptionListItemTitle>{translate('Wiki')}</DescriptionListItemTitle>
           <DescriptionListItemDescription>
-            <Link to="https://wiki.chaptarr.com">{'Chaptarr Wiki'}</Link>
+            <Link to="https://github.com/DanCue44/Talearr/blob/main/docs/TALEARR_REFERENCE.md">{'Talearr reference'}</Link>
+          </DescriptionListItemDescription>
+
+          <DescriptionListItemTitle>{'Support'}</DescriptionListItemTitle>
+          <DescriptionListItemDescription>
+            <Link to="https://github.com/DanCue44/Talearr/issues">{'github.com/DanCue44/Talearr/issues'}</Link>
           </DescriptionListItemDescription>
 
           <DescriptionListItemTitle>{'License'}</DescriptionListItemTitle>
