@@ -152,8 +152,25 @@ class SecuritySettings extends Component {
       oidcRequireEmailVerified,
       oidcAllowAnyVerifiedUser,
       apiKey,
-      certificateValidation
+      certificateValidation,
+      oidcEnvironmentFields
     } = settings;
+
+    // Talearr: OIDC settings set by environment variables are shown read-only (Chaptarr #318).
+    const environmentFields = oidcEnvironmentFields?.value || [];
+    const envLock = (name) => {
+      if (!environmentFields.includes(name)) {
+        return {};
+      }
+
+      const variable = `Talearr__Auth__${name.charAt(0).toUpperCase()}${name.slice(1)}`;
+
+      return {
+        isDisabled: true,
+        helpText: `Set by the ${variable} environment variable`,
+        helpTextWarning: undefined
+      };
+    };
 
     const authenticationEnabled = authenticationMethod && authenticationMethod.value !== 'none';
     const authMethod = authenticationMethod?.value;
@@ -305,6 +322,7 @@ class SecuritySettings extends Component {
                   helpText={translate('OidcAuthorityHelpText')}
                   onChange={onInputChange}
                   {...oidcAuthority}
+                  {...envLock('oidcAuthority')}
                 />
               </FormGroup>
 
@@ -335,6 +353,7 @@ class SecuritySettings extends Component {
                   name="oidcClientId"
                   onChange={onInputChange}
                   {...oidcClientId}
+                  {...envLock('oidcClientId')}
                 />
               </FormGroup>
 
@@ -346,6 +365,7 @@ class SecuritySettings extends Component {
                   name="oidcClientSecret"
                   onChange={onInputChange}
                   {...oidcClientSecret}
+                  {...envLock('oidcClientSecret')}
                 />
               </FormGroup>
 
@@ -358,6 +378,7 @@ class SecuritySettings extends Component {
                   helpText={translate('OidcScopesHelpText')}
                   onChange={onInputChange}
                   {...oidcScopes}
+                  {...envLock('oidcScopes')}
                 />
               </FormGroup>
 
@@ -370,6 +391,7 @@ class SecuritySettings extends Component {
                   helpText={translate('OidcAllowedEmailsHelpText')}
                   onChange={onInputChange}
                   {...oidcAllowedEmails}
+                  {...envLock('oidcAllowedEmails')}
                 />
               </FormGroup>
 
@@ -382,6 +404,7 @@ class SecuritySettings extends Component {
                   helpText={translate('OidcAllowedEmailDomainsHelpText')}
                   onChange={onInputChange}
                   {...oidcAllowedEmailDomains}
+                  {...envLock('oidcAllowedEmailDomains')}
                 />
               </FormGroup>
 
@@ -394,6 +417,7 @@ class SecuritySettings extends Component {
                   helpText={translate('OidcRequireEmailVerifiedHelpText')}
                   onChange={onInputChange}
                   {...oidcRequireEmailVerified}
+                  {...envLock('oidcRequireEmailVerified')}
                 />
               </FormGroup>
 
@@ -406,6 +430,7 @@ class SecuritySettings extends Component {
                   helpTextWarning={translate('OidcAllowAnyVerifiedUserHelpTextWarning')}
                   onChange={onInputChange}
                   {...oidcAllowAnyVerifiedUser}
+                  {...envLock('oidcAllowAnyVerifiedUser')}
                 />
               </FormGroup>
             </> :

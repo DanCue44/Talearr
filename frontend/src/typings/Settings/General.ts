@@ -48,5 +48,6 @@ export default interface General {
   oidcAllowedEmailDomains: string;
   oidcRequireEmailVerified: boolean;
   oidcAllowAnyVerifiedUser: boolean;
+  oidcEnvironmentFields?: string[];
   id: number;
 }

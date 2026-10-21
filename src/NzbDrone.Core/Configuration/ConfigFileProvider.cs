@@ -73,6 +73,7 @@ namespace NzbDrone.Core.Configuration
         string OidcAllowedEmailDomains { get; }
         bool OidcRequireEmailVerified { get; }
         bool OidcAllowAnyVerifiedUser { get; }
+        List<string> OidcEnvironmentFields { get; }
 
         string PlexAuthUserId { get; }
         string PlexAuthUsername { get; }
@@ -144,7 +145,9 @@ namespace NzbDrone.Core.Configuration
 
             foreach (var configValue in configValues)
             {
-                if (configValue.Key.Equals("ApiKey", StringComparison.InvariantCultureIgnoreCase))
+                if (configValue.Key.Equals("ApiKey", StringComparison.InvariantCultureIgnoreCase) ||
+                    configValue.Key.Equals(nameof(OidcEnvironmentFields), StringComparison.InvariantCultureIgnoreCase) ||
+                    configValue.Value == null)
                 {
                     continue;
                 }
@@ -266,14 +269,41 @@ namespace NzbDrone.Core.Configuration
             }
         }
 
-        public string OidcAuthority => GetValue("OidcAuthority", string.Empty).Trim();
-        public string OidcClientId => GetValue("OidcClientId", string.Empty).Trim();
-        public string OidcClientSecret => GetValue("OidcClientSecret", string.Empty);
-        public string OidcScopes => GetValue("OidcScopes", "openid profile email").Trim();
-        public string OidcAllowedEmails => GetValue("OidcAllowedEmails", string.Empty).Trim();
-        public string OidcAllowedEmailDomains => GetValue("OidcAllowedEmailDomains", string.Empty).Trim();
-        public bool OidcRequireEmailVerified => GetValueBoolean("OidcRequireEmailVerified", true);
-        public bool OidcAllowAnyVerifiedUser => GetValueBoolean("OidcAllowAnyVerifiedUser", false);
+        // Talearr: an OIDC value from the environment (Talearr__Auth__Oidc* or Chaptarr__Auth__Oidc*)
+        // wins over config.xml, like ApiKey (Chaptarr #318).
+        public string OidcAuthority => (_authOptions.OidcAuthority.IsNotNullOrWhiteSpace() ? _authOptions.OidcAuthority : GetValue("OidcAuthority", string.Empty)).Trim();
+        public string OidcClientId => (_authOptions.OidcClientId.IsNotNullOrWhiteSpace() ? _authOptions.OidcClientId : GetValue("OidcClientId", string.Empty)).Trim();
+        public string OidcClientSecret => ReadOidcClientSecret(_authOptions) ?? GetValue("OidcClientSecret", string.Empty);
+        public string OidcScopes => (_authOptions.OidcScopes.IsNotNullOrWhiteSpace() ? _authOptions.OidcScopes : GetValue("OidcScopes", "openid profile email")).Trim();
+        public string OidcAllowedEmails => (_authOptions.OidcAllowedEmails.IsNotNullOrWhiteSpace() ? _authOptions.OidcAllowedEmails : GetValue("OidcAllowedEmails", string.Empty)).Trim();
+        public string OidcAllowedEmailDomains => (_authOptions.OidcAllowedEmailDomains.IsNotNullOrWhiteSpace() ? _authOptions.OidcAllowedEmailDomains : GetValue("OidcAllowedEmailDomains", string.Empty)).Trim();
+        public bool OidcRequireEmailVerified => _authOptions.OidcRequireEmailVerified ?? GetValueBoolean("OidcRequireEmailVerified", true);
+        public bool OidcAllowAnyVerifiedUser => _authOptions.OidcAllowAnyVerifiedUser ?? GetValueBoolean("OidcAllowAnyVerifiedUser", false);
+        public List<string> OidcEnvironmentFields => _authOptions.GetOidcEnvironmentFields();
+
+        // The secret itself, or the first line of the file it points to (Docker and Kubernetes secrets).
+        internal static string ReadOidcClientSecret(AuthOptions authOptions)
+        {
+            if (authOptions.OidcClientSecret.IsNotNullOrWhiteSpace())
+            {
+                return authOptions.OidcClientSecret;
+            }
+
+            var file = authOptions.OidcClientSecretFile;
+            if (file.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
+
+            try
+            {
+                return File.ReadAllText(file).Trim();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                throw new InvalidConfigFileException($"Unable to read the OIDC client secret file {file}: {ex.Message}", ex);
+            }
+        }
 
         public string PlexAuthUserId => GetValue("PlexAuthUserId", string.Empty).Trim();
         public string PlexAuthUsername => GetValue("PlexAuthUsername", string.Empty).Trim();

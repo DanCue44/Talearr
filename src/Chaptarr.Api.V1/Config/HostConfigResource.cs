@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Chaptarr.Http.REST;
 using NzbDrone.Common.Http.Proxy;
 using NzbDrone.Core.Authentication;
@@ -54,6 +55,9 @@ namespace Chaptarr.Api.V1.Config
         public string OidcAllowedEmailDomains { get; set; }
         public bool OidcRequireEmailVerified { get; set; }
         public bool OidcAllowAnyVerifiedUser { get; set; }
+
+        // Talearr: OIDC settings the environment sets; the UI shows them read-only.
+        public List<string> OidcEnvironmentFields { get; set; }
     }
 
     public static class HostConfigResourceMapper
@@ -105,7 +109,8 @@ namespace Chaptarr.Api.V1.Config
                 OidcAllowedEmails = model.OidcAllowedEmails,
                 OidcAllowedEmailDomains = model.OidcAllowedEmailDomains,
                 OidcRequireEmailVerified = model.OidcRequireEmailVerified,
-                OidcAllowAnyVerifiedUser = model.OidcAllowAnyVerifiedUser
+                OidcAllowAnyVerifiedUser = model.OidcAllowAnyVerifiedUser,
+                OidcEnvironmentFields = model.OidcEnvironmentFields
             };
         }
     }

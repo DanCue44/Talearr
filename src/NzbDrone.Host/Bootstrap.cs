@@ -124,6 +124,9 @@ namespace NzbDrone.Host
                                     });
                                     services.Configure<AppOptions>(config.GetSection("Chaptarr:App"));
                                     services.Configure<AuthOptions>(config.GetSection("Chaptarr:Auth"));
+
+                                    // Talearr: Talearr__Auth__* variables are accepted too and win over Chaptarr__Auth__*.
+                                    services.PostConfigure<AuthOptions>(o => config.GetSection("Talearr:Auth").Bind(o));
                                     services.Configure<ServerOptions>(config.GetSection("Chaptarr:Server"));
                                     services.Configure<LogOptions>(config.GetSection("Chaptarr:Log"));
                                     services.Configure<UpdateOptions>(config.GetSection("Chaptarr:Update"));
@@ -202,6 +205,9 @@ namespace NzbDrone.Host
                     });
                     services.Configure<AppOptions>(config.GetSection("Chaptarr:App"));
                     services.Configure<AuthOptions>(config.GetSection("Chaptarr:Auth"));
+
+                    // Talearr: Talearr__Auth__* variables are accepted too and win over Chaptarr__Auth__*.
+                    services.PostConfigure<AuthOptions>(o => config.GetSection("Talearr:Auth").Bind(o));
                     services.Configure<ServerOptions>(config.GetSection("Chaptarr:Server"));
                     services.Configure<LogOptions>(config.GetSection("Chaptarr:Log"));
                     services.Configure<UpdateOptions>(config.GetSection("Chaptarr:Update"));
