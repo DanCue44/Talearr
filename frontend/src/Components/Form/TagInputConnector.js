@@ -19,7 +19,7 @@ function isValidTag(tagName) {
 
 function createMapStateToProps() {
   return createSelector(
-    (state, { value }) => value,
+    (state, { value }) => value || [],
     createTagsSelector(),
     (tags = [], tagList) => {
       const sortedTags = _.sortBy(tagList, 'label');

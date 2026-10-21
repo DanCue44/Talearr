@@ -37,7 +37,7 @@ module.exports = {
   themeAlternateRed: talearrOrange,
   themeDarkRed: '#a4471f',
   themeDarkColor: '#353535',
-  themeLightColor: '#810020',
+  themeLightColor: '#595959',
   pageBackground: '#f5f7fa',
   pageFooterBackgroud: '#f1f1f1',
 
