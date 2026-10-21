@@ -467,7 +467,9 @@ class BookIndex extends Component {
     const refreshLabel = isEditorActive && selectedBookIds.length > 0 ? translate('UpdateSelected') : translate('UpdateAll');
     const searchIndexLabel = selectedFilterKey === 'all' ? translate('SearchAll') : translate('SearchFiltered');
     const searchEditorLabel = selectedBookIds.length > 0 ? translate('SearchSelected') : translate('SearchAll');
-    const searchWarningCount = isEditorActive && selectedBookIds.length > 0 ? selectedBookIds.length : items.length;
+    // Talearr: counts show cards; a combined All formats card is one selection covering both rows
+    const selectedCardCount = getSelectedIds(this.state.selectedState).length;
+    const searchWarningCount = isEditorActive && selectedBookIds.length > 0 ? selectedCardCount : items.length;
 
     return (
       <PageContent>
@@ -684,7 +686,7 @@ class BookIndex extends Component {
           isLoaded && isEditorActive &&
             <BookEditorFooter
               bookIds={selectedBookIds}
-              selectedCount={selectedBookIds.length}
+              selectedCount={selectedCardCount}
               isSaving={isSaving}
               saveError={saveError}
               isDeleting={isDeleting}
