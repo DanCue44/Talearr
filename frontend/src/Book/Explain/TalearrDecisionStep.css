@@ -1,0 +1,42 @@
+.step {
+  display: flex;
+  margin-bottom: 14px;
+}
+
+.icon {
+  flex: 0 0 22px;
+  padding-top: 2px;
+}
+
+.good {
+  color: var(--successColor);
+}
+
+.notice {
+  color: var(--warningColor);
+}
+
+.bad {
+  color: var(--dangerColor);
+}
+
+.content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.summary {
+  font-weight: bold;
+  word-break: break-word;
+}
+
+.meta {
+  color: var(--helpTextColor);
+  font-size: $smallFontSize;
+}
+
+.details {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  word-break: break-word;
+}

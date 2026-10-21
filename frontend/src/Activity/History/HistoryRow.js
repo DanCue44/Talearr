@@ -243,6 +243,8 @@ class HistoryRow extends Component {
           eventType={eventType}
           sourceTitle={sourceTitle}
           data={data}
+          bookId={this.props.bookId ?? book?.id}
+          downloadId={this.props.downloadId}
           isMarkingAsFailed={isMarkingAsFailed}
           shortDateFormat={shortDateFormat}
           timeFormat={timeFormat}
@@ -257,6 +259,7 @@ class HistoryRow extends Component {
 
 HistoryRow.propTypes = {
   bookId: PropTypes.number,
+  downloadId: PropTypes.string,
   author: PropTypes.object,
   book: PropTypes.object,
   quality: PropTypes.object,

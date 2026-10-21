@@ -4,6 +4,7 @@ import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import AuthorHistoryTable from 'Author/History/AuthorHistoryTable';
 import DeleteBookModal from 'Book/Delete/DeleteBookModal';
 import EditBookModalConnector from 'Book/Edit/EditBookModalConnector';
+import TalearrBookExplain from 'Book/Explain/TalearrBookExplain';
 import BookFileEditorTable from 'BookFile/Editor/BookFileEditorTable';
 import IconButton from 'Components/Link/IconButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
@@ -352,6 +353,13 @@ class BookDetails extends Component {
                   {translate('FilesTotal', [bookFileCount])}
                 </Tab>
 
+                <Tab
+                  className={styles.tab}
+                  selectedClassName={styles.selectedTab}
+                >
+                  {'Why'}
+                </Tab>
+
                 {
                   chapters.length ?
                     <Tab
@@ -398,6 +406,10 @@ class BookDetails extends Component {
                   authorId={author.id}
                   bookId={id}
                 />
+              </TabPanel>
+
+              <TabPanel>
+                <TalearrBookExplain bookId={id} />
               </TabPanel>
 
               {

@@ -240,6 +240,26 @@ CREATE TABLE IF NOT EXISTS TalearrFillerState (
     Key   TEXT NOT NULL PRIMARY KEY,
     Value TEXT
 );
+",
+
+            // 9: decision explanations (Talearr/Explain/TalearrDecisionStore). Why a search grabbed
+            // or skipped releases and why an import finished or stopped, the most recent entries per
+            // book only. Losing it only empties the "Why" tab until the next search or import.
+            @"
+CREATE TABLE IF NOT EXISTS BookDecisions (
+    Id           INTEGER PRIMARY KEY,
+    BookId       INTEGER NOT NULL,
+    Stage        TEXT NOT NULL,
+    Outcome      TEXT NOT NULL,
+    Code         TEXT NOT NULL,
+    Summary      TEXT NOT NULL,
+    Details      TEXT,
+    ReleaseTitle TEXT,
+    DownloadId   TEXT,
+    CreatedAt    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS IX_BookDecisions_BookId ON BookDecisions (BookId, CreatedAt);
 "
         };
 

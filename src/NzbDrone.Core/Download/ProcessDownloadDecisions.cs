@@ -8,6 +8,7 @@ using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Talearr.Explain;
 using NzbDrone.Core.Talearr.GrabPolicy;
 
 namespace NzbDrone.Core.Download
@@ -25,18 +26,21 @@ namespace NzbDrone.Core.Download
         private readonly IPendingReleaseService _pendingReleaseService;
         private readonly Logger _logger;
         private readonly ITalearrGrabRetryService _talearrGrabRetry;
+        private readonly ITalearrDecisionRecorder _talearrDecisionRecorder;
 
         public ProcessDownloadDecisions(IDownloadService downloadService,
                                         IPrioritizeDownloadDecision prioritizeDownloadDecision,
                                         IPendingReleaseService pendingReleaseService,
                                         Logger logger,
-                                        ITalearrGrabRetryService talearrGrabRetry = null)
+                                        ITalearrGrabRetryService talearrGrabRetry = null,
+                                        ITalearrDecisionRecorder talearrDecisionRecorder = null)
         {
             _downloadService = downloadService;
             _prioritizeDownloadDecision = prioritizeDownloadDecision;
             _pendingReleaseService = pendingReleaseService;
             _logger = logger;
             _talearrGrabRetry = talearrGrabRetry;
+            _talearrDecisionRecorder = talearrDecisionRecorder;
         }
 
         public async Task<ProcessedDecisions> ProcessDecisions(List<DownloadDecision> decisions)
@@ -237,6 +241,9 @@ namespace NzbDrone.Core.Download
                     _logger.Debug(ex, "Unable to schedule the Talearr re-search after failed grabs");
                 }
             }
+
+            // Talearr: the "Why" tab story for each book in this pass (never throws).
+            _talearrDecisionRecorder?.RecordSearch(decisions, grabbed, pending);
 
             return new ProcessedDecisions(grabbed, pending, rejected);
         }
