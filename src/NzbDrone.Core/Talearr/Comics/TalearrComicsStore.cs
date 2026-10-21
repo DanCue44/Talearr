@@ -242,7 +242,18 @@ VALUES (@SeriesId, @Number, @Title, @ReleaseDate, @CoverUrl, @PageCount, @Hardco
                 return;
             }
 
-            Run(c => c.Execute("UPDATE ComicVolumes SET Monitored = @Monitored WHERE Id IN @Ids", new { Monitored = monitored ? 1 : 0, Ids = ids }));
+            // Spelled out rather than Dapper's "IN @Ids": the app registers a JSON type handler for
+            // List<int> (chaptarr.db stores lists as JSON), which stops Dapper expanding the list.
+            var parameters = new DynamicParameters();
+            parameters.Add("Monitored", monitored ? 1 : 0);
+            var names = new List<string>();
+            for (var i = 0; i < ids.Count; i++)
+            {
+                names.Add("@Id" + i);
+                parameters.Add("Id" + i, ids[i]);
+            }
+
+            Run(c => c.Execute($"UPDATE ComicVolumes SET Monitored = @Monitored WHERE Id IN ({string.Join(", ", names)})", parameters));
         }
 
         // Files
