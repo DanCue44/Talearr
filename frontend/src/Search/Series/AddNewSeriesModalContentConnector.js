@@ -57,7 +57,7 @@ function createMapStateToProps() {
         };
       }
 
-      if (!settings.tags) {
+      if (settings.tags?.value == null) {
         settings.tags = {
           value: [],
           errors: [],
@@ -158,14 +158,30 @@ function createMapStateToProps() {
           settings.ebookMetadataProfileId = { ...(settings.ebookMetadataProfileId || {}), value: ebookMetadataFromRootFolder };
         }
 
-        // Inherit tag defaults from the selected root folder when unset.
-        if (!settings.audiobookTags && audiobookTagsFromRootFolder != null) {
+        // Inherit tag defaults from the selected root folder when unset. The saved defaults
+        // arrive as { value: null }, so check the value, not the field.
+        if (settings.audiobookTags?.value == null && audiobookTagsFromRootFolder != null) {
           settings.audiobookTags = { ...(settings.audiobookTags || {}), value: audiobookTagsFromRootFolder };
         }
 
-        if (!settings.ebookTags && ebookTagsFromRootFolder != null) {
+        if (settings.ebookTags?.value == null && ebookTagsFromRootFolder != null) {
           settings.ebookTags = { ...(settings.ebookTags || {}), value: ebookTagsFromRootFolder };
         }
+      }
+
+      // Same null rule as the author add modal: fall back to the saved tags, else no tags.
+      if (settings.audiobookTags?.value == null) {
+        settings.audiobookTags = {
+          ...(settings.audiobookTags || {}),
+          value: settings.tags?.value ?? []
+        };
+      }
+
+      if (settings.ebookTags?.value == null) {
+        settings.ebookTags = {
+          ...(settings.ebookTags || {}),
+          value: settings.tags?.value ?? []
+        };
       }
 
       // Set quality profile defaults to first available instead of "None"
