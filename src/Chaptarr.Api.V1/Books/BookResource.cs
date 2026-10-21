@@ -155,7 +155,9 @@ namespace Chaptarr.Api.V1.Books
             options ??= BookResourceMappingOptions.Rich();
 
             var selectedEdition = SelectMonitoredEdition(model.Editions);
-            var title = (selectedEdition?.Title ?? model.Title) ?? string.Empty;
+
+            // Talearr: the monitored edition's title without format labels ("(MP3 Book)").
+            var title = TalearrTitleNormalizer.CleanDisplayTitle(selectedEdition?.Title ?? model.Title) ?? string.Empty;
 
             // Use SeriesName and SeriesPosition from Book model until SeriesBookLink is properly populated
             var seriesTitle = !string.IsNullOrWhiteSpace(model.SeriesName)
@@ -621,7 +623,7 @@ namespace Chaptarr.Api.V1.Books
                 return new BookLocalInstanceResource
                 {
                     Id = model.Id,
-                    Title = selectedEdition?.Title ?? model.Title,
+                    Title = TalearrTitleNormalizer.CleanDisplayTitle(selectedEdition?.Title ?? model.Title),
                     TitleSlug = model.TitleSlug,
                     MediaType = model.MediaType == BookMediaType.Audiobook ? "audiobook" : "ebook",
                     Narrator = GetNarratorDisplay(model, selectedEdition),

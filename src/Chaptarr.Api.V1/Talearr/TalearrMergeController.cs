@@ -82,8 +82,8 @@ namespace Chaptarr.Api.V1.Talearr
         }
 
         // Merges every duplicate book set into its suggested row (the one with files, then the
-        // monitored one, as on the Duplicates page). Sets with a separate recording copy, or with
-        // files on more than one row, are left for a person to decide.
+        // monitored one, as on the Duplicates page, or the one separate recording copy). Sets with
+        // several recordings, or with files on more than one row, are left for a person to decide.
         [HttpPost("books/all")]
         public TalearrMergeAllReport MergeAllBooks([FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] TalearrMergeAllRequest request = null)
         {
@@ -98,13 +98,22 @@ namespace Chaptarr.Api.V1.Talearr
                     continue;
                 }
 
-                if (set.Books.Any(b => b.RecordingCopy))
+                // One separate recording copy is kept and the plain rows fold into it; two or more
+                // recordings are different readings and stay apart.
+                var recordings = set.Books.Where(b => b.RecordingCopy).ToList();
+                var keep = recordings.Count == 1 ? recordings[0] : set.Books[0];
+
+                if (recordings.Count > 1)
                 {
-                    reason = "a separate recording";
+                    reason = "more than one recording";
                 }
                 else if (set.Books.Count(b => b.FileCount > 0) > 1)
                 {
                     reason = "more than one row has files";
+                }
+                else if (set.Books.Any(b => b.FileCount > 0) && keep.FileCount == 0)
+                {
+                    reason = "the recording copy has no files";
                 }
 
                 if (reason == null)
@@ -113,8 +122,8 @@ namespace Chaptarr.Api.V1.Talearr
                     {
                         report.Merged.Add(_mergeService.MergeBooks(new TalearrMergeRequest
                         {
-                            TargetId = set.Books[0].Id,
-                            SourceIds = set.Books.Skip(1).Select(b => b.Id).ToList(),
+                            TargetId = keep.Id,
+                            SourceIds = set.Books.Where(b => b.Id != keep.Id).Select(b => b.Id).ToList(),
                             DryRun = dryRun
                         }));
                         continue;

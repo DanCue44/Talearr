@@ -1,9 +1,14 @@
 .toolbarButton {
   composes: link from '~Components/Link/Link.css';
 
+  display: block;
   padding-top: 4px;
   width: $toolbarButtonWidth;
   text-align: center;
+
+  /* Talearr: a button rendered as a link (to=...) would inherit the toolbar's 60px line height
+     and push its label out of view. */
+  line-height: $lineHeight;
 
   &:hover {
     color: var(--toobarButtonHoverColor);
