@@ -36,6 +36,22 @@ class AuthorHistoryContentConnector extends Component {
     });
   }
 
+  componentDidUpdate(prevProps) {
+    const {
+      authorId,
+      bookId
+    } = this.props;
+
+    // Talearr: the book page's format switch keeps this mounted while the book changes
+    if (authorId !== prevProps.authorId || bookId !== prevProps.bookId) {
+      this.props.clearAuthorHistory();
+      this.props.fetchAuthorHistory({
+        authorId,
+        bookId
+      });
+    }
+  }
+
   componentWillUnmount() {
     this.props.clearAuthorHistory();
   }

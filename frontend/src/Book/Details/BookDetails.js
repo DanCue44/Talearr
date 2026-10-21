@@ -316,7 +316,11 @@ class BookDetails extends Component {
               <BookSoulseek bookId={id} />
             }
 
-            <Tabs selectedIndex={selectedTabIndex} onSelect={this.onTabSelect}>
+            <Tabs
+              key={id}
+              selectedIndex={selectedTabIndex}
+              onSelect={this.onTabSelect}
+            >
               <TabList
                 className={styles.tabList}
               >

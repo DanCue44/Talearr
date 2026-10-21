@@ -170,9 +170,14 @@ function createMapStateToProps() {
     } else if (groupRows) {
       groupFields = mergeGroupFields(book, groupRows);
     }
-    const groupQualityProfile = (serverGroup || groupRows) ?
-      getGroupQualityProfile(state, author, ownProps.formats, qualityProfile) :
-      qualityProfile;
+    let groupQualityProfile = qualityProfile;
+
+    if (serverGroup || groupRows) {
+      groupQualityProfile = getGroupQualityProfile(state, author, ownProps.formats, qualityProfile);
+    } else if (!qualityProfile?.name) {
+      // Server pages are not in the books store, so look the profile up from the author
+      groupQualityProfile = getGroupQualityProfile(state, author, [{ mediaType: book.mediaType }], qualityProfile);
+    }
 
     // Component expects flattened book fields via spread
     return {
