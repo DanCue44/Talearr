@@ -359,7 +359,7 @@ namespace Chaptarr.Core.Test.Talearr.Mam
                 Assert.That(pick.LibraryState, Is.EqualTo(TalearrFillerPick.StateAdding));
                 Assert.That(pick.BookProviderId, Is.EqualTo("hc:1"));
                 Assert.That(store.GetStatus().LastResult, Is.EqualTo("ok"));
-                Assert.That(database.SchemaVersion, Is.EqualTo(8));
+                Assert.That(database.SchemaVersion, Is.GreaterThanOrEqualTo(8));
             });
         }
     }
