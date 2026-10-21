@@ -11,7 +11,7 @@
   line-height: $lineHeight;
 
   &:hover {
-    color: var(--toobarButtonHoverColor);
+    color: var(--toolbarButtonHoverColor);
   }
 
   &.isDisabled {

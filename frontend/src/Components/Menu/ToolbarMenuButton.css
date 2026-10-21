@@ -5,6 +5,10 @@
   width: $toolbarButtonWidth;
   height: $toolbarHeight;
   text-align: center;
+
+  &:hover {
+    color: var(--toolbarButtonHoverColor);
+  }
 }
 
 .indicatorContainer {

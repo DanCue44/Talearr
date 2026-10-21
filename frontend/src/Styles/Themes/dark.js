@@ -67,6 +67,8 @@ module.exports = {
   // Toolbar
   toolbarColor: '#e1e2e3',
   toolbarBackgroundColor: '#262626',
+  toolbarTextColor: '#e1e2e3',
+  toolbarButtonHoverColor: talearrOrange,
   toolbarMenuItemBackgroundColor: '#333',
   toolbarMenuItemHoverBackgroundColor: '#414141',
   toolbarLabelColor: '#e1e2e3',

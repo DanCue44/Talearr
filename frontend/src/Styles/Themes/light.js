@@ -66,10 +66,13 @@ module.exports = {
 
   // Toolbar
   toolbarColor: '#e1e2e3',
-  toolbarBackgroundColor: '#810020',
-  toolbarMenuItemBackgroundColor: '#66001a',
+  // Talearr: orange toolbar with charcoal text, like the orange buttons on talearr.com
+  toolbarBackgroundColor: talearrOrange,
+  toolbarTextColor: '#1f2024',
+  toolbarButtonHoverColor: white,
+  toolbarMenuItemBackgroundColor: '#2a2a2a',
   toolbarMenuItemHoverBackgroundColor: '#353535',
-  toolbarLabelColor: '#e1e2e3',
+  toolbarLabelColor: '#1f2024',
 
   // Accents
   borderColor: '#e5e5e5',
