@@ -54,12 +54,14 @@ namespace NzbDrone.Core.Notifications.Mqtt
     {
         private static readonly TimeSpan Tick = TimeSpan.FromMinutes(1);
 
-        private readonly INotificationFactory _notificationFactory;
+        // Lazy: the MQTT notification depends on this service, and these services reach the notification
+        // factory (and so every notification) through health checks and event handlers
+        private readonly Lazy<INotificationFactory> _notificationFactory;
         private readonly IMqttProxy _proxy;
-        private readonly IQueueService _queueService;
-        private readonly IBookService _bookService;
-        private readonly IHealthCheckService _healthCheckService;
-        private readonly IHistoryService _historyService;
+        private readonly Lazy<IQueueService> _queueService;
+        private readonly Lazy<IBookService> _bookService;
+        private readonly Lazy<IHealthCheckService> _healthCheckService;
+        private readonly Lazy<IHistoryService> _historyService;
         private readonly Logger _logger;
 
         private readonly Dictionary<int, DateTime> _lastPublished = new Dictionary<int, DateTime>();
@@ -69,12 +71,12 @@ namespace NzbDrone.Core.Notifications.Mqtt
         private Timer _timer;
         private int _running;
 
-        public MqttSensorService(INotificationFactory notificationFactory,
+        public MqttSensorService(Lazy<INotificationFactory> notificationFactory,
                                  IMqttProxy proxy,
-                                 IQueueService queueService,
-                                 IBookService bookService,
-                                 IHealthCheckService healthCheckService,
-                                 IHistoryService historyService,
+                                 Lazy<IQueueService> queueService,
+                                 Lazy<IBookService> bookService,
+                                 Lazy<IHealthCheckService> healthCheckService,
+                                 Lazy<IHistoryService> historyService,
                                  Logger logger)
         {
             _notificationFactory = notificationFactory;
@@ -124,9 +126,9 @@ namespace NzbDrone.Core.Notifications.Mqtt
         {
             return new MqttSensorState
             {
-                Queue = Safe(() => _queueService.GetQueue().Count, "queue"),
+                Queue = Safe(() => _queueService.Value.GetQueue().Count, "queue"),
                 Missing = Safe(CountMissing, "missing books"),
-                HealthIssues = Safe(() => _healthCheckService.Results().Count(r => r.Type != HealthCheckResult.Ok), "health checks"),
+                HealthIssues = Safe(() => _healthCheckService.Value.Results().Count(r => r.Type != HealthCheckResult.Ok), "health checks"),
                 LastImported = GetLastImported(),
                 UpdatedAt = DateTime.UtcNow
             };
@@ -165,7 +167,7 @@ namespace NzbDrone.Core.Notifications.Mqtt
 
             try
             {
-                var definitions = _notificationFactory.All()
+                var definitions = _notificationFactory.Value.All()
                     .Where(d => d.Implementation == nameof(Mqtt) && d.Settings is MqttSettings s && s.PublishSensors)
                     .ToList();
 
@@ -223,7 +225,7 @@ namespace NzbDrone.Core.Notifications.Mqtt
             // Same filter as Wanted > Missing (Book.Monitored is a legacy column that stays false).
             spec.FilterExpressions.Add(AuthorExtensions.GetBookMonitoringFilter(null, true));
 
-            return _bookService.BooksWithoutFiles(spec).TotalRecords;
+            return _bookService.Value.BooksWithoutFiles(spec).TotalRecords;
         }
 
         private MqttLastImported GetLastImported()
@@ -240,7 +242,7 @@ namespace NzbDrone.Core.Notifications.Mqtt
 
             try
             {
-                var latest = _historyService.Since(DateTime.UtcNow.AddDays(-90), EntityHistoryEventType.BookFileImported)
+                var latest = _historyService.Value.Since(DateTime.UtcNow.AddDays(-90), EntityHistoryEventType.BookFileImported)
                     .OrderByDescending(h => h.Date)
                     .FirstOrDefault();
 
@@ -249,7 +251,7 @@ namespace NzbDrone.Core.Notifications.Mqtt
                     return null;
                 }
 
-                var book = latest.Book ?? _bookService.GetBook(latest.BookId);
+                var book = latest.Book ?? _bookService.Value.GetBook(latest.BookId);
                 var imported = new MqttLastImported
                 {
                     BookId = latest.BookId,
