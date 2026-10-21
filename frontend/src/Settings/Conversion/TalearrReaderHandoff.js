@@ -51,7 +51,10 @@ class TalearrReaderHandoff extends Component {
       isSaving: false,
       saveError: null,
       isTesting: false,
-      testResult: null
+      testResult: null,
+      failures: [],
+      isRetrying: false,
+      retryResult: null
     };
   }
 
@@ -70,7 +73,17 @@ class TalearrReaderHandoff extends Component {
     request.fail((xhr) => {
       this.setState({ isFetching: false, error: readError(xhr, 'Unable to load the reader hand-off settings.') });
     });
+
+    this.fetchFailures();
   }
+
+  fetchFailures = () => {
+    const { request } = createAjaxRequest({ url: '/config/talearrreaderhandoff/failures' });
+
+    request.done((failures) => {
+      this.setState({ failures: failures || [] });
+    });
+  };
 
   //
   // Listeners
@@ -99,6 +112,25 @@ class TalearrReaderHandoff extends Component {
         isTesting: false,
         testResult: { success: false, message: readError(xhr, 'The test could not be run.'), warnings: [] }
       });
+    });
+  };
+
+  onRetryPress = () => {
+    this.setState({ isRetrying: true, retryResult: null });
+
+    const { request } = createAjaxRequest({
+      url: '/config/talearrreaderhandoff/retry',
+      method: 'POST',
+      dataType: 'json'
+    });
+
+    request.done((retryResult) => {
+      this.setState({ isRetrying: false, retryResult });
+      this.fetchFailures();
+    });
+
+    request.fail((xhr) => {
+      this.setState({ isRetrying: false, retryResult: { error: readError(xhr, 'The retry could not be run.') } });
     });
   };
 
@@ -140,7 +172,10 @@ class TalearrReaderHandoff extends Component {
       isSaving,
       saveError,
       isTesting,
-      testResult
+      testResult,
+      failures,
+      isRetrying,
+      retryResult
     } = this.state;
 
     if (isFetching) {
@@ -165,7 +200,7 @@ class TalearrReaderHandoff extends Component {
     return (
       <FieldSet legend={LEGEND}>
         <div className={styles.help}>
-          {'After an ebook from a download is imported, Talearr copies it to a watch folder, for example the ingest folder of Calibre-Web-Automated. The library file is never moved or changed, and audiobooks are skipped.'}
+          {'After an ebook from a download is imported, Talearr copies it to a watch folder, for example the ingest folder of Calibre-Web-Automated. The library file is never moved or changed, and audiobooks are skipped. Each file is sent once: a repeated import does not send it again, an upgrade does, and a copy never replaces a different book with the same name.'}
         </div>
 
         <Form>
@@ -238,6 +273,40 @@ class TalearrReaderHandoff extends Component {
 
         {saveError ? <Alert kind={kinds.DANGER}>{saveError}</Alert> : null}
 
+        {
+          failures.length ?
+            <Alert kind={kinds.WARNING}>
+              <div>
+                {failures.length === 1 ? '1 ebook could not be copied:' : `${failures.length} ebooks could not be copied:`}
+              </div>
+              <ul className={styles.failures}>
+                {
+                  failures.slice(0, 10).map((f) => {
+                    return (
+                      <li key={f.bookFileId}>
+                        {`${f.title || f.fileName}: ${f.error || 'unknown error'}`}
+                        {f.attempts > 1 ? ` (${f.attempts} tries)` : ''}
+                      </li>
+                    );
+                  })
+                }
+              </ul>
+              {failures.length > 10 ? <div>{`And ${failures.length - 10} more.`}</div> : null}
+            </Alert> :
+            null
+        }
+
+        {
+          retryResult ?
+            <Alert kind={retryResult.error || retryResult.failed ? kinds.WARNING : kinds.SUCCESS}>
+              {
+                retryResult.error ||
+                `Sent ${retryResult.sent}, still failing ${retryResult.failed}${retryResult.removed ? `, ${retryResult.removed} no longer in the library` : ''}.`
+              }
+            </Alert> :
+            null
+        }
+
         <div className={styles.actions}>
           <SpinnerButton
             isSpinning={isTesting}
@@ -256,6 +325,18 @@ class TalearrReaderHandoff extends Component {
             {'Save reader hand-off'}
           </SpinnerButton>
           {isChanged ? null : <span className={styles.saved}>{'Saved'}</span>}
+
+          {
+            failures.length ?
+              <SpinnerButton
+                isSpinning={isRetrying}
+                isDisabled={isChanged}
+                onPress={this.onRetryPress}
+              >
+                {'Retry failed copies'}
+              </SpinnerButton> :
+              null
+          }
         </div>
       </FieldSet>
     );

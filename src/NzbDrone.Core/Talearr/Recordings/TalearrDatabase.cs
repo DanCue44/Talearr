@@ -240,6 +240,25 @@ CREATE TABLE IF NOT EXISTS TalearrFillerState (
     Key   TEXT NOT NULL PRIMARY KEY,
     Value TEXT
 );
+",
+
+            // 9: reader hand-off deliveries (Talearr/ReaderHandoff/TalearrReaderHandoffStore), one
+            // row per library file, so a replayed import does not send the same ebook twice and a
+            // failed copy can be retried. Losing it only means a replay may copy a book again.
+            @"
+CREATE TABLE IF NOT EXISTS ReaderHandoffDeliveries (
+    BookFileId    INTEGER NOT NULL PRIMARY KEY,
+    BookId        INTEGER NOT NULL,
+    SourcePath    TEXT NOT NULL,
+    SourceSize    INTEGER NOT NULL DEFAULT 0,
+    DeliveredPath TEXT,
+    State         TEXT NOT NULL,
+    Attempts      INTEGER NOT NULL DEFAULT 0,
+    LastError     TEXT,
+    UpdatedAt     TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS IX_ReaderHandoffDeliveries_State ON ReaderHandoffDeliveries (State);
 "
         };
 

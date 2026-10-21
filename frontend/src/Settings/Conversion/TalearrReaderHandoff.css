@@ -16,3 +16,8 @@
   color: var(--helpTextColor);
   font-size: 13px;
 }
+
+.failures {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}

@@ -42,6 +42,11 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
     {
     }
 
+    // A hand-off was delivered or failed, so the failed hand-offs health check runs again.
+    public class TalearrReaderHandoffDeliveriesChangedEvent : IEvent
+    {
+    }
+
     public interface ITalearrReaderHandoffSettingsService
     {
         TalearrReaderHandoffSettings Get();
