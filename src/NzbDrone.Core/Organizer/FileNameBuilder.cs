@@ -555,6 +555,31 @@ namespace NzbDrone.Core.Organizer
             {
                 tokenHandlers["{Release YearFirst}"] = m => "Unknown";
             }
+
+            // Talearr: identifier tokens, so Audiobookshelf and Calibre can match folders by id.
+            var isbn = GetIsbnToken(edition);
+            var asin = GetAsinToken(edition);
+            tokenHandlers["{ISBN}"] = m => isbn.IsNullOrWhiteSpace() ? m.DefaultValue(string.Empty) : isbn;
+            tokenHandlers["{ASIN}"] = m => asin.IsNullOrWhiteSpace() ? m.DefaultValue(string.Empty) : asin;
+        }
+
+        internal static string GetIsbnToken(Edition edition)
+        {
+            var book = edition?.Book;
+
+            return new[] { edition?.Isbn13, edition?.Isbn10, book?.ISBN13, book?.ISBN10 }
+                .Select(v => v?.Replace("-", string.Empty).Replace(" ", string.Empty))
+                .FirstOrDefault(v => v.IsNotNullOrWhiteSpace());
+        }
+
+        internal static string GetAsinToken(Edition edition)
+        {
+            var book = edition?.Book;
+            var candidates = book?.MediaType == BookMediaType.Ebook
+                ? new[] { edition?.Asin, book?.ASIN }
+                : new[] { edition?.AudibleASIN, edition?.Asin, book?.AudibleASIN, book?.ASIN };
+
+            return candidates.Select(v => v?.Trim()).FirstOrDefault(v => v.IsNotNullOrWhiteSpace());
         }
 
         private void AddNarratorTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Edition edition, BookFile bookFile = null)

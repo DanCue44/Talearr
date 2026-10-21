@@ -97,7 +97,11 @@ const releaseDateTokens = [
   { token: '{Book Year}', example: '1994' },
   { token: '{Book Year - }', example: '1994 - ' },
   { token: '{Release YearFirst}', example: '2015' },
-  { token: '{Edition Year}', example: '2016' }
+  { token: '{Edition Year}', example: '2016' },
+  // Talearr: identifiers help Audiobookshelf and Calibre match a folder to the right book.
+  { token: '{ISBN}', example: '9780316441421' },
+  { token: '{ASIN}', example: 'B0BXMH98NM' },
+  { token: '{ [ASIN]}', example: ' [B0BXMH98NM]' }
 ];
 
 const qualityTokens = [

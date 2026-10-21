@@ -49,6 +49,8 @@ const tokenCategories = [
       { tokenKey: 'ReleaseYear', get label() {
         return translate('NamingTokenReleaseYear');
       }, example: '2024' },
+      { tokenKey: 'ISBN', label: 'ISBN', example: '9780316441421' },
+      { tokenKey: 'ASIN', label: 'ASIN', example: 'B0BXMH98NM' },
       { tokenKey: 'PartNumber', get label() {
         return translate('NamingTokenPartNumber');
       }, example: '1', args: { format: '0' } }

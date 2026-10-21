@@ -61,6 +61,10 @@ namespace NzbDrone.Core.Organizer.NamingPattern
             { "ReleaseYearFirst", "{Release YearFirst}" },
             { "EditionYear", "{Edition Year}" },
 
+            // Identifier tokens
+            { "ISBN", "{ISBN}" },
+            { "ASIN", "{ASIN}" },
+
             // GraphicAudio tokens
             { "GraphicAudio", "{GraphicAudio}" },
             { "AudioProductionType", "{AudioProductionType}" },
