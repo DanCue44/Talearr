@@ -89,7 +89,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
             _proxy.SetTorrentSeedingConfiguration(actualHash, remoteBook.SeedConfiguration, Settings);
 
-            var category = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var category = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
 
             if (category.IsNotNullOrWhiteSpace())
             {
@@ -118,7 +118,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
             _proxy.SetTorrentSeedingConfiguration(actualHash, remoteBook.SeedConfiguration, Settings);
 
-            var category = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var category = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
 
             if (category.IsNotNullOrWhiteSpace())
             {
@@ -159,7 +159,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
         public override IEnumerable<DownloadClientItem> GetItems()
         {
-            var categories = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+            var categories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                 .Where(c => c.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
                 .ToList();
@@ -556,7 +556,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
         private ValidationFailure TestCategory()
         {
-            var initialCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+            var initialCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                 .Where(c => c.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
                 .ToList();

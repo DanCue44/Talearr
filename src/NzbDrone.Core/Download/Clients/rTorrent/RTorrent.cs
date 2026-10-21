@@ -105,7 +105,7 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
         {
             var priority = (RTorrentPriority)(remoteBook.IsRecentBook() ? Settings.RecentTvPriority : Settings.OlderTvPriority);
 
-            var category = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var category = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
             _proxy.AddTorrentFromUrl(magnetLink, category, priority, Settings.MusicDirectory, Settings);
 
             var tries = 10;
@@ -126,7 +126,7 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
         {
             var priority = (RTorrentPriority)(remoteBook.IsRecentBook() ? Settings.RecentTvPriority : Settings.OlderTvPriority);
 
-            var category = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var category = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
             _proxy.AddTorrentFromFile(filename, fileContent, category, priority, Settings.MusicDirectory, Settings);
 
             var tries = 10;
@@ -151,7 +151,7 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
 
             _logger.Debug("Retrieved metadata of {0} torrents in client", torrents.Count);
 
-            var categories = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+            var categories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                 .Where(c => c.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
                 .ToList();

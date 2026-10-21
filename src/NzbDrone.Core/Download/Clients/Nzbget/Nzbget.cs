@@ -38,7 +38,7 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
         protected override string AddFromNzbFile(RemoteBook remoteBook, string filename, byte[] fileContent)
         {
-            var category = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var category = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
             var priority = remoteBook.IsRecentBook() ? Settings.RecentTvPriority : Settings.OlderTvPriority;
 
             var addpaused = Settings.AddPaused;
@@ -196,7 +196,7 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
         private bool IsConfiguredCategory(string itemCategory)
         {
-            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory };
+            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory };
 
             if (itemCategory.IsNullOrWhiteSpace())
             {
@@ -220,7 +220,7 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
         {
             var config = _proxy.GetConfig(Settings);
             var categories = GetCategories(config).ToList();
-            var configured = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+            var configured = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                 .Where(c => c.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
                 .ToList();

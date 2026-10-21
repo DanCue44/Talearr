@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             var torrents = _proxy.GetTorrents(Settings);
 
             var items = new List<DownloadClientItem>();
-            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                 .Where(c => c.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
                 .ToList();
@@ -187,7 +187,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             var config = _proxy.GetConfig(Settings);
             var destDir = config.DownloadDir;
 
-            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                 .Where(c => c.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
                 .ToList();
@@ -265,7 +265,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                 return Settings.TvDirectory;
             }
 
-            var category = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var category = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
 
             if (!category.IsNotNullOrWhiteSpace())
             {

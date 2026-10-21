@@ -5,10 +5,11 @@ using System.Net.Sockets;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Talearr.Comics;
 
 namespace NzbDrone.Core.Notifications.Kavita;
 
-public class Kavita : NotificationBase<KavitaSettings>
+public class Kavita : NotificationBase<KavitaSettings>, IComicLibraryScanner
 {
     private readonly IKavitaService _kavitaService;
     private readonly Logger _logger;
@@ -56,18 +57,26 @@ public class Kavita : NotificationBase<KavitaSettings>
         return new ValidationResult(failures);
     }
 
-    private void Notify(KavitaSettings settings, string header, string message)
+    // Talearr: comics ask Kavita to scan the series folder they just changed.
+    public void ScanComicFolder(string folder)
+    {
+        Notify(Settings, null, folder);
+    }
+
+    private void Notify(KavitaSettings settings, string header, string folder)
     {
         try
         {
-            if (Settings.Notify)
+            // Talearr: Kavita's scan-folder takes the folder path alone; the old "header - path"
+            // text never matched a folder, so Kavita never scanned.
+            if (Settings.Notify && folder.IsNotNullOrWhiteSpace())
             {
-                _kavitaService.Notify(Settings, $"{header} - {message}");
+                _kavitaService.Notify(Settings, folder);
             }
         }
         catch (SocketException ex)
         {
-            var logMessage = $"Unable to connect to Subsonic Host: {Settings.Host}:{Settings.Port}";
+            var logMessage = $"Unable to connect to Kavita at {Settings.Host}:{Settings.Port}";
             _logger.Debug(ex, logMessage);
         }
     }

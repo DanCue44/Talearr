@@ -408,7 +408,17 @@ namespace Chaptarr.Core.Test.Download
                 failedDownloadService,
                 completedDownloadService,
                 trackedDownloadService,
+                new NoComicDownloads(),
                 LogManager.GetCurrentClassLogger());
+        }
+
+        private sealed class NoComicDownloads : NzbDrone.Core.Talearr.Comics.Search.IComicDownloadTracker
+        {
+            public bool Claim(IDownloadClient client, DownloadClientItem item) => false;
+
+            public void Track(string downloadId)
+            {
+            }
         }
 
         private static IDownloadClientFactory CreateDownloadClientFactory(params DownloadClientItem[] items)

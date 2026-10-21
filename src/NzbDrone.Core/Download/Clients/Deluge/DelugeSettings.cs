@@ -19,7 +19,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
         }
     }
 
-    public class DelugeSettings : IProviderConfig
+    public class DelugeSettings : IProviderConfig, IComicsCategorySettings
     {
         private static readonly DelugeSettingsValidator Validator = new DelugeSettingsValidator();
 
@@ -56,6 +56,11 @@ namespace NzbDrone.Core.Download.Clients.Deluge
             get => _audiobookCategory ?? MusicCategory;
             set => _audiobookCategory = value;
         }
+        // Talearr: comic and manga downloads (Comics) get their own category, so the book import
+        // never sees them. Empty: comics use the ebook category.
+        [FieldDefinition(90, Label = "Comics Category", Type = FieldType.Select, SelectOptionsProviderAction = "getCategories", HelpText = "Comics and manga downloads go here. Leave empty to use the ebook category.")]
+        public string ComicsCategory { get; set; } = "comics";
+
 
         [FieldDefinition(6, Label = "Ebook Category", Type = FieldType.Select, SelectOptionsProviderAction = "getCategories", HelpText = "Adding a category specific to Talearr avoids conflicts with unrelated non-Talearr downloads. Using a category is optional, but strongly recommended.")]
         public string EbookCategory

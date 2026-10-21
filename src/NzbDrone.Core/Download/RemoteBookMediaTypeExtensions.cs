@@ -32,6 +32,18 @@ namespace NzbDrone.Core.Download
             return BookMediaType.Audiobook;
         }
 
+        // Talearr: the download client category for a release. Comics use the comics category, or
+        // the ebook category when none is set (setups from before comics keep working).
+        public static string PickCategory(this RemoteBook remoteBook, string ebookCategory, string audiobookCategory, string comicsCategory)
+        {
+            if (remoteBook?.IsComic == true)
+            {
+                return string.IsNullOrWhiteSpace(comicsCategory) ? ebookCategory : comicsCategory;
+            }
+
+            return remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? ebookCategory : audiobookCategory;
+        }
+
         public static List<Book> GetBooksMatchingReleaseMediaType(this RemoteBook remoteBook)
         {
             if (remoteBook?.Books == null || remoteBook.Books.Count == 0)

@@ -104,7 +104,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             var isRecentBook = remoteBook.IsRecentBook();
             var moveToTop = (isRecentBook && Settings.RecentTvPriority == (int)QBittorrentPriority.First) || (!isRecentBook && Settings.OlderTvPriority == (int)QBittorrentPriority.First);
             var forceStart = (QBittorrentState)Settings.InitialState == QBittorrentState.ForceStart;
-            var category = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var category = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
 
             try
             {
@@ -169,7 +169,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             var isRecentBook = remoteBook.IsRecentBook();
             var moveToTop = (isRecentBook && Settings.RecentTvPriority == (int)QBittorrentPriority.First) || (!isRecentBook && Settings.OlderTvPriority == (int)QBittorrentPriority.First);
             var forceStart = (QBittorrentState)Settings.InitialState == QBittorrentState.ForceStart;
-            var category = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var category = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
 
             try
             {
@@ -259,7 +259,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         {
             var version = Proxy.GetApiVersion(Settings);
             var config = Proxy.GetConfig(Settings);
-            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                 .Where(c => c.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
                 .ToList();
@@ -528,7 +528,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             var config = Proxy.GetConfig(Settings);
 
             var destDir = new OsPath(config.SavePath);
-            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                 .Where(c => c.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
                 .ToList();
