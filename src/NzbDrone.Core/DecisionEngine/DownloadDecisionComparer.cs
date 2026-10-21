@@ -168,7 +168,7 @@ namespace NzbDrone.Core.DecisionEngine
 
                 case "Unabridged":
                     // Talearr: the abridged step can prefer either reading (per-book policy).
-                    return AbridgedReleaseDetector.Detect(winner.RemoteBook?.Release?.Title) == AbridgedMarker.Abridged
+                    return AbridgedReleaseDetector.DetectRelease(winner.RemoteBook?.Release) == AbridgedMarker.Abridged
                         ? "Abridged audiobook preferred (abridged policy)"
                         : "Unabridged audiobook preferred over abridged";
 

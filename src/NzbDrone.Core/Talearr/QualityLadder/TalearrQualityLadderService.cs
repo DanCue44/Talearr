@@ -168,7 +168,7 @@ namespace NzbDrone.Core.Talearr.QualityLadder
         // checks the runtime when the download arrives.
         private bool SameRecording(RemoteBook subject, Book book, List<BookFile> files)
         {
-            var releaseMarker = AbridgedReleaseDetector.Detect(subject.Release?.Title);
+            var releaseMarker = AbridgedReleaseDetector.DetectRelease(subject.Release);
             if (releaseMarker != AbridgedMarker.Unknown)
             {
                 var existingMarker = files.Select(f => AbridgedReleaseDetector.Detect(f.AudioProductionType)).FirstOrDefault(m => m != AbridgedMarker.Unknown);

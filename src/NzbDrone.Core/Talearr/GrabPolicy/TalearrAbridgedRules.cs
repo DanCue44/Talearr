@@ -96,7 +96,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 return AbridgedJudgement.Accept;
             }
 
-            var marker = AbridgedReleaseDetector.Detect(subject.Release?.Title);
+            var marker = AbridgedReleaseDetector.DetectRelease(subject.Release);
             var scope = Scope(target);
 
             switch (target.Policy)
@@ -148,7 +148,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 return 0;
             }
 
-            var marker = AbridgedReleaseDetector.Detect(subject.Release?.Title);
+            var marker = AbridgedReleaseDetector.DetectRelease(subject.Release);
 
             if (target.Policy == AbridgedAudiobookPolicy.AbridgedOnly)
             {

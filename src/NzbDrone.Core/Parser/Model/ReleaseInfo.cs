@@ -112,6 +112,7 @@ namespace NzbDrone.Core.Parser.Model
         Freeleech75 = 32, // Signifies a torrent counts towards 75 percent of your download quota.
         Freeleech25 = 64, // Signifies a torrent counts towards 25 percent of your download quota.
         VipExclusive = 128, // Torrent is only accessible to VIP users.
-        VipFreeleech = 256 // VIP-only torrent is freeleech for the current VIP user.
+        VipFreeleech = 256, // VIP-only torrent is freeleech for the current VIP user.
+        Abridged = 512 // Talearr: the indexer marks the release as an abridged reading (MyAnonamouse tags).
     }
 }

@@ -549,6 +549,11 @@ namespace Chaptarr.Api.V1.Indexers
             {
                 yield return "VIP Freeleech";
             }
+
+            if (flags.HasFlag(IndexerFlags.Abridged))
+            {
+                yield return "Abridged";
+            }
         }
 
         private static string RemoveBracketedOrLabelledValue(string title, string value)

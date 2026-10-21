@@ -51,7 +51,23 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
 
         public static bool IsAbridgedRelease(RemoteBook remoteBook)
         {
-            return Detect(remoteBook?.Release?.Title) == AbridgedMarker.Abridged;
+            return DetectRelease(remoteBook?.Release) == AbridgedMarker.Abridged;
+        }
+
+        // A release's marker: the indexer's own abridged flag first, then the title.
+        public static AbridgedMarker DetectRelease(ReleaseInfo release)
+        {
+            if (release == null)
+            {
+                return AbridgedMarker.Unknown;
+            }
+
+            if (release.IndexerFlags.HasFlag(IndexerFlags.Abridged))
+            {
+                return AbridgedMarker.Abridged;
+            }
+
+            return Detect(release.Title);
         }
 
         public static bool IsAudiobookRelease(RemoteBook remoteBook)

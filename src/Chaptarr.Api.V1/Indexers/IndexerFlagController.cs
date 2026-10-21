@@ -33,6 +33,7 @@ namespace Chaptarr.Api.V1.Indexers
                 IndexerFlags.Freeleech25 => "25% Freeleech",
                 IndexerFlags.VipExclusive => "VIP Only",
                 IndexerFlags.VipFreeleech => "VIP Freeleech",
+                IndexerFlags.Abridged => "Abridged",
                 _ => flag.ToString()
             };
         }

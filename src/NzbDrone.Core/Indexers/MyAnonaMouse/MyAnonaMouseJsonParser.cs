@@ -452,6 +452,13 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 logger.Trace("MAM_UPLOAD_FACTOR: Torrent {0} has uploadvolumefactor={1}", id, uploadFactor.Value);
             }
 
+            // Talearr: MAM tags abridged readings ("abridged, 64kpbs, library sourced"); "unabridged"
+            // does not count. Titles rarely say it, so this is the reliable signal (Chaptarr #321).
+            if (NzbDrone.Core.Talearr.GrabPolicy.AbridgedReleaseDetector.Detect(torrent.Value<string>("tags")) == NzbDrone.Core.Talearr.GrabPolicy.AbridgedMarker.Abridged)
+            {
+                flags |= IndexerFlags.Abridged;
+            }
+
             // Log final flag assignment
             if (flags != 0)
             {
