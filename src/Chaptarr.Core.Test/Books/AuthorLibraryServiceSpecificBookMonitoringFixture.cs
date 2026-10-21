@@ -428,6 +428,102 @@ namespace Chaptarr.Core.Test.Books
             });
         }
 
+        private sealed class RacingRefreshAuthorService : IRefreshAuthorService
+        {
+            private readonly StubBookService _bookService;
+            private readonly Book _bookInsertedByRefresh;
+
+            public RacingRefreshAuthorService(StubBookService bookService, Book bookInsertedByRefresh)
+            {
+                _bookService = bookService;
+                _bookInsertedByRefresh = bookInsertedByRefresh;
+            }
+
+            public int GateEntries { get; private set; }
+
+            public bool ReconcileAuthorBlob(Author localAuthor, Author authoritativeRemoteAuthor) => false;
+
+            // A queued author refresh held the gate and inserted the ebook before the backfill got in.
+            public IDisposable EnterAuthorBookWriteGate(string context)
+            {
+                GateEntries++;
+                _bookService.ExistingBooks.Add(_bookInsertedByRefresh);
+                return null;
+            }
+        }
+
+        [Test]
+        public async Task existing_author_backfill_should_not_insert_books_a_concurrent_refresh_already_added()
+        {
+            var remoteAuthor = new Author
+            {
+                Name = "Existing Author",
+                Books = new List<Book>
+                {
+                    BuildAudiobook("Existing Audio", "hc:1001"),
+                    BuildEbook("Missing Ebook", "hc:2001")
+                },
+                Series = new List<Series>()
+            };
+
+            var existingAuthor = new Author
+            {
+                Id = 77,
+                Name = remoteAuthor.Name,
+                AudiobookMetadataProfileId = 1,
+                EbookMetadataProfileId = 3
+            };
+
+            var bookService = new StubBookService
+            {
+                ExistingBooks = new List<Book>
+                {
+                    BuildAudiobook("Existing Audio", "hc:1001")
+                }
+            };
+            var refreshAuthorService = new RacingRefreshAuthorService(bookService, BuildEbook("Missing Ebook", "hc:2001"));
+
+            var service = new AuthorLibraryService(
+                authorService: new StubAuthorService { ExistingAuthor = existingAuthor },
+                authorInfo: new StubAuthorInfo(remoteAuthor),
+                bookService: bookService,
+                refreshSeriesService: null,
+                editionService: new StubEditionService(),
+                narratorLinkService: null,
+                metadataProfileService: new StubMetadataProfileService(),
+                qualityProfileService: new TestQualityProfileService(),
+                authorPathBuilder: new StubAuthorPathBuilder(),
+                rootFolderService: new StubRootFolderService(BuildAudiobookRoot("/audiobooks")),
+                commandQueueManager: null,
+                eventAggregator: new StubEventAggregator(),
+                pendingImportService: null,
+                mainDatabase: null,
+                importListExclusionService: null,
+                editionMetadataProfileFilter: new EditionMetadataProfileFilter(new TestTermMatcherService()),
+                syncMetadataService: null,
+                logger: LogManager.GetCurrentClassLogger(),
+                editionSelector: new EditionSelector(LogManager.GetCurrentClassLogger()),
+                refreshAuthorService: refreshAuthorService);
+
+            await service.AddAuthorAsync("hc:author-1", new MonitoringConfig
+            {
+                AuthorName = remoteAuthor.Name,
+                CreateAudiobook = true,
+                CreateEbook = false,
+                AudiobookQualityProfileId = 2,
+                AudiobookMetadataProfileId = 1,
+                AudiobookRootFolderPath = "/audiobooks",
+                AudiobookMonitored = true,
+                AudiobookMonitorNewItems = NewItemMonitorTypes.None
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(refreshAuthorService.GateEntries, Is.EqualTo(1));
+                Assert.That(bookService.InsertedBooks, Is.Empty);
+            });
+        }
+
         [Test]
         public async Task existing_author_should_backfill_missing_profile_enabled_media_type()
         {

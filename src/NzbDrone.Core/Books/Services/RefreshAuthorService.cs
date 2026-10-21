@@ -42,6 +42,10 @@ namespace NzbDrone.Core.Books
         // requested books from the blob (TalearrTrackedCatalogFilter).
         bool ReconcileAuthorBlob(Author localAuthor, Author authoritativeRemoteAuthor, Func<Book, bool> talearrIsRequested) =>
             ReconcileAuthorBlob(localAuthor, authoritativeRemoteAuthor);
+
+        // Holds the author refresh gate so another writer of an author's books (the add path's
+        // media type backfill) cannot run beside a queued author refresh and insert the same rows.
+        IDisposable EnterAuthorBookWriteGate(string context) => null;
     }
 
     public class RefreshAuthorService : RefreshEntityServiceBase<Author, Book>,
@@ -132,6 +136,11 @@ namespace NzbDrone.Core.Books
             _mainDatabase = mainDatabase;
             _mergeRedirects = mergeRedirects;
             _catalogStore = catalogStore;
+        }
+
+        public IDisposable EnterAuthorBookWriteGate(string context)
+        {
+            return TalearrAuthorRefreshGate.Enter(AuthorMetadataRefreshGate, _logger, context);
         }
 
         private IDisposable EnterAuthorMetadataRefreshGate(string context, CancellationToken cancellationToken)

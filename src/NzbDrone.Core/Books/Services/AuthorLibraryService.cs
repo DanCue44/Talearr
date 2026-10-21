@@ -1163,6 +1163,12 @@ namespace NzbDrone.Core.Books.Services
                 existingBooks = _bookService.GetBooksByAuthor(existingAuthor.Id) ?? new List<Book>();
             }
 
+            // The backfill below inserts books. Hold the author refresh gate while deciding and
+            // inserting, and read the books again inside it, so a refresh that runs at the same time
+            // (queued by the add or by a profile change) cannot insert the same media type's books too.
+            using var bookWriteGate = _refreshAuthorService?.EnterAuthorBookWriteGate($"media type backfill for author '{existingAuthor.Name}'");
+            existingBooks = _bookService.GetBooksByAuthor(existingAuthor.Id) ?? new List<Book>();
+
             var hasAudiobook = existingBooks.Any(b => b.MediaType == BookMediaType.Audiobook);
             var hasEbook = existingBooks.Any(b => b.MediaType == BookMediaType.Ebook);
 
