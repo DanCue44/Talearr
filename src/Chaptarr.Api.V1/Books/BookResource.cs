@@ -150,9 +150,9 @@ namespace Chaptarr.Api.V1.Books
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-        // Talearr: the monitored edition's cover, else the best-rated edition of the book that has a
-        // cover (its own format first), else the book's own images. A monitored placeholder edition
-        // without a cover no longer leaves the book blank.
+        // Talearr: the monitored edition's cover, else the best-rated other edition of the same book
+        // that has a cover (its own format first). Book-level images are not used once an edition is
+        // selected (they may come from another row). A placeholder edition no longer leaves it blank.
         internal static List<MediaCover> SelectCoverImages(Book model, Edition selectedEdition)
         {
             static List<MediaCover> Usable(IEnumerable<MediaCover> images) =>
@@ -177,7 +177,7 @@ namespace Chaptarr.Api.V1.Books
                 .ThenBy(e => e.Id)
                 .FirstOrDefault();
 
-            return fallback != null ? Usable(fallback.Images) : Usable(model.Images);
+            return fallback != null ? Usable(fallback.Images) : new List<MediaCover>();
         }
 
         public static BookResource ToResource(this Book model)

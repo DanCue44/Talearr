@@ -50,7 +50,7 @@ namespace Chaptarr.Core.Test.ApiV1
         }
 
         [Test]
-        public void should_fall_back_to_book_images_when_no_edition_has_a_cover()
+        public void should_not_use_book_images_once_an_edition_is_selected()
         {
             var book = new Book
             {
@@ -59,7 +59,7 @@ namespace Chaptarr.Core.Test.ApiV1
                 Editions = new List<Edition> { new Edition { Id = 5, Monitored = true } }
             };
 
-            Assert.That(BookResourceMapper.SelectCoverImages(book, book.Editions[0])[0].Url, Is.EqualTo("/book.jpg"));
+            Assert.That(BookResourceMapper.SelectCoverImages(book, book.Editions[0]), Is.Empty);
         }
     }
 }
