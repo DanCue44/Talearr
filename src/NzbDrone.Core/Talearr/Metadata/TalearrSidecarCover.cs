@@ -339,7 +339,7 @@ namespace NzbDrone.Core.Talearr.Metadata
 
             try
             {
-                var info = Image.Identify(data);
+                var info = Image.Identify(NzbDrone.Core.MediaCover.CoverImageFormats.DecoderOptions, data);
                 return info == null || info.Width <= 0 || info.Height <= 0 ? null : (info.Width, info.Height);
             }
             catch (Exception)

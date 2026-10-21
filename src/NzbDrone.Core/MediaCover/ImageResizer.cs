@@ -1,7 +1,6 @@
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 
 namespace NzbDrone.Core.MediaCover
@@ -21,13 +20,6 @@ namespace NzbDrone.Core.MediaCover
             _diskProvider = diskProvider;
 
             _enabled = true;
-
-            // Thumbnails don't need super high quality
-            SixLabors.ImageSharp.Configuration.Default.ImageFormatsManager.SetEncoder(JpegFormat.Instance, new JpegEncoder
-            {
-                Quality = 95,
-                ColorType = JpegEncodingColor.YCbCrRatio444
-            });
         }
 
         public void Resize(string source, string destination, int height)
@@ -39,7 +31,7 @@ namespace NzbDrone.Core.MediaCover
 
             try
             {
-                using var image = Image.Load(source);
+                using var image = Image.Load(CoverImageFormats.DecoderOptions, source);
                 image.Mutate(x => x.Resize(0, height));
                 
                 // Let ImageSharp select the encoder from the destination extension. The

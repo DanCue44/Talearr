@@ -162,21 +162,21 @@ namespace NzbDrone.Core.Talearr.Metadata
                 return data;
             }
 
-            var format = Image.DetectFormat(data);
+            var format = Image.DetectFormat(NzbDrone.Core.MediaCover.CoverImageFormats.DecoderOptions, data);
             if (format.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
             {
                 return data;
             }
 
-            if (!SixLabors.ImageSharp.Configuration.Default.ImageFormatsManager.TryFindFormatByFileExtension(extension, out var target))
+            if (!NzbDrone.Core.MediaCover.CoverImageFormats.Configuration.ImageFormatsManager.TryFindFormatByFileExtension(extension, out var target))
             {
                 return data;
             }
 
-            using (var image = Image.Load(data))
+            using (var image = Image.Load(NzbDrone.Core.MediaCover.CoverImageFormats.DecoderOptions, data))
             using (var output = new MemoryStream())
             {
-                image.Save(output, SixLabors.ImageSharp.Configuration.Default.ImageFormatsManager.GetEncoder(target));
+                image.Save(output, NzbDrone.Core.MediaCover.CoverImageFormats.Configuration.ImageFormatsManager.GetEncoder(target));
                 return output.ToArray();
             }
         }

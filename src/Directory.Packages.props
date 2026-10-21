@@ -49,6 +49,8 @@
     <PackageVersion Include="SharpCompress" Version="0.50.5" />
     <PackageVersion Include="SharpZipLib" Version="1.4.2" />
     <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <!-- Talearr: pinned above the transitive 10.0.0 for CVE-2026-84008 and CVE-2026-70162 -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="9.0.6" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.6" />
     <PackageVersion Include="System.Buffers" Version="4.6.0" />
