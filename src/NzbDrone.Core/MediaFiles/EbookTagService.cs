@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
 using NLog;
+using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Common.Serializer;
@@ -97,6 +98,13 @@ namespace NzbDrone.Core.MediaFiles
 
         public void WriteTags(BookFile bookFile, bool newDownload, bool force = false)
         {
+            // Talearr: files in a read-only library folder are never retagged.
+            if (ReadOnlyPathGuard.IsReadOnly(bookFile?.Path))
+            {
+                _logger.Debug("Skipping tag write in a read-only library folder: {0}", bookFile?.Path);
+                return;
+            }
+
             if (!force)
             {
                 if (_configService.WriteBookTags == WriteBookTagsType.NewFiles && !newDownload)
@@ -232,7 +240,7 @@ namespace NzbDrone.Core.MediaFiles
 
         private IEnumerable<RetagBookFilePreview> GetPreviews(List<BookFile> files)
         {
-            var calibreFiles = files.Where(x => x.CalibreId > 0).OrderBy(x => x.Edition.Title).ToList();
+            var calibreFiles = files.Where(x => x.CalibreId > 0 && !ReadOnlyPathGuard.IsReadOnly(x.Path)).OrderBy(x => x.Edition.Title).ToList();
 
             var rootFolderPairs = calibreFiles.Select(x => Tuple.Create(x, _rootFolderService.GetBestRootFolder(x.Path)));
 

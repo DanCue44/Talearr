@@ -54,6 +54,7 @@ namespace NzbDrone.Core.DecisionEngine
             { "MyAnonaMouseFreeleechOnlySpecification", "MyAnonaMouse" }, // Talearr
             { "MyAnonaMouseVipAccessSpecification", "MyAnonaMouse" },
             { "MyAnonaMouseUnsatisfiedSlotSpecification", "MyAnonaMouse" },
+            { "TalearrReadOnlyLibrarySpecification", "Read-only library" },
             { "NotSampleSpecification", "Sample" },
             { "ProtocolSpecification", "Protocol" },
             { "QualityAllowedByProfileSpecification", "Quality" },

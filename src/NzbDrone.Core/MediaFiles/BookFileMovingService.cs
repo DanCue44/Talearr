@@ -17,6 +17,7 @@ using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Talearr.Import;
+using NzbDrone.Core.Talearr.ReadOnlyLibrary;
 
 namespace NzbDrone.Core.MediaFiles
 {
@@ -67,6 +68,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IConfigService _configService;
         private readonly IFileMutationSafetyService _fileMutationSafetyService;
         private readonly ITalearrHardlinkMonitor _talearrHardlinkMonitor;
+        private readonly ITalearrReadOnlyLibrary _talearrReadOnlyLibrary;
         private readonly Logger _logger;
 
         public BookFileMovingService(IEditionService editionService,
@@ -84,7 +86,8 @@ namespace NzbDrone.Core.MediaFiles
                                       IConfigService configService,
                                       IFileMutationSafetyService fileMutationSafetyService,
                                       Logger logger,
-                                      ITalearrHardlinkMonitor talearrHardlinkMonitor = null)
+                                      ITalearrHardlinkMonitor talearrHardlinkMonitor = null,
+                                      ITalearrReadOnlyLibrary talearrReadOnlyLibrary = null)
         {
             _editionService = editionService;
             _updateBookFileService = updateBookFileService;
@@ -102,6 +105,7 @@ namespace NzbDrone.Core.MediaFiles
             _fileMutationSafetyService = fileMutationSafetyService;
             _logger = logger;
             _talearrHardlinkMonitor = talearrHardlinkMonitor;
+            _talearrReadOnlyLibrary = talearrReadOnlyLibrary;
         }
 
         public BookFileMovePlan GetOrganizeDestination(BookFile bookFile, Author author, bool moveToCanonicalAuthorFolder, RenameBatchContext renameBatchContext = null)
@@ -120,6 +124,12 @@ namespace NzbDrone.Core.MediaFiles
             if (bookFile.Quality?.Quality == null)
             {
                 return BookFileMovePlan.Skipped("The file has no media quality, so its media root cannot be determined.");
+            }
+
+            // Talearr: files in a read-only library folder keep their names and places.
+            if (ReadOnlyPathGuard.IsReadOnly(bookFile.Path))
+            {
+                return BookFileMovePlan.Skipped("The file is in a read-only library folder, so Talearr does not rename or move it.");
             }
 
             var rootFolderPath = author.GetRootFolderForQuality(bookFile.Quality.Quality);
@@ -160,6 +170,11 @@ namespace NzbDrone.Core.MediaFiles
                 {
                     return BookFileMovePlan.Skipped("The colocated destination author folder cannot be determined from its configured root.");
                 }
+            }
+
+            if (ReadOnlyPathGuard.IsReadOnly(destinationPath))
+            {
+                return BookFileMovePlan.Skipped("The destination is in a read-only library folder, so Talearr does not move files there.");
             }
 
             return new BookFileMovePlan
@@ -289,10 +304,18 @@ namespace NzbDrone.Core.MediaFiles
             var fileNameOnly = Path.GetFileName(newFileName) + extension;
 
             var bookPath = _authorPathBuilder.BuildPathForQuality(localBook.Author, bookFile.Quality.Quality, useExistingRelativeFolder: false);
+
+            // Talearr: an author whose folder is in a read-only library gets new downloads in a
+            // writable root folder of the same type, under the same relative folder.
+            if (_talearrReadOnlyLibrary != null && ReadOnlyPathGuard.IsReadOnly(bookPath))
+            {
+                bookPath = _talearrReadOnlyLibrary.RedirectForWrite(bookPath, ToMediaType(bookFile));
+            }
+
             var filePath = Path.Combine(bookPath, newFileName + extension);
 
             var colocationPlan = _ebookColocationPlanner.Plan(bookFile, localBook.Author, localBook.Edition, fileNameOnly);
-            if (colocationPlan.Applies)
+            if (colocationPlan.Applies && !ReadOnlyPathGuard.IsReadOnly(colocationPlan.PrimaryPath))
             {
                 replicaPaths = colocationPlan.ReplicaPaths;
                 return colocationPlan.PrimaryPath;
@@ -492,6 +515,12 @@ namespace NzbDrone.Core.MediaFiles
                 authorFolderPath = _authorPathBuilder.BuildPathForQuality(localBook.Author, bookFile.Quality.Quality, useExistingRelativeFolder: false);
             }
 
+            // Talearr: the import was sent to a writable root, so its author folder lives there too.
+            if (_talearrReadOnlyLibrary != null && ReadOnlyPathGuard.IsReadOnly(authorFolderPath))
+            {
+                authorFolderPath = _talearrReadOnlyLibrary.RedirectForWrite(authorFolderPath, ToMediaType(bookFile));
+            }
+
             EnsureBookFolder(bookFile, localBook.Author, localBook.Book, filePath, authorFolderPath);
         }
 
@@ -542,6 +571,11 @@ namespace NzbDrone.Core.MediaFiles
 
             authorFolderPath = Path.Combine(rootFolderPath, segments[0]);
             return true;
+        }
+
+        private static BookMediaType ToMediaType(BookFile bookFile)
+        {
+            return string.Equals(GetEffectiveMediaType(bookFile), "ebook", StringComparison.OrdinalIgnoreCase) ? BookMediaType.Ebook : BookMediaType.Audiobook;
         }
 
         private static string GetEffectiveMediaType(BookFile bookFile)

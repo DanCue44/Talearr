@@ -172,6 +172,7 @@ class RootFolder extends Component {
       profileRows,
       accessible,
       freeSpace,
+      readOnly,
       isDeleting
     } = this.props;
 
@@ -209,6 +210,16 @@ class RootFolder extends Component {
               isDefaultEbookRootFolder &&
                 <Label kind={kinds.SUCCESS}>
                   {translate('DefaultEbookRootFolderBadge')}
+                </Label>
+            }
+
+            {
+              readOnly &&
+                <Label
+                  kind={kinds.DEFAULT}
+                  title={'Tracked only: Talearr never moves, renames, retags or deletes anything here'}
+                >
+                  {'Read-only'}
                 </Label>
             }
           </div>
@@ -284,6 +295,7 @@ RootFolder.propTypes = {
   profileRows: PropTypes.arrayOf(PropTypes.object).isRequired,
   accessible: PropTypes.bool,
   freeSpace: PropTypes.number,
+  readOnly: PropTypes.bool,
   isDeleting: PropTypes.bool,
   deleteError: PropTypes.object,
   onConfirmDeleteRootFolder: PropTypes.func.isRequired

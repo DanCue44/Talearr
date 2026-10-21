@@ -135,6 +135,14 @@ namespace NzbDrone.Core.MediaFiles
                 throw new NzbDroneClientException(HttpStatusCode.Conflict, "Book file ({0}) is not inside any configured root folder.", bookFile.Path);
             }
 
+            // Talearr: never delete inside a read-only library folder. Refusing here also keeps the
+            // database row, so the book still shows the file it has.
+            if (ReadOnlyPathGuard.IsReadOnly(bookFile.Path))
+            {
+                _logger.Warn("Not deleting {0}: it is in a read-only library folder", bookFile.Path);
+                throw new NzbDroneClientException(HttpStatusCode.Conflict, "This file is in a read-only library folder, so Talearr does not delete it. Remove it from that folder yourself.");
+            }
+
             var isCalibre = rootFolder.IsCalibreLibrary && rootFolder.CalibreSettings != null;
 
             try
@@ -235,6 +243,12 @@ namespace NzbDrone.Core.MediaFiles
                 return true;
             }
 
+            // Talearr: nothing inside a read-only library folder is ever deleted.
+            if (ReadOnlyPathGuard.IsReadOnly(path))
+            {
+                return true;
+            }
+
             try
             {
                 var rootFolders = _rootFolderService.All();
@@ -283,6 +297,13 @@ namespace NzbDrone.Core.MediaFiles
 
             foreach (var file in files)
             {
+                // Talearr: files in a read-only library folder stay where they are.
+                if (ReadOnlyPathGuard.IsReadOnly(file?.Path))
+                {
+                    _logger.Info("Keeping {0}: it is in a read-only library folder", file.Path);
+                    continue;
+                }
+
                 CollectFolder(folders, file?.Path?.GetParentPath());
 
                 // No BookFileDeletedEvent is published from here, so the replica cleanup that hangs
@@ -347,7 +368,7 @@ namespace NzbDrone.Core.MediaFiles
                 .OrderByDescending(p => p.Length)
                 .FirstOrDefault();
 
-            if (basePath.IsNullOrWhiteSpace())
+            if (basePath.IsNullOrWhiteSpace() || ReadOnlyPathGuard.IsReadOnly(basePath))
             {
                 return;
             }
@@ -385,7 +406,8 @@ namespace NzbDrone.Core.MediaFiles
             foreach (var replicaPath in bookFile.ReplicaPaths
                          .Where(p => p.IsNotNullOrWhiteSpace())
                          .Distinct(PathEqualityComparer.Instance)
-                         .Where(p => p.PathNotEquals(bookFile.Path)))
+                         .Where(p => p.PathNotEquals(bookFile.Path))
+                .Where(p => !ReadOnlyPathGuard.IsReadOnly(p)))
             {
                 try
                 {

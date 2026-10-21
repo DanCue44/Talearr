@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using NzbDrone.Common.Disk;
 using NzbDrone.Core.MediaFiles;
 
 namespace NzbDrone.Core.Talearr.Audiobook.M4b
@@ -63,6 +64,10 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                 else if (string.IsNullOrWhiteSpace(plan.Folder))
                 {
                     plan.SkipReason = "The files do not share a folder.";
+                }
+                else if (ordered.Any(f => ReadOnlyPathGuard.IsReadOnly(f.Path)))
+                {
+                    plan.SkipReason = "The files are in a read-only library folder, so Talearr does not convert them.";
                 }
 
                 plans.Add(plan);

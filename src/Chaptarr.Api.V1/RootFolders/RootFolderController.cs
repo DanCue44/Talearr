@@ -12,6 +12,7 @@ using NzbDrone.Core.Books.Calibre;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.ReadOnlyLibrary;
 using NzbDrone.Core.Validation;
 using NzbDrone.Core.Validation.Paths;
 using NzbDrone.Http.REST.Attributes;
@@ -28,6 +29,7 @@ namespace Chaptarr.Api.V1.RootFolders
         private readonly ICalibreProxy _calibreProxy;
         private readonly IConfigService _configService;
         private readonly ILocalizationService _localizationService;
+        private readonly ITalearrReadOnlyLibrary _readOnlyLibrary;
 
         public RootFolderController(IRootFolderService rootFolderService,
                                 IRootFolderScanService rootFolderScanService,
@@ -45,7 +47,8 @@ namespace Chaptarr.Api.V1.RootFolders
                                 FolderWritableValidator folderWritableValidator,
                                 FolderReadableValidator folderReadableValidator,
                                 QualityProfileExistsValidator qualityProfileExistsValidator,
-                                MetadataProfileExistsValidator metadataProfileExistsValidator)
+                                MetadataProfileExistsValidator metadataProfileExistsValidator,
+                                ITalearrReadOnlyLibrary readOnlyLibrary = null)
             : base(signalRBroadcaster)
         {
             _rootFolderService = rootFolderService;
@@ -54,6 +57,7 @@ namespace Chaptarr.Api.V1.RootFolders
             _calibreProxy = calibreProxy;
             _configService = configService;
             _localizationService = localizationService;
+            _readOnlyLibrary = readOnlyLibrary;
 
             SharedValidator.RuleFor(c => c.FolderType)
                 .Must(value => Enum.IsDefined(typeof(FolderType), value))
@@ -68,7 +72,13 @@ namespace Chaptarr.Api.V1.RootFolders
                 .SetValidator(pathExistsValidator)
                 .SetValidator(systemFolderValidator)
                 .SetValidator(folderReadableValidator)
-                .SetValidator(folderWritableValidator);
+                .SetValidator(folderWritableValidator).When(c => c.ReadOnly != true, ApplyConditionTo.CurrentValidator);
+
+            // Talearr: a read-only library folder is only scanned, so it needs no write access.
+            SharedValidator.RuleFor(c => c.ReadOnly)
+                .NotEqual(true)
+                .When(c => c.IsCalibreLibrary)
+                .WithMessage("A Calibre library cannot be read-only; Calibre adds the books itself.");
 
             PostValidator.RuleFor(c => c.Path)
                 .SetValidator(rootFolderValidator);
@@ -181,7 +191,7 @@ namespace Chaptarr.Api.V1.RootFolders
         protected override RootFolderResource GetResourceById(int id)
         {
             var rootFolders = _rootFolderService.All();
-            return _rootFolderService.Get(id).ToResource(rootFolders, _configService.DefaultAudiobookRootFolderPath, _configService.DefaultEbookRootFolderPath);
+            return WithReadOnly(_rootFolderService.Get(id).ToResource(rootFolders, _configService.DefaultAudiobookRootFolderPath, _configService.DefaultEbookRootFolderPath));
         }
 
         [RestPostById]
@@ -194,7 +204,31 @@ namespace Chaptarr.Api.V1.RootFolders
                 _calibreProxy.Test(model.CalibreSettings);
             }
 
-            return Created(_rootFolderService.Add(model).Id);
+            // Talearr: a read-only folder is marked first, so adding it skips the write test.
+            var readOnly = rootFolderResource.ReadOnly == true;
+            if (readOnly)
+            {
+                _readOnlyLibrary?.SetReadOnly(model.Path, true);
+            }
+
+            RootFolder added;
+            try
+            {
+                added = _rootFolderService.Add(model);
+            }
+            catch
+            {
+                if (readOnly)
+                {
+                    _readOnlyLibrary?.SetReadOnly(model.Path, false);
+                }
+
+                throw;
+            }
+
+            _readOnlyLibrary?.SetReadOnly(added.Path, readOnly);
+
+            return Created(added.Id);
         }
 
         [RestPutById]
@@ -243,8 +277,22 @@ namespace Chaptarr.Api.V1.RootFolders
             }
 
             _rootFolderService.Update(model);
+            if (rootFolderResource.ReadOnly.HasValue)
+            {
+                _readOnlyLibrary?.SetReadOnly(existingRootFolder.Path, rootFolderResource.ReadOnly.Value);
+            }
 
             return Accepted(model.Id);
+        }
+
+        private RootFolderResource WithReadOnly(RootFolderResource resource)
+        {
+            if (resource != null && _readOnlyLibrary != null)
+            {
+                resource.ReadOnly = _readOnlyLibrary.ReadOnlyRoots.Any(r => r.PathEquals(resource.Path));
+            }
+
+            return resource;
         }
 
         [HttpGet]
@@ -253,13 +301,17 @@ namespace Chaptarr.Api.V1.RootFolders
             var allRootFolders = _rootFolderService.AllWithSpaceStats();
             var rootFolders = RootFolderMediaTypeFilter.Filter(allRootFolders, mediaType);
 
-            return rootFolders.ToResource(allRootFolders, _configService.DefaultAudiobookRootFolderPath, _configService.DefaultEbookRootFolderPath);
+            return rootFolders.ToResource(allRootFolders, _configService.DefaultAudiobookRootFolderPath, _configService.DefaultEbookRootFolderPath)
+                .Select(WithReadOnly)
+                .ToList();
         }
 
         [RestDeleteById]
         public void DeleteFolder(int id)
         {
+            var path = _rootFolderService.Get(id)?.Path;
             _rootFolderService.Remove(id);
+            _readOnlyLibrary?.SetReadOnly(path, false);
         }
 
         [HttpPost("{id}/link-author")]

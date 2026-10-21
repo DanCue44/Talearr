@@ -39,6 +39,7 @@ namespace NzbDrone.Core.MediaFiles
 
         public void DeleteFolder(string path)
         {
+            ReadOnlyPathGuard.EnsureWritable(path, "delete a folder");
             _logger.Info("Attempting to send '{0}' to recycling bin", path);
             var recyclingBin = _configService.RecycleBin;
 
@@ -68,6 +69,7 @@ namespace NzbDrone.Core.MediaFiles
 
         public void DeleteFile(string path, string subfolder = "")
         {
+            ReadOnlyPathGuard.EnsureWritable(path, "delete a file");
             _logger.Debug("Attempting to send '{0}' to recycling bin", path);
             var recyclingBin = _configService.RecycleBin;
 

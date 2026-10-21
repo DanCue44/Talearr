@@ -52,6 +52,11 @@ namespace Chaptarr.Api.V1.RootFolders
         public bool IsEffectiveDefaultAudiobook { get; set; }
         public bool IsEffectiveDefaultEbook { get; set; }
 
+        // Talearr: tracked but never changed (no rename, move, retag or delete); new downloads go
+        // to a writable root folder of the same type. Stored outside the RootFolders table; left
+        // out of a create or update, it keeps its current value.
+        public bool? ReadOnly { get; set; }
+
         // PER-MEDIA-TYPE SETTINGS
         public MediaTypeSettingsResource Audiobook { get; set; }
         public MediaTypeSettingsResource Ebook { get; set; }

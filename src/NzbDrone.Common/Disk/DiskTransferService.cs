@@ -60,6 +60,13 @@ namespace NzbDrone.Common.Disk
             sourcePath = ResolveRealParentPath(sourcePath);
             targetPath = ResolveRealParentPath(targetPath);
 
+            // Talearr: never write into, or move out of, a read-only library folder.
+            ReadOnlyPathGuard.EnsureWritable(targetPath, "write");
+            if (mode.HasFlag(TransferMode.Move))
+            {
+                ReadOnlyPathGuard.EnsureWritable(sourcePath, "move");
+            }
+
             _logger.Debug("{0} Directory [{1}] > [{2}]", mode, sourcePath, targetPath);
 
             if (sourcePath == targetPath)
@@ -271,6 +278,13 @@ namespace NzbDrone.Common.Disk
 
             sourcePath = ResolveRealParentPath(sourcePath);
             targetPath = ResolveRealParentPath(targetPath);
+
+            // Talearr: never write into, or move out of, a read-only library folder.
+            ReadOnlyPathGuard.EnsureWritable(targetPath, "write");
+            if (mode.HasFlag(TransferMode.Move))
+            {
+                ReadOnlyPathGuard.EnsureWritable(sourcePath, "move");
+            }
 
             _logger.Debug("{0} [{1}] > [{2}]", mode, sourcePath, targetPath);
 

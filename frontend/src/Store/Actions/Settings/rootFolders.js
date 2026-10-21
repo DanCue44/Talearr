@@ -80,6 +80,7 @@ export default {
       path: '',
       folderType: 1, // Default to audiobook
       placeEbooksWithAudiobooks: false,
+      readOnly: false,
       isCalibreLibrary: false,
       host: 'localhost',
       port: 8080,
@@ -186,6 +187,8 @@ export default {
         folderType: coerceFolderType(rawData.folderType),
         defaultTags: rawData.defaultTags,
         isCalibreLibrary: rawData.isCalibreLibrary,
+        // Talearr: tracked but never changed (Chaptarr #326)
+        readOnly: !rawData.isCalibreLibrary && !!rawData.readOnly,
         defaultSyncMonitoredAcrossFormats: rawData.defaultSyncMonitoredAcrossFormats
       };
 

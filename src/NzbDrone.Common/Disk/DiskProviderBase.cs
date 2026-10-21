@@ -243,6 +243,13 @@ namespace NzbDrone.Common.Disk
         public void CreateFolder(string path)
         {
             Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
+
+            // Talearr: an existing folder needs no write, so checking a read-only library folder still works.
+            if (!_fileSystem.Directory.Exists(path))
+            {
+                ReadOnlyPathGuard.EnsureWritable(path, "create a folder");
+            }
+
             _fileSystem.Directory.CreateDirectory(path);
         }
 
@@ -250,6 +257,7 @@ namespace NzbDrone.Common.Disk
         {
             Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
             path = ResolveExistingFilePathForWrite(path, "delete file", allowMissing: true);
+            ReadOnlyPathGuard.EnsureWritable(path, "delete a file");
             Logger.Trace("Deleting file: {0}", path);
 
             RemoveReadOnly(path);
@@ -268,6 +276,7 @@ namespace NzbDrone.Common.Disk
                 throw new IOException(string.Format("Source and destination can't be the same {0}", source));
             }
 
+            ReadOnlyPathGuard.EnsureWritable(destination, "write a file");
             PrepareDestinationForWrite(destination, overwrite, "clone file", source);
 
             CloneFileInternal(source, destination, overwrite);
@@ -289,6 +298,7 @@ namespace NzbDrone.Common.Disk
                 throw new IOException(string.Format("Source and destination can't be the same {0}", source));
             }
 
+            ReadOnlyPathGuard.EnsureWritable(destination, "write a file");
             PrepareDestinationForWrite(destination, overwrite, "copy file", source);
 
             CopyFileInternal(source, destination, overwrite);
@@ -310,6 +320,8 @@ namespace NzbDrone.Common.Disk
                 throw new IOException(string.Format("Source and destination can't be the same {0}", source));
             }
 
+            ReadOnlyPathGuard.EnsureWritable(source, "move a file");
+            ReadOnlyPathGuard.EnsureWritable(destination, "write a file");
             PrepareDestinationForWrite(destination, overwrite, "move file", source);
 
             RemoveReadOnly(source);
@@ -320,6 +332,8 @@ namespace NzbDrone.Common.Disk
         {
             Ensure.That(source, () => source).IsValidPath(PathValidationType.CurrentOs);
             Ensure.That(destination, () => destination).IsValidPath(PathValidationType.CurrentOs);
+            ReadOnlyPathGuard.EnsureWritable(source, "move a folder");
+            ReadOnlyPathGuard.EnsureWritable(destination, "write a folder");
 
             Directory.Move(source, destination);
         }
@@ -354,6 +368,7 @@ namespace NzbDrone.Common.Disk
         public void DeleteFolder(string path, bool recursive)
         {
             Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
+            ReadOnlyPathGuard.EnsureWritable(path, "delete a folder");
 
             var files = GetFiles(path, recursive).ToList();
 
@@ -389,6 +404,7 @@ namespace NzbDrone.Common.Disk
         public void WriteAllText(string filename, string contents)
         {
             Ensure.That(filename, () => filename).IsValidPath(PathValidationType.CurrentOs);
+            ReadOnlyPathGuard.EnsureWritable(filename, "write a file");
             RemoveReadOnly(filename);
 
             // File.WriteAllText is broken on net core when writing to some CIFS mounts
@@ -405,6 +421,7 @@ namespace NzbDrone.Common.Disk
         public void FolderSetLastWriteTime(string path, DateTime dateTime)
         {
             Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
+            ReadOnlyPathGuard.EnsureWritable(path, "change a folder");
 
             _fileSystem.Directory.SetLastWriteTimeUtc(path, dateTime);
         }
@@ -412,6 +429,7 @@ namespace NzbDrone.Common.Disk
         public void FileSetLastWriteTime(string path, DateTime dateTime)
         {
             Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
+            ReadOnlyPathGuard.EnsureWritable(path, "change a file");
 
             _fileSystem.File.SetLastWriteTime(path, dateTime);
         }
@@ -474,6 +492,7 @@ namespace NzbDrone.Common.Disk
         public void EmptyFolder(string path)
         {
             Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
+            ReadOnlyPathGuard.EnsureWritable(path, "empty a folder");
 
             foreach (var file in GetFiles(path, false))
             {
@@ -517,6 +536,7 @@ namespace NzbDrone.Common.Disk
 
         public FileStream OpenWriteStream(string path)
         {
+            ReadOnlyPathGuard.EnsureWritable(path, "write a file");
             return (FileStream)_fileSystem.FileStream.Create(path, FileMode.Create);
         }
 
@@ -929,6 +949,12 @@ namespace NzbDrone.Common.Disk
 
         public void RemoveEmptySubfolders(string path)
         {
+            // Talearr: tidying never touches a read-only library folder.
+            if (ReadOnlyPathGuard.IsReadOnly(path))
+            {
+                return;
+            }
+
             // Depth first search for empty subdirectories
             foreach (var subdir in Directory.EnumerateDirectories(path))
             {

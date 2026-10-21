@@ -200,6 +200,40 @@ namespace Chaptarr.Core.Test.MediaFiles
         }
 
         [Test]
+        [NonParallelizable]
+        public void should_not_organize_a_file_in_a_read_only_library_folder()
+        {
+            var rootFolder = @"C:\libation".AsOsAgnostic();
+            var fileNameBuilder = DispatchProxy.Create<IBuildFileNames, BuildFileNamesProxy>();
+            var fileNameProxy = (BuildFileNamesProxy)(object)fileNameBuilder;
+            fileNameProxy.AuthorFolderFactory = (_, _) => "Jennifer Lynn Barnes";
+            fileNameProxy.BookFileNameFactory = (_, _, _, _) => Path.Combine("Bad Blood", "file");
+            var service = CreateService(fileNameBuilder, DispatchProxy.Create<INamingConfigService, NamingConfigServiceProxy>());
+            var author = new Author { Id = 1, Name = "Jennifer Lynn Barnes", AudiobookRootFolderPath = rootFolder };
+            var bookFile = new BookFile
+            {
+                Path = Path.Combine(rootFolder, "Jennifer Lynn Barnes", "Bad Blood", "original.m4b"),
+                EditionId = 7,
+                Edition = new Edition { Id = 7, BookId = 42, Book = new Book { Id = 42, AuthorId = 1 } },
+                Quality = new QualityModel(Quality.M4B),
+                MediaType = "audiobook"
+            };
+
+            ReadOnlyPathGuard.SetRoots(new[] { rootFolder });
+            try
+            {
+                var plan = service.GetOrganizeDestination(bookFile, author, true);
+
+                Assert.That(plan.CanOrganize, Is.False);
+                Assert.That(plan.SkipReason, Does.Contain("read-only library folder"));
+            }
+            finally
+            {
+                ReadOnlyPathGuard.SetRoots(System.Array.Empty<string>());
+            }
+        }
+
+        [Test]
         public void should_keep_physical_author_folder_unless_canonical_move_is_requested()
         {
             var rootFolder = @"C:\books".AsOsAgnostic();
