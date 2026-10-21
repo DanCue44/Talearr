@@ -256,7 +256,7 @@ Looking closer at the thin authors, Hardcover mostly has the books; the metadata
 them. Jack Rosewood has 49 works on Hardcover (5 survive the filters), Ryan Becker 15 (4), Navessa
 Allen 28 (9). The server's rows carry Goodreads ratings and dates; Hardcover's records for small
 and self-published authors usually have no release date on the book or any edition and no
-ratings, only readers (`users_count`). the test profiles skip missing dates and need a popularity of
+ratings, only readers (`users_count`). The test profiles skip missing dates and need a popularity of
 at least 1 (rating times number of ratings), so those books fall out.
 
 - **Readers count as popularity.** `Ratings.Readers` (Hardcover `users_count`, stored inside the
