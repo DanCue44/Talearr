@@ -22,7 +22,8 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
     public interface ITalearrReaderHandoffService
     {
         // Copies the ebook files of one import to the watch folder. Returns the written paths.
-        List<string> HandOff(Author author, IEnumerable<BookFile> files, TalearrReaderHandoffSettings settings);
+        // A file already handed off unchanged is skipped unless force is set.
+        List<string> HandOff(Author author, IEnumerable<BookFile> files, TalearrReaderHandoffSettings settings, bool force = false);
 
         TalearrReaderHandoffTestResult Test(TalearrReaderHandoffSettings settings);
     }
@@ -30,7 +31,10 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
     // Talearr: reader hand-off. After an ebook from a download is imported, a copy goes to a
     // watch folder (for example Calibre-Web-Automated's ingest folder), optionally converted
     // to KEPUB. Always a copy: the library file is never moved or changed. Audiobooks are
-    // skipped. Runs async so a slow disk or kepubify never holds up the import.
+    // skipped. Runs async so a slow disk or kepubify never holds up the import. Each copy is
+    // logged in talearr.db (Chaptarr #130): a replayed import does not send the same file twice,
+    // a name already in the folder is never overwritten by a different book, and failures stay
+    // visible (System > Status) until they are retried.
     public class TalearrReaderHandoffService : ITalearrReaderHandoffService, IHandleAsync<BookImportedEvent>
     {
         public const string PartialSuffix = ".part";
@@ -38,14 +42,20 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
         private readonly ITalearrReaderHandoffSettingsService _settingsService;
         private readonly ITalearrKepubify _kepubify;
         private readonly Logger _logger;
+        private readonly ITalearrReaderHandoffStore _store;
+        private readonly IEventAggregator _eventAggregator;
 
         public TalearrReaderHandoffService(ITalearrReaderHandoffSettingsService settingsService,
                                            ITalearrKepubify kepubify,
-                                           Logger logger)
+                                           Logger logger,
+                                           ITalearrReaderHandoffStore store = null,
+                                           IEventAggregator eventAggregator = null)
         {
             _settingsService = settingsService;
             _kepubify = kepubify;
             _logger = logger;
+            _store = store;
+            _eventAggregator = eventAggregator;
         }
 
         public void HandleAsync(BookImportedEvent message)
@@ -103,7 +113,7 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
             return Path.GetFileNameWithoutExtension(epubPath) + ".kepub.epub";
         }
 
-        public List<string> HandOff(Author author, IEnumerable<BookFile> files, TalearrReaderHandoffSettings settings)
+        public List<string> HandOff(Author author, IEnumerable<BookFile> files, TalearrReaderHandoffSettings settings, bool force = false)
         {
             var written = new List<string>();
 
@@ -112,27 +122,30 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
                 return written;
             }
 
-            var ebooks = (files ?? Enumerable.Empty<BookFile>())
+            var ebookFiles = (files ?? Enumerable.Empty<BookFile>())
                 .Where(IsEbook)
-                .Select(f => f.Path)
-                .Distinct(StringComparer.Ordinal)
+                .GroupBy(f => f.Path, StringComparer.Ordinal)
+                .Select(g => g.First())
                 .ToList();
 
-            if (ebooks.Count == 0)
+            if (ebookFiles.Count == 0)
             {
                 return written;
             }
 
             if (!Directory.Exists(settings.Path.Trim()))
             {
-                throw new DirectoryNotFoundException($"Reader hand-off folder '{settings.Path}' does not exist");
+                var error = $"Reader hand-off folder '{settings.Path}' does not exist";
+                ebookFiles.ForEach(f => RecordFailure(f, error));
+                AnnounceChanges();
+                throw new DirectoryNotFoundException(error);
             }
 
             var folder = TargetFolder(settings, author);
             Directory.CreateDirectory(folder);
 
             string kepubify = null;
-            if (settings.ConvertToKepub && ebooks.Any(IsConvertibleEpub))
+            if (settings.ConvertToKepub && ebookFiles.Any(f => IsConvertibleEpub(f.Path)))
             {
                 kepubify = _kepubify.FindExecutable();
                 if (kepubify == null)
@@ -141,30 +154,159 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
                 }
             }
 
-            foreach (var source in ebooks)
+            foreach (var file in ebookFiles)
             {
+                var source = file.Path;
+
                 if (!File.Exists(source))
                 {
                     _logger.Warn("Talearr: reader hand-off skipped '{0}': the imported file is missing", source);
+                    RecordFailure(file, "The library file is missing");
                     continue;
                 }
 
-                var destination = CopyOne(source, folder, kepubify);
-                if (destination != null)
+                var size = new FileInfo(source).Length;
+                var previous = file.Id > 0 ? _store?.Get(file.Id) : null;
+
+                if (!force && previous != null && previous.IsDeliveredCopyOf(source, size))
                 {
-                    written.Add(destination);
-                    _logger.Info("Talearr: handed '{0}' to the reader folder as '{1}'", Path.GetFileName(source), destination);
+                    _logger.Debug("Talearr: '{0}' was already handed to the reader folder; not sending it again", Path.GetFileName(source));
+                    continue;
+                }
+
+                try
+                {
+                    var destination = CopyOne(source, folder, kepubify);
+                    if (destination != null)
+                    {
+                        written.Add(destination);
+                        RecordDelivery(file, size, destination);
+                        _logger.Info("Talearr: handed '{0}' to the reader folder as '{1}'", Path.GetFileName(source), destination);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(ex, "Talearr: reader hand-off of '{0}' failed", Path.GetFileName(source));
+                    RecordFailure(file, ex.Message, previous);
                 }
             }
 
+            AnnounceChanges();
+
             return written;
+        }
+
+        // Two files are treated as the same book when size and SHA-256 match.
+        public static bool SameContent(string first, string second)
+        {
+            var a = new FileInfo(first);
+            var b = new FileInfo(second);
+
+            if (!a.Exists || !b.Exists || a.Length != b.Length)
+            {
+                return false;
+            }
+
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            using var streamA = a.OpenRead();
+            var hashA = sha.ComputeHash(streamA);
+            using var streamB = b.OpenRead();
+            var hashB = sha.ComputeHash(streamB);
+
+            return hashA.AsSpan().SequenceEqual(hashB);
+        }
+
+        // "Book.epub", then "Book (2).epub" and so on: a name already in the folder is never reused.
+        public static string FreeName(string destination)
+        {
+            if (!File.Exists(destination) && !File.Exists(PartialPathFor(destination)))
+            {
+                return destination;
+            }
+
+            var folder = Path.GetDirectoryName(destination) ?? string.Empty;
+            var name = Path.GetFileName(destination);
+            var extension = name.EndsWith(".kepub.epub", StringComparison.OrdinalIgnoreCase) ? ".kepub.epub" : Path.GetExtension(name);
+            var stem = name.Substring(0, name.Length - extension.Length);
+
+            for (var n = 2; n < 1000; n++)
+            {
+                var candidate = Path.Combine(folder, $"{stem} ({n}){extension}");
+                if (!File.Exists(candidate) && !File.Exists(PartialPathFor(candidate)))
+                {
+                    return candidate;
+                }
+            }
+
+            return Path.Combine(folder, $"{stem} ({Guid.NewGuid():N}){extension}");
+        }
+
+        private void RecordDelivery(BookFile file, long size, string destination)
+        {
+            if (_store == null || file.Id <= 0)
+            {
+                return;
+            }
+
+            _store.Save(new TalearrReaderHandoffDelivery
+            {
+                BookFileId = file.Id,
+                BookId = BookIdOf(file),
+                SourcePath = file.Path,
+                SourceSize = size,
+                DeliveredPath = destination,
+                State = TalearrReaderHandoffStates.Delivered,
+                Attempts = 0,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        private void RecordFailure(BookFile file, string error, TalearrReaderHandoffDelivery previous = null)
+        {
+            if (_store == null || file == null || file.Id <= 0)
+            {
+                return;
+            }
+
+            previous ??= _store.Get(file.Id);
+
+            _store.Save(new TalearrReaderHandoffDelivery
+            {
+                BookFileId = file.Id,
+                BookId = BookIdOf(file) is var bookId && bookId > 0 ? bookId : previous?.BookId ?? 0,
+                SourcePath = file.Path,
+                SourceSize = previous?.SourceSize ?? 0,
+                DeliveredPath = null,
+                State = TalearrReaderHandoffStates.Failed,
+                Attempts = (previous?.State == TalearrReaderHandoffStates.Failed ? previous.Attempts : 0) + 1,
+                LastError = error,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        private static int BookIdOf(BookFile file)
+        {
+            try
+            {
+                return file.Edition?.BookId ?? 0;
+            }
+            catch (Exception)
+            {
+                // The edition is lazy loaded; a book id is only a convenience for the status list.
+                return 0;
+            }
+        }
+
+        private void AnnounceChanges()
+        {
+            _eventAggregator?.PublishEvent(new TalearrReaderHandoffDeliveriesChangedEvent());
         }
 
         private string CopyOne(string source, string folder, string kepubify)
         {
             if (kepubify != null && IsConvertibleEpub(source))
             {
-                var kepubDestination = Path.Combine(folder, KepubFileName(source));
+                var kepubDestination = FreeName(Path.Combine(folder, KepubFileName(source)));
                 var partial = PartialPath(kepubDestination);
                 var error = _kepubify.Convert(kepubify, source, partial);
 
@@ -179,6 +321,14 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
             }
 
             var destination = Path.Combine(folder, Path.GetFileName(source));
+
+            if (File.Exists(destination) && SameContent(source, destination))
+            {
+                // Still in the folder from an earlier hand-off (the reader has not picked it up yet).
+                return destination;
+            }
+
+            destination = FreeName(destination);
             var temp = PartialPath(destination);
 
             try
@@ -197,6 +347,11 @@ namespace NzbDrone.Core.Talearr.ReaderHandoff
         }
 
         private static string PartialPath(string destination)
+        {
+            return PartialPathFor(destination);
+        }
+
+        private static string PartialPathFor(string destination)
         {
             return Path.Combine(Path.GetDirectoryName(destination) ?? string.Empty, "." + Path.GetFileName(destination) + PartialSuffix);
         }

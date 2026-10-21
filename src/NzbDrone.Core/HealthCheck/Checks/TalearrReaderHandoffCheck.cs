@@ -8,23 +8,29 @@ namespace NzbDrone.Core.HealthCheck.Checks
     // the watch folder is missing, or Convert to KEPUB is on without kepubify installed.
     // English text on purpose: it is Talearr-only and stays out of the shared translation files.
     [CheckOn(typeof(TalearrReaderHandoffSettingsChangedEvent))]
+    [CheckOn(typeof(TalearrReaderHandoffDeliveriesChangedEvent))]
     public class TalearrReaderHandoffCheck : HealthCheckBase
     {
         private readonly ITalearrReaderHandoffSettingsService _settingsService;
         private readonly ITalearrKepubify _kepubify;
+        private readonly ITalearrReaderHandoffStore _store;
 
         public TalearrReaderHandoffCheck(ITalearrReaderHandoffSettingsService settingsService,
                                          ITalearrKepubify kepubify,
-                                         ILocalizationService localizationService)
+                                         ILocalizationService localizationService,
+                                         ITalearrReaderHandoffStore store = null)
             : base(localizationService)
         {
             _settingsService = settingsService;
             _kepubify = kepubify;
+            _store = store;
         }
 
         public override HealthCheck Check()
         {
-            var message = GetMessage(_settingsService.Get(), Directory.Exists, () => _kepubify.FindExecutable() != null);
+            var settings = _settingsService.Get();
+            var message = GetMessage(settings, Directory.Exists, () => _kepubify.FindExecutable() != null) ??
+                          GetFailedMessage(settings, _store?.GetFailed().Count ?? 0);
 
             return message == null
                 ? new HealthCheck(GetType())
@@ -49,6 +55,18 @@ namespace NzbDrone.Core.HealthCheck.Checks
             }
 
             return null;
+        }
+
+        public static string GetFailedMessage(TalearrReaderHandoffSettings settings, int failedCount)
+        {
+            if (settings == null || !settings.IsActive || failedCount <= 0)
+            {
+                return null;
+            }
+
+            return failedCount == 1
+                ? "Reader hand-off: 1 ebook could not be copied to the reader folder. Retry it in Settings > Conversion."
+                : $"Reader hand-off: {failedCount} ebooks could not be copied to the reader folder. Retry them in Settings > Conversion.";
         }
     }
 }
