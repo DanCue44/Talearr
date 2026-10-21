@@ -30,7 +30,35 @@ namespace NzbDrone.Core.Talearr.MetadataProfiles
             "dos", "que", "il", "di", "della", "dei", "degli", "gli", "la", "le", "les", "du", "des", "et", "au", "aux",
 
             // Scandinavian, Polish, Turkish
-            "och", "og", "om", "nie", "jak", "ve", "bir"
+            "och", "og", "om", "nie", "jak", "ve", "bir",
+
+            // "Love on the Brain: Nederlandse Editie", "Deutsche Ausgabe"
+            "editie", "edicion", "edición", "edizione", "edição", "ausgabe", "wydanie", "baskı",
+            "nederlandse", "deutsche", "española", "espanol", "español", "française", "francaise", "italiana"
+        };
+
+        // Common English title words. Only used for bare listings (no ISBN or ASIN), where a
+        // title with none of these and none of EnglishWords is most likely a translation
+        // somebody typed in ("Nauczyciele", "Idealny syn", "Menajera").
+        private static readonly HashSet<string> CommonEnglishTitleWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "a", "i", "in", "on", "at", "it", "we", "me", "be", "no", "not", "all", "one", "two", "three", "last", "first",
+            "love", "girl", "girls", "boy", "boys", "man", "men", "woman", "women", "wife", "husband", "mother", "father",
+            "daughter", "son", "sister", "brother", "family", "friend", "friends", "house", "home", "room", "door", "night",
+            "day", "days", "dark", "light", "dead", "death", "die", "kill", "killer", "killing", "murder", "murders", "crime",
+            "crimes", "case", "cases", "secret", "secrets", "lie", "lies", "lost", "found", "little", "big", "new", "old",
+            "time", "war", "world", "king", "queen", "prince", "princess", "blood", "heart", "hearts", "city", "town",
+            "summer", "winter", "spring", "fall", "game", "games", "end", "never", "always", "after", "before", "under",
+            "over", "into", "out", "up", "down", "back", "again", "here", "there", "where", "every", "nothing", "something",
+            "good", "bad", "best", "perfect", "wrong", "right", "true", "real", "only", "other", "another", "us", "them",
+            "he", "she", "they", "him", "girlfriend", "boyfriend", "wedding", "bride", "mate", "date", "deal", "play", "can",
+            "do", "did", "dont", "know", "want", "need", "ever", "brain", "mind", "body", "doctor", "nurse",
+            "teacher", "student", "school", "inmate", "prisoner", "guest", "stranger", "neighbor", "neighbors", "nanny",
+            "housemaid", "maid", "tenant", "coworker", "boss", "intruder", "witch", "magic", "dragon", "fire", "ice",
+            "sea", "sky", "star", "stars", "moon", "sun", "storm", "shadow", "shadows", "rose", "roses", "gold", "silver",
+            "black", "white", "red", "blue", "green", "island", "road", "street", "train", "trip", "party", "dinner",
+            "christmas", "holiday", "baby", "child", "children", "kids", "dog", "cat", "rules", "lessons", "lesson", "art",
+            "history", "people", "power", "money", "free", "wild", "dream", "dreams", "beautiful", "happy", "dear", "med"
         };
 
         // Names and places that start with a foreign article but appear in English titles.
@@ -66,6 +94,22 @@ namespace NzbDrone.Core.Talearr.MetadataProfiles
             var foreign = words.Count(ForeignWords.Contains) + (title.Any(IsForeignLetter) ? 1 : 0);
 
             return foreign > english;
+        }
+
+        /// <summary>
+        /// Talearr: a bare listing (no ISBN or ASIN) whose title has no common English word. Used
+        /// only for editions without a language in English-only profiles.
+        /// </summary>
+        public static bool LooksLikeBareTranslation(string title, string isbn13, string isbn10, string asin)
+        {
+            if (string.IsNullOrWhiteSpace(title) ||
+                !string.IsNullOrWhiteSpace(isbn13) || !string.IsNullOrWhiteSpace(isbn10) || !string.IsNullOrWhiteSpace(asin))
+            {
+                return false;
+            }
+
+            var words = Tokenize(title.ToLowerInvariant());
+            return words.Count > 0 && !words.Any(w => EnglishWords.Contains(w) || CommonEnglishTitleWords.Contains(w));
         }
 
         private static List<string> Tokenize(string value)

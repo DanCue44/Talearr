@@ -27,14 +27,26 @@ namespace NzbDrone.Core.Parser
             "ebook", "e book", "kindle edition", "kindle", "epub", "nook", "nook book",
             "paperback", "hardcover", "hardback", "mass market paperback", "trade paperback", "library binding", "board book",
             "unabridged", "abridged", "retail", "english edition", "english", "large print", "large type",
-            "a novel", "novel", "a memoir", "illustrated", "annotated"
+            "a novel", "novel", "a memoir", "illustrated", "annotated",
+
+            // Talearr: labels Hardcover's audiobook listings carry ("Bound (Unabridged)",
+            // "The Housemaid (Unabridged Audiobook)", "Skyshade (Audible Australia)").
+            "unabridged audiobook", "abridged audiobook", "audio book", "mp3 book", "mp3",
+            "audible australia", "audible uk", "audible studios", "audible original",
+            "original recording", "unabridged edition", "abridged edition",
+            "penguin classics", "penguin modern classics", "vintage classics", "oxford world s classics"
         };
+
+        // Talearr: "(Dueling Crowns Edition)", "(Kickstarter edition)", "(05:29 hh:mm)".
+        private static readonly Regex EditionLabelRegex = new Regex(@"^(?:[\p{L}\p{N}' ]+ )?(?:edition|editie|edicion|edizione|ausgabe)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex DurationLabelRegex = new Regex(@"^\d{1,3}\s*:\s*\d{2}(?:\s*hh\s*:?\s*mm)?$|^\d+\s*(?:hr|hrs|hours?)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly string[][] TrailingNoisePhrases =
         {
             new[] { "a", "novel" },
             new[] { "a", "memoir" },
             new[] { "a", "thriller" },
+            new[] { "a", "novella" },
             new[] { "unabridged" },
             new[] { "abridged" }
         };
@@ -170,8 +182,34 @@ namespace NzbDrone.Core.Parser
 
         public static bool IsFormatQualifier(string label)
         {
-            var normalized = Join(ReleaseTitleMatchScorer.Tokenize(label));
-            return normalized.Length > 0 && FormatQualifierLabels.Contains(normalized);
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                return false;
+            }
+
+            if (DurationLabelRegex.IsMatch(label.Trim()))
+            {
+                return true;
+            }
+
+            var normalized = Join(ReleaseTitleMatchScorer.Tokenize(label.Replace('_', ' ')));
+            return normalized.Length > 0 && (FormatQualifierLabels.Contains(normalized) || EditionLabelRegex.IsMatch(normalized));
+        }
+
+        /// <summary>
+        /// Talearr: the title to show for a book, without format-only brackets
+        /// ("Nineteen Eighty-Four (MP3 Book)" becomes "Nineteen Eighty-Four"). Falls back to the
+        /// original when nothing would be left.
+        /// </summary>
+        public static string CleanDisplayTitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return title;
+            }
+
+            var cleaned = Regex.Replace(StripFormatBrackets(title), @"\s{2,}", " ").Trim();
+            return cleaned.Length == 0 ? title.Trim() : cleaned;
         }
 
         private static List<string> CleanTokens(string title)

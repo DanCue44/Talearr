@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace NzbDrone.Core.Talearr.Metadata.Source
 {
@@ -65,6 +66,15 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         public List<HardcoverBookSeriesRecord> Series { get; set; } = new List<HardcoverBookSeriesRecord>();
 
         public List<HardcoverEditionRecord> Editions { get; set; } = new List<HardcoverEditionRecord>();
+
+        // Talearr: a copy whose lists can be changed without touching a cached catalog.
+        public HardcoverBookRecord CopyForFold()
+        {
+            var copy = (HardcoverBookRecord)MemberwiseClone();
+            copy.Editions = Editions?.ToList() ?? new List<HardcoverEditionRecord>();
+            copy.Series = Series?.ToList() ?? new List<HardcoverBookSeriesRecord>();
+            return copy;
+        }
     }
 
     public class HardcoverBookSeriesRecord

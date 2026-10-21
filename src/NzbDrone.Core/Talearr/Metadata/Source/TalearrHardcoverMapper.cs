@@ -5,6 +5,7 @@ using System.Linq;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.MetadataSource.BookInfo.V5;
+using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.Talearr.Metadata.Source
 {
@@ -24,7 +25,9 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
     //            members name works by hc:{books.id}
     // Hardcover duplicates (book_status_id 4 or canonical_id set) are not books of their own;
     // their ids are listed in the canonical work's provider_ids_all so a local row created from
-    // the duplicate id still matches.
+    // the duplicate id still matches. Separate Hardcover books for one work ("Bound" and
+    // "Bound (Unabridged)", "Moderation" and "Moderation: A Novel") are folded the same way
+    // (FoldTitleVariants).
     public static class TalearrHardcoverMapper
     {
         public const string SourceName = "Hardcover";
@@ -107,7 +110,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
 
             var books = new List<V5Book>();
             var seen = new HashSet<int>();
-            foreach (var record in catalog.Books ?? new List<HardcoverBookRecord>())
+            foreach (var record in FoldTitleVariants(catalog.Books, aliasesByCanonical))
             {
                 if (record == null || !seen.Add(record.Id))
                 {
@@ -127,6 +130,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                     }
                 }
 
+                record.Title = TalearrTitleNormalizer.CleanDisplayTitle(record.Title);
                 aliasesByCanonical.TryGetValue(record.Id, out var aliases);
                 var book = BuildBook(record, catalog.Series, aliases);
                 if (book != null)
@@ -165,6 +169,109 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                     }
                 }
             };
+        }
+
+        // Talearr: Hardcover often has one book per audiobook listing or retitled printing of a
+        // work ("Bound (Unabridged)", "The Housemaid (Unabridged Audiobook)", "Summer in the City:
+        // A Novel"). Books whose titles are the same work title (TalearrTitleNormalizer.NormalizeFull)
+        // become one book: the most read one is kept, the others' editions and series links are
+        // added to it, and their ids become aliases so local rows made from them still match.
+        // Compilations are never folded.
+        internal static List<HardcoverBookRecord> FoldTitleVariants(IEnumerable<HardcoverBookRecord> records, Dictionary<int, List<int>> aliasesByCanonical)
+        {
+            var result = new List<HardcoverBookRecord>();
+            var groups = new Dictionary<string, List<HardcoverBookRecord>>(StringComparer.Ordinal);
+            var order = new List<string>();
+
+            foreach (var record in records ?? Enumerable.Empty<HardcoverBookRecord>())
+            {
+                if (record == null)
+                {
+                    continue;
+                }
+
+                var key = record.Compilation || string.IsNullOrWhiteSpace(record.Title)
+                    ? null
+                    : TalearrTitleNormalizer.NormalizeFull(record.Title);
+
+                if (string.IsNullOrEmpty(key))
+                {
+                    key = $"#{record.Id}";
+                }
+
+                if (!groups.TryGetValue(key, out var group))
+                {
+                    group = new List<HardcoverBookRecord>();
+                    groups[key] = group;
+                    order.Add(key);
+                }
+
+                if (group.All(r => r.Id != record.Id))
+                {
+                    group.Add(record);
+                }
+            }
+
+            foreach (var key in order)
+            {
+                var group = groups[key];
+                if (group.Count == 1)
+                {
+                    result.Add(group[0]);
+                    continue;
+                }
+
+                var ranked = group
+                    .OrderByDescending(r => r.UsersCount)
+                    .ThenBy(r => TalearrTitleNormalizer.CleanDisplayTitle(r.Title).Length)
+                    .ThenBy(r => r.Id)
+                    .ToList();
+
+                var primary = ranked[0].CopyForFold();
+                primary.Title = ranked
+                    .Select(r => TalearrTitleNormalizer.CleanDisplayTitle(r.Title))
+                    .OrderBy(t => t.Length)
+                    .First();
+
+                var aliases = aliasesByCanonical.TryGetValue(primary.Id, out var existing) ? existing : new List<int>();
+                foreach (var other in ranked.Skip(1))
+                {
+                    if (!aliases.Contains(other.Id))
+                    {
+                        aliases.Add(other.Id);
+                    }
+
+                    if (aliasesByCanonical.TryGetValue(other.Id, out var otherAliases))
+                    {
+                        aliases.AddRange(otherAliases.Where(a => !aliases.Contains(a)));
+                    }
+
+                    var editionIds = new HashSet<int>(primary.Editions.Where(e => e != null).Select(e => e.Id));
+                    primary.Editions.AddRange((other.Editions ?? new List<HardcoverEditionRecord>()).Where(e => e != null && editionIds.Add(e.Id)));
+
+                    var seriesIds = new HashSet<int>(primary.Series.Select(s => s.SeriesId));
+                    primary.Series.AddRange((other.Series ?? new List<HardcoverBookSeriesRecord>()).Where(s => s != null && seriesIds.Add(s.SeriesId)));
+
+                    primary.UsersCount += other.UsersCount;
+                    primary.Description ??= other.Description;
+                    primary.ImageUrl ??= other.ImageUrl;
+                    primary.ReleaseDate ??= other.ReleaseDate;
+                    primary.ReleaseYear ??= other.ReleaseYear;
+                    primary.Pages ??= other.Pages;
+                    primary.AudioSeconds ??= other.AudioSeconds;
+                    primary.DefaultAudioEditionId ??= other.DefaultAudioEditionId;
+                    primary.DefaultEbookEditionId ??= other.DefaultEbookEditionId;
+                    if (other.UpdatedAt > primary.UpdatedAt)
+                    {
+                        primary.UpdatedAt = other.UpdatedAt;
+                    }
+                }
+
+                aliasesByCanonical[primary.Id] = aliases;
+                result.Add(primary);
+            }
+
+            return result;
         }
 
         internal static V5AuthorData BuildAuthor(HardcoverAuthorRecord record)

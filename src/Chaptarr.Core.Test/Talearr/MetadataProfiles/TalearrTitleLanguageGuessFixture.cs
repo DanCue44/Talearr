@@ -10,6 +10,7 @@ namespace Chaptarr.Core.Test.Talearr.MetadataProfiles
     public class TalearrTitleLanguageGuessFixture
     {
         [TestCase("Der Lehrer")]
+        [TestCase("Love on the Brain: Nederlandse Editie")]
         [TestCase("El intercambio")]
         [TestCase("Die verschlossene Tür")]
         [TestCase("To nie moje imię")]
@@ -32,7 +33,6 @@ namespace Chaptarr.Core.Test.Talearr.MetadataProfiles
         [TestCase("Retratos")]
         [TestCase("Unbound")]
         [TestCase("Wes Bennett's Vivid Dream")]
-        [TestCase("Love on the Brain: Nederlandse Editie")]
         [TestCase("Murders in Los Angeles")]
         [TestCase("Gödel, Escher, Bach: An Eternal Golden Braid")]
         [TestCase("Café Society")]

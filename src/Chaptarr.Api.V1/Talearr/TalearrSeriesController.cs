@@ -54,11 +54,15 @@ namespace Chaptarr.Api.V1.Talearr
         }
 
         // Every series in the library (one entry per series, whatever its media type rows), or
-        // only the monitored ones.
+        // only the monitored ones. Series left with no books (their books were filtered out or
+        // merged away) are not listed unless they are monitored.
         [HttpGet]
         public List<TalearrSeriesSummaryResource> GetSeries(bool monitoredOnly = false)
         {
-            return _seriesMonitorService.GetSeries(monitoredOnly).Select(ToResource).ToList();
+            return _seriesMonitorService.GetSeries(monitoredOnly)
+                .Where(s => s.BookCount > 0 || s.Rule != null)
+                .Select(ToResource)
+                .ToList();
         }
 
         // seriesId may be either media type row of the series.

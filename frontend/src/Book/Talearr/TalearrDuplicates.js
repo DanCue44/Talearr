@@ -89,7 +89,11 @@ class TalearrDuplicates extends Component {
       previewError: null,
       canForce: false,
       isMerging: false,
-      lastResult: null
+      lastResult: null,
+      mergeAll: null,
+      mergeAllError: null,
+      isMergingAll: false,
+      lastMergeAll: null
     };
   }
 
@@ -225,6 +229,47 @@ class TalearrDuplicates extends Component {
       });
   };
 
+  postMergeAll(dryRun) {
+    return createAjaxRequest({
+      url: '/talearr/merge/books/all',
+      method: 'POST',
+      dataType: 'json',
+      contentType: 'application/json',
+      data: JSON.stringify({ dryRun })
+    }).request;
+  }
+
+  // Talearr: one preview and one confirm for every book set the page lists.
+  onMergeAllPress = () => {
+    this.setState({ mergeAll: { merged: [], skipped: [] }, mergeAllError: null, isMergingAll: true });
+
+    this.postMergeAll(true)
+      .done((preview) => this.setState({ mergeAll: preview, isMergingAll: false }))
+      .fail((xhr) => this.setState({ mergeAllError: readError(xhr, 'Unable to preview the merge.'), isMergingAll: false }));
+  };
+
+  onConfirmMergeAll = () => {
+    const { mergeAll } = this.state;
+
+    if (!mergeAll || !mergeAll.merged.length) {
+      this.onCancelMergeAll();
+      return;
+    }
+
+    this.setState({ isMergingAll: true });
+
+    this.postMergeAll(false)
+      .done((result) => {
+        this.setState({ mergeAll: null, isMergingAll: false, lastMergeAll: result });
+        this.fetchCandidates();
+      })
+      .fail((xhr) => this.setState({ mergeAllError: readError(xhr, 'The merge failed; nothing was changed.'), isMergingAll: false }));
+  };
+
+  onCancelMergeAll = () => {
+    this.setState({ mergeAll: null, mergeAllError: null, isMergingAll: false });
+  };
+
   onCancelMerge = () => {
     this.setState({ pending: null, preview: null, previewError: null, canForce: false, isMerging: false });
   };
@@ -288,6 +333,48 @@ class TalearrDuplicates extends Component {
           (preview.notes || []).map((note) => (
             <div key={note} className={styles.note}>{note}</div>
           ))
+        }
+
+        <div className={styles.note}>
+          {'Files on disk are not moved, renamed or deleted. The merged-away rows are removed from the database.'}
+        </div>
+      </div>
+    );
+  }
+
+  renderMergeAllMessage() {
+    const { mergeAll, mergeAllError, isMergingAll } = this.state;
+
+    if (mergeAllError) {
+      return <Alert kind={kinds.DANGER}>{mergeAllError}</Alert>;
+    }
+
+    if (!mergeAll || (isMergingAll && !mergeAll.merged.length && !mergeAll.skipped.length)) {
+      return <LoadingIndicator />;
+    }
+
+    return (
+      <div>
+        <div className={styles.summary}>
+          {mergeAll.merged.length ?
+            `Merge ${mergeAll.merged.length} duplicate book ${mergeAll.merged.length === 1 ? 'set' : 'sets'}, keeping the row with files (or the monitored one) in each:` :
+            'There is nothing to merge automatically.'}
+        </div>
+
+        <ul className={styles.changes}>
+          {
+            mergeAll.merged.map((item) => (
+              <li key={item.targetId}>{`"${item.targetName}" (#${item.targetId}) takes #${item.mergedIds.join(', #')}`}</li>
+            ))
+          }
+        </ul>
+
+        {
+          mergeAll.skipped.length ?
+            <div className={styles.note}>
+              {`Left for you to review: ${mergeAll.skipped.map((s) => `"${s.title}" (${s.reason})`).join(', ')}.`}
+            </div> :
+            null
         }
 
         <div className={styles.note}>
@@ -390,7 +477,7 @@ class TalearrDuplicates extends Component {
   }
 
   render() {
-    const { isFetching, error, authors, books, pending, preview, canForce, isMerging, lastResult } = this.state;
+    const { isFetching, error, authors, books, pending, preview, canForce, isMerging, lastResult, mergeAll, isMergingAll, lastMergeAll } = this.state;
     const hasData = authors.length || books.length;
 
     let confirmLabel = 'Close';
@@ -410,6 +497,13 @@ class TalearrDuplicates extends Component {
               isSpinning={isFetching}
               onPress={this.onRefreshPress}
             />
+
+            <PageToolbarButton
+              label="Merge All Books"
+              iconName={icons.ORGANIZE}
+              isDisabled={!books.length}
+              onPress={this.onMergeAllPress}
+            />
           </PageToolbarSection>
         </PageToolbar>
 
@@ -422,6 +516,14 @@ class TalearrDuplicates extends Component {
             lastResult ?
               <Alert kind={kinds.SUCCESS}>
                 {`Merged #${lastResult.mergedIds.join(', #')} into #${lastResult.targetId} "${lastResult.targetName}".`}
+              </Alert> :
+              null
+          }
+
+          {
+            lastMergeAll ?
+              <Alert kind={kinds.SUCCESS}>
+                {`Merged ${lastMergeAll.merged.length} duplicate book ${lastMergeAll.merged.length === 1 ? 'set' : 'sets'}.`}
               </Alert> :
               null
           }
@@ -460,6 +562,17 @@ class TalearrDuplicates extends Component {
           isSpinning={isMerging}
           onConfirm={this.onConfirmMerge}
           onCancel={this.onCancelMerge}
+        />
+
+        <ConfirmModal
+          isOpen={!!mergeAll}
+          kind={kinds.DANGER}
+          title="Merge all duplicate books"
+          message={this.renderMergeAllMessage()}
+          confirmLabel={mergeAll && mergeAll.merged.length ? 'Merge All' : 'Close'}
+          isSpinning={isMergingAll}
+          onConfirm={this.onConfirmMergeAll}
+          onCancel={this.onCancelMergeAll}
         />
       </PageContent>
     );

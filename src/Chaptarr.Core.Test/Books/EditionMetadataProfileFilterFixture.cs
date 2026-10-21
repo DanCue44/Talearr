@@ -111,7 +111,7 @@ namespace Chaptarr.Core.Test.Books
             var editions = new List<Edition>
             {
                 new Edition { Title = "English", Language = "eng" },
-                new Edition { Title = "Unknown", Language = null },
+                new Edition { Title = "Unknown", Language = null, Isbn13 = "9780000000002" },
                 new Edition { Title = "French", Language = "fra" }
             };
 
