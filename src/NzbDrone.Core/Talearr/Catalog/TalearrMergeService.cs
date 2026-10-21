@@ -516,7 +516,10 @@ namespace NzbDrone.Core.Talearr.Catalog
                 }
             }
 
-            KeepOneMonitoredEdition(conn, tran, target.Id, targetHadMonitored ? targetEditions.Where(t => t.Monitored).Select(t => t.Id).ToList() : null);
+            // A placeholder edition (no provider id) is not a choice worth keeping over a real one.
+            KeepOneMonitoredEdition(conn, tran, target.Id, targetHadMonitored
+                ? targetEditions.Where(t => t.Monitored && t.ForeignEditionId.IsNotNullOrWhiteSpace()).Select(t => t.Id).ToList()
+                : null);
 
             Step(report, "history", conn, tran, @"UPDATE ""History"" SET ""BookId"" = @Target WHERE ""BookId"" = @Source", p);
             Step(report, "downloadHistory", conn, tran, @"UPDATE ""DownloadHistory"" SET ""BookId"" = @Target WHERE ""BookId"" = @Source", p);
@@ -550,11 +553,12 @@ namespace NzbDrone.Core.Talearr.Catalog
         }
 
         // One monitored edition per book (EditionSelector's invariant): the target's own choice
-        // wins; otherwise the merged edition with the most files, then the lowest id.
+        // wins; otherwise the merged edition with the most files, then one with a provider id,
+        // then the lowest id.
         private static void KeepOneMonitoredEdition(IDbConnection conn, IDbTransaction tran, int bookId, List<int> preferred)
         {
-            var monitored = conn.Query<(int Id, int Files)>(
-                    @"SELECT e.""Id"", (SELECT COUNT(*) FROM ""BookFiles"" f WHERE f.""EditionId"" = e.""Id"") AS ""Files""
+            var monitored = conn.Query<(int Id, int Files, string ForeignEditionId)>(
+                    @"SELECT e.""Id"", (SELECT COUNT(*) FROM ""BookFiles"" f WHERE f.""EditionId"" = e.""Id"") AS ""Files"", e.""ForeignEditionId""
                       FROM ""Editions"" e
                       WHERE e.""BookId"" = @BookId AND e.""Monitored"" = @True",
                     new { BookId = bookId, True = true },
@@ -569,7 +573,11 @@ namespace NzbDrone.Core.Talearr.Catalog
             var keep = preferred?.FirstOrDefault(id => monitored.Any(m => m.Id == id)) ?? 0;
             if (keep == 0)
             {
-                keep = monitored.OrderByDescending(m => m.Files).ThenBy(m => m.Id).First().Id;
+                keep = monitored
+                    .OrderByDescending(m => m.Files)
+                    .ThenByDescending(m => m.ForeignEditionId.IsNotNullOrWhiteSpace())
+                    .ThenBy(m => m.Id)
+                    .First().Id;
             }
 
             conn.Execute(@"UPDATE ""Editions"" SET ""Monitored"" = @False WHERE ""BookId"" = @BookId AND ""Monitored"" = @True AND ""Id"" <> @Keep",

@@ -20,6 +20,10 @@ namespace NzbDrone.Core.Books
         // Talearr: clears an automatically chosen edition in a non-preferred language so the
         // single-monitored repair can pick the preferred-language edition instead.
         bool ReleaseForeignAutoSelectedEdition(List<Edition> editions, IReadOnlyDictionary<int, int> fileCountsByEditionId, BookMediaType? mediaType);
+
+        // Talearr: clears a monitored placeholder edition (no provider id, no cover, no files)
+        // when real editions of the book's format exist.
+        bool ReleaseStubMonitoredEdition(List<Edition> editions, IReadOnlyDictionary<int, int> fileCountsByEditionId, BookMediaType? mediaType);
     }
 
     public sealed record EditionRetentionSelection(
@@ -381,6 +385,68 @@ namespace NzbDrone.Core.Books
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Talearr: a monitored edition with no provider identity and no cover is a placeholder
+        /// (for example a copy-row edition built from an untrusted match). When it owns no files and
+        /// was not picked by hand, and the book has real editions of its own format, clear the flags
+        /// so EnsureSingleMonitoredEdition chooses a real edition.
+        /// </summary>
+        public bool ReleaseStubMonitoredEdition(List<Edition> editions, IReadOnlyDictionary<int, int> fileCountsByEditionId, BookMediaType? mediaType)
+        {
+            if (editions == null || !mediaType.HasValue)
+            {
+                return false;
+            }
+
+            var list = editions.Where(e => e != null).ToList();
+            var monitored = list.Where(e => e.Monitored).ToList();
+            if (monitored.Count != 1)
+            {
+                return false;
+            }
+
+            var current = monitored[0];
+            if (current.ManualAdd || !IsStubEdition(current))
+            {
+                return false;
+            }
+
+            if (fileCountsByEditionId != null && current.Id > 0 &&
+                fileCountsByEditionId.TryGetValue(current.Id, out var count) && count > 0)
+            {
+                return false;
+            }
+
+            var nativeFormat = mediaType.Value == BookMediaType.Audiobook ? 2 : 3;
+            var realEditions = list
+                .Where(e => !ReferenceEquals(e, current) && !IsStubEdition(e))
+                .Where(e => e.ReadingFormatId == nativeFormat ||
+                            (mediaType.Value == BookMediaType.Ebook ? e.IsEbook : e.ReadingFormatId == 2))
+                .ToList();
+
+            if (!realEditions.Any())
+            {
+                return false;
+            }
+
+            _logger.Info("[EditionRepair] BookId={0}: placeholder edition {1} (no provider id, no cover) released for a real edition",
+                current.BookId, current.Id);
+
+            foreach (var edition in list)
+            {
+                edition.Monitored = false;
+            }
+
+            return true;
+        }
+
+        internal static bool IsStubEdition(Edition edition)
+        {
+            return edition != null &&
+                   edition.ForeignEditionId.IsNullOrWhiteSpace() &&
+                   (edition.Images == null || edition.Images.Count == 0);
         }
 
         internal static string GetRetentionDedupeKey(Edition edition)

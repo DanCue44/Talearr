@@ -1134,6 +1134,10 @@ namespace NzbDrone.Core.Books
                 _editionSelector.ReleaseForeignAutoSelectedEdition(all, fileCountsByEditionId, mediaType);
             }
 
+            // Talearr: a placeholder edition (no provider id, no cover, no files) never stays monitored
+            // over real editions, whatever AnyEditionOk says, since it carries no user choice.
+            _editionSelector.ReleaseStubMonitoredEdition(all, fileCountsByEditionId, mediaType);
+
             _editionSelector.EnsureSingleMonitoredEdition(all, fileCountsByEditionId, mediaType);
 
             PersistMonitoredChanges(children, beforeMonitoredById);

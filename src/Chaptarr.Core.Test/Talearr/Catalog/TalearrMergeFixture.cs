@@ -162,6 +162,24 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
         }
 
         [Test]
+        public void merge_books_prefers_a_real_edition_over_the_targets_placeholder()
+        {
+            // Caught Up shape: the kept row's monitored edition is a placeholder (no provider id).
+            using (var conn = _db.Open())
+            {
+                _db.Insert(conn, "Books", new { Id = 30, AuthorId = 1, Title = "Caught Up", CleanTitle = "caughtup", MediaType = 1, EbookMonitored = true, HardcoverBookId = "hc:1581190", AnyEditionOk = true });
+                _db.Insert(conn, "Books", new { Id = 31, AuthorId = 1, Title = "Caught Up", CleanTitle = "caughtup", MediaType = 1, EbookMonitored = true, HardcoverBookId = "hc:1581190", AnyEditionOk = true });
+                _db.Insert(conn, "Editions", new { Id = 300, BookId = 30, Title = "Caught Up", Monitored = true });
+                _db.Insert(conn, "Editions", new { Id = 310, BookId = 31, Title = "Caught Up", ForeignEditionId = "hc:edition:32092258-ebook", Monitored = true });
+            }
+
+            _subject.MergeBooks(new TalearrMergeRequest { TargetId = 30, SourceIds = { 31 } });
+
+            Assert.That(Scalar<int>("SELECT COUNT(*) FROM Editions WHERE BookId = 30 AND Monitored = 1"), Is.EqualTo(1));
+            Assert.That(Scalar<bool>("SELECT Monitored FROM Editions WHERE Id = 310"), Is.True, "the real edition stays monitored");
+        }
+
+        [Test]
         public void dry_run_reports_the_same_counts_and_changes_nothing()
         {
             var before = Snapshot();

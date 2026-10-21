@@ -43,7 +43,11 @@ function createMapStateToProps() {
 
       // Talearr: a work with an ebook and an audiobook shows the ebook's cover on both formats
       const editionImages = (bookDetails.images && bookDetails.images.length) ? bookDetails.images : (book.images || []);
-      const images = (coverImages && coverImages.length && book.mediaType !== 'ebook') ? coverImages : editionImages;
+      let images = editionImages;
+
+      if (coverImages && coverImages.length && (book.mediaType !== 'ebook' || !editionImages.length)) {
+        images = coverImages;
+      }
 
       // Use book's own properties if available, fallback to edition details
       return {

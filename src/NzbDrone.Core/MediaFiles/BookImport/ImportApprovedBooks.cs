@@ -3687,6 +3687,15 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                     ReleaseDate = originalEdition.ReleaseDate,
                     PageCount = originalEdition.PageCount,
                     Isbn13 = originalEdition.Isbn13,
+                    Isbn10 = originalEdition.Isbn10,
+                    // Talearr: keep the matched edition's cover, links and language; a copy edition
+                    // without them showed no cover and looked like a blank stub to edition repair.
+                    Images = originalEdition.Images != null ? new List<MediaCover.MediaCover>(originalEdition.Images) : new List<MediaCover.MediaCover>(),
+                    Links = originalEdition.Links != null ? new List<Links>(originalEdition.Links) : new List<Links>(),
+                    Language = originalEdition.Language,
+                    Publisher = originalEdition.Publisher,
+                    Overview = originalEdition.Overview,
+                    EditionFormat = originalEdition.EditionFormat,
                     Asin = originalEdition.Asin,
                     Asins = originalEdition.Asins != null ? new List<string>(originalEdition.Asins) : new List<string>(),
                     GoodreadsEditionId = originalEdition.GoodreadsEditionId,

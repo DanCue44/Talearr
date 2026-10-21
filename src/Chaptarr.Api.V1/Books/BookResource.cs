@@ -150,6 +150,36 @@ namespace Chaptarr.Api.V1.Books
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+        // Talearr: the monitored edition's cover, else the best-rated edition of the book that has a
+        // cover (its own format first), else the book's own images. A monitored placeholder edition
+        // without a cover no longer leaves the book blank.
+        internal static List<MediaCover> SelectCoverImages(Book model, Edition selectedEdition)
+        {
+            static List<MediaCover> Usable(IEnumerable<MediaCover> images) =>
+                (images ?? Enumerable.Empty<MediaCover>()).Where(i => !string.IsNullOrWhiteSpace(i?.Url)).ToList();
+
+            if (selectedEdition == null)
+            {
+                return Usable(model.Images);
+            }
+
+            var selected = Usable(selectedEdition.Images);
+            if (selected.Count > 0)
+            {
+                return selected;
+            }
+
+            var nativeFormat = model.MediaType == BookMediaType.Audiobook ? 2 : 3;
+            var fallback = (model.Editions ?? new List<Edition>())
+                .Where(e => e != null && !ReferenceEquals(e, selectedEdition) && Usable(e.Images).Count > 0)
+                .OrderByDescending(e => e.ReadingFormatId == nativeFormat)
+                .ThenByDescending(e => e.Ratings?.Votes ?? 0)
+                .ThenBy(e => e.Id)
+                .FirstOrDefault();
+
+            return fallback != null ? Usable(fallback.Images) : Usable(model.Images);
+        }
+
         public static BookResource ToResource(this Book model)
         {
             return ToResource(model, BookResourceMappingOptions.Rich());
@@ -244,9 +274,7 @@ namespace Chaptarr.Api.V1.Books
                 Overview = options.IncludeOverview && !string.IsNullOrWhiteSpace(selectedEdition?.Overview)
                     ? selectedEdition.Overview
                     : (options.IncludeOverview ? (model.Overview ?? string.Empty) : null),
-                Images = selectedEdition != null
-                    ? (selectedEdition.Images ?? new List<MediaCover>()).Where(i => !string.IsNullOrWhiteSpace(i?.Url)).ToList()
-                    : (model.Images ?? new List<MediaCover>()).Where(i => !string.IsNullOrWhiteSpace(i?.Url)).ToList(),
+                Images = SelectCoverImages(model, selectedEdition),
                 Links = links,
                 Statistics = options.Statistics?.ToResource(),
                 AddOptions = model.AddOptions,

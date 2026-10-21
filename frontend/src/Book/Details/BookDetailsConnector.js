@@ -186,8 +186,9 @@ function createMapStateToProps() {
           nextBook,
           hasBookNavigation,
           otherFormatBookId: otherFormatBook?.id,
-          // Talearr: the page shows the ebook's cover for the whole work, like the Books cards
-          workCoverImages: ebookRow?.images?.length ? ebookRow.images : undefined,
+          // Talearr: the page shows the ebook's cover for the whole work, like the Books cards,
+          // and falls back to the other format's cover when the ebook has none
+          workCoverImages: [ebookRow, otherFormatBook].map((row) => row?.images).find((images) => images?.length),
           isSmallScreen: dimensions.isSmallScreen
         };
       } catch (error) {
