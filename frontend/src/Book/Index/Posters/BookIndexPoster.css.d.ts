@@ -9,6 +9,7 @@ interface CssExports {
   'ended': string;
   'link': string;
   'mediaType': string;
+  'mediaTypeMissing': string;
   'nextAiring': string;
   'overlayTitle': string;
   'poster': string;

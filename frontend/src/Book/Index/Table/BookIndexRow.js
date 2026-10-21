@@ -6,6 +6,7 @@ import DeleteAuthorModal from 'Author/Delete/DeleteAuthorModal';
 import EditAuthorModalConnector from 'Author/Edit/EditAuthorModalConnector';
 import BookNameLink from 'Book/BookNameLink';
 import EditBookModalConnector from 'Book/Edit/EditBookModalConnector';
+import MediaTypeBadges from 'Book/Index/MediaTypeBadges';
 import NarratorCell from 'Components/Book/NarratorCell';
 import HeartRating from 'Components/HeartRating';
 import IconButton from 'Components/Link/IconButton';
@@ -95,6 +96,7 @@ class BookIndexRow extends Component {
       selectedMediaType,
       mediaType,
       showMediaType,
+      formats,
       title,
       author,
       authorTitle,
@@ -191,9 +193,11 @@ class BookIndexRow extends Component {
                 >
                   {
                     showMediaType &&
-                      <span title={rowMediaType === 'ebook' ? 'eBook' : 'Audiobook'}>
-                        {rowMediaType === 'ebook' ? '📖 ' : '🎧 '}
-                      </span>
+                      <MediaTypeBadges
+                        className={styles.mediaType}
+                        missingClassName={styles.mediaTypeMissing}
+                        formats={formats || [{ mediaType: rowMediaType, hasFile: bookFileCount > 0 }]}
+                      />
                   }
                   <BookNameLink
                     titleSlug={titleSlug}
@@ -442,6 +446,7 @@ BookIndexRow.propTypes = {
   localBookId: PropTypes.string,
   mediaType: PropTypes.string,
   showMediaType: PropTypes.bool,
+  formats: PropTypes.arrayOf(PropTypes.object),
   author: PropTypes.object,
   authorTitle: PropTypes.string,
   narrator: PropTypes.string,

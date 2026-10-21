@@ -22,6 +22,7 @@ import getSelectedIds from 'Utilities/Table/getSelectedIds';
 import selectAll from 'Utilities/Table/selectAll';
 import toggleSelected from 'Utilities/Table/toggleSelected';
 import BookIndexFooterConnector from './BookIndexFooterConnector';
+import { expandGroupIds } from './groupBookFormats';
 import BookIndexFilterMenu from './Menus/BookIndexFilterMenu';
 import BookIndexSortMenu from './Menus/BookIndexSortMenu';
 import BookIndexViewMenu from './Menus/BookIndexViewMenu';
@@ -126,7 +127,8 @@ class BookIndex extends Component {
     if (this.state.allUnselected) {
       return [];
     }
-    return getSelectedIds(this.state.selectedState);
+    // Talearr: a combined item stands for every format row of its work
+    return expandGroupIds(getSelectedIds(this.state.selectedState), this.props.items);
   };
 
   setSelectedState(reset = false) {
@@ -370,7 +372,7 @@ class BookIndex extends Component {
 
   onSearchConfirmed = () => {
     const selectedBookIds = this.getSelectedIds();
-    const searchIds = this.state.isEditorActive && selectedBookIds.length > 0 ? selectedBookIds : this.props.items.map((m) => m.id);
+    const searchIds = this.state.isEditorActive && selectedBookIds.length > 0 ? selectedBookIds : expandGroupIds(this.props.items.map((m) => m.id), this.props.items);
 
     this.props.onSearchPress(searchIds);
     this.setState({ isConfirmSearchModalOpen: false });

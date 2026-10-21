@@ -189,6 +189,8 @@ class BookIndexOverviews extends Component {
           timeFormat={timeFormat}
           isSmallScreen={isSmallScreen}
           bookId={book.id}
+          groupBookIds={book.groupBookIds}
+          formats={book.formats}
           authorId={book.authorId}
           isSelected={selectedState[book.id]}
           onSelectedChange={onSelectedChange}

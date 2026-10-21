@@ -95,6 +95,14 @@ $hoverScale: 1.05;
   background-color: rgba(0, 0, 0, 0.6);
   font-size: $smallFontSize;
   line-height: 1.6;
+
+  span + span {
+    margin-left: 4px;
+  }
+}
+
+.mediaTypeMissing {
+  opacity: 0.4;
 }
 
 .editorSelect {

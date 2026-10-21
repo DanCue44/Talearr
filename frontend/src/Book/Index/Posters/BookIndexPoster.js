@@ -5,6 +5,7 @@ import DeleteAuthorModal from 'Author/Delete/DeleteAuthorModal';
 import EditAuthorModalConnector from 'Author/Edit/EditAuthorModalConnector';
 import BookCover from 'Book/BookCover';
 import EditBookModalConnector from 'Book/Edit/EditBookModalConnector';
+import MediaTypeBadges from 'Book/Index/MediaTypeBadges';
 import BookIndexProgressBar from 'Book/Index/ProgressBar/BookIndexProgressBar';
 import Icon from 'Components/Icon';
 import Label from 'Components/Label';
@@ -123,6 +124,7 @@ class BookIndexPoster extends Component {
       title,
       mediaType,
       showMediaType,
+      formats,
       authorId,
       author,
       audiobookMonitored,
@@ -207,12 +209,11 @@ class BookIndexPoster extends Component {
 
             {
               showMediaType &&
-                <div
+                <MediaTypeBadges
                   className={styles.mediaType}
-                  title={mediaType === 'ebook' ? 'eBook' : 'Audiobook'}
-                >
-                  {mediaType === 'ebook' ? '📖' : '🎧'}
-                </div>
+                  missingClassName={styles.mediaTypeMissing}
+                  formats={formats || [{ mediaType, hasFile: statistics.bookFileCount > 0 }]}
+                />
             }
 
             <Label
@@ -377,6 +378,7 @@ BookIndexPoster.propTypes = {
   author: PropTypes.object.isRequired,
   mediaType: PropTypes.string,
   showMediaType: PropTypes.bool,
+  formats: PropTypes.arrayOf(PropTypes.object),
   audiobookMonitored: PropTypes.bool,
   ebookMonitored: PropTypes.bool,
   titleSlug: PropTypes.string.isRequired,

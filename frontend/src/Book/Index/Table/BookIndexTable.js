@@ -69,6 +69,8 @@ class BookIndexTable extends Component {
           selectedMediaType={selectedMediaType}
           authorId={book.authorId}
           bookId={book.id}
+          groupBookIds={book.groupBookIds}
+          formats={book.formats}
           isSelected={selectedState[book.id]}
           onSelectedChange={onSelectedChange}
           isEditorActive={isEditorActive}

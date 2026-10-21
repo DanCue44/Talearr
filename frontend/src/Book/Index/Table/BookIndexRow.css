@@ -150,3 +150,15 @@
 
   margin-top: 0;
 }
+
+.mediaType {
+  margin-right: 6px;
+
+  span + span {
+    margin-left: 3px;
+  }
+}
+
+.mediaTypeMissing {
+  opacity: 0.4;
+}

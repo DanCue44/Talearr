@@ -5,6 +5,7 @@ import TextTruncate from 'react-text-truncate';
 import DeleteAuthorModal from 'Author/Delete/DeleteAuthorModal';
 import EditAuthorModalConnector from 'Author/Edit/EditAuthorModalConnector';
 import BookCover from 'Book/BookCover';
+import MediaTypeBadges from 'Book/Index/MediaTypeBadges';
 import BookIndexProgressBar from 'Book/Index/ProgressBar/BookIndexProgressBar';
 import Icon from 'Components/Icon';
 import IconButton from 'Components/Link/IconButton';
@@ -133,6 +134,9 @@ class BookIndexOverview extends Component {
       id,
       authorId,
       title,
+      mediaType,
+      showMediaType,
+      formats,
       audiobookMonitored,
       ebookMonitored,
       titleSlug,
@@ -243,6 +247,14 @@ class BookIndexOverview extends Component {
                 component={isEditorActive ? 'div' : undefined}
                 to={isEditorActive ? undefined : link}
               >
+                {
+                  showMediaType &&
+                    <MediaTypeBadges
+                      className={styles.mediaType}
+                      missingClassName={styles.mediaTypeMissing}
+                      formats={formats || [{ mediaType, hasFile: statistics.bookFileCount > 0 }]}
+                    />
+                }
                 {title}
               </Link>
 
@@ -327,6 +339,9 @@ BookIndexOverview.propTypes = {
   id: PropTypes.number.isRequired,
   authorId: PropTypes.number.isRequired,
   title: PropTypes.string.isRequired,
+  mediaType: PropTypes.string,
+  showMediaType: PropTypes.bool,
+  formats: PropTypes.arrayOf(PropTypes.object),
   audiobookMonitored: PropTypes.bool,
   ebookMonitored: PropTypes.bool,
   titleSlug: PropTypes.string.isRequired,

@@ -130,3 +130,15 @@ $hoverScale: 1.05;
     display: none;
   }
 }
+
+.mediaType {
+  margin-right: 8px;
+
+  span + span {
+    margin-left: 3px;
+  }
+}
+
+.mediaTypeMissing {
+  opacity: 0.4;
+}

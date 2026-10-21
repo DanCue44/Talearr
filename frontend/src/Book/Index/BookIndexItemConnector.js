@@ -30,6 +30,33 @@ function selectShowSearchAction() {
   );
 }
 
+function getGroupRows(state, groupBookIds) {
+  if (!groupBookIds || groupBookIds.length < 2) {
+    return null;
+  }
+
+  const { items, itemMap } = state.books;
+
+  return groupBookIds.map((id) => items[itemMap[id]]).filter(Boolean);
+}
+
+function mergeGroupFields(book, rows) {
+  const sum = (key) => rows.reduce((total, row) => total + (row.statistics?.[key] || 0), 0);
+
+  return {
+    audiobookMonitored: rows.some((row) => row.audiobookMonitored),
+    ebookMonitored: rows.some((row) => row.ebookMonitored),
+    hasFiles: rows.some((row) => row.hasFiles),
+    statistics: {
+      ...book.statistics,
+      bookCount: sum('bookCount'),
+      bookFileCount: sum('bookFileCount'),
+      totalBookCount: sum('totalBookCount'),
+      sizeOnDisk: sum('sizeOnDisk')
+    }
+  };
+}
+
 function createMapStateToProps() {
   // Create per-instance selectors once to maintain memoization
   const selectBook = createBookSelector();
@@ -99,9 +126,15 @@ function createMapStateToProps() {
       return false;
     });
     
+    // Talearr: a combined All formats item reports its whole work
+    const groupRows = getGroupRows(state, ownProps.groupBookIds);
+    const groupFields = groupRows ? mergeGroupFields(book, groupRows) : null;
+
     // Component expects flattened book fields via spread
     return {
       ...book,
+      ...groupFields,
+      formats: ownProps.formats,
       author,
       // Talearr: book tags (Tags column) from the Talearr book tags store.
       tags: state.talearrBookTags.byBookId[book.id] || EMPTY_TAGS,

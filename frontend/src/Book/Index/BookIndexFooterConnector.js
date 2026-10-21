@@ -4,6 +4,7 @@ import createClientSideCollectionSelector from 'Store/Selectors/createClientSide
 import createDeepEqualSelector from 'Store/Selectors/createDeepEqualSelector';
 import BookIndexFooter from './BookIndexFooter';
 import getBookIndexQuery from './getBookIndexQuery';
+import groupBookFormats from './groupBookFormats';
 
 function createUnoptimizedSelector() {
   return createSelector(
@@ -11,14 +12,22 @@ function createUnoptimizedSelector() {
     (books) => {
       return books.items.map((s) => {
         const {
+          id,
           authorId,
+          foreignBookId,
+          mediaType,
+          hasFiles,
           monitored,
           status,
           statistics
         } = s;
 
         return {
+          id,
           authorId,
+          foreignBookId,
+          mediaType,
+          hasFiles,
           monitored,
           status,
           statistics
@@ -35,7 +44,7 @@ function createBookSelector() {
   );
 }
 
-function buildClientSideFooterStatistics(book) {
+function buildClientSideFooterStatistics(book, isAllFormats) {
   const authorIds = new Set();
   let monitoredBooks = 0;
   let fileCount = 0;
@@ -55,8 +64,19 @@ function buildClientSideFooterStatistics(book) {
     totalFileSize += statistics.sizeOnDisk || 0;
   });
 
+  // Talearr: with All formats, Books counts works (an ebook and audiobook pair is one book)
+  const works = isAllFormats ? groupBookFormats(book) : null;
+
+  if (works) {
+    const monitoredIds = new Set(book.filter((item) => item.monitored).map((item) => item.id));
+
+    monitoredBooks = works.filter(({ groupBookIds }) => {
+      return groupBookIds.some((id) => monitoredIds.has(id));
+    }).length;
+  }
+
   return {
-    totalBooks: book.length,
+    totalBooks: works ? works.length : book.length,
     monitoredBooks,
     fileCount,
     totalFileSize,
@@ -78,7 +98,7 @@ function createMapStateToProps() {
 
         if (useClientSidePosters) {
           return {
-            statistics: buildClientSideFooterStatistics(book),
+            statistics: buildClientSideFooterStatistics(book, selectedMediaType === 'all'),
             isFetchingStatistics: false
           };
         }
@@ -95,7 +115,7 @@ function createMapStateToProps() {
       }
 
       return {
-        statistics: buildClientSideFooterStatistics(book),
+        statistics: buildClientSideFooterStatistics(book, selectedMediaType === 'all'),
         isFetchingStatistics: false
       };
     }
