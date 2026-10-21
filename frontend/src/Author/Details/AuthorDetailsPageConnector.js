@@ -74,7 +74,7 @@ class AuthorDetailsPageConnector extends Component {
     const { authorId } = this.props;
 
     if (!authorId) {
-      this.props.push(`${window.Chaptarr.urlBase}/`);
+      this.props.push(`${window.Chaptarr.urlBase}/authors`);
       return;
     }
 

@@ -26,15 +26,16 @@ const links = [
     iconName: icons.AUTHOR_CONTINUING,
     title: () => translate('Library'),
     to: '/',
-    alias: '/authors',
+    alias: '/books',
     children: [
-      {
-        title: () => translate('Authors'),
-        to: '/authors'
-      },
+      // Talearr: Books comes first and is the landing page; books are what people come for.
       {
         title: () => translate('Books'),
         to: '/books'
+      },
+      {
+        title: () => translate('Authors'),
+        to: '/authors'
       },
       // Talearr: Series, Duplicates (Books toolbar) and Bookshelf (Authors toolbar) are
       // opened from their pages, so the menu stays as short as Sonarr's.

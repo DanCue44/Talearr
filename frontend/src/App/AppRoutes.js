@@ -63,7 +63,9 @@ function AppRoutes(props) {
       <Route
         exact={true}
         path="/"
-        component={AuthorIndexConnector}
+        render={() => (
+          <Redirect to={getPathWithUrlBase('/books')} />
+        )}
       />
 
       {
