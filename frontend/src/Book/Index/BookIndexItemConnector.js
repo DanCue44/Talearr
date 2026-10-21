@@ -55,8 +55,12 @@ function getGroupRows(state, groupBookIds) {
 
 function mergeGroupFields(book, rows) {
   const sum = (key) => rows.reduce((total, row) => total + (row.statistics?.[key] || 0), 0);
+  // Talearr: combined cards show the ebook's cover when the work has one
+  const ebook = rows.find((row) => row.mediaType === 'ebook' && row.images?.length);
+  const cover = ebook ? { images: ebook.images, remoteCover: ebook.remoteCover } : {};
 
   return {
+    ...cover,
     audiobookMonitored: rows.some((row) => row.audiobookMonitored),
     ebookMonitored: rows.some((row) => row.ebookMonitored),
     hasFiles: rows.some((row) => row.hasFiles),
