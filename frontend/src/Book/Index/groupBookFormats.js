@@ -41,10 +41,11 @@ export default function groupBookFormats(books) {
     return {
       book: primary,
       groupBookIds: group.map((b) => b.id),
+      // eBook badge first, then audiobook, on every card
       formats: group.map((b) => ({
         mediaType: b.mediaType === 'ebook' ? 'ebook' : 'audiobook',
         hasFile: hasFile(b)
-      }))
+      })).sort((a, b) => Number(a.mediaType !== 'ebook') - Number(b.mediaType !== 'ebook'))
     };
   });
 }

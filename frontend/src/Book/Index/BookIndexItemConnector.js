@@ -30,6 +30,19 @@ function selectShowSearchAction() {
   );
 }
 
+// Talearr: a combined item names each format's quality profile ("E-Book / Audiobook")
+function getGroupQualityProfile(state, author, formats, fallback) {
+  const profiles = state.settings.qualityProfiles.items;
+  const names = (formats || []).map(({ mediaType }) => {
+    const id = mediaType === 'ebook' ? author?.ebookQualityProfileId : author?.audiobookQualityProfileId;
+
+    return profiles.find((profile) => profile.id === id)?.name;
+  }).filter(Boolean);
+  const unique = [...new Set(names)];
+
+  return unique.length ? { ...fallback, name: unique.join(' / ') } : fallback;
+}
+
 function getGroupRows(state, groupBookIds) {
   if (!groupBookIds || groupBookIds.length < 2) {
     return null;
@@ -129,6 +142,9 @@ function createMapStateToProps() {
     // Talearr: a combined All formats item reports its whole work
     const groupRows = getGroupRows(state, ownProps.groupBookIds);
     const groupFields = groupRows ? mergeGroupFields(book, groupRows) : null;
+    const groupQualityProfile = groupRows ?
+      getGroupQualityProfile(state, author, ownProps.formats, qualityProfile) :
+      qualityProfile;
 
     // Component expects flattened book fields via spread
     return {
@@ -138,7 +154,7 @@ function createMapStateToProps() {
       author,
       // Talearr: book tags (Tags column) from the Talearr book tags store.
       tags: state.talearrBookTags.byBookId[book.id] || EMPTY_TAGS,
-      qualityProfile,
+      qualityProfile: groupQualityProfile,
       // Talearr: with All formats listed, cards show which format each book is
       showMediaType: state.bookIndex.selectedMediaType === 'all',
       showSearchAction,
