@@ -183,6 +183,9 @@ namespace NzbDrone.Core.Parser
             return result;
         }
 
+        private static readonly HashSet<string> AacContainerExtensions =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "m4a", "m4p" };
+
         private static List<Quality> ParseAllFormatsFromFileType(string fileType)
         {
             var qualities = new List<Quality>();
@@ -206,7 +209,12 @@ namespace NzbDrone.Core.Parser
                 var codec = ParseCodec(trimmedFormat.ToLower(), trimmedFormat);
                 if (codec != Codec.Unknown)
                 {
-                    var quality = FindQuality(codec);
+                    // A file type that names an AAC container extension (m4a, m4p) is what the
+                    // download will hold, and import classifies those files by extension. Use the same
+                    // mapping here, or an m4a release is grabbed as M4B and imported as MP3.
+                    var quality = codec == Codec.AAC && AacContainerExtensions.Contains(trimmedFormat) ?
+                        MediaFileExtensions.GetQualityForExtension("." + trimmedFormat.ToLowerInvariant()) :
+                        FindQuality(codec);
                     if (quality != Quality.Unknown && !qualities.Contains(quality))
                     {
                         qualities.Add(quality);
