@@ -44,6 +44,11 @@ function buildQueryParams(query, extraParams = {}) {
     params.mediaType = query.filters.mediaType;
   }
 
+  // Talearr: the All formats view gets one entry per work, with its formats listed
+  if (query?.filters?.mediaType === 'all') {
+    params.groupFormats = true;
+  }
+
   if (query?.filters?.downloaded !== undefined) {
     params.downloaded = query.filters.downloaded;
   }

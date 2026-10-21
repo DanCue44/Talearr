@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import { Grid, WindowScroller, InfiniteLoader } from 'react-virtualized';
 import BookIndexItemConnector from 'Book/Index/BookIndexItemConnector';
+import { getServerGroup } from 'Book/Index/groupBookFormats';
 import Measure from 'Components/Measure';
 import dimensions from 'Styles/Variables/dimensions';
 import getIndexOfFirstCharacter from 'Utilities/Array/getIndexOfFirstCharacter';
@@ -401,6 +402,7 @@ class BookIndexPostersInfinite extends Component {
 
     const bookIdx = rowIndex * columnCount + columnIndex;
     const book = getBookAtIndex ? getBookAtIndex(bookIdx) : items[bookIdx];
+    const isGrouped = this.props.queryParams?.filters?.mediaType === 'all';
 
     // Talearr: the last row is usually short. Cells past the end stay empty instead of
     // showing a loading box that never fills in.
@@ -454,6 +456,7 @@ class BookIndexPostersInfinite extends Component {
           style={style}
           book={book}  // Pass full book object
           bookId={book.id}  // Keep for backward compatibility
+          {...(isGrouped ? getServerGroup(book) : {})}
           authorId={book.authorId}
           isSelected={selectedState[book.id]}
           onSelectedChange={onSelectedChange}

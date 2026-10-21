@@ -53,6 +53,22 @@ function getGroupRows(state, groupBookIds) {
   return groupBookIds.map((id) => items[itemMap[id]]).filter(Boolean);
 }
 
+function mergeServerGroupFields(book) {
+  const formats = book.workFormats;
+  const cover = book.workImages?.length ? { images: book.workImages } : {};
+
+  return {
+    ...cover,
+    audiobookMonitored: formats.some((f) => f.mediaType === 'audiobook' && f.monitored),
+    ebookMonitored: formats.some((f) => f.mediaType === 'ebook' && f.monitored),
+    hasFiles: formats.some((f) => f.hasFile),
+    statistics: {
+      ...book.statistics,
+      ...book.groupStatistics
+    }
+  };
+}
+
 function mergeGroupFields(book, rows) {
   const sum = (key) => rows.reduce((total, row) => total + (row.statistics?.[key] || 0), 0);
   // Talearr: combined cards show the ebook's cover when the work has one
@@ -143,10 +159,18 @@ function createMapStateToProps() {
       return false;
     });
     
-    // Talearr: a combined All formats item reports its whole work
-    const groupRows = getGroupRows(state, ownProps.groupBookIds);
-    const groupFields = groupRows ? mergeGroupFields(book, groupRows) : null;
-    const groupQualityProfile = groupRows ?
+    // Talearr: a combined All formats item reports its whole work, from the rows in the books
+    // store (client-side views) or from the grouped server page (infinite posters)
+    const serverGroup = ownProps.groupBookIds && book.workFormats?.length > 1;
+    const groupRows = serverGroup ? null : getGroupRows(state, ownProps.groupBookIds);
+    let groupFields = null;
+
+    if (serverGroup) {
+      groupFields = mergeServerGroupFields(book);
+    } else if (groupRows) {
+      groupFields = mergeGroupFields(book, groupRows);
+    }
+    const groupQualityProfile = (serverGroup || groupRows) ?
       getGroupQualityProfile(state, author, ownProps.formats, qualityProfile) :
       qualityProfile;
 
