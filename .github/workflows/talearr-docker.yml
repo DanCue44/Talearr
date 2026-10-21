@@ -12,7 +12,7 @@ name: Talearr Docker
 #   develop branch  -> develop, develop-<sha>
 #   main branch     -> latest, <talearr version>
 #   tag vX.Y.Z      -> X.Y.Z, X.Y
-#   other branches  -> <branch-slug> (for testing before merge)
+#   other branches  -> run by hand (workflow_dispatch) when a test image is needed
 #   every push      -> sha-<sha>
 #
 # Before pushing, the image is smoke tested: it is started on a config volume
@@ -23,7 +23,7 @@ name: Talearr Docker
 # creates is removed at the end.
 on:
   push:
-    branches: [develop, main, 'feat/**', 'fix/**']
+    branches: [develop, main]
     tags: ['v*']
   workflow_dispatch:
 
