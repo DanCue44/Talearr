@@ -17,6 +17,7 @@
     <PackageReference Include="FluentMigrator.Runner.Postgres" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="MailKit" />
+    <PackageReference Include="MQTTnet" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="NLog" />
     <PackageReference Include="NLog.Targets.Syslog" />
