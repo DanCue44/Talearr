@@ -6,7 +6,7 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Talearr.EbookDelivery
 {
-    // Talearr: OPDS catalog (README.md, "Ebook delivery"). A read-only OPDS 1.2 feed at /opds
+    // Talearr: OPDS catalog (docs/TALEARR_REFERENCE.md, "Ebook delivery"). A read-only OPDS 1.2 feed at /opds
     // that ebook readers such as KOReader, Panels, Thorium or Moon+ Reader can browse.
     public sealed class TalearrOpdsSettings
     {

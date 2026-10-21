@@ -1,6 +1,7 @@
-# Contributing to Chaptarr
+# Contributing to Talearr
 
-Thanks for your interest in contributing to Chaptarr.
+Thanks for your interest in contributing to Talearr. Talearr is a fork of Chaptarr and keeps its
+code names (`Chaptarr.sln`, `Chaptarr.dll`, `NzbDrone.*`) on purpose, so upstream merges stay easy.
 
 ## How can you contribute?
 
@@ -38,14 +39,14 @@ Thanks for your interest in contributing to Chaptarr.
 ### Prerequisites
 - .NET SDK compatible with the repo targets (currently `net10.0`)
 - Node.js + Yarn (see `package.json` `volta` section for recommended versions)
-- FFmpeg and FFprobe on `PATH` when running or testing Chaptarr's native media features
+- FFmpeg and FFprobe on `PATH` when running or testing native media features
 - Git
 
-### Building Chaptarr
+### Building Talearr
 ```bash
 # Clone your fork
-git clone https://github.com/<your-username>/Chaptarr.git
-cd Chaptarr
+git clone https://github.com/<your-username>/Talearr.git
+cd Talearr
 
 # Install frontend dependencies
 yarn install
@@ -107,6 +108,7 @@ yarn watch
 1. **Before submitting:**
    - Rebase on the latest `develop` branch
    - Ensure all tests pass (`dotnet test src/Chaptarr.Core.Test/Chaptarr.Core.Test.csproj`)
+   - Run `python3 build-tools/talearr_brand_check.py` (CI runs it too)
    - Update documentation if needed
    - One feature/fix per PR
 
@@ -123,7 +125,7 @@ yarn watch
 
 ## Questions?
 
-- Ask in GitHub Discussions or on Discord
+- Open an issue at https://github.com/DanCue44/Talearr/issues
 
 ## Code of conduct
 
@@ -131,4 +133,4 @@ Please note that this project is released with a [Contributor Code of Conduct](C
 
 ## Thank you
 
-Every contribution, no matter how small, helps make Chaptarr better for everyone. We appreciate your time and effort!
+Every contribution, no matter how small, helps make Talearr better for everyone. We appreciate your time and effort!

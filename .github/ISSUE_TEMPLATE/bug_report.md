@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve Chaptarr
+about: Create a report to help us improve Talearr
 title: '[BUG] '
 labels: bug
 assignees: ''
@@ -25,7 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **System Information:**
  - OS: [e.g. Ubuntu 22.04, Windows 10, Synology DSM]
- - Chaptarr Version: [e.g. 1.0.0]
+ - Talearr Version (System > Status): [e.g. 0.18.18]
  - Installation Method: [Docker / built from source; native installs are not yet supported]
  - Browser: [e.g. Chrome, Firefox]
 
@@ -39,6 +39,6 @@ Add any other context about the problem here.
 
 **Logs**
 Please include relevant logs from:
-- Chaptarr logs (System → Logs → Files in the UI; `/config/logs/` in Docker)
+- Talearr logs (System → Logs → Files in the UI; `/config/logs/` in Docker)
 - Browser console (F12)
-- Docker logs (`docker logs chaptarr`), if running in Docker
+- Docker logs (`docker logs talearr`), if running in Docker

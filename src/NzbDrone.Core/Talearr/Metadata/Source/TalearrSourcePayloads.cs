@@ -25,7 +25,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         int? GetEditionBookId(int hardcoverEditionId);
     }
 
-    // Talearr: Phase 3b of docs/TALEARR_METADATA_PLAN.md. When the metadata source is Talearr,
+    // Talearr: when the metadata source is Talearr,
     // BookInfoProxy asks this service instead of the metadata server for authors (add and
     // refresh), the bulk change check and single-book lookups of Hardcover ids, and converts the
     // payloads with the same V5 conversion the server's payloads get.

@@ -216,7 +216,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
         // Talearr: bonus points auto-spend through MAM's Bonus Points Store API (bonusBuy.php, on
         // MAM's list of allowed automation). Only VIP, upload credit and wedges are ever bought; at
-        // most one purchase per run and BonusDailyPurchaseCap per 24 hours. See README.
+        // most one purchase per run and BonusDailyPurchaseCap per 24 hours. See docs/TALEARR_REFERENCE.md.
         [FieldDefinition(21, Type = FieldType.Number, Label = "Bonus Points Reserve", Unit = "points", HelpText = "Bonus points auto-spend never leaves fewer than this many points. Applies to every rule below.", Advanced = true)]
         public int BonusReservePoints { get; set; }
 

@@ -9,11 +9,11 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
     // Talearr: which metadata source author and book data comes from.
     public enum TalearrMetadataSource
     {
-        // The Chaptarr metadata server (upstream behaviour, the default).
+        // The Chaptarr metadata server (upstream behaviour; existing libraries stay on it).
         Chaptarr = 0,
 
         // Talearr's own source built on Hardcover: authors and books with Hardcover ids are added,
-        // refreshed and looked up there (BookInfoProxy); import matching still uses the server.
+        // refreshed and looked up there (BookInfoProxy). New installs start here (TalearrMetadataSourceDefaults).
         Talearr = 1
     }
 

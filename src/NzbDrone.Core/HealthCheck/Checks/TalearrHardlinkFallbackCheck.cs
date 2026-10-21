@@ -4,7 +4,7 @@ using NzbDrone.Core.Talearr.Import;
 namespace NzbDrone.Core.HealthCheck.Checks
 {
     // Talearr: System > Status warning when imports keep asking for a hardlink and getting a full
-    // copy, which means the download and library folders cannot share files (see README, Hardlinks).
+    // copy, which means the download and library folders cannot share files (see docs/TALEARR_REFERENCE.md, Hardlinks).
     // English text on purpose: it is Talearr-only and stays out of the shared translation files.
     [CheckOn(typeof(TalearrHardlinkFallbackChangedEvent))]
     public class TalearrHardlinkFallbackCheck : HealthCheckBase

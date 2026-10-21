@@ -1,6 +1,6 @@
 # Talearr metadata source (Hardcover)
 
-Phase 3 of [TALEARR_METADATA_PLAN.md](TALEARR_METADATA_PLAN.md): Talearr's own metadata source,
+Talearr's own metadata source,
 built on Hardcover, so Talearr no longer depends on Chaptarr's server
 (`https://api2.chaptarr.com`).
 

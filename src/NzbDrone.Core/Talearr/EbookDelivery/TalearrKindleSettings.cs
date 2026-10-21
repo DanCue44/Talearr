@@ -8,7 +8,7 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Talearr.EbookDelivery
 {
-    // Talearr: Send to Kindle (README.md, "Ebook delivery"). Emails an ebook to one or more
+    // Talearr: Send to Kindle (docs/TALEARR_REFERENCE.md, "Ebook delivery"). Emails an ebook to one or more
     // Send-to-Kindle addresses, on request from the book page or after each import.
     public sealed class TalearrKindleSettings
     {

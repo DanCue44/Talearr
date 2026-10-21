@@ -61,8 +61,8 @@ representative at an online or offline event.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement via a private channel:
 
-- Direct message the moderators on Discord: https://discord.gg/nqFGsGUug2
-- Or email team@chaptarr.com
+- Use **Report a vulnerability** on the repository's Security tab and say that it is a
+  conduct report. It is private and goes straight to the maintainer.
 
 All complaints will be reviewed and investigated promptly and fairly.
 

@@ -28,7 +28,6 @@ namespace NzbDrone.Core.MediaFiles.BookImport
 {
     /// <summary>
     /// Thin coordinator for the import process - delegates to specialized services
-    /// Following the architecture from /claudehelper/bibles/import_files_9-7-2025.md
     /// </summary>
     public class ImportOrchestratorV2 : IImportOrchestrator
     {

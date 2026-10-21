@@ -6,8 +6,6 @@ graphic novel, Turkish and other translations, and the same novel listed several
 different publishers. Talearr sorts each row into the author's **main works** or one kind of
 **other listing**, and the author page shows the main works first.
 
-Phase 4 of [TALEARR_METADATA_PLAN.md](TALEARR_METADATA_PLAN.md).
-
 ## What you see
 
 - **Library view** (the default): unchanged. It lists monitored books and books with files,

@@ -6,7 +6,7 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Talearr.ReaderHandoff
 {
-    // Talearr: reader hand-off (README.md, "Reader hand-off"). After an ebook import, copy the
+    // Talearr: reader hand-off (docs/TALEARR_REFERENCE.md, "Reader hand-off"). After an ebook import, copy the
     // file to a watch folder such as Calibre-Web-Automated's ingest folder.
     public sealed class TalearrReaderHandoffSettings
     {

@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for Chaptarr
+about: Suggest an idea for Talearr
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''

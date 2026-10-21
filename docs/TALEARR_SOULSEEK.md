@@ -65,8 +65,8 @@ The book page lists Soulseek downloads for that book with Cancel and Forget.
 - **Not a download client or indexer provider.** Stock Chaptarr deletes provider rows whose type
   it does not know on start (`ProviderFactory.RemoveMissingImplementations`), and every grab
   through `DownloadService` writes its `DownloadProtocol` into History, Blocklist and pending
-  releases. A new protocol value there is exactly what section 2 of
-  [TALEARR_FEATURE_RESEARCH.md](TALEARR_FEATURE_RESEARCH.md) warns about. Mapping Soulseek onto
+  releases. A new protocol value there would break a
+  rollback to stock Chaptarr, which Talearr always keeps possible. Mapping Soulseek onto
   `Torrent` instead would send its releases to torrent clients and torrent rules (seeding, delay
   profiles). So Soulseek grabs bypass that path: the candidate releases only live in memory, with
   `DownloadProtocol.Unknown` (0, a value every Chaptarr build knows), and are never stored.

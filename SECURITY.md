@@ -1,47 +1,29 @@
 # Security Policy
 
-## 🔒 Reporting Security Vulnerabilities
+## Reporting a vulnerability
 
-The Chaptarr team takes security seriously. We appreciate your efforts to responsibly disclose your findings.
+Please do not open a public issue for a security problem. Use **Report a vulnerability** on
+this repository's Security tab, which sends a private report to the maintainer.
 
-## How to Report
+Include a description, steps to reproduce, the impact you see and any fix you suggest.
 
-If you discover a security vulnerability, please:
+## What to expect
 
-1. **DO NOT** create a public GitHub issue
-2. Use **Report a vulnerability** on the repository's Security tab (preferred)
-   OR email team@chaptarr.com
-3. Include:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Any suggested fixes
-
-## What to Expect
-
-- **Acknowledgment**: We'll make a best effort to acknowledge receipt within 48 hours
-- **Assessment**: We'll assess the vulnerability and its impact
-- **Fix Timeline**: We'll provide an estimated timeline for a fix
-- **Credit**: We'll credit you in the release notes (unless you prefer to remain anonymous)
+- An acknowledgment within a few days.
+- An assessment of the problem and an estimated timeline for a fix.
+- Credit in the release notes, unless you prefer to stay anonymous.
 
 ## Scope
 
-This security policy applies to:
-- The Chaptarr application itself
-- Official Docker images
-- Configuration that could lead to security issues
+- The Talearr application
+- The official image, `ghcr.io/dancue44/talearr`
+- Default configuration that leads to a security issue
 
-## Out of Scope
+Out of scope: modified builds, social engineering, and dependency flaws that cannot be reached
+through Talearr. Problems that also affect stock Chaptarr are welcome here too; they will be
+passed on to the Chaptarr project.
 
-- Modified builds or forks
-- Upstream dependency issues with no impact through Chaptarr (if a dependency flaw is exploitable through Chaptarr or its official image, report it to us and we'll coordinate with upstream)
-- Social engineering attacks
+## Safe harbor
 
-## Safe Harbor
-
-We will not pursue legal action against security researchers who:
-- Act in good faith
-- Avoid privacy violations and data destruction
-- Give us reasonable time to fix issues before disclosure
-
-Thank you for helping keep Chaptarr and its users safe!
+No legal action will be taken against researchers who act in good faith, avoid privacy
+violations and data destruction, and allow reasonable time for a fix before disclosure.
