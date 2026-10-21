@@ -18,6 +18,16 @@ namespace NzbDrone.Core.Talearr.Comics
         }
     }
 
+    // A kids library refused a series because of its age rating. The app offers the rating picker
+    // right where this shows, so fixing it is one click.
+    public class ComicAgeRatingRequiredException : ComicsException
+    {
+        public ComicAgeRatingRequiredException(string message, params object[] args)
+            : base(message, args)
+        {
+        }
+    }
+
     public class ComicLookupResult
     {
         public int? AniListId { get; set; }
@@ -90,6 +100,7 @@ namespace NzbDrone.Core.Talearr.Comics
         private readonly IComicSettingsService _settingsService;
         private readonly IAniListClient _aniList;
         private readonly IComicHardcoverClient _hardcover;
+        private readonly IMangaDexClient _mangaDex;
         private readonly IDiskProvider _diskProvider;
         private readonly Logger _logger;
 
@@ -97,6 +108,7 @@ namespace NzbDrone.Core.Talearr.Comics
                                   IComicSettingsService settingsService,
                                   IAniListClient aniList,
                                   IComicHardcoverClient hardcover,
+                                  IMangaDexClient mangaDex,
                                   IDiskProvider diskProvider,
                                   Logger logger)
         {
@@ -104,6 +116,7 @@ namespace NzbDrone.Core.Talearr.Comics
             _settingsService = settingsService;
             _aniList = aniList;
             _hardcover = hardcover;
+            _mangaDex = mangaDex;
             _diskProvider = diskProvider;
             _logger = logger;
         }
@@ -181,8 +194,21 @@ namespace NzbDrone.Core.Talearr.Comics
                 });
             }
 
+            var mangaDexLookups = 0;
             foreach (var series in hardcover.Where(h => !usedHardcover.Contains(h.Id) && h.BooksCount > 0))
             {
+                // No AniList facts: MangaDex can still say how the series is rated (first few only).
+                var rating = ComicAgeRatings.Unknown;
+                if (kind == ComicKinds.Manga && mangaDexLookups < 5)
+                {
+                    mangaDexLookups++;
+                    rating = MangaDexClient.ToAgeRating(FindMangaDex(new[] { series.Name }, out var mangaDexError));
+                    if (mangaDexError != null && !response.Notices.Any(n => n.StartsWith("MangaDex", StringComparison.Ordinal)))
+                    {
+                        response.Notices.Add($"MangaDex could not be searched for age ratings: {mangaDexError}");
+                    }
+                }
+
                 response.Results.Add(new ComicLookupResult
                 {
                     HardcoverSeriesId = series.Id,
@@ -191,7 +217,7 @@ namespace NzbDrone.Core.Talearr.Comics
                     Volumes = series.PrimaryBooksCount > 0 ? series.PrimaryBooksCount : series.BooksCount,
                     Authors = series.AuthorName,
                     CoverUrl = series.CoverUrl,
-                    AgeRating = ComicAgeRatings.Unknown,
+                    AgeRating = rating,
                     SeriesId = library.FirstOrDefault(s => s.HardcoverSeriesId == series.Id)?.Id
                 });
             }
@@ -235,7 +261,9 @@ namespace NzbDrone.Core.Talearr.Comics
 
             if (!ComicAgeRatings.IsAllowedFor(series.EffectiveAgeRating, root.IsKids ? root.MaxAgeRating : null))
             {
-                throw new ComicsException("{0} is rated {1}, above this kids library's limit ({2}). Set an age rating for the series if the data is wrong.",
+                throw new ComicAgeRatingRequiredException(series.EffectiveAgeRating == ComicAgeRatings.Unknown
+                        ? "{0} has no age rating, and this kids library ({2}) only takes rated series. Set its age rating to add it."
+                        : "{0} is rated {1}, above this kids library's limit ({2}). Set its age rating if the data is wrong.",
                     series.Title, series.EffectiveAgeRating, root.MaxAgeRating);
             }
 
@@ -333,7 +361,7 @@ namespace NzbDrone.Core.Talearr.Comics
             var root = _store.GetRootFolder(series.RootFolderId);
             if (root != null && root.IsKids && !ComicAgeRatings.IsAllowedFor(series.EffectiveAgeRating, root.MaxAgeRating))
             {
-                throw new ComicsException("{0} would be rated {1}, above this kids library's limit ({2}).", series.Title, series.EffectiveAgeRating, root.MaxAgeRating);
+                throw new ComicAgeRatingRequiredException("{0} would be rated {1}, above this kids library's limit ({2}).", series.Title, series.EffectiveAgeRating, root.MaxAgeRating);
             }
 
             _store.UpdateSeries(series);
@@ -485,6 +513,34 @@ namespace NzbDrone.Core.Talearr.Comics
                 series.ReadingDirection ??= series.Kind == ComicKinds.Manga ? "rtl" : "ltr";
             }
 
+            // AniList down or silent on the rating: MangaDex fills in the facts it has.
+            if (series.Kind == ComicKinds.Manga && (manga == null || series.AgeRating == ComicAgeRatings.Unknown))
+            {
+                var mangaDex = FindMangaDex(titles.Prepend(series.Title), out var mangaDexError);
+                if (mangaDexError != null)
+                {
+                    _logger.Warn("Comics: MangaDex could not rate {0}: {1}", series.Title, mangaDexError);
+                }
+
+                if (mangaDex != null)
+                {
+                    series.AgeRating = MangaDexClient.ToAgeRating(mangaDex);
+
+                    if (manga == null)
+                    {
+                        series.AlternateTitles = string.Join("\n", (series.AlternateTitles ?? string.Empty)
+                            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                            .Concat(mangaDex.Titles)
+                            .Where(t => !string.Equals(t, series.Title, StringComparison.OrdinalIgnoreCase))
+                            .Distinct(StringComparer.OrdinalIgnoreCase));
+                        series.Overview ??= mangaDex.Description;
+                        series.Status = FormatMangaDexStatus(mangaDex.Status) ?? series.Status;
+                        series.Year ??= mangaDex.Year;
+                        series.ReadingDirection = mangaDex.OriginalLanguage == "ja" ? "rtl" : "ltr";
+                    }
+                }
+            }
+
             var volumes = new List<ComicVolume>();
             if (hardcover != null && hardcover.Volumes.Any())
             {
@@ -533,6 +589,49 @@ namespace NzbDrone.Core.Talearr.Comics
             }
 
             return null;
+        }
+
+        // The MangaDex entry whose English or romaji title is one of the series' names.
+        private MangaDexManga FindMangaDex(IEnumerable<string> titles, out string error)
+        {
+            error = null;
+            var wanted = titles.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            foreach (var title in wanted.Where(t => t.All(c => c < 0x2E80)).Take(2))
+            {
+                try
+                {
+                    var hit = _mangaDex.Search(title).FirstOrDefault(m => m.Titles.Any(t => wanted.Any(w => SameTitle(t, w))));
+                    if (hit != null)
+                    {
+                        return hit;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Comics: MangaDex search for {0} failed", title);
+                    error = ex.Message;
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
+        private static string FormatMangaDexStatus(string status)
+        {
+            switch (status)
+            {
+                case "completed":
+                    return "Finished";
+                case "ongoing":
+                    return "Ongoing";
+                case "hiatus":
+                    return "On hiatus";
+                case "cancelled":
+                    return "Cancelled";
+                default:
+                    return null;
+            }
         }
 
         private static IEnumerable<string> MangaTitles(AniListManga manga)

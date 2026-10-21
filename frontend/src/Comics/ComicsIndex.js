@@ -10,7 +10,7 @@ import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
 import { icons, kinds } from 'Helpers/Props';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
-import { readError } from './comicsFormat';
+import { isUnrated, ratingLabel, readError } from './comicsFormat';
 import styles from './Comics.css';
 
 // Talearr: the comics and manga library (notes: TALEARR_COMICS_PLAN.md).
@@ -89,6 +89,7 @@ class ComicsIndex extends Component {
 
   render() {
     const { isFetching, isSearching, error, message, items } = this.state;
+    const unrated = items.filter((item) => isUnrated(item.effectiveAgeRating));
 
     return (
       <PageContent title="Comics">
@@ -124,6 +125,25 @@ class ComicsIndex extends Component {
           {message ? <Alert kind={kinds.INFO}>{message}</Alert> : null}
           {isFetching && !items.length ? <LoadingIndicator /> : null}
           {error ? <Alert kind={kinds.DANGER}>{error}</Alert> : null}
+
+          {
+            unrated.length ?
+              <Alert kind={kinds.WARNING} className={styles.unrated}>
+                {`${unrated.length} ${unrated.length === 1 ? 'series has' : 'series have'} no age rating, so a reader's age limit cannot use ${unrated.length === 1 ? 'it' : 'them'} and kids libraries refuse ${unrated.length === 1 ? 'it' : 'them'}: `}
+                {
+                  unrated.map(({ series }, index) => {
+                    return (
+                      <span key={series.id}>
+                        {index ? ', ' : ''}
+                        <Link to={`/comics/series/${series.id}`}>{series.title}</Link>
+                      </span>
+                    );
+                  })
+                }
+                {'. Open a series to set its rating.'}
+              </Alert> :
+              null
+          }
 
           {
             !isFetching && !error && !items.length ?
@@ -163,7 +183,7 @@ class ComicsIndex extends Component {
 
                       <div className={styles.badges}>
                         <Label kind={kinds.INFO}>{series.kind === 'comic' ? 'Comic' : 'Manga'}</Label>
-                        <Label kind={effectiveAgeRating === 'Unknown' ? kinds.WARNING : kinds.DEFAULT}>{effectiveAgeRating}</Label>
+                        <Label kind={isUnrated(effectiveAgeRating) ? kinds.WARNING : kinds.DEFAULT}>{ratingLabel(effectiveAgeRating)}</Label>
                         {missingCount ? <Label kind={kinds.DANGER}>{`${missingCount} missing`}</Label> : null}
                         {series.monitored ? null : <Label kind={kinds.DISABLED}>{'Not monitored'}</Label>}
                       </div>

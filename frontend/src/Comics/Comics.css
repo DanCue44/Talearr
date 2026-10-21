@@ -178,3 +178,19 @@
     flex-direction: column;
   }
 }
+
+.ratingFix {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ratingError {
+  color: var(--dangerColor);
+  font-size: 12px;
+}
+
+.unrated {
+  margin-bottom: 15px;
+}

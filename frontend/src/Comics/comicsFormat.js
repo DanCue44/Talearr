@@ -66,3 +66,12 @@ export const sourceLabels = {
   c2c: 'c2c scan',
   unknown: 'Unknown'
 };
+
+// Talearr: "Unknown" reads as a fact about the series; "Unrated" says what to do about it.
+export function ratingLabel(rating) {
+  return !rating || rating === 'Unknown' ? 'Unrated' : rating;
+}
+
+export function isUnrated(rating) {
+  return !rating || rating === 'Unknown';
+}

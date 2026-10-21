@@ -32,6 +32,7 @@ namespace Chaptarr.Api.V1.Talearr
         public ComicSeries Series { get; set; }
         public string EffectiveAgeRating { get; set; }
         public string RootFolderPath { get; set; }
+        public bool InKidsFolder { get; set; }
         public int VolumeCount { get; set; }
         public int DownloadedCount { get; set; }
         public int MissingCount { get; set; }
@@ -48,6 +49,8 @@ namespace Chaptarr.Api.V1.Talearr
         public int SeriesId { get; set; }
         public string SeriesTitle { get; set; }
         public string Kind { get; set; }
+        public string EffectiveAgeRating { get; set; }
+        public bool InKidsFolder { get; set; }
     }
 
     public class ComicVolumeMonitorBody
@@ -161,10 +164,12 @@ namespace Chaptarr.Api.V1.Talearr
                 var volumes = _store.GetAllVolumes().ToLookup(v => v.SeriesId);
                 var files = _store.GetAllFiles().ToLookup(f => f.SeriesId);
                 var downloads = _store.GetDownloads().ToLookup(d => d.SeriesId);
-                var roots = _store.GetRootFolders().ToDictionary(r => r.Id, r => r.Path);
+                var folders = _store.GetRootFolders();
+                var roots = folders.ToDictionary(r => r.Id, r => r.Path);
+                var kids = new HashSet<int>(folders.Where(r => r.IsKids).Select(r => r.Id));
 
                 return _store.GetAllSeries()
-                    .Select(s => ToResource(s, volumes[s.Id].ToList(), files[s.Id].ToList(), downloads[s.Id].ToList(), roots, includeVolumes: false))
+                    .Select(s => ToResource(s, volumes[s.Id].ToList(), files[s.Id].ToList(), downloads[s.Id].ToList(), roots, kids, includeVolumes: false))
                     .ToList();
             });
         }
@@ -175,8 +180,10 @@ namespace Chaptarr.Api.V1.Talearr
             return Run(() =>
             {
                 var series = _store.GetSeries(id) ?? throw new ComicsException("No such series");
-                var roots = _store.GetRootFolders().ToDictionary(r => r.Id, r => r.Path);
-                var resource = ToResource(series, _store.GetVolumes(id), _store.GetFiles(id), _store.GetDownloads(id), roots, includeVolumes: true);
+                var folders = _store.GetRootFolders();
+                var roots = folders.ToDictionary(r => r.Id, r => r.Path);
+                var kids = new HashSet<int>(folders.Where(r => r.IsKids).Select(r => r.Id));
+                var resource = ToResource(series, _store.GetVolumes(id), _store.GetFiles(id), _store.GetDownloads(id), roots, kids, includeVolumes: true);
                 resource.History = _store.GetHistory(id, 100);
                 return resource;
             });
@@ -309,6 +316,7 @@ namespace Chaptarr.Api.V1.Talearr
             return Run(() =>
             {
                 var series = _store.GetAllSeries().ToDictionary(s => s.Id);
+                var kidsFolders = new HashSet<int>(_store.GetRootFolders().Where(r => r.IsKids).Select(r => r.Id));
                 var have = new HashSet<int>(_store.GetAllFiles().Select(f => f.VolumeId));
                 var downloading = ActiveDownloadVolumes(_store.GetDownloads());
                 var now = DateTime.UtcNow;
@@ -321,7 +329,9 @@ namespace Chaptarr.Api.V1.Talearr
                         Volume = ToResource(v, null, downloading.Contains(v.Id), now),
                         SeriesId = v.SeriesId,
                         SeriesTitle = series[v.SeriesId].Title,
-                        Kind = series[v.SeriesId].Kind
+                        Kind = series[v.SeriesId].Kind,
+                        EffectiveAgeRating = series[v.SeriesId].EffectiveAgeRating,
+                        InKidsFolder = kidsFolders.Contains(series[v.SeriesId].RootFolderId)
                     })
                     .OrderBy(w => w.SeriesTitle, StringComparer.OrdinalIgnoreCase)
                     .ThenBy(w => w.Volume.Number)
@@ -429,6 +439,10 @@ namespace Chaptarr.Api.V1.Talearr
             {
                 return action();
             }
+            catch (ComicAgeRatingRequiredException ex)
+            {
+                return BadRequest(new { message = ex.Message, needsAgeRating = true });
+            }
             catch (Exception ex) when (ex is ComicsException || ex is ArgumentException || ex is TalearrComicsDatabaseUnavailableException || ex is ComicArchiveException)
             {
                 return BadRequest(new { message = ex.Message });
@@ -476,7 +490,7 @@ namespace Chaptarr.Api.V1.Talearr
             };
         }
 
-        private static ComicSeriesResource ToResource(ComicSeries series, List<ComicVolume> volumes, List<ComicFile> files, List<ComicDownload> downloads, Dictionary<int, string> roots, bool includeVolumes)
+        private static ComicSeriesResource ToResource(ComicSeries series, List<ComicVolume> volumes, List<ComicFile> files, List<ComicDownload> downloads, Dictionary<int, string> roots, HashSet<int> kids, bool includeVolumes)
         {
             var now = DateTime.UtcNow;
             var fileByVolume = files.GroupBy(f => f.VolumeId).ToDictionary(g => g.Key, g => g.First());
@@ -488,6 +502,7 @@ namespace Chaptarr.Api.V1.Talearr
                 Series = series,
                 EffectiveAgeRating = series.EffectiveAgeRating,
                 RootFolderPath = roots.GetValueOrDefault(series.RootFolderId),
+                InKidsFolder = kids.Contains(series.RootFolderId),
                 VolumeCount = volumes.Count,
                 DownloadedCount = volumeResources.Count(v => v.State == "downloaded"),
                 MissingCount = volumeResources.Count(v => v.State == "missing"),

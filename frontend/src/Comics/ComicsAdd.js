@@ -13,7 +13,7 @@ import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
-import { ageRatingOptions, kindOptions, monitorOptions, readError } from './comicsFormat';
+import { ageRatingOptions, isUnrated, kindOptions, monitorOptions, ratingLabel, readError } from './comicsFormat';
 import styles from './Comics.css';
 
 // Talearr: search AniList and Hardcover for a manga or comic series and add it.
@@ -31,6 +31,8 @@ class ComicsAdd extends Component {
       rootFolderId: null,
       monitor: 'all',
       ageRatingOverride: '',
+      ratingNeeded: null,
+      ratingChoice: '',
       rootFolders: [],
       ageRatings: [],
       isSearching: false,
@@ -109,11 +111,11 @@ class ComicsAdd extends Component {
     }
   };
 
-  onAddPress = (result) => {
+  onAddPress = (result, rating) => {
     const { kind, rootFolderId, monitor, ageRatingOverride } = this.state;
     const key = `${result.aniListId}-${result.hardcoverSeriesId}`;
 
-    this.setState({ addingKey: key, error: null });
+    this.setState({ addingKey: key, error: null, ratingNeeded: null });
 
     const { request } = createAjaxRequest({
       url: '/talearr/comics/series',
@@ -126,7 +128,7 @@ class ComicsAdd extends Component {
         kind: result.kind || kind,
         rootFolderId,
         monitor,
-        ageRatingOverride: ageRatingOverride || null
+        ageRatingOverride: rating || ageRatingOverride || null
       })
     });
 
@@ -136,15 +138,27 @@ class ComicsAdd extends Component {
     });
 
     request.fail((xhr) => {
-      this.setState({ addingKey: null, error: readError(xhr, 'Unable to add the series.') });
+      const needsAgeRating = !!(xhr.responseJSON && xhr.responseJSON.needsAgeRating);
+
+      // A kids library refused it for its rating: offer the rating right there.
+      this.setState({
+        addingKey: null,
+        error: needsAgeRating ? null : readError(xhr, 'Unable to add the series.'),
+        ratingNeeded: needsAgeRating ? { key, message: readError(xhr, 'This series needs an age rating.') } : null,
+        ratingChoice: ''
+      });
     });
+  };
+
+  onRatingChoiceChange = ({ value }) => {
+    this.setState({ ratingChoice: value });
   };
 
   //
   // Render
 
   render() {
-    const { term, kind, rootFolderId, monitor, ageRatingOverride, ageRatings, isSearching, addingKey, error, notices, results } = this.state;
+    const { term, kind, rootFolderId, monitor, ageRatingOverride, ageRatings, isSearching, addingKey, error, notices, results, ratingNeeded, ratingChoice } = this.state;
     const folderOptions = this.getFolderOptions();
 
     return (
@@ -264,13 +278,38 @@ class ComicsAdd extends Component {
                       <Label kind={kinds.INFO}>{result.kind === 'comic' ? 'Comic' : 'Manga'}</Label>
                       {result.volumes ? <Label>{`${result.volumes} volumes`}</Label> : null}
                       {result.status ? <Label>{result.status}</Label> : null}
-                      <Label kind={result.ageRating === 'Unknown' ? kinds.WARNING : kinds.DEFAULT}>{result.ageRating}</Label>
+                      <Label kind={isUnrated(result.ageRating) ? kinds.WARNING : kinds.DEFAULT}>{ratingLabel(result.ageRating)}</Label>
                       {result.aniListId ? <Label kind={kinds.DEFAULT}>{'AniList'}</Label> : null}
                       {result.hardcoverSeriesId ? <Label kind={kinds.DEFAULT}>{'Hardcover'}</Label> : null}
                     </div>
 
                     {result.authors ? <div className={styles.small}>{result.authors}</div> : null}
                     {result.overview ? <div className={styles.resultOverview}>{result.overview}</div> : null}
+
+                    {
+                      ratingNeeded && ratingNeeded.key === key ?
+                        <Alert kind={kinds.WARNING}>
+                          <div>{ratingNeeded.message}</div>
+                          <span className={styles.ratingFix}>
+                            <FormInputGroup
+                              type={inputTypes.SELECT}
+                              name="ratingChoice"
+                              values={ageRatingOptions(ageRatings, 'Choose a rating')}
+                              value={ratingChoice}
+                              onChange={this.onRatingChoiceChange}
+                            />
+                            <SpinnerButton
+                              kind={kinds.PRIMARY}
+                              isSpinning={addingKey === key}
+                              isDisabled={!ratingChoice}
+                              onPress={() => this.onAddPress(result, ratingChoice)}
+                            >
+                              {'Set age rating and add'}
+                            </SpinnerButton>
+                          </span>
+                        </Alert> :
+                        null
+                    }
                   </div>
 
                   <div>

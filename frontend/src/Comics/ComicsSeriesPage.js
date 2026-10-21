@@ -18,7 +18,8 @@ import TableBody from 'Components/Table/TableBody';
 import TableRow from 'Components/Table/TableRow';
 import { icons, inputTypes, kinds } from 'Helpers/Props';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
-import { ageRatingOptions, formatDate, formatSize, readError, sourceLabels, stateKinds, stateLabels, volumeLabel } from './comicsFormat';
+import AgeRatingFix from './AgeRatingFix';
+import { ageRatingOptions, formatDate, formatSize, isUnrated, ratingLabel, readError, sourceLabels, stateKinds, stateLabels, volumeLabel } from './comicsFormat';
 import ComicsReleasesModal from './ComicsReleasesModal';
 import styles from './Comics.css';
 
@@ -232,19 +233,37 @@ class ComicsSeriesPage extends Component {
       <PageContent title={series.title}>
         <PageToolbar>
           <PageToolbarSection>
-            <PageToolbarButton label="Refresh" iconName={icons.REFRESH}
-              isSpinning={busy === 'refresh'} onPress={this.onRefreshPress}
+            <PageToolbarButton
+              label="Refresh"
+              iconName={icons.REFRESH}
+              isSpinning={busy === 'refresh'}
+              onPress={this.onRefreshPress}
             />
-            <PageToolbarButton label="Search Missing" iconName={icons.SEARCH}
-              isSpinning={busy === 'search'} onPress={this.onSearchPress}
+
+            <PageToolbarButton
+              label="Search Missing"
+              iconName={icons.SEARCH}
+              isSpinning={busy === 'search'}
+              onPress={this.onSearchPress}
             />
-            <PageToolbarButton label="Rescan Folder" iconName={icons.RESCAN}
-              isSpinning={busy === 'rescan'} onPress={this.onRescanPress}
+
+            <PageToolbarButton
+              label="Rescan Folder"
+              iconName={icons.RESCAN}
+              isSpinning={busy === 'rescan'}
+              onPress={this.onRescanPress}
             />
-            <PageToolbarButton label="Rename Files" iconName={icons.ORGANIZE}
-              isSpinning={busy === 'rename'} onPress={this.onRenamePress}
+
+            <PageToolbarButton
+              label="Rename Files"
+              iconName={icons.ORGANIZE}
+              isSpinning={busy === 'rename'}
+              onPress={this.onRenamePress}
             />
-            <PageToolbarButton label="Remove" iconName={icons.DELETE}
+
+            <PageToolbarButton
+              label="Remove"
+              iconName={icons.DELETE}
               onPress={this.onDeletePress}
             />
           </PageToolbarSection>
@@ -271,7 +290,7 @@ class ComicsSeriesPage extends Component {
                 {series.year ? <Label>{series.year}</Label> : null}
                 {series.status ? <Label>{series.status}</Label> : null}
                 {series.kind === 'manga' ? <Label>{series.readingDirection === 'ltr' ? 'Left to right' : 'Right to left'}</Label> : null}
-                <Label kind={effectiveAgeRating === 'Unknown' ? kinds.WARNING : kinds.DEFAULT}>{`Age: ${effectiveAgeRating}`}</Label>
+                <Label kind={isUnrated(effectiveAgeRating) ? kinds.WARNING : kinds.DEFAULT}>{`Age: ${ratingLabel(effectiveAgeRating)}`}</Label>
                 {sizeOnDisk ? <Label>{formatSize(sizeOnDisk)}</Label> : null}
               </div>
 
@@ -305,7 +324,7 @@ class ComicsSeriesPage extends Component {
                   <FormInputGroup
                     type={inputTypes.SELECT}
                     name="ageRatingOverride"
-                    values={ageRatingOptions(ageRatings, `From the data (${series.ageRating || 'Unknown'})`)}
+                    values={ageRatingOptions(ageRatings, `From the data (${ratingLabel(series.ageRating)})`)}
                     value={series.ageRatingOverride || ''}
                     onChange={this.onAgeRatingChange}
                   />
@@ -315,6 +334,23 @@ class ComicsSeriesPage extends Component {
           </div>
 
           {error ? <Alert kind={kinds.DANGER}>{error}</Alert> : null}
+
+          {
+            isUnrated(effectiveAgeRating) ?
+              <Alert kind={kinds.WARNING} className={styles.unrated}>
+                <div>
+                  {detail.inKidsFolder ?
+                    'This series has no age rating, so its kids library will not take new volumes and readers cannot apply an age limit. ' :
+                    'This series has no age rating, so readers cannot apply an age limit to it. '}
+                </div>
+                <AgeRatingFix
+                  seriesId={series.id}
+                  ageRatings={ageRatings}
+                  onSaved={this.onGrabbed}
+                />
+              </Alert> :
+              null
+          }
           {message ? <Alert kind={kinds.INFO}>{message}</Alert> : null}
 
           {

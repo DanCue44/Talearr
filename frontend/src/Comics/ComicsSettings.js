@@ -352,6 +352,11 @@ class ComicsSettings extends Component {
                 {saved ? <span className={styles.small}>{' Saved.'}</span> : null}
 
                 <div className={styles.section}>
+                  <div className={styles.sectionTitle}>{'Download clients'}</div>
+                  <div className={styles.intro}>
+                    {'Comics download into each client\'s Comics Category (Settings > Download Clients, "comics" unless changed), apart from books. Leave it empty to use the ebook category.'}
+                  </div>
+
                   <div className={styles.sectionTitle}>{'Readers'}</div>
                   <div className={styles.intro}>
                     {'Add Kavita or Komga under Settings > Connect. Talearr then asks them to scan a series as soon as a volume is filed. Give each child their own reader account with an age limit.'}

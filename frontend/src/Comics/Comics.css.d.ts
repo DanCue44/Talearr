@@ -19,6 +19,8 @@ interface CssExports {
   'intro': string;
   'notice': string;
   'overview': string;
+  'ratingError': string;
+  'ratingFix': string;
   'rejections': string;
   'result': string;
   'resultBody': string;
@@ -30,6 +32,7 @@ interface CssExports {
   'sectionTitle': string;
   'small': string;
   'title': string;
+  'unrated': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

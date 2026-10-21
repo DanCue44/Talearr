@@ -14,13 +14,15 @@ import TableBody from 'Components/Table/TableBody';
 import TableRow from 'Components/Table/TableRow';
 import { icons, kinds } from 'Helpers/Props';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
-import { formatDate, readError, stateKinds, stateLabels, volumeLabel } from './comicsFormat';
+import AgeRatingFix from './AgeRatingFix';
+import { formatDate, isUnrated, ratingLabel, readError, stateKinds, stateLabels, volumeLabel } from './comicsFormat';
 
 const columns = [
   { name: 'series', label: 'Series', isVisible: true },
   { name: 'volume', label: 'Volume', isVisible: true },
   { name: 'released', label: 'Released', isVisible: true },
-  { name: 'state', label: 'Status', isVisible: true }
+  { name: 'state', label: 'Status', isVisible: true },
+  { name: 'age', label: 'Age rating', isVisible: true }
 ];
 
 // Talearr: monitored comic volumes that are out but not downloaded.
@@ -37,12 +39,16 @@ class ComicsWanted extends Component {
       isSearching: false,
       error: null,
       message: null,
+      ageRatings: [],
       items: []
     };
   }
 
   componentDidMount() {
     this.fetchWanted();
+    createAjaxRequest({ url: '/talearr/comics/status' }).request.done((status) => {
+      this.setState({ ageRatings: status.ageRatings });
+    });
   }
 
   //
@@ -80,7 +86,8 @@ class ComicsWanted extends Component {
   // Render
 
   render() {
-    const { isFetching, isSearching, error, message, items } = this.state;
+    const { isFetching, isSearching, error, message, items, ageRatings } = this.state;
+    const ratingShown = new Set();
 
     return (
       <PageContent title="Wanted Comics">
@@ -106,7 +113,11 @@ class ComicsWanted extends Component {
               <Table columns={columns}>
                 <TableBody>
                   {
-                    items.map(({ volume, seriesId, seriesTitle }) => {
+                    items.map(({ volume, seriesId, seriesTitle, effectiveAgeRating, inKidsFolder }) => {
+                      // One rating picker per unrated series, on its first row.
+                      const offerFix = isUnrated(effectiveAgeRating) && !ratingShown.has(seriesId);
+                      ratingShown.add(seriesId);
+
                       return (
                         <TableRow key={volume.id}>
                           <TableRowCell>
@@ -116,6 +127,20 @@ class ComicsWanted extends Component {
                           <TableRowCell>{formatDate(volume.releaseDate)}</TableRowCell>
                           <TableRowCell>
                             <Label kind={stateKinds[volume.state]}>{stateLabels[volume.state] || volume.state}</Label>
+                          </TableRowCell>
+                          <TableRowCell>
+                            <Label kind={isUnrated(effectiveAgeRating) ? kinds.WARNING : kinds.DEFAULT}>{ratingLabel(effectiveAgeRating)}</Label>
+                            {
+                              offerFix ?
+                                <div title={inKidsFolder ? 'Its kids library only takes rated series' : 'Readers cannot apply an age limit to it'}>
+                                  <AgeRatingFix
+                                    seriesId={seriesId}
+                                    ageRatings={ageRatings}
+                                    onSaved={this.onRefreshPress}
+                                  />
+                                </div> :
+                                null
+                            }
                           </TableRowCell>
                         </TableRow>
                       );
