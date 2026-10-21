@@ -198,14 +198,18 @@ class AuthorDetailsHeader extends Component {
               </div>
             </Measure>
 
-            <div className={styles.details}>
-              <div>
-                <HeartRating
-                  rating={ratings.value}
-                  iconSize={20}
-                />
-              </div>
-            </div>
+            {/* Talearr: no rating yet shows nothing instead of a heart with 0.0. */}
+            {
+              ratings && ratings.value > 0 &&
+                <div className={styles.details}>
+                  <div>
+                    <HeartRating
+                      rating={ratings.value}
+                      iconSize={20}
+                    />
+                  </div>
+                </div>
+            }
 
             <div className={styles.detailsLabels}>
               {

@@ -65,13 +65,14 @@ class QuickstartHardcoverSection extends Component {
               />
             ) : null}
             <span className={styles.hardcoverButtonUsername}>
-              {hardcoverUsername}
+              {`Hardcover: ${hardcoverUsername}`}
             </span>
           </span>
         );
       }
 
-      return 'Connected';
+      // Talearr: say what is connected; this button sits among other connection buttons.
+      return 'Hardcover connected';
     };
 
     if (this.props.compact) {

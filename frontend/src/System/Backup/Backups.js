@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import Alert from 'Components/Alert';
+import Link from 'Components/Link/Link';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
@@ -97,6 +98,13 @@ class Backups extends Component {
               iconName={icons.RESTORE}
               onPress={this.onRestorePress}
             />
+
+            {/* Talearr: Migrate lives here instead of in the sidebar. */}
+            <PageToolbarButton
+              label={translate('Migrate')}
+              iconName={icons.QUICK_IMPORT}
+              to="/system/migrate"
+            />
           </PageToolbarSection>
         </PageToolbar>
 
@@ -158,6 +166,12 @@ class Backups extends Component {
                 </TableBody>
               </Table>
           }
+
+          <Alert kind={kinds.INFO}>
+            <Link to="/system/migrate">
+              {translate('MigrateFromOtherApps')}
+            </Link>
+          </Alert>
         </PageContentBody>
 
         <RestoreBackupModalConnector

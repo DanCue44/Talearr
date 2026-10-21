@@ -8,6 +8,7 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
+import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
@@ -138,6 +139,15 @@ class Blocklist extends Component {
               iconName={icons.CLEAR}
               isSpinning={isClearingBlocklistExecuting}
               onPress={onClearBlocklistPress}
+            />
+
+            <PageToolbarSeparator />
+
+            {/* Talearr: Ignored Downloads lives here instead of in the sidebar. */}
+            <PageToolbarButton
+              label={translate('IgnoredDownloads')}
+              iconName={icons.IGNORE}
+              to="/activity/ignored"
             />
           </PageToolbarSection>
 
