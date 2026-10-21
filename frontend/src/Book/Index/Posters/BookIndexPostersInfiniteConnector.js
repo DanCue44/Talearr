@@ -13,7 +13,7 @@ function createMapStateToProps() {
   return createSelector(
     (state) => state.bookIndex,
     (state) => state.bookInfiniteScroll,
-    (state) => state.app.selectedMediaType,
+    (state) => state.bookIndex.selectedMediaType,
     createUISettingsSelector(),
     createDimensionsSelector(),
     (bookIndex, bookInfiniteScroll, selectedMediaType, uiSettings, dimensions) => {

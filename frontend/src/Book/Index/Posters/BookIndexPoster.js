@@ -121,6 +121,8 @@ class BookIndexPoster extends Component {
     const {
       id,
       title,
+      mediaType,
+      showMediaType,
       authorId,
       author,
       audiobookMonitored,
@@ -200,6 +202,16 @@ class BookIndexPoster extends Component {
                     name={isSelected ? icons.CHECK_CIRCLE : icons.CIRCLE_OUTLINE}
                     size={20}
                   />
+                </div>
+            }
+
+            {
+              showMediaType &&
+                <div
+                  className={styles.mediaType}
+                  title={mediaType === 'ebook' ? 'eBook' : 'Audiobook'}
+                >
+                  {mediaType === 'ebook' ? '📖' : '🎧'}
                 </div>
             }
 
@@ -363,6 +375,8 @@ BookIndexPoster.propTypes = {
   title: PropTypes.string.isRequired,
   authorId: PropTypes.number.isRequired,
   author: PropTypes.object.isRequired,
+  mediaType: PropTypes.string,
+  showMediaType: PropTypes.bool,
   audiobookMonitored: PropTypes.bool,
   ebookMonitored: PropTypes.bool,
   titleSlug: PropTypes.string.isRequired,

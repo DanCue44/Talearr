@@ -69,7 +69,7 @@ function createMapStateToProps() {
     createBookSelector(),
     (state) => state.bookIndex,
     (state) => state.bookInfiniteScroll,
-    (state) => state.app.selectedMediaType,
+    (state) => state.bookIndex.selectedMediaType,
     (book, bookIndex, bookInfiniteScroll, selectedMediaType) => {
       const view = bookIndex.view || 'posters';
 

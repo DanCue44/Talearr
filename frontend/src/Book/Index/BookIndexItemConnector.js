@@ -106,6 +106,8 @@ function createMapStateToProps() {
       // Talearr: book tags (Tags column) from the Talearr book tags store.
       tags: state.talearrBookTags.byBookId[book.id] || EMPTY_TAGS,
       qualityProfile,
+      // Talearr: with All formats listed, cards show which format each book is
+      showMediaType: state.bookIndex.selectedMediaType === 'all',
       showSearchAction,
       isRefreshingBook,
       isSearchingBook

@@ -93,6 +93,8 @@ class BookIndexRow extends Component {
       hasFiles,
       anyEditionOk,
       selectedMediaType,
+      mediaType,
+      showMediaType,
       title,
       author,
       authorTitle,
@@ -123,7 +125,8 @@ class BookIndexRow extends Component {
     } = this.props;
 
     const hasNarrator = narrator && (typeof narrator !== 'string' || narrator.trim().length > 0);
-    const showNarratorPicker = selectedMediaType === 'audiobook';
+    const rowMediaType = selectedMediaType === 'all' ? (mediaType || 'audiobook') : selectedMediaType;
+    const showNarratorPicker = rowMediaType === 'audiobook';
 
     const {
       bookFileCount,
@@ -186,6 +189,12 @@ class BookIndexRow extends Component {
                     styles[name]
                   )}
                 >
+                  {
+                    showMediaType &&
+                      <span title={rowMediaType === 'ebook' ? 'eBook' : 'Audiobook'}>
+                        {rowMediaType === 'ebook' ? '📖 ' : '🎧 '}
+                      </span>
+                  }
                   <BookNameLink
                     titleSlug={titleSlug}
                     localBookId={localBookId}
@@ -427,10 +436,12 @@ BookIndexRow.propTypes = {
   ebookMonitored: PropTypes.bool,
   anyEditionOk: PropTypes.bool,
   hasFiles: PropTypes.bool,
-  selectedMediaType: PropTypes.oneOf(['audiobook', 'ebook']),
+  selectedMediaType: PropTypes.oneOf(['audiobook', 'all', 'ebook']),
   title: PropTypes.string.isRequired,
   titleSlug: PropTypes.string.isRequired,
   localBookId: PropTypes.string,
+  mediaType: PropTypes.string,
+  showMediaType: PropTypes.bool,
   author: PropTypes.object,
   authorTitle: PropTypes.string,
   narrator: PropTypes.string,

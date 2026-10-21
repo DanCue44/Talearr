@@ -1,4 +1,4 @@
-const chaptarrRed = '#ca302d';
+const talearrOrange = '#ec703e';
 const darkGray = '#888';
 const gray = '#adadad';
 const black = '#000';
@@ -22,10 +22,10 @@ module.exports = {
   successColor: '#27c24c',
   dangerColor: '#f05050',
   warningColor: '#ffa500',
-  infoColor: chaptarrRed,
+  infoColor: talearrOrange,
   purple,
   pink,
-  chaptarrRed,
+  talearrOrange,
   helpTextColor: '#909293',
   darkGray,
   gray,
@@ -33,9 +33,9 @@ module.exports = {
 
   // Theme Colors
 
-  themeRed: chaptarrRed,
-  themeAlternateRed: '#a41726',
-  themeDarkRed: '#66001a',
+  themeRed: talearrOrange,
+  themeAlternateRed: talearrOrange,
+  themeDarkRed: '#a4471f',
   themeDarkColor: '#494949',
   themeLightColor: '#595959',
   pageBackground: '#202020',
@@ -48,12 +48,12 @@ module.exports = {
   inverseLabelColor: '#ddd',
   inverseLabelTextColor: '#333',
   disabledLabelColor: '#838383',
-  infoTextColor: white,
+  infoTextColor: '#1f2024',
 
   // Links
   defaultLinkHoverColor: '#fff',
   linkColor: '#fff',
-  linkHoverColor: '#ca302d',
+  linkHoverColor: talearrOrange,
 
   // Header
   pageHeaderBackgroundColor: '#1f2024', // Talearr charcoal
@@ -131,14 +131,14 @@ module.exports = {
   //
   // Menu
   menuItemColor: '#e1e2e3',
-  menuItemHoverColor: chaptarrRed,
+  menuItemHoverColor: talearrOrange,
   menuItemHoverBackgroundColor: '#606060',
 
   //
   // Toolbar
 
-  toobarButtonHoverColor: chaptarrRed,
-  toobarButtonSelectedColor: chaptarrRed,
+  toobarButtonHoverColor: talearrOrange,
+  toobarButtonSelectedColor: talearrOrange,
 
   //
   // Scroller

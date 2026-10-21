@@ -85,6 +85,18 @@ $hoverScale: 1.05;
   color: var(--textColor);
 }
 
+.mediaType {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.6);
+  font-size: $smallFontSize;
+  line-height: 1.6;
+}
+
 .editorSelect {
   position: absolute;
   top: 8px;
@@ -120,7 +132,7 @@ $hoverScale: 1.05;
   left: 10px;
   z-index: 3;
   border-radius: 4px;
-  background-color: var(--chaptarrRed);
+  background-color: var(--talearrOrange);
   color: var(--white);
   font-size: $smallFontSize;
   opacity: 0;

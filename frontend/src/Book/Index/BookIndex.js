@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import MediaTypeToggle from 'Author/Details/MediaTypeToggle';
+import MediaTypeTripleToggle from 'Author/Index/MediaTypeTripleToggle';
 import NoAuthor from 'Author/NoAuthor';
 import BookEditorFooter from 'Book/Editor/BookEditorFooter';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
@@ -351,7 +351,8 @@ class BookIndex extends Component {
   onSaveSelected = (changes) => {
     this.props.onSaveSelected({
       bookIds: this.getSelectedIds(),
-      mediaType: this.props.selectedMediaType,
+      // With All selected each book keeps its own format
+      mediaType: this.props.selectedMediaType === 'all' ? undefined : this.props.selectedMediaType,
       ...changes
     });
   };
@@ -456,7 +457,7 @@ class BookIndex extends Component {
       <PageContent>
         <PageToolbar>
           <PageToolbarSection>
-            <MediaTypeToggle
+            <MediaTypeTripleToggle
               selectedMediaType={selectedMediaType}
               onMediaTypeChange={onMediaTypeChange}
             />
@@ -740,7 +741,7 @@ BookIndex.propTypes = {
   onScroll: PropTypes.func.isRequired,
   onSaveSelected: PropTypes.func.isRequired,
   onFetchBookIds: PropTypes.func.isRequired,
-  selectedMediaType: PropTypes.oneOf(['audiobook', 'ebook']).isRequired,
+  selectedMediaType: PropTypes.oneOf(['audiobook', 'all', 'ebook']).isRequired,
   posterQueryKey: PropTypes.string.isRequired,
   posterQueryParams: PropTypes.object.isRequired,
   posterBuckets: PropTypes.shape({

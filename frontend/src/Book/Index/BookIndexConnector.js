@@ -7,7 +7,7 @@ import * as commandNames from 'Commands/commandNames';
 import withScrollPosition from 'Components/withScrollPosition';
 import { setSelectedMediaType } from 'Store/Actions/appActions';
 import { clearBooks, fetchBooks } from 'Store/Actions/bookActions';
-import { saveBookEditor, setBookFilter, setBookSort, setBookTableOption, setBookView } from 'Store/Actions/bookIndexActions';
+import { saveBookEditor, setBookFilter, setBookMediaType, setBookSort, setBookTableOption, setBookView } from 'Store/Actions/bookIndexActions';
 import * as bookInfiniteScrollActions from 'Store/Actions/bookInfiniteScrollActions';
 import { executeCommand } from 'Store/Actions/commandActions';
 import { selectQueryBooks } from 'Store/Reducers/bookInfiniteScrollReducer';
@@ -27,7 +27,7 @@ function createMapStateToProps() {
     createCommandExecutingSelector(commandNames.CUTOFF_UNMET_BOOK_SEARCH),
     createCommandExecutingSelector(commandNames.MISSING_BOOK_SEARCH),
     createDimensionsSelector(),
-    (state) => state.app.selectedMediaType,
+    (state) => state.bookIndex.selectedMediaType,
     (state) => state.bookInfiniteScroll,
     (
       book,
@@ -41,7 +41,7 @@ function createMapStateToProps() {
       bookInfiniteScroll
     ) => {
       const isRefreshingBook = isRefreshingBookCommand || isRefreshingAuthorCommand;
-      const mediaType = selectedMediaType || 'audiobook';
+      const mediaType = selectedMediaType || 'all';
       const {
         queryKey: posterQueryKey,
         queryParams: posterQueryParams,
@@ -127,8 +127,12 @@ function createMapDispatchToProps(dispatch, props) {
     },
 
     onMediaTypeChange(mediaType) {
-      // Update global selected media type
-      dispatch(setSelectedMediaType({ mediaType }));
+      dispatch(setBookMediaType({ mediaType }));
+
+      // Keep the global media type (used by author pages) in step when a single format is picked
+      if (mediaType !== 'all') {
+        dispatch(setSelectedMediaType({ mediaType }));
+      }
 
       // Clear existing books to prevent transient mixing
       dispatch(clearBooks());
@@ -146,7 +150,7 @@ class BookIndexConnector extends Component {
 
     if (this.needsClientSideBooks()) {
       this.props.dispatchFetchBooks({
-        mediaType: selectedMediaType || 'audiobook',
+        mediaType: selectedMediaType || 'all',
         include: 'author'
       });
     }
@@ -201,7 +205,7 @@ BookIndexConnector.propTypes = {
   isSmallScreen: PropTypes.bool.isRequired,
   view: PropTypes.string.isRequired,
   isPopulated: PropTypes.bool.isRequired,
-  selectedMediaType: PropTypes.oneOf(['audiobook', 'ebook']).isRequired,
+  selectedMediaType: PropTypes.oneOf(['audiobook', 'all', 'ebook']).isRequired,
   useClientSidePosters: PropTypes.bool.isRequired,
   posterTotalCount: PropTypes.number,
   dispatchSetBookView: PropTypes.func.isRequired,
