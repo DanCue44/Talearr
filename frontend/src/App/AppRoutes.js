@@ -13,6 +13,11 @@ import BookIndexConnector from 'Book/Index/BookIndexConnector';
 import TalearrDuplicates from 'Book/Talearr/TalearrDuplicates';
 import BookshelfConnector from 'Bookshelf/BookshelfConnector';
 import CalendarPageConnector from 'Calendar/CalendarPageConnector';
+import ComicsAdd from 'Comics/ComicsAdd';
+import ComicsIndex from 'Comics/ComicsIndex';
+import ComicsSeriesPage from 'Comics/ComicsSeriesPage';
+import ComicsSettings from 'Comics/ComicsSettings';
+import ComicsWanted from 'Comics/ComicsWanted';
 import NavigationErrorBoundary from 'Components/Error/NavigationErrorBoundary';
 import NotFound from 'Components/NotFound';
 import Switch from 'Components/Router/Switch';
@@ -150,6 +155,33 @@ function AppRoutes(props) {
       <Route
         path="/talearr/series/:seriesId(\d+)"
         component={TalearrSeriesPage}
+      />
+
+      {/* Talearr: comics and manga (notes: TALEARR_COMICS_PLAN.md) */}
+      <Route
+        exact={true}
+        path="/comics"
+        component={ComicsIndex}
+      />
+
+      <Route
+        path="/comics/add"
+        component={ComicsAdd}
+      />
+
+      <Route
+        path="/comics/wanted"
+        component={ComicsWanted}
+      />
+
+      <Route
+        path="/comics/settings"
+        component={ComicsSettings}
+      />
+
+      <Route
+        path="/comics/series/:seriesId(\d+)"
+        component={ComicsSeriesPage}
       />
 
       {/* Talearr: possible duplicates and merge */}

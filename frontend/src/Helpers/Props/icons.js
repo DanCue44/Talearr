@@ -29,6 +29,7 @@ import {
   faBolt as fasBolt,
   faBook as fasBook,
   faBookmark as fasBookmark,
+  faBookOpen as fasBookOpen,
   faBookReader as fasBookReader,
   faBroadcastTower as fasBroadcastTower,
   faBug as fasBug,
@@ -127,6 +128,8 @@ export const ARROW_UP = fasArrowCircleUp;
 export const BACKUP = farFileArchive;
 export const BAN = fasBan;
 export const BOOK = fasBook;
+// Talearr: comics and manga.
+export const COMICS = fasBookOpen;
 export const BUG = fasBug;
 export const CALENDAR = fasCalendarAlt;
 export const CALENDAR_O = farCalendar;

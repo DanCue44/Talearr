@@ -50,6 +50,32 @@ const links = [
     ]
   },
 
+  // Talearr: comics and manga (beta), a library of their own.
+  {
+    iconName: icons.COMICS,
+    title: () => 'Comics',
+    to: '/comics',
+    alias: '/comics',
+    children: [
+      {
+        title: () => 'Series',
+        to: '/comics'
+      },
+      {
+        title: () => translate('AddNew'),
+        to: '/comics/add'
+      },
+      {
+        title: () => translate('Wanted'),
+        to: '/comics/wanted'
+      },
+      {
+        title: () => translate('Settings'),
+        to: '/comics/settings'
+      }
+    ]
+  },
+
   {
     iconName: icons.CALENDAR,
     title: () => translate('Calendar'),
