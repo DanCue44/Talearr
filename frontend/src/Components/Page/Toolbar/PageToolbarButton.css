@@ -9,6 +9,8 @@
   /* Talearr: a button rendered as a link (to=...) would inherit the toolbar's 60px line height
      and push its label out of view. */
   line-height: $lineHeight;
+  /* Talearr: and would take the theme's link color instead of the toolbar's. */
+  color: inherit;
 
   &:hover {
     color: var(--toolbarButtonHoverColor);
