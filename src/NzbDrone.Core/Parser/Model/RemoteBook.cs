@@ -25,6 +25,9 @@ namespace NzbDrone.Core.Parser.Model
         // Talearr: the release holds several books (a bundle, box set or discography).
         public bool IsBundle { get; set; }
 
+        // Talearr: a comic or manga grab (Comics); download clients file it in their comics category.
+        public bool IsComic { get; set; }
+
         // Talearr: a bundle allowed only as a last resort, grabbed when no single copy is available.
         public bool IsBundleFallback { get; set; }
 

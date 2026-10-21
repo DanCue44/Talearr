@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
         }
     }
 
-    public class NzbVortexSettings : IProviderConfig
+    public class NzbVortexSettings : IProviderConfig, IComicsCategorySettings
     {
         private static readonly NzbVortexSettingsValidator Validator = new NzbVortexSettingsValidator();
 
@@ -60,6 +60,11 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
             get => _audiobookCategory ?? MusicCategory;
             set => _audiobookCategory = value;
         }
+        // Talearr: comic and manga downloads (Comics) get their own category, so the book import
+        // never sees them. Empty: comics use the ebook category.
+        [FieldDefinition(90, Label = "Comics Group", Type = FieldType.Textbox, HelpText = "Comics and manga downloads go here. Leave empty to use the ebook category.")]
+        public string ComicsCategory { get; set; } = "comics";
+
 
         [FieldDefinition(5, Label = "Ebook Group", Type = FieldType.Textbox, HelpText = "Adding a category specific to Talearr avoids conflicts with unrelated non-Talearr downloads. Using a category is optional, but strongly recommended.")]
         public string EbookCategory

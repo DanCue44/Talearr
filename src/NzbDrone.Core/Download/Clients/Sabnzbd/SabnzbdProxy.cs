@@ -136,7 +136,8 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
             // configured to use the same non-empty category (or legacy MusicCategory is in effect via fallback).
             if (audiobookCategory.IsNotNullOrWhiteSpace() &&
                 ebookCategory.IsNotNullOrWhiteSpace() &&
-                audiobookCategory.Equals(ebookCategory, StringComparison.InvariantCultureIgnoreCase))
+                audiobookCategory.Equals(ebookCategory, StringComparison.InvariantCultureIgnoreCase) &&
+                (settings.ComicsCategory.IsNullOrWhiteSpace() || settings.ComicsCategory.Trim().Equals(ebookCategory, StringComparison.InvariantCultureIgnoreCase)))
             {
                 request.AddQueryParam("category", audiobookCategory);
             }
@@ -159,7 +160,8 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
             // configured to use the same non-empty category (or legacy MusicCategory is in effect via fallback).
             if (audiobookCategory.IsNotNullOrWhiteSpace() &&
                 ebookCategory.IsNotNullOrWhiteSpace() &&
-                audiobookCategory.Equals(ebookCategory, StringComparison.InvariantCultureIgnoreCase))
+                audiobookCategory.Equals(ebookCategory, StringComparison.InvariantCultureIgnoreCase) &&
+                (settings.ComicsCategory.IsNullOrWhiteSpace() || settings.ComicsCategory.Trim().Equals(ebookCategory, StringComparison.InvariantCultureIgnoreCase)))
             {
                 request.AddQueryParam("category", audiobookCategory);
             }

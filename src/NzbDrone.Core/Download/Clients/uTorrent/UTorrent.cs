@@ -83,7 +83,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
             _proxy.AddTorrentFromUrl(magnetLink, Settings);
             _proxy.SetTorrentSeedingConfiguration(hash, remoteBook.SeedConfiguration, Settings);
 
-            var category = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var category = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
             if (category.IsNotNullOrWhiteSpace())
             {
                 _proxy.SetTorrentLabel(hash, category, Settings);
@@ -107,7 +107,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
             _proxy.AddTorrentFromFile(filename, fileContent, Settings);
             _proxy.SetTorrentSeedingConfiguration(hash, remoteBook.SeedConfiguration, Settings);
 
-            var category = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var category = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
             if (category.IsNotNullOrWhiteSpace())
             {
                 _proxy.SetTorrentLabel(hash, category, Settings);
@@ -131,7 +131,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
         public override IEnumerable<DownloadClientItem> GetItems()
         {
             var torrents = GetTorrents();
-            var categories = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+            var categories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                 .Where(c => c.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
                 .ToList();
@@ -262,7 +262,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
 
                 if (config.GetValueOrDefault("dir_add_label") == "true")
                 {
-                    var categories = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+                    var categories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                         .Where(c => c.IsNotNullOrWhiteSpace())
                         .Distinct(StringComparer.InvariantCultureIgnoreCase)
                         .ToList();

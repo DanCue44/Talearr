@@ -61,7 +61,7 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
         {
             var nzbTasks = GetTasks();
             var serialNumber = _serialNumberProvider.GetSerialNumber(Settings);
-            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+            var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                 .Where(c => c.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
                 .ToList();
@@ -149,7 +149,7 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
             {
                 var serialNumber = _serialNumberProvider.GetSerialNumber(Settings);
                 var defaultDir = GetDownloadDirectory() ?? GetDefaultDir();
-                var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+                var configuredCategories = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                     .Where(c => c.IsNotNullOrWhiteSpace())
                     .Distinct(StringComparer.InvariantCultureIgnoreCase)
                     .ToList();
@@ -464,7 +464,7 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
                 return destDir.TrimEnd('/');
             }
 
-            var category = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var category = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
 
             if (category.IsNotNullOrWhiteSpace())
             {

@@ -36,7 +36,7 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
         {
             var priority = remoteBook.IsRecentBook() ? Settings.RecentTvPriority : Settings.OlderTvPriority;
 
-            var group = remoteBook.GetPreferredMediaType() == BookMediaType.Ebook ? Settings.EbookCategory : Settings.AudiobookCategory;
+            var group = remoteBook.PickCategory(Settings.EbookCategory, Settings.AudiobookCategory, Settings.ComicsCategory);
             var response = _proxy.DownloadNzb(fileContent, filename, priority, Settings, group);
 
             if (response == null)
@@ -51,7 +51,7 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
 
         public override IEnumerable<DownloadClientItem> GetItems()
         {
-            var configuredGroups = new[] { Settings.AudiobookCategory, Settings.EbookCategory }
+            var configuredGroups = new[] { Settings.AudiobookCategory, Settings.EbookCategory, Settings.ComicsCategory }
                 .Where(c => c.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
                 .ToList();

@@ -219,7 +219,8 @@ namespace NzbDrone.Core.Talearr.Comics.Search
                         ReleaseDate = volumes.Select(v => v.ReleaseDate).FirstOrDefault(d => d.HasValue) ?? DateTime.UtcNow.AddYears(-1)
                     }
                 },
-                ReleaseSource = interactive ? ReleaseSourceType.InteractiveSearch : ReleaseSourceType.Search
+                ReleaseSource = interactive ? ReleaseSourceType.InteractiveSearch : ReleaseSourceType.Search,
+                IsComic = true
             };
 
             try

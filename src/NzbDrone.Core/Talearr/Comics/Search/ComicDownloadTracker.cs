@@ -60,7 +60,9 @@ namespace NzbDrone.Core.Talearr.Comics.Search
                 EnsureLoaded();
                 if (_ids == null || !_ids.Contains(item.DownloadId))
                 {
-                    return false;
+                    // Something in the comics category that Talearr did not grab (added by hand):
+                    // not a book, so the book import leaves it alone too.
+                    return InComicsCategory(client?.Definition?.Settings, item);
                 }
             }
 
@@ -74,6 +76,20 @@ namespace NzbDrone.Core.Talearr.Comics.Search
             }
 
             return true;
+        }
+
+        public static bool InComicsCategory(object clientSettings, DownloadClientItem item)
+        {
+            if (clientSettings is not IComicsCategorySettings settings || string.IsNullOrWhiteSpace(settings.ComicsCategory) || string.IsNullOrWhiteSpace(item.Category))
+            {
+                return false;
+            }
+
+            var comics = settings.ComicsCategory.Trim();
+
+            // A comics category equal to the ebook category means "no separate category".
+            return item.Category.Trim().Equals(comics, StringComparison.OrdinalIgnoreCase) &&
+                   !comics.Equals(settings.EbookCategory?.Trim(), StringComparison.OrdinalIgnoreCase);
         }
 
         private void Observe(DownloadClientItem item)
