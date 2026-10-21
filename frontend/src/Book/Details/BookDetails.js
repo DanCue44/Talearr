@@ -23,6 +23,7 @@ import translate from 'Utilities/String/translate';
 import BookRecordings from '../Recordings/BookRecordings';
 import BookSoulseek from '../Soulseek/BookSoulseek';
 import BookDetailsHeaderConnector from './BookDetailsHeaderConnector';
+import BookFormatToggle from './BookFormatToggle';
 import BookChaptersTable from './Chapters/BookChaptersTable';
 import BookMatchProvenanceTable from './Matching/BookMatchProvenanceTable';
 import TalearrSendToKindleButton from './TalearrSendToKindleButton';
@@ -124,6 +125,9 @@ class BookDetails extends Component {
       onRefreshPress,
       onSearchPress,
       onConvertToM4bPress,
+      otherFormatBookId,
+      workCoverImages,
+      onFormatChange,
       statistics = {}
     } = this.props;
 
@@ -149,6 +153,14 @@ class BookDetails extends Component {
       <PageContent title={title}>
         <PageToolbar>
           <PageToolbarSection>
+            {
+              !!otherFormatBookId &&
+                <BookFormatToggle
+                  mediaType={mediaType}
+                  onFormatChange={onFormatChange}
+                />
+            }
+
             <PageToolbarButton
               label={translate('Refresh')}
               iconName={icons.REFRESH}
@@ -243,6 +255,7 @@ class BookDetails extends Component {
               <BookDetailsHeaderConnector
                 bookId={id}
                 author={author}
+                coverImages={workCoverImages}
                 width={width}
               />
             )}
@@ -431,6 +444,9 @@ class BookDetails extends Component {
 
 BookDetails.propTypes = {
   id: PropTypes.number.isRequired,
+  otherFormatBookId: PropTypes.number,
+  workCoverImages: PropTypes.arrayOf(PropTypes.object),
+  onFormatChange: PropTypes.func.isRequired,
   titleSlug: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
   seriesTitle: PropTypes.string.isRequired,

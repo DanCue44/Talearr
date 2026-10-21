@@ -1,4 +1,5 @@
 /* eslint max-params: 0 */
+import { push } from 'connected-react-router';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
@@ -41,6 +42,32 @@ const selectBookFiles = createSelector(
   }
 );
 
+function getMediaType(book) {
+  return (book.mediaType || '').toString().toLowerCase() === 'ebook' ? 'ebook' : 'audiobook';
+}
+
+// Talearr: the other format of the same work (same author and foreignBookId), preferring a
+// row with files, then a monitored one, then the oldest.
+function findOtherFormatBook(items, book) {
+  if (!book.foreignBookId) {
+    return undefined;
+  }
+
+  const mediaType = getMediaType(book);
+  const isMonitored = (b) => (getMediaType(b) === 'ebook' ? b.ebookMonitored : b.audiobookMonitored);
+  const hasFiles = (b) => !!b.hasFiles || (b.statistics?.bookFileCount || 0) > 0;
+
+  return items
+    .filter((b) => b.authorId === book.authorId &&
+      b.foreignBookId === book.foreignBookId &&
+      getMediaType(b) !== mediaType)
+    .sort((left, right) => (
+      (Number(hasFiles(right)) - Number(hasFiles(left))) ||
+      (Number(!!isMonitored(right)) - Number(!!isMonitored(left))) ||
+      (left.id - right.id)
+    ))[0];
+}
+
 function createMapStateToProps() {
   return createSelector(
     (state, { bookId }) => bookId,
@@ -66,6 +93,8 @@ function createMapStateToProps() {
         }
 
         const selectedMediaType = (book.mediaType || '').toString().toLowerCase();
+        const otherFormatBook = findOtherFormatBook(books.items, book);
+        const ebookRow = selectedMediaType === 'ebook' ? book : otherFormatBook;
         const sortedBooks = books.items.filter((b) => {
           if (b.authorId !== book.authorId) {
             return false;
@@ -156,6 +185,9 @@ function createMapStateToProps() {
           previousBook,
           nextBook,
           hasBookNavigation,
+          otherFormatBookId: otherFormatBook?.id,
+          // Talearr: the page shows the ebook's cover for the whole work, like the Books cards
+          workCoverImages: ebookRow?.images?.length ? ebookRow.images : undefined,
           isSmallScreen: dimensions.isSmallScreen
         };
       } catch (error) {
@@ -167,6 +199,7 @@ function createMapStateToProps() {
 }
 
 const mapDispatchToProps = {
+  push,
   executeCommand,
   fetchBookFiles,
   clearBookFiles,
@@ -276,6 +309,15 @@ class BookDetailsConnector extends Component {
     });
   };
 
+  onFormatChange = (mediaType) => {
+    const { otherFormatBookId } = this.props;
+    const current = (this.props.mediaType || '').toString().toLowerCase() === 'ebook' ? 'ebook' : 'audiobook';
+
+    if (mediaType !== current && otherFormatBookId) {
+      this.props.push(`${window.Chaptarr.urlBase}/book/${otherFormatBookId}`);
+    }
+  };
+
   //
   // Render
 
@@ -287,6 +329,7 @@ class BookDetailsConnector extends Component {
         onRefreshPress={this.onRefreshPress}
         onSearchPress={this.onSearchPress}
         onConvertToM4bPress={this.onConvertToM4bPress}
+        onFormatChange={this.onFormatChange}
       />
     );
   }
@@ -294,6 +337,9 @@ class BookDetailsConnector extends Component {
 
 BookDetailsConnector.propTypes = {
   id: PropTypes.number,
+  mediaType: PropTypes.string,
+  otherFormatBookId: PropTypes.number,
+  push: PropTypes.func.isRequired,
   anyReleaseOk: PropTypes.bool,
   isRefreshing: PropTypes.bool.isRequired,
   isRenamingFiles: PropTypes.bool.isRequired,
