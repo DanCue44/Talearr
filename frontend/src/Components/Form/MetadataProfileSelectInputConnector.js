@@ -27,8 +27,12 @@ class MetadataProfileSelectInputConnector extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    // Re-fetch if profileType changed
-    if (prevProps.profileType !== this.props.profileType) {
+    // Re-fetch if profileType changed, or when profiles are added, cloned, edited or deleted
+    // elsewhere in the app (this list is fetched per media type, not read from the store)
+    if (
+      prevProps.profileType !== this.props.profileType ||
+      prevProps.metadataProfileItems !== this.props.metadataProfileItems
+    ) {
       this.fetchProfiles();
     }
 
@@ -82,6 +86,15 @@ class MetadataProfileSelectInputConnector extends Component {
     // Check if value exists in the values array (handle both string and number comparisons)
     const valueStr = value?.toString();
     const valueExists = values.some((option) => option.key === valueStr);
+
+    // A saved profile this list does not know yet (created after the list was fetched) gets
+    // one fresh fetch before it is replaced, so a new profile is never silently swapped out.
+    if (value != null && value !== 0 && !valueExists && this.refetchedForValue !== valueStr) {
+      this.refetchedForValue = valueStr;
+      this.fetchProfiles();
+
+      return;
+    }
 
     if (value == null || value === 0 || !valueExists) {
       const firstValue = values.find((option) => !isNaN(parseInt(option.key, 10)));
@@ -161,6 +174,7 @@ class MetadataProfileSelectInputConnector extends Component {
       value,
       hasError,
       hasWarning,
+      metadataProfileItems, // eslint-disable-line no-unused-vars
       ...otherProps
     } = this.props;
 
@@ -195,6 +209,7 @@ MetadataProfileSelectInputConnector.propTypes = {
   includeMixed: PropTypes.bool.isRequired,
   includeNone: PropTypes.bool.isRequired,
   profileType: PropTypes.string,
+  metadataProfileItems: PropTypes.arrayOf(PropTypes.object),
   onChange: PropTypes.func.isRequired
 };
 
@@ -204,4 +219,10 @@ MetadataProfileSelectInputConnector.defaultProps = {
   includeNone: false
 };
 
-export default connect()(MetadataProfileSelectInputConnector);
+function mapStateToProps(state) {
+  return {
+    metadataProfileItems: state.settings.metadataProfiles.items
+  };
+}
+
+export default connect(mapStateToProps)(MetadataProfileSelectInputConnector);
