@@ -98,7 +98,7 @@ namespace NzbDrone.Core.Notifications.Komga
             }
         }
 
-        public void ScanComicFolder(string folder)
+        public void ScanComicFolder(string folder, bool newFolder = false)
         {
             var mapped = ComicReaderPaths.Map(Settings.TalearrPath, Settings.ReaderPath, folder);
             var libraries = GetLibraries().Where(l => ComicReaderPaths.IsUnder(mapped, l.Root)).ToList();

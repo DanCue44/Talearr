@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
 using NLog;
@@ -13,6 +14,8 @@ public interface IKavitaServiceProxy
     string GetBaseUrl(KavitaSettings settings, string relativePath = null);
     void Notify(KavitaSettings settings, string message);
     string GetToken(KavitaSettings settings);
+    List<KavitaLibrary> GetLibraries(KavitaSettings settings, string token);
+    void ScanLibrary(KavitaSettings settings, string token, int libraryId);
 }
 
 public class KavitaServiceProxy : IKavitaServiceProxy
@@ -66,6 +69,27 @@ public class KavitaServiceProxy : IKavitaServiceProxy
         }
 
         return authResult.Token;
+    }
+
+    // Talearr: comic scans look up the library that holds a folder and can scan it whole.
+    public List<KavitaLibrary> GetLibraries(KavitaSettings settings, string token)
+    {
+        var request = GetKavitaServerRequest("library/libraries", HttpMethod.Get, settings);
+        request.Headers["Authorization"] = "Bearer " + token;
+        var response = _httpClient.Execute(request.Build());
+
+        return JsonSerializer.Deserialize<List<KavitaLibrary>>(response.Content) ?? new List<KavitaLibrary>();
+    }
+
+    public void ScanLibrary(KavitaSettings settings, string token, int libraryId)
+    {
+        var request = GetKavitaServerRequest("library/scan", HttpMethod.Post, settings);
+        request.Headers["Authorization"] = "Bearer " + token;
+        request.AddQueryParam("libraryId", libraryId)
+            .AddQueryParam("force", "false");
+
+        var response = _httpClient.Execute(request.Build());
+        _logger.Trace("Library scan response: {0}", string.IsNullOrEmpty(response.Content) ? "Success" : response.Content);
     }
 
     private HttpRequestBuilder GetKavitaServerRequest(string resource, HttpMethod method, KavitaSettings settings)

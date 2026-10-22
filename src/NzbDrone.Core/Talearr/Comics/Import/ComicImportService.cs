@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Talearr.Comics.Parsing;
 using NzbDrone.Core.Talearr.Comics.Search;
@@ -72,6 +73,8 @@ namespace NzbDrone.Core.Talearr.Comics.Import
                     throw new ComicsException("No comic files (CBZ, CBR, CB7, PDF, EPUB) in {0}", download.OutputPath);
                 }
 
+                // A reader that has never seen this folder needs a wider scan
+                var newFolder = series.Path.IsNullOrWhiteSpace() || !_diskProvider.FolderExists(series.Path);
                 var volumes = _store.GetVolumes(series.Id);
                 var grabbedFor = download.GetVolumeIds();
                 var matches = Match(series, volumes, grabbedFor, files, result);
@@ -103,7 +106,7 @@ namespace NzbDrone.Core.Talearr.Comics.Import
                 }
                 else
                 {
-                    _notifier.FolderChanged(series, series.Path);
+                    _notifier.FolderChanged(series, series.Path, newFolder);
                     MarkImported(download);
                 }
             }
@@ -177,12 +180,14 @@ namespace NzbDrone.Core.Talearr.Comics.Import
             var settings = _settingsService.Get();
             var root = _store.GetRootFolder(series.RootFolderId);
             var result = new ComicImportResult();
+            var movedFolder = false;
 
             if (root != null)
             {
                 var folder = Path.Combine(root.Path, ComicNaming.SeriesFolder(series, settings));
                 if (!string.Equals(folder, series.Path, StringComparison.Ordinal))
                 {
+                    movedFolder = true;
                     series.Path = folder;
                     _store.UpdateSeries(series);
                 }
@@ -213,7 +218,7 @@ namespace NzbDrone.Core.Talearr.Comics.Import
 
             if (result.Imported.Any())
             {
-                _notifier.FolderChanged(series, series.Path);
+                _notifier.FolderChanged(series, series.Path, movedFolder);
             }
 
             return result;
@@ -292,8 +297,8 @@ namespace NzbDrone.Core.Talearr.Comics.Import
             }
             else
             {
-                var info = ComicInfoBuilder.Build(series, volume, volume.PageCount ?? 0);
-                ComicArchive.WriteCbz(sourceFile, target, info);
+                // PageCount comes from the pages written, not the printed book's page count
+                ComicArchive.WriteCbz(sourceFile, target, pages => ComicInfoBuilder.Build(series, volume, pages));
             }
 
             if (existing != null)

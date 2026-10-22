@@ -57,10 +57,21 @@ public class Kavita : NotificationBase<KavitaSettings>, IComicLibraryScanner
         return new ValidationResult(failures);
     }
 
-    // Talearr: comics ask Kavita to scan the series folder they just changed.
-    public void ScanComicFolder(string folder)
+    // Talearr: comics ask Kavita to scan the series folder they just changed; a new series folder
+    // gets a scan of its whole library (see KavitaService.ScanComicFolder).
+    public void ScanComicFolder(string folder, bool newFolder = false)
     {
-        Notify(Settings, null, folder);
+        try
+        {
+            if (Settings.Notify && folder.IsNotNullOrWhiteSpace())
+            {
+                _kavitaService.ScanComicFolder(Settings, folder, newFolder);
+            }
+        }
+        catch (SocketException ex)
+        {
+            _logger.Debug(ex, $"Unable to connect to Kavita at {Settings.Host}:{Settings.Port}");
+        }
     }
 
     private void Notify(KavitaSettings settings, string header, string folder)

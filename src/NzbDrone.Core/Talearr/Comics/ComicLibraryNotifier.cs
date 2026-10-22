@@ -8,12 +8,13 @@ namespace NzbDrone.Core.Talearr.Comics
     // A reader that can rescan a comics folder (Kavita, Komga).
     public interface IComicLibraryScanner
     {
-        void ScanComicFolder(string folder);
+        // newFolder: the series folder did not exist before this change (a reader may not know it yet)
+        void ScanComicFolder(string folder, bool newFolder = false);
     }
 
     public interface IComicLibraryNotifier
     {
-        void FolderChanged(ComicSeries series, string folder);
+        void FolderChanged(ComicSeries series, string folder, bool newFolder = false);
     }
 
     public static class ComicReaderPaths
@@ -60,7 +61,7 @@ namespace NzbDrone.Core.Talearr.Comics
             _logger = logger;
         }
 
-        public void FolderChanged(ComicSeries series, string folder)
+        public void FolderChanged(ComicSeries series, string folder, bool newFolder = false)
         {
             foreach (var definition in _notificationFactory.All().Where(d => d.Implementation == "Kavita" || d.Implementation == "Komga"))
             {
@@ -68,7 +69,7 @@ namespace NzbDrone.Core.Talearr.Comics
                 {
                     if (_notificationFactory.GetInstance(definition) is IComicLibraryScanner scanner)
                     {
-                        scanner.ScanComicFolder(folder);
+                        scanner.ScanComicFolder(folder, newFolder);
                     }
                 }
                 catch (Exception ex)
