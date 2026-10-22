@@ -42,6 +42,13 @@ namespace NzbDrone.Core.Talearr.Comics.Import
         // failure never leaves half a file behind.
         public static int WriteCbz(string source, string destination, string comicInfoXml)
         {
+            return WriteCbz(source, destination, string.IsNullOrWhiteSpace(comicInfoXml) ? null : _ => comicInfoXml);
+        }
+
+        // As above, with ComicInfo.xml built from the number of pages actually written, so its
+        // PageCount always matches the archive (metadata page counts are for the printed book).
+        public static int WriteCbz(string source, string destination, Func<int, string> comicInfoForPages)
+        {
             var temporary = destination + ".talearr-tmp";
             try
             {
@@ -49,6 +56,10 @@ namespace NzbDrone.Core.Talearr.Comics.Import
                 using (var output = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
                 using (var zip = new ZipArchive(output, ZipArchiveMode.Create))
                 {
+                    // ComicInfo.xml goes first (some readers look there), so count the pages the copy
+                    // below will write before writing it.
+                    var counted = comicInfoForPages == null ? 0 : CountPages(source);
+                    var comicInfoXml = counted > 0 ? comicInfoForPages(counted) : null;
                     if (!string.IsNullOrWhiteSpace(comicInfoXml))
                     {
                         var info = zip.CreateEntry("ComicInfo.xml", CompressionLevel.Optimal);
@@ -77,6 +88,28 @@ namespace NzbDrone.Core.Talearr.Comics.Import
                 TryDelete(temporary);
                 throw;
             }
+        }
+
+        // The number of pages CopyPages writes for source: the same entries, image filter and
+        // de-duplicated safe names, without reading any page data.
+        public static int CountPages(string source)
+        {
+            List<string> keys;
+            if (IsZip(source))
+            {
+                using var input = ZipFile.OpenRead(source);
+                keys = input.Entries.Where(e => e.Length > 0).Select(e => e.FullName).ToList();
+            }
+            else
+            {
+                using var archive = ArchiveFactory.OpenArchive(new[] { new FileInfo(source) }, new ReaderOptions());
+                keys = archive.Entries.Where(e => !e.IsDirectory).Select(e => e.Key).ToList();
+            }
+
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            return keys.Where(k => !string.IsNullOrWhiteSpace(k) && IsImage(k))
+                .Select(SafeEntryName)
+                .Count(n => n != null && names.Add(n));
         }
 
         private static int CopyPages(string source, ZipArchive zip)

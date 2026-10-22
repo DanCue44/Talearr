@@ -91,13 +91,38 @@ namespace Chaptarr.Core.Test.Talearr.Comics
         }
 
         [Test]
+        public void should_write_the_page_count_of_the_pages_actually_written()
+        {
+            var source = Path.Combine(_folder, "in.cbz");
+            File.WriteAllBytes(source, TestArchives.Zip(
+                ("v08/001.jpg", Page),
+                ("v08/002.jpg", Page),
+                ("v08/002.JPG", Page),
+                ("v08/credits.txt", TestArchives.Text("scan notes")),
+                ("v08/003.png", Page)));
+
+            // Metadata says the printed volume has 162 pages; the archive holds 3 images.
+            var volume = new ComicVolume { Number = 8, PageCount = 162 };
+            var target = Path.Combine(_folder, "out.cbz");
+            var pages = ComicArchive.WriteCbz(source, target, count => ComicInfoBuilder.Build(Series(), volume, count));
+
+            Assert.That(pages, Is.EqualTo(3));
+            Assert.That(ComicArchive.CountPages(source), Is.EqualTo(3));
+            using var zip = ZipFile.OpenRead(target);
+            Assert.That(zip.Entries.First().FullName, Is.EqualTo("ComicInfo.xml"));
+            Assert.That(zip.Entries.Count(e => ComicArchive.IsImage(e.FullName)), Is.EqualTo(3));
+            using var reader = new StreamReader(zip.GetEntry("ComicInfo.xml").Open());
+            Assert.That(reader.ReadToEnd(), Does.Contain("<PageCount>3</PageCount>"));
+        }
+
+        [Test]
         public void should_convert_cb7_to_cbz()
         {
             var source = Path.Combine(_folder, "in.cb7");
             File.WriteAllBytes(source, TestArchives.SevenZip(("p1.jpg", Page), ("p2.jpg", Page), ("notes.txt", TestArchives.Text("hi"))));
 
             var target = Path.Combine(_folder, "out.cbz");
-            var pages = ComicArchive.WriteCbz(source, target, null);
+            var pages = ComicArchive.WriteCbz(source, target, (string)null);
 
             Assert.That(pages, Is.EqualTo(2));
             Assert.That(ComicArchive.IsZip(target), Is.True);
@@ -110,7 +135,7 @@ namespace Chaptarr.Core.Test.Talearr.Comics
             File.WriteAllBytes(source, TestArchives.Zip(("readme.txt", TestArchives.Text("no pages here"))));
             var target = Path.Combine(_folder, "out.cbz");
 
-            Assert.Throws<ComicArchiveException>(() => ComicArchive.WriteCbz(source, target, null));
+            Assert.Throws<ComicArchiveException>(() => ComicArchive.WriteCbz(source, target, (string)null));
             Assert.That(File.Exists(target), Is.False);
             Assert.That(File.Exists(target + ".talearr-tmp"), Is.False);
         }
@@ -236,6 +261,7 @@ namespace Chaptarr.Core.Test.Talearr.Comics
             Assert.That(store.GetFiles(series.Id).Select(f => f.Source).Distinct(), Is.EqualTo(new[] { ComicSources.Digital }));
             Assert.That(store.GetDownload("nzo_1").Status, Is.EqualTo(ComicDownloadStatuses.Imported));
             Assert.That(notifier.Folders, Is.EqualTo(new[] { series.Path }));
+            Assert.That(notifier.NewFolders, Is.EqualTo(new[] { true }), "the series folder did not exist before this import");
 
             // A rescan finds nothing new, and a deleted file is forgotten.
             File.Delete(Path.Combine(series.Path, "Witch Hat Atelier v02 (2019).cbz"));
@@ -248,9 +274,12 @@ namespace Chaptarr.Core.Test.Talearr.Comics
         {
             public List<string> Folders { get; } = new List<string>();
 
-            public void FolderChanged(ComicSeries series, string folder)
+            public List<bool> NewFolders { get; } = new List<bool>();
+
+            public void FolderChanged(ComicSeries series, string folder, bool newFolder = false)
             {
                 Folders.Add(folder);
+                NewFolders.Add(newFolder);
             }
         }
 
