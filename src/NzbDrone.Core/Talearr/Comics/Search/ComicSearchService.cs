@@ -9,6 +9,7 @@ using NzbDrone.Common.Http;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.MyAnonaMouse;
 using NzbDrone.Core.Indexers.Newznab;
 using NzbDrone.Core.Indexers.Torznab;
 using NzbDrone.Core.Parser.Model;
@@ -39,8 +40,10 @@ namespace NzbDrone.Core.Talearr.Comics.Search
 
     // Talearr: comics reuse the user's indexers and download clients. Prowlarr-synced Newznab and
     // Torznab indexers are asked for the comics categories (7030 by default) with a plain text
-    // query; the releases are judged by ComicReleaseEvaluator and sent to the same download
-    // clients books use (their ebook category). Downloads are tracked in talearr-comics.db.
+    // query, and a native MyAnonamouse indexer for its comics site category (61) with MAM's own
+    // series and format fields; the releases are judged by ComicReleaseEvaluator (MAM's account
+    // rules too, through ComicMamRules) and sent to the download clients' comics category.
+    // Downloads are tracked in talearr-comics.db.
     public class ComicSearchService : IComicSearchService
     {
         private static readonly TimeSpan CacheLifetime = TimeSpan.FromMinutes(30);
@@ -52,6 +55,7 @@ namespace NzbDrone.Core.Talearr.Comics.Search
         private readonly IProvideDownloadClient _downloadClientProvider;
         private readonly ISeedConfigProvider _seedConfigProvider;
         private readonly IComicDownloadTracker _tracker;
+        private readonly IComicMamRules _mamRules;
         private readonly IHttpClient _httpClient;
         private readonly Logger _logger;
 
@@ -61,6 +65,7 @@ namespace NzbDrone.Core.Talearr.Comics.Search
                                   IProvideDownloadClient downloadClientProvider,
                                   ISeedConfigProvider seedConfigProvider,
                                   IComicDownloadTracker tracker,
+                                  IComicMamRules mamRules,
                                   IHttpClient httpClient,
                                   Logger logger)
         {
@@ -70,6 +75,7 @@ namespace NzbDrone.Core.Talearr.Comics.Search
             _downloadClientProvider = downloadClientProvider;
             _seedConfigProvider = seedConfigProvider;
             _tracker = tracker;
+            _mamRules = mamRules;
             _httpClient = httpClient;
             _logger = logger;
         }
@@ -81,8 +87,8 @@ namespace NzbDrone.Core.Talearr.Comics.Search
             var context = BuildContext(series, new[] { volume.Id }, onlyMissing: false);
 
             var result = new ComicSearchResult();
-            var releases = Query(_indexerFactory.InteractiveSearchEnabled(), VolumeQueries(series, volume), result.Notices);
-            result.Decisions = ComicReleaseEvaluator.Prioritize(releases.Select(r => ComicReleaseEvaluator.Evaluate(r, context)))
+            var releases = Query(_indexerFactory.InteractiveSearchEnabled(), VolumeQueries(series, volume), result.Notices, series);
+            result.Decisions = ComicReleaseEvaluator.Prioritize(releases.Select(r => Evaluate(r, context)))
                 .Concat(Enumerable.Empty<ComicReleaseDecision>())
                 .OrderByDescending(d => d.Accepted)
                 .ToList();
@@ -110,8 +116,9 @@ namespace NzbDrone.Core.Talearr.Comics.Search
             }
 
             var indexers = _indexerFactory.AutomaticSearchEnabled();
-            var releases = Query(indexers, SeriesQueries(series), result.Notices);
-            var decisions = releases.Select(r => ComicReleaseEvaluator.Evaluate(r, context)).ToList();
+            var mamQueries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var releases = Query(indexers, SeriesQueries(series), result.Notices, series, mamQueries);
+            var decisions = releases.Select(r => Evaluate(r, context)).ToList();
 
             // Old volumes rarely show up in a broad search, so ask for the still uncovered ones by
             // number (a few at a time, to spare the indexers' daily limits).
@@ -119,8 +126,8 @@ namespace NzbDrone.Core.Talearr.Comics.Search
             var uncovered = context.Volumes.Where(v => context.WantedVolumeIds.Contains(v.Id) && !covered.Contains(v.Id)).Take(5).ToList();
             foreach (var volume in uncovered)
             {
-                var more = Query(indexers, VolumeQueries(series, volume).Take(2), result.Notices);
-                decisions.AddRange(more.Where(r => decisions.All(d => d.Release.Guid != r.Guid)).Select(r => ComicReleaseEvaluator.Evaluate(r, context)));
+                var more = Query(indexers, VolumeQueries(series, volume).Take(2), result.Notices, series, mamQueries);
+                decisions.AddRange(more.Where(r => decisions.All(d => d.Release.Guid != r.Guid)).Select(r => Evaluate(r, context)));
             }
 
             result.Decisions = decisions;
@@ -223,6 +230,13 @@ namespace NzbDrone.Core.Talearr.Comics.Search
                 IsComic = true
             };
 
+            // MyAnonamouse: seed-only and ratio check again, and a torrent slot, as book grabs do.
+            var mamRejection = _mamRules.Reserve(remoteBook);
+            if (mamRejection != null)
+            {
+                throw new ComicsException(mamRejection);
+            }
+
             try
             {
                 remoteBook.SeedConfiguration = _seedConfigProvider.GetSeedConfiguration(remoteBook);
@@ -268,6 +282,20 @@ namespace NzbDrone.Core.Talearr.Comics.Search
 
             _logger.Info("Comics: grabbed {0} for {1} ({2})", release.Title, series.Title, string.Join(", ", decision.VolumeNumbers.Select(n => "v" + ComicNaming.FormatNumber(n, "00"))));
             return downloadId;
+        }
+
+        private ComicReleaseDecision Evaluate(ReleaseInfo release, ComicEvaluationContext context)
+        {
+            var decision = ComicReleaseEvaluator.Evaluate(release, context);
+            foreach (var rejection in _mamRules.GetRejections(release))
+            {
+                if (!decision.Rejections.Contains(rejection))
+                {
+                    decision.Rejections.Add(rejection);
+                }
+            }
+
+            return decision;
         }
 
         private ComicEvaluationContext BuildContext(ComicSeries series, IEnumerable<int> wantedVolumeIds, bool onlyMissing)
@@ -330,23 +358,54 @@ namespace NzbDrone.Core.Talearr.Comics.Search
                 .DefaultIfEmpty(series.Title);
         }
 
-        private List<ReleaseInfo> Query(IEnumerable<IIndexer> indexers, IEnumerable<string> queries, List<string> notices)
+        private List<ReleaseInfo> Query(IEnumerable<IIndexer> indexers, IEnumerable<string> queries, List<string> notices, ComicSeries series, HashSet<string> mamQueriesDone = null)
         {
             var settings = _settingsService.Get();
             var categories = string.Join(",", settings.Categories);
             var releases = new List<ReleaseInfo>();
             var indexerList = indexers.ToList();
             var usable = indexerList.Where(i => i.Definition.Settings is NewznabSettings).ToList();
+            var mam = settings.SearchMyAnonamouse
+                ? indexerList.OfType<MyAnonaMouse>().Where(i => !string.IsNullOrWhiteSpace(i.Definition.Settings is MyAnonaMouseSettings s ? s.MamId : null)).ToList()
+                : new List<MyAnonaMouse>();
+            var queryList = queries.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-            if (usable.Count == 0)
+            if (usable.Count == 0 && mam.Count == 0)
             {
                 notices.Add(indexerList.Any()
-                    ? "Comics search uses Newznab and Torznab indexers (for example from Prowlarr); none are enabled for this kind of search."
+                    ? "Comics search uses Newznab and Torznab indexers (for example from Prowlarr) and MyAnonamouse; none are enabled for this kind of search."
                     : "No indexers are enabled for searching.");
                 return releases;
             }
 
-            foreach (var query in queries.Distinct(StringComparer.OrdinalIgnoreCase))
+            // MAM finds every volume of a series with one search for its title, so it is asked once
+            // per search (MAM's rules ask automation to keep requests few).
+            if (mam.Count > 0)
+            {
+                mamQueriesDone ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var mamQuery = SearchTitles(series).First();
+                if (mamQueriesDone.Add(mamQuery))
+                {
+                    foreach (var indexer in mam)
+                    {
+                        try
+                        {
+                            releases.AddRange(QueryMam(indexer, settings, series, mamQuery));
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Debug(ex, "Comics: {0} search for '{1}' failed", indexer.Definition.Name, mamQuery);
+                            var note = $"{indexer.Definition.Name}: {ex.Message}";
+                            if (!notices.Contains(note))
+                            {
+                                notices.Add(note);
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (var query in usable.Count > 0 ? queryList : new List<string>())
             {
                 foreach (var indexer in usable)
                 {
@@ -370,6 +429,29 @@ namespace NzbDrone.Core.Talearr.Comics.Search
                 .GroupBy(r => (r.Guid ?? r.DownloadUrl) + "|" + r.IndexerId)
                 .Select(g => g.First())
                 .ToList();
+        }
+
+        private IEnumerable<ReleaseInfo> QueryMam(MyAnonaMouse indexer, ComicSettings settings, ComicSeries series, string query)
+        {
+            var categoryIds = settings.MyAnonamouseCategories.Where(c => c > 0).Distinct().ToArray();
+            if (categoryIds.Length == 0)
+            {
+                categoryIds = new[] { MyAnonaMouse.ComicsCategoryId };
+            }
+
+            var results = indexer.SearchComicsAsync(query, categoryIds, series.LanguageIso).GetAwaiter().GetResult();
+
+            foreach (var result in results)
+            {
+                var release = result.Release;
+                release.IndexerId = indexer.Definition.Id;
+                release.Indexer = indexer.Definition.Name;
+                release.DownloadProtocol = indexer.Protocol;
+                release.IndexerPriority = ((IndexerDefinition)indexer.Definition).Priority;
+                ComicReleaseHints.Attach(release, ComicReleaseHints.FromMam(result, categoryIds));
+            }
+
+            return results.Select(r => r.Release);
         }
 
         private IEnumerable<ReleaseInfo> QueryIndexer(IIndexer indexer, NewznabSettings settings, string categories, string query)

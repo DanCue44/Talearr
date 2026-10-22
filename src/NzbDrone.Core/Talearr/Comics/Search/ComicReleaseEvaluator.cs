@@ -42,9 +42,17 @@ namespace NzbDrone.Core.Talearr.Comics.Search
         {
             var series = context.Series;
             var settings = context.Settings;
-            var parsed = ComicReleaseParser.Parse(release.Title, series.AllTitles());
+            var hint = ComicReleaseHints.Get(release);
+            var parsed = ComicReleaseParser.Parse(hint?.ParseTitle ?? release.Title, series.AllTitles());
+            hint?.ApplyTo(parsed);
             var decision = new ComicReleaseDecision { Release = release, Parsed = parsed };
             var reject = decision.Rejections;
+
+            if (!string.IsNullOrWhiteSpace(hint?.Rejection))
+            {
+                reject.Add(hint.Rejection);
+                return decision;
+            }
 
             if (!TitleMatches(parsed, series))
             {

@@ -308,6 +308,15 @@ class ComicsSettings extends Component {
                   </FormGroup>
 
                   <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>{'Search MyAnonamouse'}</FormLabel>
+                    <FormInputGroup type={inputTypes.CHECK} name="searchMyAnonamouse"
+                      value={settings.searchMyAnonamouse}
+                      helpText="Also search a MyAnonamouse indexer in its Comics/Graphic novels category (manga too). Its Freeleech Only, VIP, ratio and torrent slot rules apply as for books."
+                      onChange={this.onSettingChange}
+                    />
+                  </FormGroup>
+
+                  <FormGroup size={sizes.MEDIUM}>
                     <FormLabel>{'Automatic search'}</FormLabel>
                     <FormInputGroup type={inputTypes.CHECK} name="automaticSearch"
                       value={settings.automaticSearch} helpText="Search for missing volumes twice a day, and when a series is added"
