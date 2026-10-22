@@ -25,6 +25,12 @@ namespace NzbDrone.Core.Talearr.Comics
         // Newznab / Torznab categories searched for comics. 7030 is Books > Comics.
         public List<int> Categories { get; set; } = new List<int> { 7030 };
 
+        // A native MyAnonamouse indexer is searched in these MAM site categories (61 is Ebooks -
+        // Comics/Graphic novels, where MAM files manga too). Its Freeleech Only, VIP, ratio and
+        // torrent slot rules apply as for books.
+        public bool SearchMyAnonamouse { get; set; } = true;
+        public List<int> MyAnonamouseCategories { get; set; } = new List<int> { 61 };
+
         public bool AutomaticSearch { get; set; } = true;
 
         public string MangaFolderFormat { get; set; } = "{Series Title}";
@@ -61,19 +67,18 @@ namespace NzbDrone.Core.Talearr.Comics
             settings.ComicFolderFormat = ReadString("comicFolderFormat", settings.ComicFolderFormat);
             settings.FileFormat = ReadString("fileFormat", settings.FileFormat);
 
-            var categories = _store.GetSetting("categories");
-            if (!string.IsNullOrWhiteSpace(categories))
-            {
-                var parsed = categories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Select(c => int.TryParse(c, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) ? id : 0)
-                    .Where(c => c > 0)
-                    .Distinct()
-                    .ToList();
+            settings.SearchMyAnonamouse = ReadBool("searchMyAnonamouse", settings.SearchMyAnonamouse);
 
-                if (parsed.Any())
-                {
-                    settings.Categories = parsed;
-                }
+            var categories = ReadIds("categories");
+            if (categories.Any())
+            {
+                settings.Categories = categories;
+            }
+
+            var mamCategories = ReadIds("myAnonamouseCategories");
+            if (mamCategories.Any())
+            {
+                settings.MyAnonamouseCategories = mamCategories;
             }
 
             return settings;
@@ -107,8 +112,27 @@ namespace NzbDrone.Core.Talearr.Comics
             _store.SetSetting("comicFolderFormat", settings.ComicFolderFormat?.Trim());
             _store.SetSetting("fileFormat", settings.FileFormat.Trim());
             _store.SetSetting("categories", string.Join(",", settings.Categories.Where(c => c > 0).Distinct()));
+            _store.SetSetting("searchMyAnonamouse", settings.SearchMyAnonamouse.ToString());
+
+            var mamCategories = (settings.MyAnonamouseCategories ?? new List<int>()).Where(c => c > 0).Distinct().ToList();
+            _store.SetSetting("myAnonamouseCategories", string.Join(",", mamCategories.Any() ? mamCategories : new List<int> { 61 }));
 
             return Get();
+        }
+
+        private List<int> ReadIds(string key)
+        {
+            var value = _store.GetSetting(key);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return new List<int>();
+            }
+
+            return value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(c => int.TryParse(c, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) ? id : 0)
+                .Where(c => c > 0)
+                .Distinct()
+                .ToList();
         }
 
         private bool ReadBool(string key, bool fallback)
