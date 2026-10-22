@@ -13,7 +13,6 @@ import BookIndexConnector from 'Book/Index/BookIndexConnector';
 import TalearrDuplicates from 'Book/Talearr/TalearrDuplicates';
 import BookshelfConnector from 'Bookshelf/BookshelfConnector';
 import CalendarPageConnector from 'Calendar/CalendarPageConnector';
-import ComicsAdd from 'Comics/ComicsAdd';
 import ComicsIndex from 'Comics/ComicsIndex';
 import ComicsSeriesPage from 'Comics/ComicsSeriesPage';
 import ComicsSettings from 'Comics/ComicsSettings';
@@ -164,18 +163,35 @@ function AppRoutes(props) {
         component={ComicsIndex}
       />
 
+      {/* Talearr: comics live in Library, Add New, Wanted and Settings; old links redirect */}
       <Route
         path="/comics/add"
-        component={ComicsAdd}
+        render={() => (
+          <Redirect to={getPathWithUrlBase('/add/search?type=comics')} />
+        )}
       />
 
       <Route
         path="/comics/wanted"
-        component={ComicsWanted}
+        render={() => (
+          <Redirect to={getPathWithUrlBase('/wanted/comics')} />
+        )}
       />
 
       <Route
         path="/comics/settings"
+        render={() => (
+          <Redirect to={getPathWithUrlBase('/settings/comics')} />
+        )}
+      />
+
+      <Route
+        path="/wanted/comics"
+        component={ComicsWanted}
+      />
+
+      <Route
+        path="/settings/comics"
         component={ComicsSettings}
       />
 

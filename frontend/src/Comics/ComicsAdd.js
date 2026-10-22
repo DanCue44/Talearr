@@ -161,175 +161,186 @@ class ComicsAdd extends Component {
     const { term, kind, rootFolderId, monitor, ageRatingOverride, ageRatings, isSearching, addingKey, error, notices, results, ratingNeeded, ratingChoice } = this.state;
     const folderOptions = this.getFolderOptions();
 
+    const body = (
+      <div>
+        <div className={styles.searchRow} onKeyDown={this.onKeyDown}>
+          <div className={styles.searchInput}>
+            <FormInputGroup
+              type={inputTypes.TEXT}
+              name="term"
+              value={term}
+              placeholder="Series name, for example Witch Hat Atelier or Saga"
+              onChange={this.onInputChange}
+            />
+          </div>
+
+          <SpinnerButton
+            kind={kinds.PRIMARY}
+            isSpinning={isSearching}
+            onPress={this.onSearchPress}
+          >
+            {'Search'}
+          </SpinnerButton>
+        </div>
+
+        <Form>
+          <FormGroup size={sizes.MEDIUM}>
+            <FormLabel>{'Kind'}</FormLabel>
+            <FormInputGroup type={inputTypes.SELECT} name="kind"
+              values={kindOptions} value={kind}
+              onChange={this.onInputChange}
+            />
+          </FormGroup>
+
+          <FormGroup size={sizes.MEDIUM}>
+            <FormLabel>{'Folder'}</FormLabel>
+            {
+              folderOptions.length ?
+                <FormInputGroup type={inputTypes.SELECT} name="rootFolderId"
+                  values={folderOptions} value={rootFolderId}
+                  onChange={this.onInputChange}
+                /> :
+                <Alert kind={kinds.WARNING}>
+                  {`No folder for ${kind === 'comic' ? 'comics' : 'manga'} yet. Add one in `}
+                  <Link to="/settings/comics">{'Comics settings'}</Link>
+                  {'.'}
+                </Alert>
+            }
+          </FormGroup>
+
+          <FormGroup size={sizes.MEDIUM}>
+            <FormLabel>{'Monitor'}</FormLabel>
+            <FormInputGroup type={inputTypes.SELECT} name="monitor"
+              values={monitorOptions} value={monitor}
+              onChange={this.onInputChange}
+            />
+          </FormGroup>
+
+          <FormGroup size={sizes.MEDIUM}>
+            <FormLabel>{'Age rating'}</FormLabel>
+            <FormInputGroup
+              type={inputTypes.SELECT}
+              name="ageRatingOverride"
+              values={ageRatingOptions(ageRatings, 'From the series data')}
+              value={ageRatingOverride}
+              helpText="Written into every file, so a reader's per-person age limit can use it. Set it when the series data is missing or wrong."
+              onChange={this.onInputChange}
+            />
+          </FormGroup>
+        </Form>
+
+        {error ? <Alert kind={kinds.DANGER}>{error}</Alert> : null}
+        {
+          notices.map((notice) => {
+            return (
+              <Alert
+                key={notice}
+                kind={kinds.WARNING}
+                className={styles.notice}
+              >
+                {notice}
+              </Alert>
+            );
+          })
+        }
+        {isSearching ? <LoadingIndicator /> : null}
+
+        {
+          results && !results.length ?
+            <Alert kind={kinds.INFO}>{'Nothing found. Try the English title, or another spelling.'}</Alert> :
+            null
+        }
+
+        {
+          (results || []).map((result) => {
+            const key = `${result.aniListId}-${result.hardcoverSeriesId}`;
+
+            return (
+              <div key={key} className={styles.result}>
+                {
+                  result.coverUrl ?
+                    <img className={styles.resultCover} src={result.coverUrl}
+                      alt="" loading="lazy"
+                    /> :
+                    <div className={styles.resultCover} />
+                }
+
+                <div className={styles.resultBody}>
+                  <div className={styles.cardTitle}>
+                    {result.title}
+                    {result.year ? ` (${result.year})` : ''}
+                  </div>
+
+                  {result.alternateTitles && result.alternateTitles.length ? <div className={styles.alternate}>{result.alternateTitles.join(' / ')}</div> : null}
+
+                  <div className={styles.badges}>
+                    <Label kind={kinds.INFO}>{result.kind === 'comic' ? 'Comic' : 'Manga'}</Label>
+                    {result.volumes ? <Label>{`${result.volumes} volumes`}</Label> : null}
+                    {result.status ? <Label>{result.status}</Label> : null}
+                    <Label kind={isUnrated(result.ageRating) ? kinds.WARNING : kinds.DEFAULT}>{ratingLabel(result.ageRating)}</Label>
+                    {result.aniListId ? <Label kind={kinds.DEFAULT}>{'AniList'}</Label> : null}
+                    {result.hardcoverSeriesId ? <Label kind={kinds.DEFAULT}>{'Hardcover'}</Label> : null}
+                  </div>
+
+                  {result.authors ? <div className={styles.small}>{result.authors}</div> : null}
+                  {result.overview ? <div className={styles.resultOverview}>{result.overview}</div> : null}
+
+                  {
+                    ratingNeeded && ratingNeeded.key === key ?
+                      <Alert kind={kinds.WARNING}>
+                        <div>{ratingNeeded.message}</div>
+                        <span className={styles.ratingFix}>
+                          <FormInputGroup
+                            type={inputTypes.SELECT}
+                            name="ratingChoice"
+                            values={ageRatingOptions(ageRatings, 'Choose a rating')}
+                            value={ratingChoice}
+                            onChange={this.onRatingChoiceChange}
+                          />
+                          <SpinnerButton
+                            kind={kinds.PRIMARY}
+                            isSpinning={addingKey === key}
+                            isDisabled={!ratingChoice}
+                            onPress={() => this.onAddPress(result, ratingChoice)}
+                          >
+                            {'Set age rating and add'}
+                          </SpinnerButton>
+                        </span>
+                      </Alert> :
+                      null
+                  }
+                </div>
+
+                <div>
+                  {
+                    result.seriesId ?
+                      <Link to={`/comics/series/${result.seriesId}`}>{'In library'}</Link> :
+                      <SpinnerButton
+                        kind={kinds.SUCCESS}
+                        isSpinning={addingKey === key}
+                        isDisabled={!rootFolderId || (!!addingKey && addingKey !== key)}
+                        onPress={() => this.onAddPress(result)}
+                      >
+                        {'Add'}
+                      </SpinnerButton>
+                  }
+                </div>
+              </div>
+            );
+          })
+        }
+      </div>
+    );
+
+    // Talearr: the Add New page shows this under its Comics tab
+    if (this.props.embedded) {
+      return body;
+    }
+
     return (
       <PageContent title="Add Comics">
         <PageContentBody>
-          <div className={styles.searchRow} onKeyDown={this.onKeyDown}>
-            <div className={styles.searchInput}>
-              <FormInputGroup
-                type={inputTypes.TEXT}
-                name="term"
-                value={term}
-                placeholder="Series name, for example Witch Hat Atelier or Saga"
-                onChange={this.onInputChange}
-              />
-            </div>
-
-            <SpinnerButton
-              kind={kinds.PRIMARY}
-              isSpinning={isSearching}
-              onPress={this.onSearchPress}
-            >
-              {'Search'}
-            </SpinnerButton>
-          </div>
-
-          <Form>
-            <FormGroup size={sizes.MEDIUM}>
-              <FormLabel>{'Kind'}</FormLabel>
-              <FormInputGroup type={inputTypes.SELECT} name="kind"
-                values={kindOptions} value={kind}
-                onChange={this.onInputChange}
-              />
-            </FormGroup>
-
-            <FormGroup size={sizes.MEDIUM}>
-              <FormLabel>{'Folder'}</FormLabel>
-              {
-                folderOptions.length ?
-                  <FormInputGroup type={inputTypes.SELECT} name="rootFolderId"
-                    values={folderOptions} value={rootFolderId}
-                    onChange={this.onInputChange}
-                  /> :
-                  <Alert kind={kinds.WARNING}>
-                    {`No folder for ${kind === 'comic' ? 'comics' : 'manga'} yet. Add one in `}
-                    <Link to="/comics/settings">{'Comics settings'}</Link>
-                    {'.'}
-                  </Alert>
-              }
-            </FormGroup>
-
-            <FormGroup size={sizes.MEDIUM}>
-              <FormLabel>{'Monitor'}</FormLabel>
-              <FormInputGroup type={inputTypes.SELECT} name="monitor"
-                values={monitorOptions} value={monitor}
-                onChange={this.onInputChange}
-              />
-            </FormGroup>
-
-            <FormGroup size={sizes.MEDIUM}>
-              <FormLabel>{'Age rating'}</FormLabel>
-              <FormInputGroup
-                type={inputTypes.SELECT}
-                name="ageRatingOverride"
-                values={ageRatingOptions(ageRatings, 'From the series data')}
-                value={ageRatingOverride}
-                helpText="Written into every file, so a reader's per-person age limit can use it. Set it when the series data is missing or wrong."
-                onChange={this.onInputChange}
-              />
-            </FormGroup>
-          </Form>
-
-          {error ? <Alert kind={kinds.DANGER}>{error}</Alert> : null}
-          {
-            notices.map((notice) => {
-              return (
-                <Alert
-                  key={notice}
-                  kind={kinds.WARNING}
-                  className={styles.notice}
-                >
-                  {notice}
-                </Alert>
-              );
-            })
-          }
-          {isSearching ? <LoadingIndicator /> : null}
-
-          {
-            results && !results.length ?
-              <Alert kind={kinds.INFO}>{'Nothing found. Try the English title, or another spelling.'}</Alert> :
-              null
-          }
-
-          {
-            (results || []).map((result) => {
-              const key = `${result.aniListId}-${result.hardcoverSeriesId}`;
-
-              return (
-                <div key={key} className={styles.result}>
-                  {
-                    result.coverUrl ?
-                      <img className={styles.resultCover} src={result.coverUrl}
-                        alt="" loading="lazy"
-                      /> :
-                      <div className={styles.resultCover} />
-                  }
-
-                  <div className={styles.resultBody}>
-                    <div className={styles.cardTitle}>
-                      {result.title}
-                      {result.year ? ` (${result.year})` : ''}
-                    </div>
-
-                    {result.alternateTitles && result.alternateTitles.length ? <div className={styles.alternate}>{result.alternateTitles.join(' / ')}</div> : null}
-
-                    <div className={styles.badges}>
-                      <Label kind={kinds.INFO}>{result.kind === 'comic' ? 'Comic' : 'Manga'}</Label>
-                      {result.volumes ? <Label>{`${result.volumes} volumes`}</Label> : null}
-                      {result.status ? <Label>{result.status}</Label> : null}
-                      <Label kind={isUnrated(result.ageRating) ? kinds.WARNING : kinds.DEFAULT}>{ratingLabel(result.ageRating)}</Label>
-                      {result.aniListId ? <Label kind={kinds.DEFAULT}>{'AniList'}</Label> : null}
-                      {result.hardcoverSeriesId ? <Label kind={kinds.DEFAULT}>{'Hardcover'}</Label> : null}
-                    </div>
-
-                    {result.authors ? <div className={styles.small}>{result.authors}</div> : null}
-                    {result.overview ? <div className={styles.resultOverview}>{result.overview}</div> : null}
-
-                    {
-                      ratingNeeded && ratingNeeded.key === key ?
-                        <Alert kind={kinds.WARNING}>
-                          <div>{ratingNeeded.message}</div>
-                          <span className={styles.ratingFix}>
-                            <FormInputGroup
-                              type={inputTypes.SELECT}
-                              name="ratingChoice"
-                              values={ageRatingOptions(ageRatings, 'Choose a rating')}
-                              value={ratingChoice}
-                              onChange={this.onRatingChoiceChange}
-                            />
-                            <SpinnerButton
-                              kind={kinds.PRIMARY}
-                              isSpinning={addingKey === key}
-                              isDisabled={!ratingChoice}
-                              onPress={() => this.onAddPress(result, ratingChoice)}
-                            >
-                              {'Set age rating and add'}
-                            </SpinnerButton>
-                          </span>
-                        </Alert> :
-                        null
-                    }
-                  </div>
-
-                  <div>
-                    {
-                      result.seriesId ?
-                        <Link to={`/comics/series/${result.seriesId}`}>{'In library'}</Link> :
-                        <SpinnerButton
-                          kind={kinds.SUCCESS}
-                          isSpinning={addingKey === key}
-                          isDisabled={!rootFolderId || (!!addingKey && addingKey !== key)}
-                          onPress={() => this.onAddPress(result)}
-                        >
-                          {'Add'}
-                        </SpinnerButton>
-                    }
-                  </div>
-                </div>
-              );
-            })
-          }
+          {body}
         </PageContentBody>
       </PageContent>
     );
@@ -337,6 +348,7 @@ class ComicsAdd extends Component {
 }
 
 ComicsAdd.propTypes = {
+  embedded: PropTypes.bool,
   history: PropTypes.object.isRequired
 };
 

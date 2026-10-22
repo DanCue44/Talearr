@@ -15,6 +15,7 @@ import translate from 'Utilities/String/translate';
 import AddNewAuthorSearchResultConnector from './Author/AddNewAuthorSearchResultConnector';
 import AddNewBookSearchResultConnector from './Book/AddNewBookSearchResultConnector';
 import AddNewSeriesSearchResult from './Series/AddNewSeriesSearchResult';
+import ComicsAdd from 'Comics/ComicsAdd';
 import styles from './AddNewItem.css';
 
 class AddNewItem extends Component {
@@ -35,7 +36,9 @@ class AddNewItem extends Component {
       term: props.term || '',
       isFetching: false,
       selectedProvider,
-      activeFilter: 'all' // all, authors, books, series
+      activeFilter: 'all', // all, authors, books, series
+      // Talearr: books (authors, books, series) or comics and manga
+      mode: props.addType === 'comics' ? 'comics' : 'books'
     };
   }
 
@@ -134,6 +137,10 @@ class AddNewItem extends Component {
     this.props.onClearSearch();
   };
 
+  onModeChange = (mode) => {
+    this.setState({ mode });
+  };
+
   onFilterChange = (filter) => {
     this.setState({ activeFilter: filter });
   };
@@ -199,9 +206,41 @@ class AddNewItem extends Component {
       // { key: 'googlebooks', value: 'Google Books' }
     ];
 
+    const modeButtons = (
+      <div className={styles.filterButtons}>
+        <Button
+          className={this.state.mode === 'books' ? styles.activeFilter : ''}
+          onPress={() => this.onModeChange('books')}
+        >
+          {'Books'}
+        </Button>
+        <Button
+          className={this.state.mode === 'comics' ? styles.activeFilter : ''}
+          onPress={() => this.onModeChange('comics')}
+        >
+          {'Comics and manga'}
+        </Button>
+      </div>
+    );
+
+    if (this.state.mode === 'comics') {
+      return (
+        <PageContent title={translate('AddNewItem')}>
+          <PageContentBody>
+            {modeButtons}
+            <ComicsAdd
+              embedded={true}
+              history={this.props.history}
+            />
+          </PageContentBody>
+        </PageContent>
+      );
+    }
+
     return (
       <PageContent title={translate('AddNewItem')}>
         <PageContentBody>
+          {modeButtons}
           <div className={styles.searchContainer}>
             <div className={styles.searchIconContainer}>
               <Icon
@@ -400,6 +439,8 @@ class AddNewItem extends Component {
 
 AddNewItem.propTypes = {
   term: PropTypes.string,
+  addType: PropTypes.string,
+  history: PropTypes.object,
   provider: PropTypes.string,
   isHardcoverConfigured: PropTypes.bool,
   isFetching: PropTypes.bool.isRequired,

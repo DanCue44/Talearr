@@ -98,7 +98,7 @@ class ComicsIndex extends Component {
             <PageToolbarButton
               label="Add New"
               iconName={icons.ADD}
-              to="/comics/add"
+              to="/add/search?type=comics"
             />
 
             <PageToolbarButton
@@ -149,9 +149,9 @@ class ComicsIndex extends Component {
             !isFetching && !error && !items.length ?
               <Alert kind={kinds.INFO}>
                 {'No comics yet. Set up a comics folder in '}
-                <Link to="/comics/settings">{'Comics settings'}</Link>
+                <Link to="/settings/comics">{'Comics settings'}</Link>
                 {', then '}
-                <Link to="/comics/add">{'add a series'}</Link>
+                <Link to="/add/search?type=comics">{'add a series'}</Link>
                 {'.'}
               </Alert> :
               null

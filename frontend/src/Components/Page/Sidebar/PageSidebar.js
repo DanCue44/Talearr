@@ -37,6 +37,11 @@ const links = [
         title: () => translate('Authors'),
         to: '/authors'
       },
+      // Talearr: comics and manga; adding, wanted and settings sit with the books ones
+      {
+        title: () => 'Comics',
+        to: '/comics'
+      },
       // Talearr: Series, Duplicates (Books toolbar) and Bookshelf (Authors toolbar) are
       // opened from their pages, so the menu stays as short as Sonarr's.
       {
@@ -46,32 +51,6 @@ const links = [
       {
         title: () => translate('UnmappedFiles'),
         to: '/unmapped'
-      }
-    ]
-  },
-
-  // Talearr: comics and manga (beta), a library of their own.
-  {
-    iconName: icons.COMICS,
-    title: () => 'Comics',
-    to: '/comics',
-    alias: '/comics',
-    children: [
-      {
-        title: () => 'Series',
-        to: '/comics'
-      },
-      {
-        title: () => translate('AddNew'),
-        to: '/comics/add'
-      },
-      {
-        title: () => translate('Wanted'),
-        to: '/comics/wanted'
-      },
-      {
-        title: () => translate('Settings'),
-        to: '/comics/settings'
       }
     ]
   },
@@ -114,6 +93,7 @@ const links = [
     iconName: icons.WARNING,
     title: () => translate('Wanted'),
     to: '/wanted/missing',
+    alias: '/wanted',
     children: [
       {
         title: () => translate('Missing'),
@@ -122,6 +102,10 @@ const links = [
       {
         title: () => translate('CutoffUnmet'),
         to: '/wanted/cutoffunmet'
+      },
+      {
+        title: () => 'Comics',
+        to: '/wanted/comics'
       }
     ]
   },
@@ -166,6 +150,10 @@ const links = [
       {
         title: () => translate('Metadata'),
         to: '/settings/metadata'
+      },
+      {
+        title: () => 'Comics',
+        to: '/settings/comics'
       },
       {
         title: () => translate('Tags'),

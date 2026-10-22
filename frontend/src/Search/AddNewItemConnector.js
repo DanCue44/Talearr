@@ -26,6 +26,7 @@ function createMapStateToProps() {
         ...search,
         term: params.term,
         provider: params.provider,
+        addType: params.type,
         hasExistingAuthors: existingAuthorsCount > 0,
         isHardcoverConfigured
       };

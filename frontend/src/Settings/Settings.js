@@ -127,6 +127,17 @@ function Settings() {
 
         <Link
           className={styles.link}
+          to="/settings/comics"
+        >
+          {'Comics'}
+        </Link>
+
+        <div className={styles.summary}>
+          {'Comics and manga folders, age ratings and kids folders, and where ratings come from'}
+        </div>
+
+        <Link
+          className={styles.link}
           to="/settings/tags"
         >
           {translate('Tags')}
