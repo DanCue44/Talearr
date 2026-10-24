@@ -174,24 +174,7 @@ namespace NzbDrone.Core.Talearr.Comics
                     usedHardcover.Add(match.Id);
                 }
 
-                response.Results.Add(new ComicLookupResult
-                {
-                    AniListId = manga.Id,
-                    HardcoverSeriesId = match?.Id,
-                    Kind = ComicKinds.Manga,
-                    Title = manga.DisplayTitle,
-                    AlternateTitles = titles.Where(t => t != manga.DisplayTitle).ToList(),
-                    Year = manga.StartYear,
-                    Status = FormatStatus(manga.Status),
-                    Volumes = manga.Volumes ?? (match?.PrimaryBooksCount > 0 ? match.PrimaryBooksCount : null),
-                    Authors = string.Join(", ", manga.Authors),
-                    Overview = manga.Description,
-                    CoverUrl = manga.CoverUrl ?? match?.CoverUrl,
-                    AgeRating = ComicAgeRatings.FromAniList(manga.IsAdult, manga.Genres, manga.Tags),
-                    IsAdult = manga.IsAdult,
-                    Format = manga.Format,
-                    SeriesId = library.FirstOrDefault(s => s.AniListId == manga.Id || (match != null && s.HardcoverSeriesId == match.Id))?.Id
-                });
+                response.Results.Add(FromAniList(manga, match, library));
             }
 
             var mangaDexLookups = 0;
@@ -223,6 +206,31 @@ namespace NzbDrone.Core.Talearr.Comics
             }
 
             return response;
+        }
+
+        // One AniList series as a lookup result. Lookup and Discover share this so both show the
+        // same facts; match is the Hardcover series paired with it, when there is one.
+        internal static ComicLookupResult FromAniList(AniListManga manga, HardcoverComicSeries match, IReadOnlyCollection<ComicSeries> library)
+        {
+            var titles = MangaTitles(manga).ToList();
+            return new ComicLookupResult
+            {
+                AniListId = manga.Id,
+                HardcoverSeriesId = match?.Id,
+                Kind = ComicKinds.Manga,
+                Title = manga.DisplayTitle,
+                AlternateTitles = titles.Where(t => t != manga.DisplayTitle).ToList(),
+                Year = manga.StartYear,
+                Status = FormatStatus(manga.Status),
+                Volumes = manga.Volumes ?? (match?.PrimaryBooksCount > 0 ? match.PrimaryBooksCount : null),
+                Authors = string.Join(", ", manga.Authors),
+                Overview = manga.Description,
+                CoverUrl = manga.CoverUrl ?? match?.CoverUrl,
+                AgeRating = ComicAgeRatings.FromAniList(manga.IsAdult, manga.Genres, manga.Tags),
+                IsAdult = manga.IsAdult,
+                Format = manga.Format,
+                SeriesId = library?.FirstOrDefault(s => s.AniListId == manga.Id || (match != null && s.HardcoverSeriesId == match.Id))?.Id
+            };
         }
 
         public ComicSeries Add(ComicAddRequest request)

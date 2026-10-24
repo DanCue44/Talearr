@@ -48,6 +48,7 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
     {
         List<AniListManga> Search(string query);
         AniListManga Get(int id);
+        List<AniListManga> Browse(string sort, string status, int page, int perPage);
     }
 
     // Talearr: AniList's public GraphQL API (https://docs.anilist.co) for manga series facts:
@@ -92,6 +93,16 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                 }
             }";
 
+        // Discover lists: one page of manga in AniList's own order (trending, popular), adult
+        // entries and light novels left out. A null status is ignored by AniList.
+        private static readonly string BrowseQuery = @"
+            query TalearrMangaBrowse($page: Int, $perPage: Int, $sort: [MediaSort], $status: MediaStatus) {
+                Page(page: $page, perPage: $perPage) {
+                    media(type: MANGA, sort: $sort, status: $status, isAdult: false, format_not: NOVEL) {" + MediaFields + @"
+                    }
+                }
+            }";
+
         private readonly IHttpClient _httpClient;
 
         public AniListClient(IHttpClient httpClient)
@@ -112,6 +123,21 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
         {
             var data = Execute(GetQuery, new { id });
             return ParseMedia(data?["Media"]);
+        }
+
+        public List<AniListManga> Browse(string sort, string status, int page, int perPage)
+        {
+            var data = Execute(BrowseQuery, new { page = Math.Max(1, page), perPage, sort = new[] { sort }, status });
+            return ParsePage(data);
+        }
+
+        // The media of a Page answer, in AniList's order, novels and adult entries dropped.
+        internal static List<AniListManga> ParsePage(JToken data)
+        {
+            return (data?["Page"]?["media"] as JArray ?? new JArray())
+                .Select(ParseMedia)
+                .Where(m => m != null && m.Format != "NOVEL" && !m.IsAdult)
+                .ToList();
         }
 
         internal static AniListManga ParseMedia(JToken media)

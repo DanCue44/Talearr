@@ -112,6 +112,7 @@ namespace Chaptarr.Api.V1.Talearr
         private readonly ITalearrComicsDatabase _database;
         private readonly ITalearrComicsStore _store;
         private readonly IComicSeriesService _seriesService;
+        private readonly IComicDiscoverService _discoverService;
         private readonly IComicSettingsService _settingsService;
         private readonly IComicSearchService _searchService;
         private readonly IComicImportService _importService;
@@ -121,6 +122,7 @@ namespace Chaptarr.Api.V1.Talearr
         public TalearrComicsController(ITalearrComicsDatabase database,
                                        ITalearrComicsStore store,
                                        IComicSeriesService seriesService,
+                                       IComicDiscoverService discoverService,
                                        IComicSettingsService settingsService,
                                        IComicSearchService searchService,
                                        IComicImportService importService,
@@ -130,6 +132,7 @@ namespace Chaptarr.Api.V1.Talearr
             _database = database;
             _store = store;
             _seriesService = seriesService;
+            _discoverService = discoverService;
             _settingsService = settingsService;
             _searchService = searchService;
             _importService = importService;
@@ -258,6 +261,14 @@ namespace Chaptarr.Api.V1.Talearr
         public ActionResult<ComicLookupResponse> Lookup([FromQuery] string term, [FromQuery] string kind)
         {
             return Run(() => _seriesService.Lookup(term, kind));
+        }
+
+        // Browse lists for request apps: trending, popular, releasing (AniList manga) and comics
+        // (curated Western series). Same shape as lookup, 20 per page.
+        [HttpGet("discover")]
+        public ActionResult<ComicLookupResponse> Discover([FromQuery] string list, [FromQuery] int page = 1)
+        {
+            return Run(() => _discoverService.Discover(list, page));
         }
 
         // Volumes
