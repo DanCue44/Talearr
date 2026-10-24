@@ -113,6 +113,7 @@ namespace Chaptarr.Api.V1.Talearr
         private readonly ITalearrComicsStore _store;
         private readonly IComicSeriesService _seriesService;
         private readonly IComicDiscoverService _discoverService;
+        private readonly IComicPreviewService _previewService;
         private readonly IComicSettingsService _settingsService;
         private readonly IComicSearchService _searchService;
         private readonly IComicImportService _importService;
@@ -123,6 +124,7 @@ namespace Chaptarr.Api.V1.Talearr
                                        ITalearrComicsStore store,
                                        IComicSeriesService seriesService,
                                        IComicDiscoverService discoverService,
+                                       IComicPreviewService previewService,
                                        IComicSettingsService settingsService,
                                        IComicSearchService searchService,
                                        IComicImportService importService,
@@ -133,6 +135,7 @@ namespace Chaptarr.Api.V1.Talearr
             _store = store;
             _seriesService = seriesService;
             _discoverService = discoverService;
+            _previewService = previewService;
             _settingsService = settingsService;
             _searchService = searchService;
             _importService = importService;
@@ -269,6 +272,34 @@ namespace Chaptarr.Api.V1.Talearr
         public ActionResult<ComicLookupResponse> Discover([FromQuery] string list, [FromQuery] int page = 1)
         {
             return Run(() => _discoverService.Discover(list, page));
+        }
+
+        // One series' detail page for request apps, by AniList id or Hardcover series id: facts,
+        // genres, banner and the Hardcover volume list. 404 when the source has no such series.
+        [HttpGet("preview")]
+        public ActionResult<ComicPreview> Preview([FromQuery] int? aniListId, [FromQuery] int? hardcoverSeriesId, [FromQuery] string kind)
+        {
+            if (!aniListId.HasValue && !hardcoverSeriesId.HasValue)
+            {
+                return BadRequest(new { message = "Pass aniListId or hardcoverSeriesId." });
+            }
+
+            try
+            {
+                return _previewService.Preview(aniListId, hardcoverSeriesId, kind);
+            }
+            catch (ComicPreviewNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ComicPreviewUnavailableException ex)
+            {
+                return StatusCode(503, new { message = ex.Message });
+            }
+            catch (Exception ex) when (ex is ComicsException || ex is ArgumentException)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         // Volumes

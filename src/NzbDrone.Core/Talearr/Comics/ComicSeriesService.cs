@@ -642,7 +642,7 @@ namespace NzbDrone.Core.Talearr.Comics
             }
         }
 
-        private static IEnumerable<string> MangaTitles(AniListManga manga)
+        internal static IEnumerable<string> MangaTitles(AniListManga manga)
         {
             return new[] { manga.EnglishTitle, manga.RomajiTitle }
                 .Concat(manga.Synonyms)
@@ -650,7 +650,7 @@ namespace NzbDrone.Core.Talearr.Comics
                 .Distinct(StringComparer.OrdinalIgnoreCase);
         }
 
-        private static bool SameTitle(string a, string b)
+        internal static bool SameTitle(string a, string b)
         {
             var left = ComicReleaseParser.NormalizeTitle(a);
             return left.Length > 0 && left == ComicReleaseParser.NormalizeTitle(b);

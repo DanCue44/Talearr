@@ -284,6 +284,8 @@ namespace Chaptarr.Core.Test.Talearr.Comics
 
             public AniListManga Get(int id) => throw new NotSupportedException();
 
+            public AniListManga GetPreview(int id) => throw new NotSupportedException();
+
             public List<AniListManga> Browse(string sort, string status, int page, int perPage)
             {
                 Calls.Add((sort, status, page, perPage));

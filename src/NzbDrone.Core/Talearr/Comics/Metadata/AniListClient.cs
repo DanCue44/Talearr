@@ -37,6 +37,9 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
         public string CountryOfOrigin { get; set; }
         public int? StartYear { get; set; }
         public string CoverUrl { get; set; }
+
+        // Only filled by GetPreview (the wide header image on the AniList page).
+        public string BannerUrl { get; set; }
         public string Description { get; set; }
         public List<string> Authors { get; set; } = new List<string>();
 
@@ -48,6 +51,10 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
     {
         List<AniListManga> Search(string query);
         AniListManga Get(int id);
+
+        // One series with the extra facts a detail page shows (banner image). Null when AniList
+        // has no manga with that id.
+        AniListManga GetPreview(int id);
         List<AniListManga> Browse(string sort, string status, int page, int perPage);
     }
 
@@ -93,6 +100,14 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                 }
             }";
 
+        // The detail page of one series: the usual facts plus the banner image.
+        private static readonly string PreviewQuery = @"
+            query TalearrMangaPreview($id: Int) {
+                Media(id: $id, type: MANGA) {" + MediaFields + @"
+                    bannerImage
+                }
+            }";
+
         // Discover lists: one page of manga in AniList's own order (trending, popular), adult
         // entries and light novels left out. A null status is ignored by AniList.
         private static readonly string BrowseQuery = @"
@@ -122,6 +137,12 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
         public AniListManga Get(int id)
         {
             var data = Execute(GetQuery, new { id });
+            return ParseMedia(data?["Media"]);
+        }
+
+        public AniListManga GetPreview(int id)
+        {
+            var data = Execute(PreviewQuery, new { id });
             return ParseMedia(data?["Media"]);
         }
 
@@ -163,6 +184,7 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                 CountryOfOrigin = media.Value<string>("countryOfOrigin"),
                 StartYear = media["startDate"]?.Value<int?>("year"),
                 CoverUrl = media["coverImage"]?.Value<string>("extraLarge") ?? media["coverImage"]?.Value<string>("large"),
+                BannerUrl = media.Value<string>("bannerImage"),
                 Description = CleanDescription(media.Value<string>("description"))
             };
 
@@ -184,7 +206,9 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
             return manga;
         }
 
-        private static string CleanDescription(string description)
+        // Plain text from AniList's description: line breaks kept, tags (<br>, <i>, <b>) and the
+        // "(Source: ...)" credit dropped, entities decoded, runs of blank lines squeezed to one.
+        internal static string CleanDescription(string description)
         {
             if (string.IsNullOrWhiteSpace(description))
             {
@@ -194,7 +218,10 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
             var text = Regex.Replace(description, "<br\\s*/?>", "\n", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, "<[^>]+>", string.Empty);
             text = Regex.Replace(text, "\\(Source: [^)]*\\)", string.Empty, RegexOptions.IgnoreCase);
-            return WebUtility.HtmlDecode(text).Trim();
+            text = WebUtility.HtmlDecode(text).Replace("\r\n", "\n");
+            text = Regex.Replace(text, "[ \\t]+\n", "\n");
+            text = Regex.Replace(text, "\n{3,}", "\n\n").Trim();
+            return text.Length == 0 ? null : text;
         }
 
         private JToken Execute(string query, object variables)
