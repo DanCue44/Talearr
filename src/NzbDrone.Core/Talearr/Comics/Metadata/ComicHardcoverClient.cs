@@ -71,7 +71,7 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                 series(where: { id: { _in: $ids } }) {
                     id
                     book_series(order_by: { position: asc }, limit: 10) {
-                        book { image { url } }
+                        book { image { url width } }
                     }
                 }
             }";
@@ -89,7 +89,7 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                         position
                         featured
                         compilation
-                        book { id title release_date pages image { url } }
+                        book { id title release_date pages image { url width } }
                     }
                 }
             }";
@@ -195,11 +195,7 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                     continue;
                 }
 
-                var url = (entry["book_series"] as JArray ?? new JArray())
-                    .Select(b => b?["book"]?["image"])
-                    .Where(i => i?.Type == JTokenType.Object)
-                    .Select(i => i.Value<string>("url"))
-                    .FirstOrDefault(u => !string.IsNullOrWhiteSpace(u));
+                var url = PickCover((entry["book_series"] as JArray ?? new JArray()).Select(b => b?["book"]?["image"]));
 
                 if (url != null)
                 {
@@ -208,6 +204,25 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
             }
 
             return covers;
+        }
+
+        // Some Hardcover covers are small store thumbnails (about 100 pixels wide). The first image
+        // at least this wide wins; failing that, the widest.
+        internal const int SharpCoverWidth = 250;
+
+        internal static string PickCover(IEnumerable<JToken> images)
+        {
+            var candidates = images
+                .Where(i => i?.Type == JTokenType.Object && !string.IsNullOrWhiteSpace(i.Value<string>("url")))
+                .Select(i => new { Url = i.Value<string>("url"), Width = i.Value<int?>("width") ?? 0 })
+                .ToList();
+
+            return (candidates.FirstOrDefault(c => c.Width >= SharpCoverWidth) ?? candidates.OrderByDescending(c => c.Width).FirstOrDefault())?.Url;
+        }
+
+        private static bool IsSharp(JToken image)
+        {
+            return image?.Type == JTokenType.Object && (image.Value<int?>("width") ?? 0) >= SharpCoverWidth;
         }
 
         internal static HardcoverComicSeries ParseSeries(JToken series)
@@ -246,9 +261,10 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                 .Where(e => collectsVolumes || !IsCollectedEdition(e.Title))
                 .GroupBy(e => e.Position)
                 .Select(g => g
-                    .OrderByDescending(e => (ComicNormalize(e.Title).StartsWith(seriesName, StringComparison.Ordinal) ? 8 : 0) +
-                                            (IsLatin(e.Title) ? 4 : 0) +
-                                            (e.Featured ? 2 : 0) +
+                    .OrderByDescending(e => (ComicNormalize(e.Title).StartsWith(seriesName, StringComparison.Ordinal) ? 16 : 0) +
+                                            (IsLatin(e.Title) ? 8 : 0) +
+                                            (e.Featured ? 4 : 0) +
+                                            (IsSharp(e.Book["image"]) ? 2 : 0) +
                                             (e.Book["image"]?.Type == JTokenType.Object ? 1 : 0))
                     .First())
                 .OrderBy(e => e.Position);
@@ -267,7 +283,7 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                 });
             }
 
-            result.CoverUrl = result.Volumes.Select(v => v.CoverUrl).FirstOrDefault(u => !string.IsNullOrWhiteSpace(u));
+            result.CoverUrl = PickCover(entries.Select(e => e.Book["image"]));
             return result;
         }
 

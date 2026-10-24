@@ -201,6 +201,23 @@ namespace Chaptarr.Core.Test.Talearr.Comics
         }
 
         [Test]
+        public void should_skip_thumbnail_covers_for_a_sharp_one()
+        {
+            var series = JToken.Parse(@"[
+                { ""id"": 45273, ""book_series"": [
+                    { ""book"": { ""image"": { ""url"": ""https://a/thumb.jpeg"", ""width"": 98 } } },
+                    { ""book"": { ""image"": { ""url"": ""https://a/sharp.jpeg"", ""width"": 325 } } } ] },
+                { ""id"": 7, ""book_series"": [
+                    { ""book"": { ""image"": { ""url"": ""https://a/small.jpeg"", ""width"": 98 } } },
+                    { ""book"": { ""image"": { ""url"": ""https://a/bigger.jpeg"", ""width"": 160 } } } ] } ]");
+
+            var covers = ComicHardcoverClient.ParseCovers(series);
+
+            Assert.That(covers[45273], Is.EqualTo("https://a/sharp.jpeg"));
+            Assert.That(covers[7], Is.EqualTo("https://a/bigger.jpeg"));
+        }
+
+        [Test]
         public void should_take_the_first_volume_cover_for_each_series()
         {
             var series = JToken.Parse(@"[
