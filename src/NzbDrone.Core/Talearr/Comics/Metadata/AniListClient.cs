@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -55,7 +56,7 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
         // One series with the extra facts a detail page shows (banner image). Null when AniList
         // has no manga with that id.
         AniListManga GetPreview(int id);
-        List<AniListManga> Browse(string sort, string status, int page, int perPage);
+        List<AniListManga> Browse(string sort, string status, int page, int perPage, int? minPopularity = null);
     }
 
     // Talearr: AniList's public GraphQL API (https://docs.anilist.co) for manga series facts:
@@ -109,14 +110,30 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
             }";
 
         // Discover lists: one page of manga in AniList's own order (trending, popular), adult
-        // entries and light novels left out. A null status is ignored by AniList.
-        private static readonly string BrowseQuery = @"
-            query TalearrMangaBrowse($page: Int, $perPage: Int, $sort: [MediaSort], $status: MediaStatus) {
+        // entries and light novels left out. Filters are only written into the query when set:
+        // AniList drops the sort when a filter variable is sent as null, so a null status turned
+        // the popular list into an unordered one.
+        internal static string BrowseQuery(string status, int? minPopularity)
+        {
+            var filters = "type: MANGA, sort: $sort, isAdult: false, format_not: NOVEL";
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                filters += ", status: " + status;
+            }
+
+            if (minPopularity.HasValue)
+            {
+                filters += ", popularity_greater: " + minPopularity.Value.ToString(CultureInfo.InvariantCulture);
+            }
+
+            return @"
+            query TalearrMangaBrowse($page: Int, $perPage: Int, $sort: [MediaSort]) {
                 Page(page: $page, perPage: $perPage) {
-                    media(type: MANGA, sort: $sort, status: $status, isAdult: false, format_not: NOVEL) {" + MediaFields + @"
+                    media(" + filters + ") {" + MediaFields + @"
                     }
                 }
             }";
+        }
 
         private readonly IHttpClient _httpClient;
 
@@ -146,9 +163,14 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
             return ParseMedia(data?["Media"]);
         }
 
-        public List<AniListManga> Browse(string sort, string status, int page, int perPage)
+        public List<AniListManga> Browse(string sort, string status, int page, int perPage, int? minPopularity = null)
         {
-            var data = Execute(BrowseQuery, new { page = Math.Max(1, page), perPage, sort = new[] { sort }, status });
+            if (!string.IsNullOrWhiteSpace(status) && !status.All(c => char.IsLetter(c) || c == '_'))
+            {
+                throw new ArgumentException("Invalid AniList status", nameof(status));
+            }
+
+            var data = Execute(BrowseQuery(status, minPopularity), new { page = Math.Max(1, page), perPage, sort = new[] { sort } });
             return ParsePage(data);
         }
 

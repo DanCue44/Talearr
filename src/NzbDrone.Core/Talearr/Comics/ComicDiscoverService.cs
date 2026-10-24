@@ -80,6 +80,8 @@ namespace NzbDrone.Core.Talearr.Comics
         private readonly IAniListClient _aniList;
         private readonly IComicHardcoverClient _hardcover;
         private readonly ITalearrComicsStore _store;
+        internal const int TrendingMinPopularity = 5000;
+
         private readonly ICached<List<AniListManga>> _aniListPages;
         private readonly ICached<CuratedHit> _curated;
         private readonly Logger _logger;
@@ -181,7 +183,10 @@ namespace NzbDrone.Core.Talearr.Comics
             {
                 try
                 {
-                    media = _aniList.Browse(query.Sort, query.Status, page, PageSize);
+                    // Raw trending is mostly brand new one-shots nobody has heard of; a popularity
+                    // floor keeps it to series people actually read.
+                    var minPopularity = list == ComicDiscoverLists.Trending ? TrendingMinPopularity : (int?)null;
+                    media = _aniList.Browse(query.Sort, query.Status, page, PageSize, minPopularity);
                     _aniListPages.Set(key, media, AniListLifetime);
                 }
                 catch (Exception ex)
@@ -214,6 +219,7 @@ namespace NzbDrone.Core.Talearr.Comics
 
             var library = _store.GetAllSeries();
             var seen = new HashSet<int>();
+            var picked = new List<HardcoverComicSeries>();
 
             // One search per title, in order. A title resolves once a day (a miss counts too); a
             // failure stops the run so a rate limit is not hammered, and the next visit picks up
@@ -225,7 +231,9 @@ namespace NzbDrone.Core.Talearr.Comics
                 {
                     try
                     {
-                        cached = new CuratedHit { Series = PickCuratedHit(title, _hardcover.SearchSeries(title)) };
+                        // Covers come later in one query for the picked series only, which halves
+                        // the requests against Hardcover's 60 a minute.
+                        cached = new CuratedHit { Series = PickCuratedHit(title, _hardcover.SearchSeries(title, withCovers: false)) };
                         _curated.Set(title, cached, CuratedLifetime);
                     }
                     catch (Exception ex)
@@ -241,9 +249,13 @@ namespace NzbDrone.Core.Talearr.Comics
 
                 if (cached.Series != null && seen.Add(cached.Series.Id))
                 {
-                    response.Results.Add(FromHardcover(cached.Series, library));
+                    picked.Add(cached.Series);
                 }
             }
+
+            // The cache holds these same objects, so covers found here stay for the day.
+            _hardcover.FillCovers(picked);
+            response.Results.AddRange(picked.Select(series => FromHardcover(series, library)));
 
             return response;
         }

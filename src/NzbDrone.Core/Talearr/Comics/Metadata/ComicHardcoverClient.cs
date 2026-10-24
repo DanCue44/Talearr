@@ -45,7 +45,8 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
     public interface IComicHardcoverClient
     {
         bool IsConfigured { get; }
-        List<HardcoverComicSeries> SearchSeries(string query);
+        List<HardcoverComicSeries> SearchSeries(string query, bool withCovers = true);
+        void FillCovers(IList<HardcoverComicSeries> series);
         HardcoverComicSeries GetSeries(int id);
     }
 
@@ -104,29 +105,40 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
 
         public bool IsConfigured => !string.IsNullOrWhiteSpace(_configService.HardcoverApiToken);
 
-        public List<HardcoverComicSeries> SearchSeries(string query)
+        public List<HardcoverComicSeries> SearchSeries(string query, bool withCovers = true)
         {
             var data = Execute(SearchQuery, new { q = query });
             var list = ParseSearch(data?["search"]?["results"]);
 
-            var missing = list.Where(s => string.IsNullOrWhiteSpace(s.CoverUrl)).Select(s => s.Id).Distinct().ToList();
-            if (missing.Count > 0)
+            if (withCovers)
             {
-                // Covers are a nicety: a failed lookup leaves the results as they were.
-                try
-                {
-                    var covers = ParseCovers(Execute(CoversQuery, new { ids = missing })?["series"]);
-                    foreach (var series in list.Where(s => string.IsNullOrWhiteSpace(s.CoverUrl)))
-                    {
-                        series.CoverUrl = covers.TryGetValue(series.Id, out var url) ? url : null;
-                    }
-                }
-                catch (ComicHardcoverException)
-                {
-                }
+                FillCovers(list);
             }
 
             return list;
+        }
+
+        // One query for the covers of every series given that has none yet. Covers are a nicety:
+        // a failed lookup leaves the series as they were.
+        public void FillCovers(IList<HardcoverComicSeries> series)
+        {
+            var missing = series.Where(s => s != null && string.IsNullOrWhiteSpace(s.CoverUrl)).Select(s => s.Id).Distinct().ToList();
+            if (missing.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                var covers = ParseCovers(Execute(CoversQuery, new { ids = missing })?["series"]);
+                foreach (var entry in series.Where(s => s != null && string.IsNullOrWhiteSpace(s.CoverUrl)))
+                {
+                    entry.CoverUrl = covers.TryGetValue(entry.Id, out var url) ? url : null;
+                }
+            }
+            catch (ComicHardcoverException)
+            {
+            }
         }
 
         public HardcoverComicSeries GetSeries(int id)

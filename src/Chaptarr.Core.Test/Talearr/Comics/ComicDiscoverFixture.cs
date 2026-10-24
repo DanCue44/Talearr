@@ -286,7 +286,7 @@ namespace Chaptarr.Core.Test.Talearr.Comics
 
             public AniListManga GetPreview(int id) => throw new NotSupportedException();
 
-            public List<AniListManga> Browse(string sort, string status, int page, int perPage)
+            public List<AniListManga> Browse(string sort, string status, int page, int perPage, int? minPopularity = null)
             {
                 Calls.Add((sort, status, page, perPage));
                 if (Error != null)
@@ -308,7 +308,11 @@ namespace Chaptarr.Core.Test.Talearr.Comics
 
             public HardcoverComicSeries GetSeries(int id) => throw new NotSupportedException();
 
-            public List<HardcoverComicSeries> SearchSeries(string query)
+            public void FillCovers(IList<HardcoverComicSeries> series)
+            {
+            }
+
+            public List<HardcoverComicSeries> SearchSeries(string query, bool withCovers = true)
             {
                 Searches.Add(query);
                 if (Searches.Count > FailAfter)
@@ -333,6 +337,19 @@ namespace Chaptarr.Core.Test.Talearr.Comics
 
                 throw new NotSupportedException(targetMethod.Name);
             }
+        }
+
+        [Test]
+        public void should_leave_unset_filters_out_of_the_browse_query()
+        {
+            var popular = AniListClient.BrowseQuery(null, null);
+            var releasing = AniListClient.BrowseQuery("RELEASING", null);
+            var trending = AniListClient.BrowseQuery(null, 5000);
+
+            Assert.That(popular, Does.Not.Contain("status: "));
+            Assert.That(popular, Does.Not.Contain("popularity_greater"));
+            Assert.That(releasing, Does.Contain("status: RELEASING"));
+            Assert.That(trending, Does.Contain("popularity_greater: 5000"));
         }
     }
 }

@@ -278,7 +278,7 @@ namespace Chaptarr.Core.Test.Talearr.Comics
 
             public AniListManga Get(int id) => throw new NotSupportedException();
 
-            public List<AniListManga> Browse(string sort, string status, int page, int perPage) => throw new NotSupportedException();
+            public List<AniListManga> Browse(string sort, string status, int page, int perPage, int? minPopularity = null) => throw new NotSupportedException();
 
             public AniListManga GetPreview(int id)
             {
@@ -295,7 +295,11 @@ namespace Chaptarr.Core.Test.Talearr.Comics
 
             public bool IsConfigured => Configured;
 
-            public List<HardcoverComicSeries> SearchSeries(string query)
+            public void FillCovers(IList<HardcoverComicSeries> series)
+            {
+            }
+
+            public List<HardcoverComicSeries> SearchSeries(string query, bool withCovers = true)
             {
                 Searches.Add(query);
                 if (Error != null)
