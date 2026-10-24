@@ -63,6 +63,18 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                 }
             }";
 
+        // Search hits carry book titles only, no images: the first volumes' covers come from one
+        // more query for all the hits at once.
+        private const string CoversQuery = @"
+            query TalearrComicSeriesCovers($ids: [Int!]) {
+                series(where: { id: { _in: $ids } }) {
+                    id
+                    book_series(order_by: { position: asc }, limit: 10) {
+                        book { image { url } }
+                    }
+                }
+            }";
+
         private const string SeriesQuery = @"
             query TalearrComicSeries($id: Int!) {
                 series(where: { id: { _eq: $id } }, limit: 1) {
@@ -95,7 +107,26 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
         public List<HardcoverComicSeries> SearchSeries(string query)
         {
             var data = Execute(SearchQuery, new { q = query });
-            return ParseSearch(data?["search"]?["results"]);
+            var list = ParseSearch(data?["search"]?["results"]);
+
+            var missing = list.Where(s => string.IsNullOrWhiteSpace(s.CoverUrl)).Select(s => s.Id).Distinct().ToList();
+            if (missing.Count > 0)
+            {
+                // Covers are a nicety: a failed lookup leaves the results as they were.
+                try
+                {
+                    var covers = ParseCovers(Execute(CoversQuery, new { ids = missing })?["series"]);
+                    foreach (var series in list.Where(s => string.IsNullOrWhiteSpace(s.CoverUrl)))
+                    {
+                        series.CoverUrl = covers.TryGetValue(series.Id, out var url) ? url : null;
+                    }
+                }
+                catch (ComicHardcoverException)
+                {
+                }
+            }
+
+            return list;
         }
 
         public HardcoverComicSeries GetSeries(int id)
@@ -139,6 +170,32 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
             }
 
             return list;
+        }
+
+        /// <summary>Series id to the first cover among its first volumes.</summary>
+        internal static Dictionary<int, string> ParseCovers(JToken series)
+        {
+            var covers = new Dictionary<int, string>();
+            foreach (var entry in series as JArray ?? new JArray())
+            {
+                if (entry?.Type != JTokenType.Object || entry["id"] == null)
+                {
+                    continue;
+                }
+
+                var url = (entry["book_series"] as JArray ?? new JArray())
+                    .Select(b => b?["book"]?["image"])
+                    .Where(i => i?.Type == JTokenType.Object)
+                    .Select(i => i.Value<string>("url"))
+                    .FirstOrDefault(u => !string.IsNullOrWhiteSpace(u));
+
+                if (url != null)
+                {
+                    covers[entry.Value<int>("id")] = url;
+                }
+            }
+
+            return covers;
         }
 
         internal static HardcoverComicSeries ParseSeries(JToken series)

@@ -201,6 +201,19 @@ namespace Chaptarr.Core.Test.Talearr.Comics
         }
 
         [Test]
+        public void should_take_the_first_volume_cover_for_each_series()
+        {
+            var series = JToken.Parse(@"[
+                { ""id"": 240565, ""book_series"": [ { ""book"": { ""image"": null } }, { ""book"": { ""image"": { ""url"": ""https://assets.hardcover.app/a.jpeg"" } } } ] },
+                { ""id"": 28840, ""book_series"": [ { ""book"": { ""image"": null } } ] } ]");
+
+            var covers = ComicHardcoverClient.ParseCovers(series);
+
+            Assert.That(covers[240565], Is.EqualTo("https://assets.hardcover.app/a.jpeg"));
+            Assert.That(covers.ContainsKey(28840), Is.False);
+        }
+
+        [Test]
         public void should_read_anilist_media()
         {
             var media = JToken.Parse(@"{ ""id"": 100664, ""title"": { ""romaji"": ""Tongari Boushi no Atelier"", ""english"": ""Witch Hat Atelier"", ""native"": ""とんがり帽子のアトリエ"" },
