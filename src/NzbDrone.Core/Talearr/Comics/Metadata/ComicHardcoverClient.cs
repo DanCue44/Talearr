@@ -46,7 +46,7 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
     {
         bool IsConfigured { get; }
         List<HardcoverComicSeries> SearchSeries(string query, bool withCovers = true);
-        void FillCovers(IList<HardcoverComicSeries> series);
+        bool FillCovers(IList<HardcoverComicSeries> series);
         HardcoverComicSeries GetSeries(int id);
     }
 
@@ -119,13 +119,13 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
         }
 
         // One query for the covers of every series given that has none yet. Covers are a nicety:
-        // a failed lookup leaves the series as they were.
-        public void FillCovers(IList<HardcoverComicSeries> series)
+        // a failed lookup leaves the series as they were and answers false.
+        public bool FillCovers(IList<HardcoverComicSeries> series)
         {
             var missing = series.Where(s => s != null && string.IsNullOrWhiteSpace(s.CoverUrl)).Select(s => s.Id).Distinct().ToList();
             if (missing.Count == 0)
             {
-                return;
+                return true;
             }
 
             try
@@ -138,7 +138,10 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
             }
             catch (ComicHardcoverException)
             {
+                return false;
             }
+
+            return true;
         }
 
         public HardcoverComicSeries GetSeries(int id)

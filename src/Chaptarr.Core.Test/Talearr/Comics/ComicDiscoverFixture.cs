@@ -308,8 +308,9 @@ namespace Chaptarr.Core.Test.Talearr.Comics
 
             public HardcoverComicSeries GetSeries(int id) => throw new NotSupportedException();
 
-            public void FillCovers(IList<HardcoverComicSeries> series)
+            public bool FillCovers(IList<HardcoverComicSeries> series)
             {
+                return true;
             }
 
             public List<HardcoverComicSeries> SearchSeries(string query, bool withCovers = true)

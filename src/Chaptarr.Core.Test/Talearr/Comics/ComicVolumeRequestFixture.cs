@@ -246,8 +246,9 @@ namespace Chaptarr.Core.Test.Talearr.Comics
         {
             public bool IsConfigured => true;
 
-            public void FillCovers(IList<HardcoverComicSeries> series)
+            public bool FillCovers(IList<HardcoverComicSeries> series)
             {
+                return true;
             }
 
             public List<HardcoverComicSeries> SearchSeries(string query, bool withCovers = true) => new List<HardcoverComicSeries>();

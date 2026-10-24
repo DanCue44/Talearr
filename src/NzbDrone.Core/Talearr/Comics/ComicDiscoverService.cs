@@ -254,7 +254,11 @@ namespace NzbDrone.Core.Talearr.Comics
             }
 
             // The cache holds these same objects, so covers found here stay for the day.
-            _hardcover.FillCovers(picked);
+            if (!_hardcover.FillCovers(picked))
+            {
+                // Said out loud so a request app asks again soon instead of keeping blank covers.
+                response.Notices.Add("Some covers could not be loaded from Hardcover yet. Try again in a minute.");
+            }
             response.Results.AddRange(picked.Select(series => FromHardcover(series, library)));
 
             return response;
