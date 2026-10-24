@@ -34,6 +34,11 @@ namespace NzbDrone.Core.Talearr.Comics
         // yyyy-MM-dd, or null when the date is not known.
         public string ReleaseDate { get; set; }
         public string CoverUrl { get; set; }
+        public int? Pages { get; set; }
+        public string Description { get; set; }
+
+        // The volume's page on Hardcover.
+        public string HardcoverUrl { get; set; }
     }
 
     // One series as a request app's detail page shows it, before it is added.
@@ -335,7 +340,10 @@ namespace NzbDrone.Core.Talearr.Comics
                     Number = v.Number,
                     Title = string.IsNullOrWhiteSpace(v.Title) ? null : v.Title,
                     ReleaseDate = v.ReleaseDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    CoverUrl = string.IsNullOrWhiteSpace(v.CoverUrl) ? null : v.CoverUrl
+                    CoverUrl = string.IsNullOrWhiteSpace(v.CoverUrl) ? null : v.CoverUrl,
+                    Pages = v.Pages > 0 ? v.Pages : null,
+                    Description = string.IsNullOrWhiteSpace(v.Description) ? null : AniListClient.CleanDescription(v.Description),
+                    HardcoverUrl = string.IsNullOrWhiteSpace(v.Slug) ? null : $"https://hardcover.app/books/{v.Slug}"
                 })
                 .ToList();
         }

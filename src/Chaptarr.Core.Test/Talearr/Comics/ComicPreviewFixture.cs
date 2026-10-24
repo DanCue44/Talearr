@@ -111,7 +111,7 @@ namespace Chaptarr.Core.Test.Talearr.Comics
             series.Description = "Star-crossed <b>lovers</b>.";
             series.AuthorName = "Brian K. Vaughan";
             series.CoverUrl = "https://img.example/saga.jpg";
-            series.Volumes.Add(new HardcoverComicVolume { BookId = 1, Number = 1, Title = "Saga, Volume 1", ReleaseDate = new DateTime(2012, 10, 10), CoverUrl = "https://img.example/s1.jpg" });
+            series.Volumes.Add(new HardcoverComicVolume { BookId = 1, Number = 1, Title = "Saga, Volume 1", ReleaseDate = new DateTime(2012, 10, 10), CoverUrl = "https://img.example/s1.jpg", Pages = 160, Description = "Volume <i>one</i>.", Slug = "saga-volume-1" });
             series.Volumes.Add(new HardcoverComicVolume { BookId = 2, Number = 1.5m, Title = "", ReleaseDate = null });
 
             var preview = ComicPreviewService.MapHardcover(series, "comic");
@@ -127,7 +127,12 @@ namespace Chaptarr.Core.Test.Talearr.Comics
             Assert.That(preview.Volumes, Has.Count.EqualTo(2));
             Assert.That(preview.Volumes[0].ReleaseDate, Is.EqualTo("2012-10-10"));
             Assert.That(preview.Volumes[0].CoverUrl, Is.EqualTo("https://img.example/s1.jpg"));
+            Assert.That(preview.Volumes[0].Pages, Is.EqualTo(160));
+            Assert.That(preview.Volumes[0].Description, Is.EqualTo("Volume one."));
+            Assert.That(preview.Volumes[0].HardcoverUrl, Is.EqualTo("https://hardcover.app/books/saga-volume-1"));
             Assert.That(preview.Volumes[1].Number, Is.EqualTo(1.5m));
+            Assert.That(preview.Volumes[1].Pages, Is.Null);
+            Assert.That(preview.Volumes[1].HardcoverUrl, Is.Null);
             Assert.That(preview.Volumes[1].Title, Is.Null);
             Assert.That(preview.Volumes[1].ReleaseDate, Is.Null);
         }

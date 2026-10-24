@@ -40,6 +40,8 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
         public DateTime? ReleaseDate { get; set; }
         public int? Pages { get; set; }
         public string CoverUrl { get; set; }
+        public string Description { get; set; }
+        public string Slug { get; set; }
     }
 
     public interface IComicHardcoverClient
@@ -89,7 +91,7 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                         position
                         featured
                         compilation
-                        book { id title release_date pages image { url width } }
+                        book { id slug title description release_date pages image { url width } }
                     }
                 }
             }";
@@ -282,6 +284,8 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                     Title = book.Value<string>("title"),
                     ReleaseDate = DateTime.TryParse(book.Value<string>("release_date"), CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var date) ? date : null,
                     Pages = book.Value<int?>("pages"),
+                    Description = book.Value<string>("description"),
+                    Slug = book.Value<string>("slug"),
                     CoverUrl = book["image"]?.Type == JTokenType.Object ? book["image"].Value<string>("url") : null
                 });
             }
