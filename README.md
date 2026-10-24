@@ -150,7 +150,7 @@ Keep downloads and the library in the same share so hardlinks work.
 | Tag | Channel |
 |---|---|
 | `latest` | The newest release, for amd64 and arm64. Recommended. |
-| `0.18.42` | A fixed release (every release has its own tag). |
+| `0.18.43` | A fixed release (every release has its own tag). |
 | `develop` | Testing builds of upcoming changes. |
 
 Talearr has its own version (System > Status), with the Chaptarr version it is based on
