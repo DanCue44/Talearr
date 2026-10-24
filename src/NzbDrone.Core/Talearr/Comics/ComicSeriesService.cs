@@ -5,6 +5,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Exceptions;
+using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Talearr.Comics.Metadata;
 using NzbDrone.Core.Talearr.Comics.Parsing;
 
@@ -23,6 +24,15 @@ namespace NzbDrone.Core.Talearr.Comics
     public class ComicAgeRatingRequiredException : ComicsException
     {
         public ComicAgeRatingRequiredException(string message, params object[] args)
+            : base(message, args)
+        {
+        }
+    }
+
+    // The series id a want request named is not in the library (the API answers 404).
+    public class ComicSeriesNotFoundException : ComicsException
+    {
+        public ComicSeriesNotFoundException(string message, params object[] args)
             : base(message, args)
         {
         }
@@ -67,6 +77,32 @@ namespace NzbDrone.Core.Talearr.Comics
         // all, future (only volumes released after adding) or none.
         public string Monitor { get; set; } = "all";
         public string AgeRatingOverride { get; set; }
+
+        // Volume numbers a request app asked for. When given, only these are monitored (Monitor
+        // is ignored, new volumes are not monitored) and a search starts for them.
+        public List<decimal> Volumes { get; set; }
+    }
+
+    // The added series, plus what became of the requested volume numbers (only set when the add
+    // request named volumes).
+    public class ComicAddResult : ComicSeries
+    {
+        public List<decimal> Wanted { get; set; }
+        public List<decimal> Unknown { get; set; }
+    }
+
+    // What a want request did: wanted volumes are monitored and searched when missing,
+    // alreadyHave ones have a file (monitored, not searched), unknown ones the series does not have.
+    public class ComicWantResult
+    {
+        public int SeriesId { get; set; }
+        public List<decimal> Wanted { get; set; } = new List<decimal>();
+        public List<decimal> Unknown { get; set; } = new List<decimal>();
+        public List<decimal> AlreadyHave { get; set; } = new List<decimal>();
+
+        // Volume ids sent to the search (missing and released). Not part of the API answer.
+        [System.Text.Json.Serialization.JsonIgnore]
+        public List<int> SearchedVolumeIds { get; set; } = new List<int>();
     }
 
     public class ComicSeriesUpdate
@@ -81,7 +117,11 @@ namespace NzbDrone.Core.Talearr.Comics
     public interface IComicSeriesService
     {
         ComicLookupResponse Lookup(string term, string kind);
-        ComicSeries Add(ComicAddRequest request);
+        ComicAddResult Add(ComicAddRequest request);
+
+        // Monitors the given volume numbers of a series in the library (other volumes keep their
+        // state) and, when search is true, searches for the missing ones.
+        ComicWantResult WantVolumes(int seriesId, IEnumerable<decimal> numbers, bool search);
         ComicSeries Refresh(int seriesId);
         void RefreshAll();
         ComicSeries Update(int seriesId, ComicSeriesUpdate update);
@@ -102,6 +142,7 @@ namespace NzbDrone.Core.Talearr.Comics
         private readonly IComicHardcoverClient _hardcover;
         private readonly IMangaDexClient _mangaDex;
         private readonly IDiskProvider _diskProvider;
+        private readonly IManageCommandQueue _commandQueue;
         private readonly Logger _logger;
 
         public ComicSeriesService(ITalearrComicsStore store,
@@ -110,8 +151,10 @@ namespace NzbDrone.Core.Talearr.Comics
                                   IComicHardcoverClient hardcover,
                                   IMangaDexClient mangaDex,
                                   IDiskProvider diskProvider,
+                                  IManageCommandQueue commandQueue,
                                   Logger logger)
         {
+            _commandQueue = commandQueue;
             _store = store;
             _settingsService = settingsService;
             _aniList = aniList;
@@ -233,8 +276,11 @@ namespace NzbDrone.Core.Talearr.Comics
             };
         }
 
-        public ComicSeries Add(ComicAddRequest request)
+        public ComicAddResult Add(ComicAddRequest request)
         {
+            var requested = DistinctNumbers(request.Volumes);
+            var selecting = requested.Count > 0;
+
             if (!request.AniListId.HasValue && !request.HardcoverSeriesId.HasValue)
             {
                 throw new ComicsException("Pick a series from the search results.");
@@ -252,14 +298,14 @@ namespace NzbDrone.Core.Talearr.Comics
                 throw new ComicsException("{0} is already in the library.", existingHardcover.Title);
             }
 
-            var series = new ComicSeries
+            var series = new ComicAddResult
             {
                 Kind = ComicKinds.Normalize(request.Kind),
                 AniListId = request.AniListId,
                 HardcoverSeriesId = request.HardcoverSeriesId,
                 RootFolderId = root.Id,
-                Monitored = request.Monitor != "none",
-                MonitorNewVolumes = request.Monitor != "none",
+                Monitored = selecting || request.Monitor != "none",
+                MonitorNewVolumes = !selecting && request.Monitor != "none",
                 AgeRatingOverride = ComicAgeRatings.IsKnown(request.AgeRatingOverride) ? ComicAgeRatings.Normalize(request.AgeRatingOverride) : null,
                 LanguageIso = "en",
                 Added = DateTime.UtcNow
@@ -282,14 +328,104 @@ namespace NzbDrone.Core.Talearr.Comics
 
             var settings = _settingsService.Get();
             series.Path = Path.Combine(root.Path, ComicNaming.SeriesFolder(series, settings));
-            series = _store.AddSeries(series);
+            _store.AddSeries(series);
 
-            _store.MergeVolumes(series.Id, volumes, newVolumesMonitored: request.Monitor == "all");
+            // The volume rows are written here, before Add returns, so a volume selection can be
+            // applied right away: nothing about the volume list is left to a background refresh.
+            _store.MergeVolumes(series.Id, volumes, newVolumesMonitored: !selecting && request.Monitor == "all");
 
             _store.AddHistory(new ComicHistoryEntry { SeriesId = series.Id, EventType = ComicHistoryEvents.Added, Message = $"Added with {volumes.Count} volumes" });
             _logger.Info("Comics: added {0} ({1}, {2} volumes)", series.Title, series.Kind, volumes.Count);
 
+            if (selecting)
+            {
+                // A request for named volumes is an explicit ask, so it searches whatever the
+                // automatic search setting says (like searching one volume by hand).
+                var want = ApplyWant(series, requested, search: true);
+                series.Wanted = want.Wanted;
+                series.Unknown = want.Unknown;
+            }
+            else if (request.Monitor == "all" && _settingsService.Get().AutomaticSearch)
+            {
+                _commandQueue.Push(new SearchMissingComicsCommand { SeriesId = series.Id });
+            }
+
             return series;
+        }
+
+        public ComicWantResult WantVolumes(int seriesId, IEnumerable<decimal> numbers, bool search)
+        {
+            var series = _store.GetSeries(seriesId) ?? throw new ComicSeriesNotFoundException("No such series");
+            var requested = DistinctNumbers(numbers);
+            if (requested.Count == 0)
+            {
+                throw new ComicsException("Give the volume numbers to want, like [1, 2, 3].");
+            }
+
+            // Wanted volumes of an unmonitored series would never be searched again, so wanting
+            // volumes monitors the series. Monitoring of new volumes is left as it was.
+            if (!series.Monitored)
+            {
+                series.Monitored = true;
+                _store.UpdateSeries(series);
+            }
+
+            return ApplyWant(series, requested, search);
+        }
+
+        // Monitors the requested volume numbers that the series has and, when search is true,
+        // queues one search for the wanted ones that are missing and already released.
+        private ComicWantResult ApplyWant(ComicSeries series, List<decimal> requested, bool search)
+        {
+            var result = new ComicWantResult { SeriesId = series.Id };
+            var volumes = _store.GetVolumes(series.Id);
+            var have = new HashSet<int>(_store.GetFiles(series.Id).Select(f => f.VolumeId));
+            var now = DateTime.UtcNow;
+            var monitor = new List<int>();
+
+            foreach (var number in requested)
+            {
+                var matches = volumes.Where(v => v.Number == number).ToList();
+                if (matches.Count == 0)
+                {
+                    result.Unknown.Add(number);
+                    continue;
+                }
+
+                monitor.AddRange(matches.Where(v => !v.Monitored).Select(v => v.Id));
+
+                if (matches.Any(v => have.Contains(v.Id)))
+                {
+                    result.AlreadyHave.Add(number);
+                    continue;
+                }
+
+                result.Wanted.Add(number);
+                result.SearchedVolumeIds.AddRange(matches.Where(v => !v.ReleaseDate.HasValue || v.ReleaseDate <= now).Select(v => v.Id));
+            }
+
+            _store.SetVolumesMonitored(monitor, true);
+
+            if (!search)
+            {
+                result.SearchedVolumeIds.Clear();
+            }
+
+            if (result.SearchedVolumeIds.Any())
+            {
+                _commandQueue.Push(new SearchMissingComicsCommand { SeriesId = series.Id, VolumeIds = result.SearchedVolumeIds.ToList() });
+            }
+
+            _logger.Info("Comics: {0} wants volumes {1}{2}", series.Title, string.Join(", ", result.Wanted.Select(n => ComicNaming.FormatNumber(n, "0"))),
+                result.Unknown.Any() ? " (unknown: " + string.Join(", ", result.Unknown.Select(n => ComicNaming.FormatNumber(n, "0"))) + ")" : string.Empty);
+
+            return result;
+        }
+
+        // Volume numbers compare by value, so 1 and 1.0 are the same volume.
+        private static List<decimal> DistinctNumbers(IEnumerable<decimal> numbers)
+        {
+            return numbers?.Distinct().ToList() ?? new List<decimal>();
         }
 
         public ComicSeries Refresh(int seriesId)

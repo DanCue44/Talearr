@@ -55,7 +55,8 @@ namespace NzbDrone.Core.Talearr.Comics
         {
             if (message.SeriesId.HasValue)
             {
-                var result = _searchService.AutomaticSearch(message.SeriesId.Value);
+                var volumeIds = message.VolumeIds?.Count > 0 ? message.VolumeIds : null;
+                var result = _searchService.AutomaticSearch(message.SeriesId.Value, volumeIds);
                 _logger.ProgressInfo("Comics: sent {0} release(s) to the download client", result.Grabbed);
                 return;
             }

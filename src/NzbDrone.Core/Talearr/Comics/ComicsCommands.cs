@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Talearr.Comics
@@ -28,6 +29,10 @@ namespace NzbDrone.Core.Talearr.Comics
     {
         // Null: every monitored series.
         public int? SeriesId { get; set; }
+
+        // With SeriesId: only these volumes (a request for named volumes). Null or empty: every
+        // missing monitored volume of the series.
+        public List<int> VolumeIds { get; set; }
 
         public override bool SendUpdatesToClient => true;
         public override bool UpdateScheduledTask => !SeriesId.HasValue;

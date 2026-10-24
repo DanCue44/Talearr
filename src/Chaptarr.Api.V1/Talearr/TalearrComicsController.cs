@@ -65,6 +65,12 @@ namespace Chaptarr.Api.V1.Talearr
         public decimal To { get; set; }
     }
 
+    public class ComicWantBody
+    {
+        public List<decimal> Volumes { get; set; }
+        public bool Search { get; set; } = true;
+    }
+
     public class ComicGrabBody
     {
         public string Guid { get; set; }
@@ -196,18 +202,30 @@ namespace Chaptarr.Api.V1.Talearr
         }
 
         [HttpPost("series")]
-        public ActionResult<ComicSeries> AddSeries([FromBody] ComicAddRequest request)
+        public ActionResult<ComicAddResult> AddSeries([FromBody] ComicAddRequest request)
         {
-            return Run(() =>
-            {
-                var series = _seriesService.Add(request);
-                if (request.Monitor == "all" && _settingsService.Get().AutomaticSearch)
-                {
-                    _commandQueue.Push(new SearchMissingComicsCommand { SeriesId = series.Id });
-                }
+            // The service queues the search: the whole series (Monitor "all" with automatic
+            // search on) or only the requested volumes.
+            return Run(() => _seriesService.Add(request));
+        }
 
-                return series;
-            });
+        // For request apps: monitor named volume numbers of a series already in the library and
+        // search for the missing ones. 404 when the series is not in the library.
+        [HttpPost("series/{id:int}/want")]
+        public ActionResult<ComicWantResult> WantVolumes(int id, [FromBody] ComicWantBody body)
+        {
+            try
+            {
+                return _seriesService.WantVolumes(id, body?.Volumes, body?.Search ?? true);
+            }
+            catch (ComicSeriesNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex) when (ex is ComicsException || ex is TalearrComicsDatabaseUnavailableException)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("series/{id:int}")]
