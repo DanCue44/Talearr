@@ -21,6 +21,13 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
         ArchiveUnpackResult Unpack(string downloadPath);
 
         /// <summary>
+        /// As above, for another kind of payload (comics): <paramref name="isPayloadFile"/> decides
+        /// which files are wanted, and <paramref name="payloadName"/> names them in the error when
+        /// the archives hold none. <paramref name="limits"/> replaces the default limits.
+        /// </summary>
+        ArchiveUnpackResult Unpack(string downloadPath, Func<string, bool> isPayloadFile, string payloadName, ArchiveExtractionLimits limits = null);
+
+        /// <summary>
         /// Deletes the work folder of an unpack. Never touches the original download.
         /// </summary>
         void Cleanup(ArchiveUnpackResult result);
@@ -67,6 +74,13 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
 
         public ArchiveUnpackResult Unpack(string downloadPath)
         {
+            return Unpack(downloadPath, IsMediaFile, "supported audio or ebook files");
+        }
+
+        public ArchiveUnpackResult Unpack(string downloadPath, Func<string, bool> isPayloadFile, string payloadName, ArchiveExtractionLimits limits = null)
+        {
+            isPayloadFile ??= IsMediaFile;
+
             if (string.IsNullOrWhiteSpace(downloadPath) || !IsEnabled())
             {
                 return null;
@@ -95,7 +109,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
                 return null;
             }
 
-            if (payloadFiles.Any(IsMediaFile))
+            if (payloadFiles.Any(isPayloadFile))
             {
                 return null;
             }
@@ -118,26 +132,26 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
 
             SweepStaleWorkFolders(Path.GetDirectoryName(result.WorkFolder), result.WorkFolder);
 
-            if (TryReuse(result))
+            if (TryReuse(result, isPayloadFile))
             {
                 return result;
             }
 
             try
             {
-                if (!PrepareWorkFolder(result))
+                if (!PrepareWorkFolder(result, isPayloadFile))
                 {
                     // An earlier run already unpacked this download into the fallback folder.
                     return result;
                 }
 
                 CheckFreeSpace(result.WorkFolder, archives);
-                UnpackNested(archives, result);
+                UnpackNested(archives, result, isPayloadFile, limits ?? Limits);
 
-                result.MediaFiles = SafeEnumerateFiles(result.WorkFolder).Where(IsMediaFile).ToList();
+                result.MediaFiles = SafeEnumerateFiles(result.WorkFolder).Where(isPayloadFile).ToList();
                 if (result.MediaFiles.Count == 0)
                 {
-                    throw new ArchiveExtractionException("the archives did not contain any supported audio or ebook files");
+                    throw new ArchiveExtractionException($"the archives did not contain any {payloadName}");
                 }
 
                 File.WriteAllText(Path.Combine(result.WorkFolder, CompleteMarkerName), downloadPath);
@@ -166,7 +180,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
         /// download folder is not writable. Returns false when the fallback folder already holds a
         /// finished unpack that can be reused.
         /// </summary>
-        private bool PrepareWorkFolder(ArchiveUnpackResult result)
+        private bool PrepareWorkFolder(ArchiveUnpackResult result, Func<string, bool> isPayloadFile)
         {
             try
             {
@@ -179,7 +193,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
                 _logger.Debug(ex, "Cannot create unpack folder next to {0}, using {1}", result.SourcePath, fallback);
                 result.WorkFolder = fallback;
 
-                if (TryReuse(result))
+                if (TryReuse(result, isPayloadFile))
                 {
                     return false;
                 }
@@ -230,17 +244,17 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
             }
         }
 
-        private void UnpackNested(List<string> topLevelArchives, ArchiveUnpackResult result)
+        private void UnpackNested(List<string> topLevelArchives, ArchiveUnpackResult result, Func<string, bool> isPayloadFile, ArchiveExtractionLimits limits)
         {
-            var budget = new ArchiveExtractionBudget(Limits);
+            var budget = new ArchiveExtractionBudget(limits);
             var pending = topLevelArchives;
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             for (var depth = 1; pending.Count > 0; depth++)
             {
-                if (depth > Limits.MaxDepth)
+                if (depth > limits.MaxDepth)
                 {
-                    throw new ArchiveExtractionException($"archives are nested more than {Limits.MaxDepth} levels deep");
+                    throw new ArchiveExtractionException($"archives are nested more than {limits.MaxDepth} levels deep");
                 }
 
                 var produced = new List<string>();
@@ -261,7 +275,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
 
                 // Stop as soon as a level yields book files; anything still packed beside them is
                 // not needed for the import.
-                if (produced.Any(IsMediaFile))
+                if (produced.Any(isPayloadFile))
                 {
                     break;
                 }
@@ -297,7 +311,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
             return string.IsNullOrWhiteSpace(name) ? "archive" : name;
         }
 
-        private bool TryReuse(ArchiveUnpackResult result)
+        private bool TryReuse(ArchiveUnpackResult result, Func<string, bool> isPayloadFile)
         {
             // A previous run unpacked this download and left it for a detached conversion; use it
             // as is instead of unpacking again under the conversion's feet.
@@ -306,7 +320,7 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
                 return false;
             }
 
-            var mediaFiles = SafeEnumerateFiles(result.WorkFolder).Where(IsMediaFile).ToList();
+            var mediaFiles = SafeEnumerateFiles(result.WorkFolder).Where(isPayloadFile).ToList();
             if (mediaFiles.Count == 0)
             {
                 return false;

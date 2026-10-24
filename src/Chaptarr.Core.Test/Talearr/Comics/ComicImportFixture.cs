@@ -14,9 +14,12 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.MediaFiles.TalearrImport;
+using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Talearr.Comics;
 using NzbDrone.Core.Talearr.Comics.Import;
 using NzbDrone.Core.Talearr.Comics.Metadata;
+using NzbDrone.Core.Talearr.Comics.Search;
 
 namespace Chaptarr.Core.Test.Talearr.Comics
 {
@@ -280,7 +283,7 @@ namespace Chaptarr.Core.Test.Talearr.Comics
             });
 
             var notifier = new FakeNotifier();
-            var service = new ComicImportService(store, new ComicSettingsService(store), notifier, new NoDownloadClients(), new LocalDisk(), LogManager.GetLogger("TalearrTest"));
+            var service = Service(store, notifier, new ComicDownloadTrackerFixture.RecordingQueue());
 
             var result = service.ImportDownload("nzo_1");
 
@@ -298,6 +301,177 @@ namespace Chaptarr.Core.Test.Talearr.Comics
             var rescan = service.RescanSeries(series.Id);
             Assert.That(rescan.Imported, Is.Empty);
             Assert.That(store.GetFiles(series.Id).Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void should_unpack_zips_holding_a_rar_set_and_import_the_comic_inside()
+        {
+            var store = Store();
+            var (series, volume) = AddSaga(store);
+
+            // The shape of a scene comic release: each zip holds one part of a rar set plus the
+            // group's .nfo and .diz; the rar set holds the PDF.
+            var pdf = TestArchives.Pdf("en");
+            var parts = TestArchives.RarVolumes(new[] { ("bb-saga.volume.3.pdf", pdf) }, 3);
+            var downloads = Path.Combine(_folder, "downloads", "Image.Comics.-.Saga.Vol.03.2015.Retail.Comic.eBook-BitBook-xpost");
+            Directory.CreateDirectory(downloads);
+            for (var i = 0; i < parts.Count; i++)
+            {
+                File.WriteAllBytes(Path.Combine(downloads, $"bb3ghma{(char)('a' + i)}.zip"), TestArchives.Zip(
+                    ($"bb3ghma.part{i + 1}.rar", parts[i]),
+                    ("bb-saga.volume.3.nfo", TestArchives.Text("release notes")),
+                    ("file_id.diz", TestArchives.Text("file id"))));
+            }
+
+            File.WriteAllText(Path.Combine(downloads, "bb-saga.volume.3.nfo"), "release notes");
+            var before = Directory.GetFiles(downloads).OrderBy(f => f).ToList();
+            SaveDownload(store, series, volume, "nzo_saga", "Image.Comics.-.Saga.Vol.03.2015.Retail.Comic.eBook-BitBook-xpost", downloads);
+
+            var queue = new ComicDownloadTrackerFixture.RecordingQueue();
+            var result = Service(store, new FakeNotifier(), queue).ImportDownload("nzo_saga");
+
+            Assert.That(result.Imported, Is.EqualTo(new[] { "Saga v03 (2012).pdf" }));
+            Assert.That(File.ReadAllBytes(Path.Combine(series.Path, "Saga v03 (2012).pdf")), Is.EqualTo(pdf));
+            Assert.That(store.GetDownload("nzo_saga").Status, Is.EqualTo(ComicDownloadStatuses.Imported));
+            Assert.That(Directory.GetFiles(downloads).OrderBy(f => f).ToList(), Is.EqualTo(before), "the download is left as it was");
+            Assert.That(Directory.GetDirectories(Path.GetDirectoryName(downloads)), Is.EqualTo(new[] { downloads }), "the unpack folder is removed");
+            Assert.That(store.GetBlocklist(series.Id), Is.Empty);
+            Assert.That(queue.Pushed, Is.Empty);
+        }
+
+        [Test]
+        public void should_unpack_a_rar_set_holding_a_cbr()
+        {
+            var store = Store();
+            var (series, volume) = AddSaga(store);
+
+            var cbr = TestArchives.Rar(("001.jpg", Page), ("002.jpg", Page));
+            var parts = TestArchives.RarVolumes(new[] { ("Saga v03 (2014) (Digital).cbr", cbr) }, 2);
+            var downloads = Path.Combine(_folder, "downloads", "Saga.v03.2014.Digital-GRP");
+            Directory.CreateDirectory(downloads);
+            File.WriteAllBytes(Path.Combine(downloads, "grp-saga03.rar"), parts[0]);
+            File.WriteAllBytes(Path.Combine(downloads, "grp-saga03.r00"), parts[1]);
+            SaveDownload(store, series, volume, "nzo_cbr", "Saga.v03.2014.Digital-GRP", downloads);
+
+            var result = Service(store, new FakeNotifier(), new ComicDownloadTrackerFixture.RecordingQueue()).ImportDownload("nzo_cbr");
+
+            Assert.That(result.Imported, Is.EqualTo(new[] { "Saga v03 (2012).cbz" }));
+            Assert.That(ComicArchive.CountPages(Path.Combine(series.Path, "Saga v03 (2012).cbz")), Is.EqualTo(2));
+        }
+
+        [Test]
+        public void should_blocklist_and_search_again_when_a_download_has_no_comic_files()
+        {
+            var store = Store();
+            var (series, volume) = AddSaga(store);
+
+            var downloads = Path.Combine(_folder, "downloads", "Saga.Vol.03-NOPE");
+            Directory.CreateDirectory(downloads);
+            File.WriteAllText(Path.Combine(downloads, "saga.nfo"), "release notes");
+            File.WriteAllText(Path.Combine(downloads, "file_id.diz"), "file id");
+            SaveDownload(store, series, volume, "nzo_empty", "Saga.Vol.03-NOPE", downloads);
+
+            var queue = new ComicDownloadTrackerFixture.RecordingQueue();
+            var result = Service(store, new FakeNotifier(), queue).ImportDownload("nzo_empty");
+
+            Assert.That(result.Imported, Is.Empty);
+            Assert.That(store.GetDownload("nzo_empty").Status, Is.EqualTo(ComicDownloadStatuses.Failed));
+            Assert.That(store.GetBlocklist(series.Id).Single().SourceTitle, Is.EqualTo("Saga.Vol.03-NOPE"));
+
+            var history = store.GetHistory(series.Id, 10).Single();
+            Assert.That(history.EventType, Is.EqualTo(ComicHistoryEvents.ImportFailed));
+            Assert.That(history.VolumeId, Is.EqualTo(volume.Id));
+
+            var search = queue.Pushed.OfType<SearchMissingComicsCommand>().Single();
+            Assert.That(search.SeriesId, Is.EqualTo(series.Id));
+            Assert.That(search.VolumeIds, Is.EqualTo(new[] { volume.Id }));
+        }
+
+        [Test]
+        public void should_blocklist_a_release_whose_archive_points_outside_the_download()
+        {
+            var store = Store();
+            var (series, volume) = AddSaga(store);
+
+            var downloads = Path.Combine(_folder, "downloads", "Saga.Vol.03-EVIL");
+            Directory.CreateDirectory(downloads);
+            File.WriteAllBytes(Path.Combine(downloads, "evil.zip"), TestArchives.Zip(("../../escaped.cbz", TestArchives.Zip(("001.jpg", Page)))));
+            SaveDownload(store, series, volume, "nzo_evil", "Saga.Vol.03-EVIL", downloads);
+
+            var queue = new ComicDownloadTrackerFixture.RecordingQueue();
+            var result = Service(store, new FakeNotifier(), queue).ImportDownload("nzo_evil");
+
+            Assert.That(result.Imported, Is.Empty);
+            Assert.That(Directory.GetFiles(_folder, "escaped.cbz", SearchOption.AllDirectories), Is.Empty);
+            Assert.That(store.GetDownload("nzo_evil").Message, Does.Contain("outside the unpack folder"));
+            Assert.That(store.GetBlocklist(series.Id).Single().SourceTitle, Is.EqualTo("Saga.Vol.03-EVIL"));
+            Assert.That(queue.Pushed.OfType<SearchMissingComicsCommand>(), Has.Exactly(1).Items);
+            Assert.That(Directory.GetDirectories(Path.GetDirectoryName(downloads)), Is.EqualTo(new[] { downloads }), "the unpack folder is removed");
+        }
+
+        [Test]
+        public void should_not_search_again_for_a_volume_that_is_no_longer_monitored()
+        {
+            var store = Store();
+            var (series, volume) = AddSaga(store);
+            store.SetVolumesMonitored(new[] { volume.Id }, false);
+
+            var downloads = Path.Combine(_folder, "downloads", "Saga.Vol.03-NOPE");
+            Directory.CreateDirectory(downloads);
+            File.WriteAllText(Path.Combine(downloads, "saga.nfo"), "release notes");
+            SaveDownload(store, series, volume, "nzo_unmonitored", "Saga.Vol.03-NOPE", downloads);
+
+            var queue = new ComicDownloadTrackerFixture.RecordingQueue();
+            Service(store, new FakeNotifier(), queue).ImportDownload("nzo_unmonitored");
+
+            Assert.That(store.GetBlocklist(series.Id), Has.Count.EqualTo(1));
+            Assert.That(queue.Pushed, Is.Empty);
+        }
+
+        private TalearrComicsStore Store()
+        {
+            return new TalearrComicsStore(new TalearrComicsDatabase(new TestAppFolderInfo(_folder), LogManager.GetLogger("TalearrTest")));
+        }
+
+        private (ComicSeries Series, ComicVolume Volume) AddSaga(TalearrComicsStore store)
+        {
+            var root = store.AddRootFolder(new ComicRootFolder { Path = Path.Combine(_folder, "comics"), Kind = ComicKinds.Comic });
+            var series = store.AddSeries(new ComicSeries
+            {
+                Kind = ComicKinds.Comic,
+                Title = "Saga",
+                Year = 2012,
+                RootFolderId = root.Id,
+                Path = Path.Combine(root.Path, "Saga (2012)"),
+                Monitored = true
+            });
+
+            var volume = store.MergeVolumes(series.Id, new[] { new ComicVolume { Number = 3 } }, true).Single();
+            return (series, volume);
+        }
+
+        private static void SaveDownload(TalearrComicsStore store, ComicSeries series, ComicVolume volume, string downloadId, string releaseTitle, string outputPath)
+        {
+            store.SaveDownload(new ComicDownload
+            {
+                DownloadId = downloadId,
+                DownloadClientId = 1,
+                Protocol = "usenet",
+                SeriesId = series.Id,
+                VolumeIds = volume.Id.ToString(),
+                ReleaseTitle = releaseTitle,
+                Indexer = "Nzb.life (Prowlarr)",
+                Status = ComicDownloadStatuses.Completed,
+                OutputPath = outputPath,
+                Score = 300
+            });
+        }
+
+        private static ComicImportService Service(TalearrComicsStore store, IComicLibraryNotifier notifier, IManageCommandQueue queue)
+        {
+            var logger = LogManager.GetLogger("TalearrTest");
+            var unpacker = new DownloadArchiveUnpacker(FreeSpaceDiskProviderProxy.Create(), TalearrConfigProxy.Create(), logger);
+            return new ComicImportService(store, new ComicSettingsService(store), notifier, new NoDownloadClients(), unpacker, new ComicFailedDownloadService(store, queue, logger), new LocalDisk(), logger);
         }
 
         private sealed class FakeNotifier : IComicLibraryNotifier

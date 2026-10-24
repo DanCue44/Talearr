@@ -32,7 +32,7 @@ namespace Chaptarr.Core.Test.Talearr.Comics
             _database = new TalearrComicsDatabase(new TestAppFolderInfo(_folder), LogManager.GetLogger("TalearrTest"));
             _store = new TalearrComicsStore(_database);
             _queue = new RecordingQueue();
-            _tracker = new ComicDownloadTracker(_database, _store, _queue, LogManager.GetLogger("TalearrTest"));
+            _tracker = new ComicDownloadTracker(_database, _store, _queue, new ComicFailedDownloadService(_store, _queue, LogManager.GetLogger("TalearrTest")), LogManager.GetLogger("TalearrTest"));
         }
 
         [TearDown]
@@ -93,7 +93,25 @@ namespace Chaptarr.Core.Test.Talearr.Comics
             Assert.That(_store.GetBlocklist(1).Single().SourceTitle, Is.EqualTo("Saga v02"));
         }
 
-        private sealed class RecordingQueue : IManageCommandQueue
+        [Test]
+        public void should_search_again_for_the_volume_of_a_failed_download()
+        {
+            var series = _store.AddSeries(new ComicSeries { Kind = ComicKinds.Comic, Title = "Saga", Path = Path.Combine(_folder, "Saga"), Monitored = true });
+            var volume = _store.MergeVolumes(series.Id, new[] { new ComicVolume { Number = 3 } }, true).Single();
+            _store.SaveDownload(new ComicDownload { DownloadId = "comic_3", DownloadClientId = 1, Protocol = "usenet", SeriesId = series.Id, VolumeIds = volume.Id.ToString(), ReleaseTitle = "Saga.Vol.03-BitBook", Status = ComicDownloadStatuses.Grabbed });
+            _tracker.Track("comic_3");
+
+            var item = Item("comic_3", DownloadItemStatus.Failed);
+            item.Message = "Delete Status: COPY";
+            _tracker.Claim(null, item);
+
+            var search = _queue.Pushed.OfType<SearchMissingComicsCommand>().Single();
+            Assert.That(search.SeriesId, Is.EqualTo(series.Id));
+            Assert.That(search.VolumeIds, Is.EqualTo(new[] { volume.Id }));
+            Assert.That(_store.GetHistory(series.Id, 10).Single().VolumeId, Is.EqualTo(volume.Id));
+        }
+
+        internal sealed class RecordingQueue : IManageCommandQueue
         {
             public List<Command> Pushed { get; } = new List<Command>();
 

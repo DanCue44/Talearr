@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using NLog;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Messaging.Commands;
@@ -26,16 +25,18 @@ namespace NzbDrone.Core.Talearr.Comics.Search
         private readonly ITalearrComicsDatabase _database;
         private readonly ITalearrComicsStore _store;
         private readonly IManageCommandQueue _commandQueue;
+        private readonly IComicFailedDownloadService _failedDownloads;
         private readonly Logger _logger;
         private readonly object _lock = new object();
         private HashSet<string> _ids;
         private DateTime _loadedAt;
 
-        public ComicDownloadTracker(ITalearrComicsDatabase database, ITalearrComicsStore store, IManageCommandQueue commandQueue, Logger logger)
+        public ComicDownloadTracker(ITalearrComicsDatabase database, ITalearrComicsStore store, IManageCommandQueue commandQueue, IComicFailedDownloadService failedDownloads, Logger logger)
         {
             _database = database;
             _store = store;
             _commandQueue = commandQueue;
+            _failedDownloads = failedDownloads;
             _logger = logger;
         }
 
@@ -113,24 +114,9 @@ namespace NzbDrone.Core.Talearr.Comics.Search
 
             if (item.Status == DownloadItemStatus.Failed && download.Status == ComicDownloadStatuses.Grabbed)
             {
-                download.Status = ComicDownloadStatuses.Failed;
-                download.Message = string.IsNullOrWhiteSpace(item.Message) ? "The download client reported a failure" : item.Message;
-                _store.SaveDownload(download);
-
-                // A failed release is not tried again; the next search picks another one.
-                _store.AddBlocklist(new ComicBlocklistEntry { SeriesId = download.SeriesId, SourceTitle = download.ReleaseTitle, Indexer = download.Indexer, Reason = download.Message });
-
-                foreach (var volumeId in download.GetVolumeIds().DefaultIfEmpty())
-                {
-                    _store.AddHistory(new ComicHistoryEntry
-                    {
-                        SeriesId = download.SeriesId,
-                        VolumeId = volumeId == 0 ? null : volumeId,
-                        EventType = ComicHistoryEvents.DownloadFailed,
-                        SourceTitle = download.ReleaseTitle,
-                        Message = download.Message
-                    });
-                }
+                // A failed release is not tried again; another one is searched for right away.
+                var message = string.IsNullOrWhiteSpace(item.Message) ? "The download client reported a failure" : item.Message;
+                _failedDownloads.Failed(download, ComicHistoryEvents.DownloadFailed, message);
             }
         }
 

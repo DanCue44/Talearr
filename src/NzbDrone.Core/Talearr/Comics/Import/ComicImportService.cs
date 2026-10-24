@@ -6,6 +6,7 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.MediaFiles.TalearrImport;
 using NzbDrone.Core.Talearr.Comics.Parsing;
 using NzbDrone.Core.Talearr.Comics.Search;
 
@@ -31,13 +32,21 @@ namespace NzbDrone.Core.Talearr.Comics.Import
     // Talearr: files a finished comic download into the library: every comic file in the download
     // is matched to a volume of the series by its name, rewritten as a CBZ with Talearr's
     // ComicInfo.xml (CBR and CB7 converted), named and placed in the series folder. The download
-    // itself is never modified, so torrents keep seeding.
+    // itself is never modified, so torrents keep seeding. Scene releases that wrap the comic in
+    // zips holding a rar set are unpacked next to the download first, as book imports are. A
+    // download that ends with nothing imported is a failed release: it is blocklisted and the
+    // volumes are searched for again.
     public class ComicImportService : IComicImportService
     {
+        // A comic release unpacks to a few GB at most; the book defaults allow audiobook sets.
+        private static readonly ArchiveExtractionLimits UnpackLimits = new ArchiveExtractionLimits { MaxTotalBytes = 2 * ComicArchive.MaxBytes };
+
         private readonly ITalearrComicsStore _store;
         private readonly IComicSettingsService _settingsService;
         private readonly IComicLibraryNotifier _notifier;
         private readonly IProvideDownloadClient _downloadClientProvider;
+        private readonly IDownloadArchiveUnpacker _archiveUnpacker;
+        private readonly IComicFailedDownloadService _failedDownloads;
         private readonly IDiskProvider _diskProvider;
         private readonly Logger _logger;
 
@@ -45,6 +54,8 @@ namespace NzbDrone.Core.Talearr.Comics.Import
                                   IComicSettingsService settingsService,
                                   IComicLibraryNotifier notifier,
                                   IProvideDownloadClient downloadClientProvider,
+                                  IDownloadArchiveUnpacker archiveUnpacker,
+                                  IComicFailedDownloadService failedDownloads,
                                   IDiskProvider diskProvider,
                                   Logger logger)
         {
@@ -52,6 +63,8 @@ namespace NzbDrone.Core.Talearr.Comics.Import
             _settingsService = settingsService;
             _notifier = notifier;
             _downloadClientProvider = downloadClientProvider;
+            _archiveUnpacker = archiveUnpacker;
+            _failedDownloads = failedDownloads;
             _diskProvider = diskProvider;
             _logger = logger;
         }
@@ -65,12 +78,23 @@ namespace NzbDrone.Core.Talearr.Comics.Import
             download.Status = ComicDownloadStatuses.Importing;
             _store.SaveDownload(download);
 
+            ArchiveUnpackResult unpacked = null;
             try
             {
-                var files = FindComicFiles(download.OutputPath);
+                // A download that holds its comic only inside archives is unpacked into a work
+                // folder beside it; the download itself is only read.
+                unpacked = _archiveUnpacker?.Unpack(download.OutputPath, IsComicFile, "comic files (CBZ, CBR, CB7, PDF, EPUB)", UnpackLimits);
+                if (unpacked != null && !unpacked.Success)
+                {
+                    _failedDownloads.Failed(download, ComicHistoryEvents.ImportFailed, $"Could not unpack the archives in {download.OutputPath}: {unpacked.Error}");
+                    return result;
+                }
+
+                var files = FindComicFiles(unpacked?.WorkFolder ?? download.OutputPath);
                 if (files.Count == 0)
                 {
-                    throw new ComicsException("No comic files (CBZ, CBR, CB7, PDF, EPUB) in {0}", download.OutputPath);
+                    _failedDownloads.Failed(download, ComicHistoryEvents.ImportFailed, $"No comic files (CBZ, CBR, CB7, PDF, EPUB) in {download.OutputPath}");
+                    return result;
                 }
 
                 // A reader that has never seen this folder needs a wider scan
@@ -81,7 +105,19 @@ namespace NzbDrone.Core.Talearr.Comics.Import
 
                 foreach (var (file, volume) in matches)
                 {
-                    if (FileInto(series, volume, file, download.ReleaseTitle, download.Score, result))
+                    bool filed;
+                    try
+                    {
+                        filed = FileInto(series, volume, file, download.ReleaseTitle, download.Score, result);
+                    }
+                    catch (ComicArchiveException ex)
+                    {
+                        // A damaged or locked file is the release's problem, like a missing one.
+                        result.Skipped.Add(Path.GetFileName(file) + ": " + ex.Message);
+                        continue;
+                    }
+
+                    if (filed)
                     {
                         _store.AddHistory(new ComicHistoryEntry
                         {
@@ -94,30 +130,36 @@ namespace NzbDrone.Core.Talearr.Comics.Import
                     }
                 }
 
-                download.Status = result.Imported.Any() ? ComicDownloadStatuses.Imported : ComicDownloadStatuses.Failed;
-                download.Message = result.Imported.Any()
-                    ? (result.Skipped.Any() ? "Imported; skipped: " + string.Join("; ", result.Skipped) : null)
-                    : "Nothing imported: " + string.Join("; ", result.Skipped);
-                _store.SaveDownload(download);
-
                 if (!result.Imported.Any())
                 {
-                    _store.AddHistory(new ComicHistoryEntry { SeriesId = series.Id, EventType = ComicHistoryEvents.ImportFailed, SourceTitle = download.ReleaseTitle, Message = download.Message });
+                    _failedDownloads.Failed(download, ComicHistoryEvents.ImportFailed, "Nothing imported: " + string.Join("; ", result.Skipped));
+                    return result;
                 }
-                else
-                {
-                    _notifier.FolderChanged(series, series.Path, newFolder);
-                    MarkImported(download);
-                }
+
+                download.Status = ComicDownloadStatuses.Imported;
+                download.Message = result.Skipped.Any() ? "Imported; skipped: " + string.Join("; ", result.Skipped) : null;
+                _store.SaveDownload(download);
+
+                _notifier.FolderChanged(series, series.Path, newFolder);
+                MarkImported(download);
             }
             catch (Exception ex)
             {
+                // Not the release's fault (the download folder is missing, the library cannot be
+                // written): no blocklist, so the release can be tried again once that is fixed.
                 download.Status = ComicDownloadStatuses.Failed;
                 download.Message = ex.Message;
                 _store.SaveDownload(download);
                 _store.AddHistory(new ComicHistoryEntry { SeriesId = series.Id, EventType = ComicHistoryEvents.ImportFailed, SourceTitle = download.ReleaseTitle, Message = ex.Message });
                 _logger.Warn(ex, "Comics: import of {0} failed", download.ReleaseTitle);
                 throw;
+            }
+            finally
+            {
+                if (unpacked != null)
+                {
+                    _archiveUnpacker.Cleanup(unpacked);
+                }
             }
 
             return result;
