@@ -327,6 +327,9 @@ namespace Chaptarr.Core.Test.Talearr.Comics
             var before = Directory.GetFiles(downloads).OrderBy(f => f).ToList();
             SaveDownload(store, series, volume, "nzo_saga", "Image.Comics.-.Saga.Vol.03.2015.Retail.Comic.eBook-BitBook-xpost", downloads);
 
+            // Blocklisted by an older Talearr that could not open these zips: importing clears it.
+            store.AddBlocklist(new ComicBlocklistEntry { SeriesId = series.Id, SourceTitle = "Image.Comics.-.Saga.Vol.03.2015.Retail.Comic.eBook-BitBook-xpost", Reason = "No comic files" });
+
             var queue = new ComicDownloadTrackerFixture.RecordingQueue();
             var result = Service(store, new FakeNotifier(), queue).ImportDownload("nzo_saga");
 

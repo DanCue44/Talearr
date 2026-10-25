@@ -139,6 +139,7 @@ namespace NzbDrone.Core.Talearr.Comics.Import
                 download.Status = ComicDownloadStatuses.Imported;
                 download.Message = result.Skipped.Any() ? "Imported; skipped: " + string.Join("; ", result.Skipped) : null;
                 _store.SaveDownload(download);
+                Unblock(download);
 
                 _notifier.FolderChanged(series, series.Path, newFolder);
                 MarkImported(download);
@@ -163,6 +164,17 @@ namespace NzbDrone.Core.Talearr.Comics.Import
             }
 
             return result;
+        }
+
+        // The release imported after all (an earlier failure was Talearr's, such as an archive it
+        // could not open yet), so it is no longer kept from searches.
+        private void Unblock(ComicDownload download)
+        {
+            foreach (var entry in _store.GetBlocklist(download.SeriesId)
+                         .Where(b => string.Equals(b.SourceTitle, download.ReleaseTitle, StringComparison.OrdinalIgnoreCase)))
+            {
+                _store.DeleteBlocklist(entry.Id);
+            }
         }
 
         public ComicImportResult RescanSeries(int seriesId)

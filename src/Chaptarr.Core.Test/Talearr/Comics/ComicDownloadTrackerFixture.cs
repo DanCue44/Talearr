@@ -111,6 +111,35 @@ namespace Chaptarr.Core.Test.Talearr.Comics
             Assert.That(_store.GetHistory(series.Id, 10).Single().VolumeId, Is.EqualTo(volume.Id));
         }
 
+        [Test]
+        public void should_import_the_earlier_copy_when_nzbget_turns_down_a_repeat()
+        {
+            var earlierFolder = Path.Combine(_folder, "Saga.Vol.03-BitBook");
+            Directory.CreateDirectory(earlierFolder);
+            _store.SaveDownload(new ComicDownload { DownloadId = "comic_old", DownloadClientId = 1, Protocol = "usenet", SeriesId = 1, VolumeIds = "5", ReleaseTitle = "Saga.Vol.03-BitBook", Status = ComicDownloadStatuses.Failed, OutputPath = earlierFolder, GrabbedAt = DateTime.UtcNow.AddDays(-1) });
+            _store.SaveDownload(new ComicDownload { DownloadId = "comic_new", DownloadClientId = 1, Protocol = "usenet", SeriesId = 1, VolumeIds = "5", ReleaseTitle = "Saga.Vol.03-BitBook", Status = ComicDownloadStatuses.Grabbed, GrabbedAt = DateTime.UtcNow });
+            _tracker.Track("comic_new");
+
+            var item = Item("comic_new", DownloadItemStatus.Failed);
+            item.Message = "PAR Status: NONE - Unpack Status: NONE - Move Status: NONE - Script Status: NONE - Delete Status: COPY - Mark Status: NONE";
+            _tracker.Claim(null, item);
+
+            var download = _store.GetDownload("comic_new");
+            Assert.That(download.Status, Is.EqualTo(ComicDownloadStatuses.Completed));
+            Assert.That(download.OutputPath, Is.EqualTo(earlierFolder));
+            Assert.That(_queue.Pushed.OfType<ImportComicDownloadCommand>().Single().DownloadId, Is.EqualTo("comic_new"));
+            Assert.That(_store.GetBlocklist(1), Is.Empty);
+        }
+
+        [Test]
+        public void should_only_treat_copy_and_dupe_as_already_downloaded()
+        {
+            Assert.That(ComicDownloadTracker.IsDuplicate("Delete Status: COPY - Mark Status: NONE"), Is.True);
+            Assert.That(ComicDownloadTracker.IsDuplicate("Delete Status: DUPE"), Is.True);
+            Assert.That(ComicDownloadTracker.IsDuplicate("Delete Status: HEALTH"), Is.False);
+            Assert.That(ComicDownloadTracker.IsDuplicate(null), Is.False);
+        }
+
         internal sealed class RecordingQueue : IManageCommandQueue
         {
             public List<Command> Pushed { get; } = new List<Command>();

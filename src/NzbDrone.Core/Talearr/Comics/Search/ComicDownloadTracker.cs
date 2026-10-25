@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using NLog;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Messaging.Commands;
@@ -116,8 +118,43 @@ namespace NzbDrone.Core.Talearr.Comics.Search
             {
                 // A failed release is not tried again; another one is searched for right away.
                 var message = string.IsNullOrWhiteSpace(item.Message) ? "The download client reported a failure" : item.Message;
+
+                // NZBGet turns down a release it has already downloaded (Delete Status COPY or
+                // DUPE). When that earlier download's files are still here, import them instead.
+                var earlier = IsDuplicate(message) ? EarlierCopy(download) : null;
+                if (earlier != null)
+                {
+                    download.Status = ComicDownloadStatuses.Completed;
+                    download.OutputPath = earlier.OutputPath;
+                    download.Message = "Already downloaded: importing the earlier copy";
+                    _store.SaveDownload(download);
+                    _logger.Info("Comics: {0} was already downloaded, importing {1}", download.ReleaseTitle, earlier.OutputPath);
+
+                    _commandQueue.Push(new ImportComicDownloadCommand { DownloadId = download.DownloadId });
+                    return;
+                }
+
                 _failedDownloads.Failed(download, ComicHistoryEvents.DownloadFailed, message);
             }
+        }
+
+        public static bool IsDuplicate(string message)
+        {
+            return message != null &&
+                   (message.Contains("Delete Status: COPY", StringComparison.OrdinalIgnoreCase) ||
+                    message.Contains("Delete Status: DUPE", StringComparison.OrdinalIgnoreCase));
+        }
+
+        // The latest other download of the same release whose folder is still on disk.
+        private ComicDownload EarlierCopy(ComicDownload download)
+        {
+            return _store.GetDownloads(download.SeriesId)
+                .Where(d => d.DownloadId != download.DownloadId &&
+                            string.Equals(d.ReleaseTitle, download.ReleaseTitle, StringComparison.OrdinalIgnoreCase) &&
+                            !string.IsNullOrWhiteSpace(d.OutputPath) &&
+                            Directory.Exists(d.OutputPath))
+                .OrderByDescending(d => d.GrabbedAt)
+                .FirstOrDefault();
         }
 
         private void EnsureLoaded()
