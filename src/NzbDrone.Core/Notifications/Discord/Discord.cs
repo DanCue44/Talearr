@@ -290,7 +290,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Author = new DiscordAuthor
                     {
                         Name = Settings.Author.IsNullOrWhiteSpace() ? Environment.MachineName : Settings.Author,
-                        IconUrl = "https://raw.githubusercontent.com/Chaptarr/Chaptarr/develop/Logo/256.png"
+                        IconUrl = "https://talearr.com/assets/img/icon-192.png"
                     },
                     Title = APPLICATION_UPDATE_TITLE,
                     Timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),

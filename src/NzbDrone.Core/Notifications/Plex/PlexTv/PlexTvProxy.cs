@@ -119,10 +119,10 @@ namespace NzbDrone.Core.Notifications.Plex.PlexTv
             var requestBuilder = new HttpRequestBuilder("https://plex.tv")
                                  .Accept(HttpAccept.Json)
                                  .AddQueryParam("X-Plex-Client-Identifier", clientIdentifier)
-                                 .AddQueryParam("X-Plex-Product", BuildInfo.AppName)
+                                 .AddQueryParam("X-Plex-Product", BuildInfo.ProductName)
                                  .AddQueryParam("X-Plex-Platform", "Windows")
                                  .AddQueryParam("X-Plex-Platform-Version", "7")
-                                 .AddQueryParam("X-Plex-Device-Name", BuildInfo.AppName)
+                                 .AddQueryParam("X-Plex-Device-Name", BuildInfo.ProductName)
                                  .AddQueryParam("X-Plex-Version", BuildInfo.Version.ToString());
 
             return requestBuilder;

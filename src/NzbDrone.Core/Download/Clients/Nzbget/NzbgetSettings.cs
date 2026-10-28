@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
         {
             Host = "localhost";
             Port = 6789;
-            MusicCategory = "Chaptarr";
+            MusicCategory = "Talearr";
             Username = "nzbget";
             RecentTvPriority = (int)NzbgetPriority.Normal;
             OlderTvPriority = (int)NzbgetPriority.Normal;

@@ -2,6 +2,7 @@ using System.IO;
 using System.Net.Http;
 using System.Xml.Linq;
 using NLog;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 
@@ -85,7 +86,7 @@ namespace NzbDrone.Core.Notifications.Subsonic
             {
                 client.AddQueryParam("u", settings.Username)
                       .AddQueryParam("p", settings.Password)
-                      .AddQueryParam("c", "Chaptarr")
+                      .AddQueryParam("c", BuildInfo.ProductName)
                       .AddQueryParam("v", "1.15.0");
             }
 

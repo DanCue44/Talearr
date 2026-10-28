@@ -56,7 +56,7 @@ public class KavitaServiceProxy : IKavitaServiceProxy
     {
         var request = GetKavitaServerRequest("plugin/authenticate", HttpMethod.Post, settings);
         request.AddQueryParam("apiKey", settings.ApiKey)
-            .AddQueryParam("pluginName", BuildInfo.AppName);
+            .AddQueryParam("pluginName", BuildInfo.ProductName);
         var response = _httpClient.Execute(request.Build());
 
         _logger.Trace("Authenticate response: {0}", response.Content);
@@ -101,7 +101,7 @@ public class KavitaServiceProxy : IKavitaServiceProxy
         if (settings.ApiKey.IsNotNullOrWhiteSpace())
         {
             client.Headers["x-kavita-apikey"] = settings.ApiKey;
-            client.Headers["x-kavita-plugin"] = BuildInfo.AppName;
+            client.Headers["x-kavita-plugin"] = BuildInfo.ProductName;
         }
 
         client.Method = method;

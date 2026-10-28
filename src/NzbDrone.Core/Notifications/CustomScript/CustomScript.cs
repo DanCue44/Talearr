@@ -354,32 +354,43 @@ namespace NzbDrone.Core.Notifications.CustomScript
                 ?? string.Empty;
         }
 
-        private static void AddLegacyReadarrEnvironmentVariables(StringDictionary environmentVariables)
+        // Talearr: every Chaptarr_* variable is also passed as Talearr_* (and Readarr_* for old
+        // scripts). StringDictionary stores names in lower case, so scripts receive them that way
+        // (chaptarr_eventtype, talearr_eventtype, readarr_eventtype), the same as Sonarr and Radarr.
+        // The prefix check has to ignore case for the same reason; matching "Chaptarr_" exactly
+        // never found a key, so the Readarr aliases were never added.
+        private static readonly string[] AliasPrefixes = { "talearr_", "readarr_" };
+
+        internal static void AddAliasEnvironmentVariables(StringDictionary environmentVariables)
         {
             if (environmentVariables == null || environmentVariables.Count == 0)
             {
                 return;
             }
 
+            const string sourcePrefix = "chaptarr_";
             var keys = environmentVariables.Keys.Cast<string>().ToList();
             foreach (var key in keys)
             {
-                if (!key.StartsWith("Chaptarr_", StringComparison.Ordinal))
+                if (!key.StartsWith(sourcePrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
-                var legacyKey = "Readarr_" + key.Substring("Chaptarr_".Length);
-                if (!environmentVariables.ContainsKey(legacyKey))
+                foreach (var prefix in AliasPrefixes)
                 {
-                    environmentVariables.Add(legacyKey, environmentVariables[key]);
+                    var aliasKey = prefix + key.Substring(sourcePrefix.Length);
+                    if (!environmentVariables.ContainsKey(aliasKey))
+                    {
+                        environmentVariables.Add(aliasKey, environmentVariables[key]);
+                    }
                 }
             }
         }
 
         private ProcessOutput ExecuteScript(StringDictionary environmentVariables)
         {
-            AddLegacyReadarrEnvironmentVariables(environmentVariables);
+            AddAliasEnvironmentVariables(environmentVariables);
 
             _logger.Debug("Executing external script: {0}", Settings.Path);
 

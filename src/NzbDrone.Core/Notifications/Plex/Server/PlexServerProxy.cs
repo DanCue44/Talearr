@@ -140,10 +140,10 @@ namespace NzbDrone.Core.Notifications.Plex.Server
             var requestBuilder = new HttpRequestBuilder($"{scheme}://{host.ToUrlHost()}:{settings.Port}{settings.UrlBase}")
                                  .Accept(HttpAccept.Json)
                                  .AddQueryParam("X-Plex-Client-Identifier", _configService.PlexClientIdentifier)
-                                 .AddQueryParam("X-Plex-Product", BuildInfo.AppName)
+                                 .AddQueryParam("X-Plex-Product", BuildInfo.ProductName)
                                  .AddQueryParam("X-Plex-Platform", "Windows")
                                  .AddQueryParam("X-Plex-Platform-Version", "7")
-                                 .AddQueryParam("X-Plex-Device-Name", BuildInfo.AppName)
+                                 .AddQueryParam("X-Plex-Device-Name", BuildInfo.ProductName)
                                  .AddQueryParam("X-Plex-Version", BuildInfo.Version.ToString());
 
             if (settings.AuthToken.IsNotNullOrWhiteSpace())

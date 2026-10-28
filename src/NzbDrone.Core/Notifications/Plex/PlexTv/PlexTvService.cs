@@ -42,7 +42,7 @@ namespace NzbDrone.Core.Notifications.Plex.PlexTv
                                  .AddQueryParam("clientID", clientIdentifier)
                                  .AddQueryParam("forwardUrl", callbackUrl)
                                  .AddQueryParam("code", pinCode)
-                                 .AddQueryParam("context[device][product]", BuildInfo.AppName)
+                                 .AddQueryParam("context[device][product]", BuildInfo.ProductName)
                                  .AddQueryParam("context[device][platform]", "Windows")
                                  .AddQueryParam("context[device][platformVersion]", "7")
                                  .AddQueryParam("context[device][version]", BuildInfo.Version.ToString());

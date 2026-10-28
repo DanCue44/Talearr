@@ -510,7 +510,8 @@ Kept exactly as upstream:
 - the API routes and response fields (`/api/v1/...`; `appName` still reports `Chaptarr`
   so existing API clients keep working)
 - environment variable config (`Chaptarr__Postgres__Host`, `Chaptarr__Server__Port`, ...)
-- custom script environment variables (`Chaptarr_EventType`, ...)
+- custom script environment variables (`chaptarr_eventtype`, ...; names arrive in lower case,
+  like Sonarr's). Every one is also passed as `talearr_*` and `readarr_*`
 - C# namespaces and assembly names (`NzbDrone.*`, `Chaptarr.*`), so upstream merges stay easy
 - the metadata server (`api2.chaptarr.com`) and the user agent sent to it
 
