@@ -10,7 +10,8 @@ using System.Xml.Linq;
 using NLog;
 using NzbDrone.Core.Books.Calibre;
 using NzbDrone.Core.MediaFiles.Azw;
-using PdfSharpCore.Pdf.IO;
+using UglyToad.PdfPig;
+using UglyToad.PdfPig.Tokens;
 
 namespace NzbDrone.Core.MediaFiles.TalearrImport
 {
@@ -229,8 +230,19 @@ namespace NzbDrone.Core.MediaFiles.TalearrImport
 
             try
             {
-                using var document = PdfReader.Open(path, PdfDocumentOpenMode.ReadOnly);
-                languages.AddRange(Canonicalize(document.Language));
+                using var document = PdfDocument.Open(path, new ParsingOptions { UseLenientParsing = true });
+                var catalog = document.Structure.Catalog.CatalogDictionary;
+                if (catalog.TryGet(NameToken.Create("Lang"), out var token))
+                {
+                    var language = token switch
+                    {
+                        StringToken text => text.Data,
+                        HexToken hex => hex.Data,
+                        _ => null
+                    };
+
+                    languages.AddRange(Canonicalize(language));
+                }
             }
             catch (Exception)
             {

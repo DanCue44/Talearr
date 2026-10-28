@@ -6,8 +6,6 @@ using NUnit.Framework;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Talearr.Metadata;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using CoverModel = NzbDrone.Core.MediaCover.MediaCover;
 
 namespace Chaptarr.Core.Test.Talearr.Metadata
@@ -22,25 +20,9 @@ namespace Chaptarr.Core.Test.Talearr.Metadata
         private const string AudibleCover = "https://m.media-amazon.com/images/I/612oBD9OSjL._SL500_.jpg";
         private const string AudibleFull = "https://m.media-amazon.com/images/I/612oBD9OSjL.jpg";
 
-        public static byte[] Jpeg(int width, int height)
-        {
-            using (var image = new Image<Rgb24>(width, height))
-            using (var stream = new MemoryStream())
-            {
-                image.SaveAsJpeg(stream);
-                return stream.ToArray();
-            }
-        }
+        public static byte[] Jpeg(int width, int height) => Chaptarr.Core.Test.MediaCover.TestImages.Jpeg(width, height);
 
-        public static byte[] Png(int width, int height)
-        {
-            using (var image = new Image<Rgb24>(width, height))
-            using (var stream = new MemoryStream())
-            {
-                image.SaveAsPng(stream);
-                return stream.ToArray();
-            }
-        }
+        public static byte[] Png(int width, int height) => Chaptarr.Core.Test.MediaCover.TestImages.Png(width, height);
 
         private static Edition AudioEdition(int id, string narrator, params string[] coverUrls)
         {

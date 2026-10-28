@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.MediaCover;
-using SixLabors.ImageSharp;
 using MediaCoverModel = NzbDrone.Core.MediaCover.MediaCover;
 
 namespace NzbDrone.Core.Talearr.Metadata
@@ -339,8 +338,8 @@ namespace NzbDrone.Core.Talearr.Metadata
 
             try
             {
-                var info = Image.Identify(NzbDrone.Core.MediaCover.CoverImageFormats.DecoderOptions, data);
-                return info == null || info.Width <= 0 || info.Height <= 0 ? null : (info.Width, info.Height);
+                var info = NzbDrone.Core.MediaCover.CoverImageFormats.Identify(data);
+                return (info.Width, info.Height);
             }
             catch (Exception)
             {

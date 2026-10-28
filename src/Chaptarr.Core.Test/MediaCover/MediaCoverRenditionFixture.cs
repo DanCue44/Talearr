@@ -18,9 +18,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaCover.Commands;
 using NzbDrone.Core.Messaging.Commands;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.PixelFormats;
+using SkiaSharp;
 
 namespace Chaptarr.Core.Test.MediaCover
 {
@@ -640,7 +638,7 @@ namespace Chaptarr.Core.Test.MediaCover
             var httpClient = DispatchProxy.Create<IHttpClient, ImageHttpClientProxy>();
             var responses = (ImageHttpClientProxy)(object)httpClient;
             var mascotBytes = Convert.FromBase64String(MascotWebpBase64);
-            var realImageBytes = BuildPngBytes(32, 48, new Rgba32(30, 120, 210));
+            var realImageBytes = BuildPngBytes(32, 48, new SKColor(30, 120, 210));
             responses.ResponseQueue.Enqueue(mascotBytes); // range/header probe
             responses.ResponseQueue.Enqueue(mascotBytes); // full download
             responses.ResponseQueue.Enqueue(realImageBytes); // range/header probe
@@ -996,15 +994,13 @@ namespace Chaptarr.Core.Test.MediaCover
 
             try
             {
-                using (var image = new Image<Rgba32>(20, 40))
-                {
-                    image.Save(source, new PngEncoder());
-                }
+                File.WriteAllBytes(source, TestImages.Png(20, 40));
 
                 new ImageResizer(null, null).Resize(source, destination, 10);
 
-                Assert.That(Image.DetectFormat(destination)?.Name, Is.EqualTo(expectedFormat));
-                Assert.That(Image.Identify(destination)?.Height, Is.EqualTo(10));
+                var written = File.ReadAllBytes(destination);
+                Assert.That(CoverImageFormats.DetectFormat(written), Is.EqualTo(expectedFormat));
+                Assert.That(CoverImageFormats.Identify(written).Height, Is.EqualTo(10));
             }
             finally
             {
@@ -1351,12 +1347,9 @@ namespace Chaptarr.Core.Test.MediaCover
             };
         }
 
-        private static byte[] BuildPngBytes(int width, int height, Rgba32 color)
+        private static byte[] BuildPngBytes(int width, int height, SKColor color)
         {
-            using var image = new Image<Rgba32>(width, height, color);
-            using var stream = new MemoryStream();
-            image.Save(stream, new PngEncoder());
-            return stream.ToArray();
+            return TestImages.Png(width, height, color);
         }
     }
 }

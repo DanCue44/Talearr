@@ -6,7 +6,6 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.MediaFiles;
-using SixLabors.ImageSharp;
 
 namespace NzbDrone.Core.Talearr.Metadata
 {
@@ -162,22 +161,21 @@ namespace NzbDrone.Core.Talearr.Metadata
                 return data;
             }
 
-            var format = Image.DetectFormat(NzbDrone.Core.MediaCover.CoverImageFormats.DecoderOptions, data);
-            if (format.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+            var format = NzbDrone.Core.MediaCover.CoverImageFormats.DetectFormat(data);
+            if (format == null || NzbDrone.Core.MediaCover.CoverImageFormats.FileExtensions(format).Contains(extension, StringComparer.OrdinalIgnoreCase))
             {
                 return data;
             }
 
-            if (!NzbDrone.Core.MediaCover.CoverImageFormats.Configuration.ImageFormatsManager.TryFindFormatByFileExtension(extension, out var target))
+            var target = NzbDrone.Core.MediaCover.CoverImageFormats.FormatForExtension(extension);
+            if (!NzbDrone.Core.MediaCover.CoverImageFormats.CanWrite(target))
             {
                 return data;
             }
 
-            using (var image = Image.Load(NzbDrone.Core.MediaCover.CoverImageFormats.DecoderOptions, data))
-            using (var output = new MemoryStream())
+            using (var image = NzbDrone.Core.MediaCover.CoverImageFormats.Decode(data))
             {
-                image.Save(output, NzbDrone.Core.MediaCover.CoverImageFormats.Configuration.ImageFormatsManager.GetEncoder(target));
-                return output.ToArray();
+                return NzbDrone.Core.MediaCover.CoverImageFormats.Encode(image, target);
             }
         }
     }

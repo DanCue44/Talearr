@@ -7,6 +7,7 @@ using System.Reflection;
 using Chaptarr.Core.Test.Talearr.Recordings;
 using NLog;
 using NUnit.Framework;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Http;
 using NzbDrone.Core;
@@ -16,7 +17,6 @@ using NzbDrone.Core.Extras.Metadata.Files;
 using NzbDrone.Core.Extras.Others;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Talearr.Metadata;
-using SixLabors.ImageSharp;
 
 namespace Chaptarr.Core.Test.Talearr.Metadata
 {
@@ -111,7 +111,7 @@ namespace Chaptarr.Core.Test.Talearr.Metadata
             Assert.Multiple(() =>
             {
                 Assert.That(written, Is.True);
-                Assert.That(Image.Identify(CoverPath).Width, Is.EqualTo(400));
+                Assert.That(CoverImageFormats.Identify(CoverPath).Width, Is.EqualTo(400));
                 Assert.That(Directory.GetFiles(Path.GetDirectoryName(CoverPath)), Is.EqualTo(new[] { CoverPath }));
             });
         }
@@ -128,7 +128,7 @@ namespace Chaptarr.Core.Test.Talearr.Metadata
             {
                 Assert.That(decision.Verdict, Is.EqualTo(TalearrCoverVerdict.KeepExisting));
                 Assert.That(writer.Save(decision, CoverPath), Is.False);
-                Assert.That(Image.Identify(CoverPath).Width, Is.EqualTo(1000));
+                Assert.That(CoverImageFormats.Identify(CoverPath).Width, Is.EqualTo(1000));
             });
         }
 
@@ -156,7 +156,7 @@ namespace Chaptarr.Core.Test.Talearr.Metadata
         {
             var bytes = TalearrSidecarCoverWriter.MatchExtension(TalearrSidecarCoverFixture.Png(400, 600), CoverPath);
 
-            Assert.That(Image.DetectFormat(bytes).Name, Is.EqualTo("JPEG"));
+            Assert.That(CoverImageFormats.DetectFormat(bytes), Is.EqualTo(CoverImageFormats.Jpeg));
         }
 
         [Test]
@@ -311,7 +311,7 @@ namespace Chaptarr.Core.Test.Talearr.Metadata
             Assert.Multiple(() =>
             {
                 Assert.That(writer.Saved, Is.Empty);
-                Assert.That(Image.Identify(CoverPath).Width, Is.EqualTo(1000));
+                Assert.That(CoverImageFormats.Identify(CoverPath).Width, Is.EqualTo(1000));
                 Assert.That(result, Is.EqualTo(new[] { tracked }));
                 Assert.That(tracked.Hash, Is.EqualTo(TrackedHash(CoverPath, sidecar.SourceKey)));
             });
