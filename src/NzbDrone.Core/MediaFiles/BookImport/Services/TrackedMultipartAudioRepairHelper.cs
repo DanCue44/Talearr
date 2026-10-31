@@ -158,10 +158,11 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Services
 
                 if (historicalEditionId > 0)
                 {
-                    var historicalEdition = editionsForBook.FirstOrDefault(edition => edition.Id == historicalEditionId)
-                        ?? editionService.GetEdition(historicalEditionId);
+                    // A refresh between grab and import can replace the book's editions,
+                    // deleting the grabbed one; the monitored edition then stands in.
+                    var historicalEdition = editionsForBook.FirstOrDefault(edition => edition.Id == historicalEditionId);
 
-                    if (historicalEdition?.BookId == book.Id)
+                    if (historicalEdition != null)
                     {
                         return historicalEdition;
                     }
