@@ -99,12 +99,8 @@ fixes, minor for Talearr features. Tag `vX.Y.Z` on `main` to publish a versioned
 
 ## Upstream workflows
 
-The upstream workflows (`build.yml`, `release.yml`, `docker-publish.yml`) stay in the repo
-so merges are clean, but are meant to stay disabled in DanCue44/Talearr (they target
-Chaptarr's Docker Hub and run a three-OS matrix):
-
-```bash
-gh workflow disable "Build Chaptarr" -R DanCue44/Talearr
-gh workflow disable "Release" -R DanCue44/Talearr
-gh workflow disable "Docker Build and Publish" -R DanCue44/Talearr
-```
+The upstream workflows (`build.yml`, `release.yml`, `docker-publish.yml`) are deleted in
+Talearr: they target Chaptarr's Docker Hub, run on GitHub-hosted runners and would run on
+pull requests from forks. When an upstream merge brings any of them back, delete them again
+in the merge commit. Talearr's own `talearr-ci.yml` and `talearr-docker.yml` run on the
+self-hosted runners and have no `pull_request` trigger, so code from a fork never runs there.

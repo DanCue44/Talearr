@@ -5,11 +5,11 @@ name: Talearr CI
 # This is the check to watch after merging upstream Chaptarr changes: it fails
 # if the merge broke the build, the unit tests, or the Talearr rebrand
 # (build-tools/talearr_brand_check.py).
+# No pull_request trigger: the self-hosted Unraid runners must never run
+# code from a fork.
 on:
   push:
     branches: [develop, main, 'feat/**', 'fix/**', 'sync/**']
-  pull_request:
-    branches: [develop, main]
   workflow_dispatch:
 
 concurrency:
