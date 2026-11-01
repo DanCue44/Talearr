@@ -44,9 +44,8 @@ calendar, notifications and the Readarr API. On top of that:
 - **Automatic retry** with another release when a download fails, across all indexers.
 - **Scheduled missing search** that works through monitored missing books a few at a time.
 - **Bundles only as a last resort**, and only when the bundle names the book.
-- **MyAnonamouse**: freeleech preference, seeding status and hit and run warnings, wedge and
-  bonus point tools, with every timing under your control. Talearr only uses your `mam_id`
-  session and MAM's allowed endpoints.
+- **Private tracker tools**: freeleech preference, seeding status and hit and run warnings,
+  with every timing under your control.
 - **Soulseek** through slskd (manual search), and debrid through qBittorrent compatible proxies.
 
 ### Audiobooks
