@@ -8,7 +8,7 @@
   <MyIP/>
   <Shell>bash</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/DanCue44/Talearr/issues</Support>
+  <Support>https://forums.unraid.net/topic/201142-support-dancue44-talearr/</Support>
   <Project>https://github.com/DanCue44/Talearr</Project>
   <ReadMe>https://github.com/DanCue44/Talearr#readme</ReadMe>
   <Overview>Talearr is an ebook and audiobook collection manager for Usenet and BitTorrent users, a drop-in fork of Chaptarr (itself a Readarr fork). It monitors authors and books, gets its book data from Hardcover (free API token), grabs the right edition and recording (unabridged by default), keeps abridged and unabridged recordings together, imports into tidy author and book folders and talks to Audiobookshelf. It reads the same /config as Chaptarr, so you can switch either way, and System &gt; Migrate brings a Readarr, Bookshelf or LazyLibrarian library over.[br][br]For hardlinks, keep downloads and the library on the same share and map one parent folder (see the README).</Overview>
