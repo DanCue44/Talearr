@@ -136,10 +136,17 @@ jobs:
           app="$CI_KEY-talearr"
 
           ip_of() { docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$1"; }
+          # A busy server (the other runner building and testing at the same
+          # time) can take minutes to start the app, so wait up to 5 minutes and
+          # never let one ping hang.
           wait_ready() {
-            for i in $(seq 1 120); do
-              if curl -fsS "http://$1:8789/ping" >/dev/null 2>&1; then return 0; fi
-              sleep 1
+            local deadline=$((SECONDS + 300))
+            while (( SECONDS < deadline )); do
+              if curl -fsS -m 3 "http://$1:8789/ping" >/dev/null 2>&1; then
+                echo "Ready after $SECONDS s"
+                return 0
+              fi
+              sleep 2
             done
             return 1
           }
@@ -164,7 +171,10 @@ jobs:
             have_upstream=true
             run_app "$up" "$upstream_image"
             up_ip="$(ip_of "$up")"
-            if ! wait_ready "$up_ip"; then docker logs "$up" | tail -n 200; exit 1; fi
+            if ! wait_ready "$up_ip"; then
+              echo "::error::The upstream Chaptarr container never answered /ping at $up_ip"
+              docker logs "$up" | tail -n 200; exit 1
+            fi
             sleep 5
             curl -fsS -H "X-Api-Key: $(api_key)" "http://$up_ip:8789/api/v1/system/status" > status-upstream.json
             docker stop "$up" >/dev/null && docker rm "$up" >/dev/null
@@ -176,7 +186,10 @@ jobs:
           # 2. Start Talearr on the same volume.
           run_app "$app" "$CI_KEY:smoke"
           app_ip="$(ip_of "$app")"
-          if ! wait_ready "$app_ip"; then docker logs "$app" | tail -n 200; exit 1; fi
+          if ! wait_ready "$app_ip"; then
+            echo "::error::The Talearr container never answered /ping at $app_ip"
+            docker logs "$app" | tail -n 200; exit 1
+          fi
           sleep 5
           key="$(api_key)"
           curl -fsS -H "X-Api-Key: $key" "http://$app_ip:8789/api/v1/system/status" > status-talearr.json
