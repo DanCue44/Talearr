@@ -18,6 +18,7 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Talearr.GrabbedReleases;
 using NzbDrone.Core.Validation;
 using HttpStatusCode = System.Net.HttpStatusCode;
 
@@ -35,6 +36,7 @@ namespace Chaptarr.Api.V1.Indexers
         private readonly IBookService _bookService;
         private readonly IParsingService _parsingService;
         private readonly IIndexerFactory _indexerFactory;
+        private readonly IGrabbedReleaseService _grabbedReleaseService;
         private readonly Logger _logger;
 
         private readonly ICached<DownloadDecision> _downloadDecisionCache;
@@ -48,6 +50,7 @@ namespace Chaptarr.Api.V1.Indexers
                              IBookService bookService,
                              IParsingService parsingService,
                              IIndexerFactory indexerFactory,
+                             IGrabbedReleaseService grabbedReleaseService,
                              ICacheManager cacheManager,
                              Logger logger)
         {
@@ -60,6 +63,7 @@ namespace Chaptarr.Api.V1.Indexers
             _bookService = bookService;
             _parsingService = parsingService;
             _indexerFactory = indexerFactory;
+            _grabbedReleaseService = grabbedReleaseService;
             _logger = logger;
 
             PostValidator.RuleFor(s => s.IndexerId).ValidId();
@@ -139,6 +143,12 @@ namespace Chaptarr.Api.V1.Indexers
 
                 await _downloadService.DownloadReport(remoteBook, release.DownloadClientId);
             }
+            catch (DownloadClientRejectedReleaseException ex) when (IsDuplicateInClient(ex))
+            {
+                _logger.Warn(ex, "Download client already has the release");
+
+                throw new NzbDroneClientException(HttpStatusCode.Conflict, DuplicateInClientMessage(release, ex));
+            }
             catch (DownloadClientRejectedReleaseException ex)
             {
                 _logger.Warn(ex, "Download client rejected release");
@@ -207,6 +217,7 @@ namespace Chaptarr.Api.V1.Indexers
                 var siblingToggleInfo = BuildSiblingToggleInfo(book, author);
 
                 var (results, hiddenResults, filterSummary) = MapDecisionsForInteractiveSearchWithSummary(prioritizedDecisions, bypassFilters);
+                MarkGrabbedReleases(bookId, results, hiddenResults);
 
                 _logger.Debug("FILTER_DEBUG: TotalResults={0}, FilteredCount={1}, DisplayedCount={2}, HasSoftFilters={3}, SoftFilteredCount={4}, BypassMode={5}", filterSummary.TotalResults, filterSummary.FilteredCount, filterSummary.DisplayedCount, filterSummary.HasSoftFilters, filterSummary.SoftFilteredCount, bypassFilters);
 
@@ -572,6 +583,56 @@ namespace Chaptarr.Api.V1.Indexers
         internal static bool IsReleaseProfileRejection(Rejection rejection)
         {
             return string.Equals(rejection?.Category, "Release Profile", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Talearr: shows which release was grabbed for the book before, so it is not grabbed twice
+        private void MarkGrabbedReleases(int bookId, params List<ReleaseResource>[] lists)
+        {
+            var lookup = _grabbedReleaseService.ForBook(bookId);
+
+            if (lookup.IsEmpty)
+            {
+                return;
+            }
+
+            foreach (var resource in lists.Where(list => list != null).SelectMany(list => list))
+            {
+                var grabbed = lookup.Find(resource.Guid, resource.InfoHash);
+
+                if (grabbed == null)
+                {
+                    continue;
+                }
+
+                resource.AlreadyGrabbed = true;
+                resource.GrabbedState = grabbed.State;
+                resource.GrabbedAt = grabbed.GrabbedAt;
+                resource.GrabbedDownloadClient = grabbed.DownloadClient;
+            }
+        }
+
+        private static readonly Regex DuplicateInClientRegex = new Regex(@"due to a conflict|duplicate|already (exists|added|in)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static bool IsDuplicateInClient(DownloadClientRejectedReleaseException ex)
+        {
+            return DuplicateInClientRegex.IsMatch(ex.Message ?? string.Empty) ||
+                   DuplicateInClientRegex.IsMatch(ex.InnerException?.Message ?? string.Empty);
+        }
+
+        private string DuplicateInClientMessage(ReleaseResource release, DownloadClientRejectedReleaseException ex)
+        {
+            var client = release.BookId.HasValue
+                ? _grabbedReleaseService.ForBook(release.BookId.Value).Find(release.Guid, release.InfoHash)?.DownloadClient
+                : null;
+
+            // The clients name themselves first: "qBittorrent rejected the torrent file ..."
+            if (string.IsNullOrWhiteSpace(client))
+            {
+                client = Regex.Match(ex.Message ?? string.Empty, @"^(\S+) rejected").Groups[1].Value;
+            }
+
+            return $"This release is already in {(string.IsNullOrWhiteSpace(client) ? "the download client" : client)}. " +
+                   "It does not need downloading again; retry or finish its import instead.";
         }
 
         private string GetCacheKey(ReleaseResource resource)

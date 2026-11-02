@@ -8,6 +8,7 @@ interface CssExports {
   'duration': string;
   'goldStar': string;
   'grabError': string;
+  'grabbedRow': string;
   'graphicAudio': string;
   'indexer': string;
   'indexerFlags': string;

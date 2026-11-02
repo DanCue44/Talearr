@@ -204,6 +204,21 @@ namespace Chaptarr.Api.V1.Indexers
         public bool IsBundle { get; set; }
         public bool IsBundleFallback { get; set; }
         public string BundleContents { get; set; }
+
+        // Talearr: this release was grabbed for the book before. GrabbedState is one of
+        // downloading, importPending, importing, importBlocked, imported, failed or grabbed
+        // (no longer in the download client and never imported).
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool AlreadyGrabbed { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string GrabbedState { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public DateTime? GrabbedAt { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string GrabbedDownloadClient { get; set; }
     }
 
     public static class ReleaseResourceMapper

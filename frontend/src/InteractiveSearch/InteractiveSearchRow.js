@@ -170,6 +170,58 @@ function getBundleTooltip(isBundleFallback, bundleContents) {
   return bundleContents ? `${text} (${bundleContents})` : text;
 }
 
+// Talearr: a release grabbed for this book before. Grabbing it again only collides with the
+// copy the download client already has, so the row says so and the grab asks first.
+const grabbedInClientStates = ['downloading', 'importPending', 'importing', 'importBlocked'];
+
+const grabbedStateLabels = {
+  downloading: 'Already grabbed: downloading',
+  importPending: 'Already grabbed: waiting to import',
+  importing: 'Already grabbed: importing',
+  importBlocked: 'Already grabbed: import blocked',
+  imported: 'Already grabbed: imported',
+  failed: 'Grabbed before: failed',
+  grabbed: 'Grabbed before'
+};
+
+function isGrabbedInClient(grabbedState) {
+  return grabbedInClientStates.includes(grabbedState);
+}
+
+function getGrabbedLabel(grabbedState) {
+  return grabbedStateLabels[grabbedState] || grabbedStateLabels.grabbed;
+}
+
+function getGrabbedTooltip(grabbedAt, grabbedDownloadClient, longDateFormat, timeFormat) {
+  const parts = [];
+
+  if (grabbedAt) {
+    parts.push(`Grabbed ${formatDateTime(grabbedAt, longDateFormat, timeFormat)}`);
+  }
+
+  if (grabbedDownloadClient) {
+    parts.push(`in ${grabbedDownloadClient}`);
+  }
+
+  return parts.join(' ');
+}
+
+function getRegrabMessage(title, grabbedState, grabbedDownloadClient) {
+  const client = grabbedDownloadClient || 'the download client';
+
+  if (isGrabbedInClient(grabbedState)) {
+    return `"${title}" is already in ${client} (${getGrabbedLabel(grabbedState).replace(/^Already grabbed: /, '')}). ` +
+      'Grabbing it again does not download anything new, and the download client may refuse it. ' +
+      'To finish it, retry or manually import it from Activity > Queue instead.';
+  }
+
+  if (grabbedState === 'imported') {
+    return `"${title}" was grabbed and imported before. Grab it again anyway?`;
+  }
+
+  return `"${title}" was grabbed before (${getGrabbedLabel(grabbedState).replace(/^Grabbed before:? ?/, '') || 'no longer in the download client'}). Grab it again anyway?`;
+}
+
 class InteractiveSearchRow extends Component {
 
   //
@@ -179,7 +231,8 @@ class InteractiveSearchRow extends Component {
     super(props, context);
 
     this.state = {
-      isConfirmGrabModalOpen: false
+      isConfirmGrabModalOpen: false,
+      isConfirmRegrabModalOpen: false
     };
   }
 
@@ -201,6 +254,30 @@ class InteractiveSearchRow extends Component {
       authorId,
       bookId
     });
+  };
+
+  onRegrabPress = () => {
+    this.setState({ isConfirmRegrabModalOpen: true });
+  };
+
+  onRegrabConfirm = () => {
+    this.setState({ isConfirmRegrabModalOpen: false });
+
+    const {
+      authorId,
+      bookId,
+      downloadAllowed
+    } = this.props;
+
+    if (downloadAllowed || hasResolvedGrabTarget(authorId, bookId)) {
+      this.onGrabPress();
+    } else {
+      this.onConfirmGrabPress();
+    }
+  };
+
+  onRegrabCancel = () => {
+    this.setState({ isConfirmRegrabModalOpen: false });
   };
 
   onConfirmGrabPress = () => {
@@ -264,6 +341,10 @@ class InteractiveSearchRow extends Component {
       isGrabbing,
       isGrabbed,
       isPreferredChoice,
+      alreadyGrabbed,
+      grabbedState,
+      grabbedAt,
+      grabbedDownloadClient,
       longDateFormat,
       timeFormat,
       grabError
@@ -275,8 +356,10 @@ class InteractiveSearchRow extends Component {
     const rejectionItems = getRejectionDisplay(rejections, rejectionDetails);
     const rowClassName = classNames(
       tableRowStyles.row,
-      isPreferredChoice && styles.preferredRow
+      isPreferredChoice && styles.preferredRow,
+      alreadyGrabbed && styles.grabbedRow
     );
+    const grabPress = downloadAllowed || resolvedGrabTarget ? this.onGrabPress : this.onConfirmGrabPress;
 
     return (
       <TableRow className={rowClassName}>
@@ -315,6 +398,14 @@ class InteractiveSearchRow extends Component {
             </div>
             {isPreferredChoice ? (
               <span className={styles.preferredBadge}>{translate('Preferred')}</span>
+            ) : null}
+            {alreadyGrabbed ? (
+              <Label
+                kind={isGrabbedInClient(grabbedState) ? kinds.WARNING : kinds.INFO}
+                title={getGrabbedTooltip(grabbedAt, grabbedDownloadClient, longDateFormat, timeFormat)}
+              >
+                {getGrabbedLabel(grabbedState)}
+              </Label>
             ) : null}
             {isBundle ? (
               <Label
@@ -443,7 +534,7 @@ class InteractiveSearchRow extends Component {
               kind={getDownloadKind(isGrabbed, grabError, downloadAllowed)}
               title={getDownloadTooltip(isGrabbing, isGrabbed, grabError)}
               isSpinning={isGrabbing}
-              onPress={downloadAllowed || resolvedGrabTarget ? this.onGrabPress : this.onConfirmGrabPress}
+              onPress={alreadyGrabbed && !isGrabbed ? this.onRegrabPress : grabPress}
             />
           }
         </TableRowCell>
@@ -456,6 +547,16 @@ class InteractiveSearchRow extends Component {
           confirmLabel={translate('Grab')}
           onConfirm={this.onGrabConfirm}
           onCancel={this.onGrabCancel}
+        />
+
+        <ConfirmModal
+          isOpen={this.state.isConfirmRegrabModalOpen}
+          kind={kinds.WARNING}
+          title={'Already grabbed'}
+          message={getRegrabMessage(title, grabbedState, grabbedDownloadClient)}
+          confirmLabel={'Grab anyway'}
+          onConfirm={this.onRegrabConfirm}
+          onCancel={this.onRegrabCancel}
         />
       </TableRow>
     );
@@ -499,6 +600,10 @@ InteractiveSearchRow.propTypes = {
   isGrabbing: PropTypes.bool.isRequired,
   isGrabbed: PropTypes.bool.isRequired,
   isPreferredChoice: PropTypes.bool,
+  alreadyGrabbed: PropTypes.bool,
+  grabbedState: PropTypes.string,
+  grabbedAt: PropTypes.string,
+  grabbedDownloadClient: PropTypes.string,
   grabError: PropTypes.string,
   longDateFormat: PropTypes.string.isRequired,
   timeFormat: PropTypes.string.isRequired,
@@ -514,6 +619,10 @@ InteractiveSearchRow.defaultProps = {
   isGrabbing: false,
   isGrabbed: false,
   isPreferredChoice: false,
+  alreadyGrabbed: false,
+  grabbedState: null,
+  grabbedAt: null,
+  grabbedDownloadClient: null,
   duration: null,
   narrator: null,
   isGraphicAudio: false,

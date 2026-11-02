@@ -38,7 +38,7 @@ namespace Chaptarr.Core.Test.Indexers
         }
 
         [Test]
-        public void should_return_the_download_client_rejection_detail_without_blaming_the_indexer()
+        public void should_say_plainly_that_the_release_is_already_in_the_download_client()
         {
             var releaseInfo = new ReleaseInfo { Title = "Test Release" };
             var innerException = new DownloadClientException("qBittorrent API request failed (HTTP 409 Conflict). Torrent is already added");
@@ -70,7 +70,45 @@ namespace Chaptarr.Core.Test.Indexers
                 Assert.That(exception.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
                 Assert.That(
                     exception.Message,
-                    Is.EqualTo("Download client rejected release: qBittorrent rejected the magnet link due to a conflict: qBittorrent API request failed (HTTP 409 Conflict). Torrent is already added"));
+                    Is.EqualTo("This release is already in qBittorrent. It does not need downloading again; retry or finish its import instead."));
+                Assert.That(memory.Logs, Has.Some.EqualTo("Warn|Download client already has the release"));
+                Assert.That(memory.Logs, Has.None.StartsWith("Error|"));
+            });
+        }
+
+        [Test]
+        public void should_return_the_download_client_rejection_detail_without_blaming_the_indexer()
+        {
+            var releaseInfo = new ReleaseInfo { Title = "Test Release" };
+            var rejection = new DownloadClientRejectedReleaseException(
+                releaseInfo,
+                "qBittorrent rejected the torrent file",
+                new DownloadClientException("Invalid torrent"));
+            var memory = ConfigureLogging();
+            var cacheManager = new CacheManager();
+            var controller = CreateController(cacheManager, rejection);
+            var resource = new ReleaseResource
+            {
+                IndexerId = 1,
+                Guid = "test-release"
+            };
+
+            cacheManager.GetCache<DownloadDecision>(typeof(ReleaseController), "downloadDecisions")
+                .Set("1_test-release", new DownloadDecision(new RemoteBook
+                {
+                    Release = releaseInfo,
+                    Author = new Author(),
+                    Books = new List<Book> { new() { Id = 1, Title = "Test Book" } }
+                }));
+
+            var exception = Assert.ThrowsAsync<NzbDroneClientException>(async () => await controller.DownloadRelease(resource));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+                Assert.That(
+                    exception.Message,
+                    Is.EqualTo("Download client rejected release: qBittorrent rejected the torrent file: Invalid torrent"));
                 Assert.That(memory.Logs, Has.Some.EqualTo("Warn|Download client rejected release"));
                 Assert.That(memory.Logs, Has.None.StartsWith("Error|"));
             });
@@ -88,6 +126,7 @@ namespace Chaptarr.Core.Test.Indexers
                 bookService: null,
                 parsingService: null,
                 indexerFactory: null,
+                grabbedReleaseService: null,
                 cacheManager: cacheManager,
                 logger: LogManager.GetLogger(nameof(ReleaseControllerDownloadRejectionFixture)));
 
