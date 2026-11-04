@@ -314,6 +314,8 @@ namespace NzbDrone.Core.Profiles.Qualities
                 groupId++;
             }
 
+            PreferEpub(items);
+
             var formatItems = _formatService.All().Select(format => new ProfileFormatItem
             {
                 Score = 0,
@@ -331,6 +333,23 @@ namespace NzbDrone.Core.Profiles.Qualities
             };
 
             return qualityProfile;
+        }
+
+        // Talearr: new profiles rank EPUB as the best ebook format (the quality weights alone put
+        // AZW3 above it), since EPUB is what readers and Audiobookshelf open everywhere. Existing
+        // profiles keep their own order; only profiles made from here on change.
+        public static void PreferEpub(List<QualityProfileQualityItem> items)
+        {
+            var epub = items.FindIndex(i => i.Quality == Quality.EPUB);
+            var azw3 = items.FindIndex(i => i.Quality == Quality.AZW3);
+            if (epub < 0 || azw3 < 0 || epub > azw3)
+            {
+                return;
+            }
+
+            var item = items[epub];
+            items.RemoveAt(epub);
+            items.Insert(items.FindIndex(i => i.Quality == Quality.AZW3) + 1, item);
         }
 
         public static void ApplyNewProfileCustomFormatDefaults(QualityProfile profile)

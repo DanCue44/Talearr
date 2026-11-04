@@ -192,8 +192,8 @@ namespace Chaptarr.Core.Test.Profiles.Quality
                 CoreQuality.Unknown.Id,
                 CoreQuality.PDF.Id,
                 CoreQuality.MOBI.Id,
-                CoreQuality.EPUB.Id,
-                CoreQuality.AZW3.Id
+                CoreQuality.AZW3.Id,
+                CoreQuality.EPUB.Id
             }));
             Assert.That(AllowedQualityIds(resource), Is.EquivalentTo(new[]
             {
