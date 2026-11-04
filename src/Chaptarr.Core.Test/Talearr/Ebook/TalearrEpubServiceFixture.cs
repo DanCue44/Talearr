@@ -162,6 +162,7 @@ namespace Chaptarr.Core.Test.Talearr.Ebook
             Assert.That(epub.Quality.Revision.Version, Is.EqualTo(2));
             Assert.That(epub.EditionId, Is.EqualTo(88));
             Assert.That(epub.MediaType, Is.EqualTo("ebook"));
+            Assert.That(epub.MediaInfo, Is.Not.Null);
             Assert.That(epub.ReleaseGroup, Is.EqualTo("grp"));
             Assert.That(File.Exists(_files[0].Path), Is.True);
         }

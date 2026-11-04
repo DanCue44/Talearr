@@ -11,6 +11,7 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Talearr.Ebook.Epub
@@ -275,6 +276,8 @@ namespace NzbDrone.Core.Talearr.Ebook.Epub
                 Part = 1,
                 PartCount = 1,
                 MediaType = "ebook",
+                // BookFiles.MediaInfo is NOT NULL; imports give ebooks an empty one too.
+                MediaInfo = new MediaInfoModel(),
                 MatchProvenance = source.MatchProvenance,
                 Author = author,
                 Edition = edition
