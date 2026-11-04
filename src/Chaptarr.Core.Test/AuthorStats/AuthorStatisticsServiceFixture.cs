@@ -25,6 +25,7 @@ namespace Chaptarr.Core.Test.AuthorStats
             public List<BookStatistics> AuthorStatistics(int authorId) => Stats();
             public List<BookStatistics> AuthorStatistics(string mediaType) => Stats();
             public List<BookStatistics> AuthorStatistics(int authorId, string mediaType) => Stats();
+            public List<BookStatistics> BookStatistics(IEnumerable<int> bookIds, string mediaType) => Stats();
             private static List<BookStatistics> Stats()
             {
                 return new()

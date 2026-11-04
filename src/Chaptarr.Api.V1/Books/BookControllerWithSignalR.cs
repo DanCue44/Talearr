@@ -151,6 +151,14 @@ namespace Chaptarr.Api.V1.Books
                 ?? new Dictionary<int, BookStatistics>();
         }
 
+        protected static IReadOnlyDictionary<int, BookStatistics> BuildBookStatisticsById(IEnumerable<BookStatistics> bookStatistics)
+        {
+            return bookStatistics?
+                .GroupBy(x => x.BookId)
+                .ToDictionary(x => x.Key, x => x.First())
+                ?? new Dictionary<int, BookStatistics>();
+        }
+
         private void FetchAndLinkBookStatistics(BookResource resource)
         {
             LinkAuthorStatistics(resource, _authorStatisticsService.AuthorStatistics(resource.AuthorId));

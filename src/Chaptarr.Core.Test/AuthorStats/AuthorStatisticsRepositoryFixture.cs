@@ -163,6 +163,49 @@ INSERT INTO ""BookFiles"" (""Id"", ""EditionId"", ""Size"") VALUES
             });
         }
 
+        [TestCase(null)]
+        [TestCase("audiobook")]
+        [TestCase("ebook")]
+        public void book_statistics_should_match_the_whole_library_rows_for_the_same_books(string mediaType)
+        {
+            WithRepository((repository, connectionString) =>
+            {
+                var whole = repository.AuthorStatistics(mediaType).ToDictionary(stat => stat.BookId);
+                var page = repository.BookStatistics(new[] { 10, 11, 12, 20, 999 }, mediaType);
+
+                Assert.That(page.Select(stat => stat.BookId), Is.EquivalentTo(whole.Keys), "Only the asked-for books, filtered the same way");
+
+                foreach (var stat in page)
+                {
+                    var expected = whole[stat.BookId];
+                    Assert.Multiple(() =>
+                    {
+                        Assert.That(stat.AuthorId, Is.EqualTo(expected.AuthorId));
+                        Assert.That(stat.BookFileCount, Is.EqualTo(expected.BookFileCount));
+                        Assert.That(stat.SizeOnDisk, Is.EqualTo(expected.SizeOnDisk));
+                        Assert.That(stat.TotalBookCount, Is.EqualTo(expected.TotalBookCount));
+                        Assert.That(stat.AvailableBookCount, Is.EqualTo(expected.AvailableBookCount));
+                        Assert.That(stat.BookCount, Is.EqualTo(expected.BookCount));
+                    });
+                }
+            });
+        }
+
+        [Test]
+        public void book_statistics_should_return_only_the_asked_for_books_across_batches()
+        {
+            WithRepository((repository, connectionString) =>
+            {
+                // More ids than one SQLite batch holds, most of them unknown
+                var ids = Enumerable.Range(1000, SqliteVariableLimit.MaxParameters + 50).Append(20).Append(10).ToList();
+
+                var stats = repository.BookStatistics(ids, null).OrderBy(stat => stat.BookId).ToList();
+
+                Assert.That(stats.Select(stat => stat.BookId), Is.EqualTo(new[] { 10, 20 }));
+                Assert.That(stats[1].SizeOnDisk, Is.EqualTo(40));
+            });
+        }
+
         private static void WithRepository(Action<AuthorStatisticsRepository, string> action)
         {
             var databasePath = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"author_stats_{Guid.NewGuid():N}.db");

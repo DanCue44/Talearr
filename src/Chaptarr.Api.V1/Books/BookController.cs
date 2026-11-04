@@ -1243,7 +1243,8 @@ namespace Chaptarr.Api.V1.Books
 
             _bookService.LoadIndexRelations(pageRows);
 
-            var statsByBookId = BuildBookStatisticsById(_authorStatisticsService.AuthorStatistics(null));
+            // Talearr: only this page's books, not the whole library on every page
+            var statsByBookId = BuildBookStatisticsById(_authorStatisticsService.BookStatistics(pageRows.Select(b => b.Id), null));
             bool HasFile(Book book) => statsByBookId.TryGetValue(book.Id, out var stats) && stats.BookFileCount > 0;
 
             var resourcesById = MapToResource(pageRows,
@@ -1324,7 +1325,8 @@ namespace Chaptarr.Api.V1.Books
             }
 
             var pagedBooks = _bookService.GetBooksPaged(offset, pageSize, sortKey, sortDirection, includeUnmonitored, normalizedMediaType, downloaded, monitored, missing, wanted);
-            var statsByBookId = BuildBookStatisticsById(_authorStatisticsService.AuthorStatistics(normalizedMediaType));
+            // Talearr: only this page's books, not the whole library on every page
+            var statsByBookId = BuildBookStatisticsById(_authorStatisticsService.BookStatistics(pagedBooks.Records.Select(b => b.Id), normalizedMediaType));
 
             // Convert Book entities to BookResource
             var pagedResource = new PagedBookApiResource

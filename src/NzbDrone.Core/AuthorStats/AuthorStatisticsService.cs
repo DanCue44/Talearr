@@ -15,6 +15,7 @@ namespace NzbDrone.Core.AuthorStats
         AuthorStatistics AuthorStatistics(int authorId);
         List<AuthorStatistics> AuthorStatistics(string mediaType);
         AuthorStatistics AuthorStatistics(int authorId, string mediaType);
+        List<BookStatistics> BookStatistics(IEnumerable<int> bookIds, string mediaType);
         void InvalidateAuthorCache(int authorId);
     }
 
@@ -90,6 +91,14 @@ namespace NzbDrone.Core.AuthorStats
             }
 
             return MapAuthorStatistics(statistics);
+        }
+
+        // Not cached: a page of books is one small query, and the whole-library entries are
+        // cleared on every book or file change, so on a busy server they rarely survive a page.
+        public List<BookStatistics> BookStatistics(IEnumerable<int> bookIds, string mediaType)
+        {
+            var ids = bookIds?.ToList() ?? new List<int>();
+            return ids.Count == 0 ? new List<BookStatistics>() : _authorStatisticsRepository.BookStatistics(ids, mediaType);
         }
 
         private static AuthorStatistics MapAuthorStatistics(List<BookStatistics> bookStatistics)

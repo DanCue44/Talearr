@@ -13,6 +13,7 @@ namespace NzbDrone.Core.AuthorStats
         List<BookStatistics> AuthorStatistics(int authorId);
         List<BookStatistics> AuthorStatistics(string mediaType);
         List<BookStatistics> AuthorStatistics(int authorId, string mediaType);
+        List<BookStatistics> BookStatistics(IEnumerable<int> bookIds, string mediaType);
     }
 
     public class AuthorStatisticsRepository : IAuthorStatisticsRepository
@@ -51,6 +52,23 @@ namespace NzbDrone.Core.AuthorStats
             var builder = Builder(_database.DatabaseType).Where<Author>(author => author.Id == authorId);
             ApplyMediaTypeFilter(builder, mediaType);
             return Query(builder);
+        }
+
+        // Talearr: the statistics of the given books only, the same rows the whole-library query
+        // returns for them. A page of the book list needs its own books, not the whole library.
+        public List<BookStatistics> BookStatistics(IEnumerable<int> bookIds, string mediaType)
+        {
+            var result = new List<BookStatistics>();
+
+            foreach (var batch in bookIds.Distinct().Chunk(SqliteVariableLimit.MaxParameters))
+            {
+                var batchIds = batch.ToArray();
+                var builder = Builder(_database.DatabaseType).Where<Book>(book => Enumerable.Contains(batchIds, book.Id));
+                ApplyMediaTypeFilter(builder, mediaType);
+                result.AddRange(Query(builder));
+            }
+
+            return result;
         }
 
         internal static string BuildBaseSql(DatabaseType databaseType)
