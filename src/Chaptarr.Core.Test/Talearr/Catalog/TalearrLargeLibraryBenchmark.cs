@@ -163,6 +163,15 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
                 }
             });
 
+            // GET /book/paged (Allseerr reads the library this way, 500 books a page)
+            var pagedIds = allBookIds.Take(500).ToList();
+            Measure("book/paged: 500 book page stats, whole library (cold)", () =>
+            {
+                ColdStatistics();
+                _statistics.AuthorStatistics((string)null);
+            });
+            Measure("book/paged: 500 book page stats, page books only", () => _statistics.BookStatistics(pagedIds, null));
+
             Measure("calendar: 30 days", () => _books.BooksBetweenDates(DateTime.UtcNow.AddDays(-15), DateTime.UtcNow.AddDays(15), false));
 
             // Author details page (authorId path): books, editions and files of one author.
