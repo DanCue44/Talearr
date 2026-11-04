@@ -294,6 +294,33 @@ download to a watch folder, for example the ingest folder of Calibre-Web-Automat
 Storage: `talearr.readerhandoff.*` rows in the `Config` table. Not a connection type, so a
 rollback to Chaptarr only stops the copies.
 
+## Ebook formats
+
+- **EPUB first in new profiles.** The quality weights alone rank AZW3 above EPUB, so a new
+  ebook quality profile (the default eBook profile on a new install, and Add Profile) now puts
+  EPUB at the top: PDF, MOBI, AZW3, EPUB. Existing profiles keep their own order; to prefer
+  EPUB in one, drag EPUB above AZW3 in Settings > Profiles. The ebook format preference
+  (EPUB > AZW3 > MOBI > PDF) still only breaks ties the profile leaves.
+- **Convert to EPUB.** Settings > Conversion > Convert to EPUB > Convert after import (off by
+  default) makes an EPUB of an imported Kindle ebook (AZW3, or MOBI/AZW/PRC with the Kindle 8
+  part) in the same folder and adds it to the same edition. **Keep the Kindle file** (on by
+  default) leaves the original next to it; turned off, the original is removed (to the recycle
+  bin when one is set) only after the EPUB has been checked and added. **Convert library to
+  EPUB** in the same section does the same for every ebook already in the library that has no
+  EPUB yet, one book at a time.
+- **How.** [KindleUnpack](https://github.com/kevinhendricks/KindleUnpack) (GPL-3.0, pinned in
+  the image at `/opt/kindleunpack`, run with the image's Python 3) rebuilds the EPUB a Kindle 8
+  file was made from. The EPUB is built in a hidden `.talearr-epub` folder next to the book,
+  checked (an EPUB `mimetype`, a container, a package and text documents) and only then moved
+  into place. Outside Docker, install Python 3 and KindleUnpack and set `TALEARR_KINDLEUNPACK`
+  to its folder (the one holding `lib/`).
+- **Not converted.** Books with DRM, old MOBI files that only have the Mobipocket text (no
+  Kindle 8 part), and an edition that already has an EPUB. A failed book keeps its file and
+  the reason is in the task's message.
+- Stored as the `talearr.ebook.epubafterimport` and `talearr.ebook.epubkeeporiginal` rows in
+  the `Config` table through the new `/api/v1/config/talearrepub` route; commands
+  `TalearrConvertToEpub` (`bookId`) and `TalearrConvertLibraryToEpub` (`authorId`, 0 for all).
+
 ## Ebook delivery
 
 Settings > Conversion, below the reader hand-off. Both parts are off by default.
@@ -693,6 +720,9 @@ Images are published to GitHub Container Registry by `.github/workflows/talearr-
 `develop`, `main` and version tags are multi-arch (`linux/amd64`, `linux/arm64`). The
 package is public, so no login is needed.
 
+The image adds FFmpeg and m4b-tool (Merge to M4B) and Python 3 with KindleUnpack (Convert to
+EPUB) to the upstream runtime.
+
 ```bash
 docker run -d \
   --name talearr \
@@ -808,6 +838,10 @@ contributors, which is based on [Readarr](https://github.com/Readarr/Readarr) an
 shared codebase of the Servarr team ([Sonarr](https://github.com/Sonarr/Sonarr),
 [Radarr](https://github.com/Radarr/Radarr), [Lidarr](https://github.com/Lidarr/Lidarr),
 [Prowlarr](https://github.com/Prowlarr/Prowlarr)). Thank you to all of them.
+
+The Docker image includes [KindleUnpack](https://github.com/kevinhendricks/KindleUnpack)
+(GPL-3.0) by P. Durrant, K. Hendricks, S. Siebert and contributors, used unmodified for
+Convert to EPUB.
 
 Talearr is not affiliated with or supported by the Chaptarr project or the Servarr team.
 Please do not send Talearr support requests to them.

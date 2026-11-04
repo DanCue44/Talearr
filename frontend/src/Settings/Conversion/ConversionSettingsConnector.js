@@ -39,12 +39,11 @@ class ConversionSettingsConnector extends Component {
   constructor(props, context) {
     super(props, context);
 
-    // Talearr: the M4B merge section saves with the same toolbar button.
-    this._talearrSaveCallback = null;
+    // Talearr: its sections (M4B merge, Convert to EPUB) save with the same toolbar button.
+    this._talearrSaveCallbacks = {};
 
     this.state = {
-      talearrIsSaving: false,
-      talearrHasPendingChanges: false
+      talearrChildren: {}
     };
   }
 
@@ -60,15 +59,17 @@ class ConversionSettingsConnector extends Component {
     this.props.setConversionSettingsValue({ name, value });
   };
 
-  onTalearrChildMounted = (saveCallback) => {
-    this._talearrSaveCallback = saveCallback;
+  onTalearrChildMounted = (key, saveCallback) => {
+    this._talearrSaveCallbacks[key] = saveCallback;
   };
 
-  onTalearrChildStateChange = ({ isSaving, hasPendingChanges }) => {
-    this.setState({
-      talearrIsSaving: isSaving,
-      talearrHasPendingChanges: hasPendingChanges
-    });
+  onTalearrChildStateChange = (key, { isSaving, hasPendingChanges }) => {
+    this.setState((state) => ({
+      talearrChildren: {
+        ...state.talearrChildren,
+        [key]: { isSaving, hasPendingChanges }
+      }
+    }));
   };
 
   onSavePress = () => {
@@ -76,16 +77,17 @@ class ConversionSettingsConnector extends Component {
       this.props.saveConversionSettings();
     }
 
-    if (this._talearrSaveCallback && this.state.talearrHasPendingChanges) {
-      this._talearrSaveCallback();
-    }
+    Object.keys(this._talearrSaveCallbacks).forEach((key) => {
+      if (this.state.talearrChildren[key]?.hasPendingChanges) {
+        this._talearrSaveCallbacks[key]();
+      }
+    });
   };
 
   render() {
-    const {
-      talearrIsSaving,
-      talearrHasPendingChanges
-    } = this.state;
+    const children = Object.values(this.state.talearrChildren);
+    const talearrIsSaving = children.some((child) => child.isSaving);
+    const talearrHasPendingChanges = children.some((child) => child.hasPendingChanges);
 
     return (
       <ConversionSettings

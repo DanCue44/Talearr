@@ -66,6 +66,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         ffmpeg \
+        python3 \
         php-cli php-mbstring php-xml php-json php-curl php-zip \
         wget \
         gosu \
@@ -102,6 +103,19 @@ RUN set -eux; \
     echo "${M4B_TOOL_SHA256}  /usr/local/bin/m4b-tool" | sha256sum -c -; \
     chmod +x /usr/local/bin/m4b-tool; \
     php /usr/local/bin/m4b-tool --version
+
+# KindleUnpack (GPL-3.0) turns Kindle ebooks (AZW3, MOBI with a KF8 part) into EPUB for
+# Talearr's Convert to EPUB. Pure Python, so one copy serves amd64 and arm64.
+ARG KINDLEUNPACK_URL=https://github.com/kevinhendricks/KindleUnpack/archive/refs/tags/v084.tar.gz
+ARG KINDLEUNPACK_SHA256=560f785731d1d70b651f792e7fa9c4406c04c8b90dc9a2ffae04ef5713221453
+RUN set -eux; \
+    wget -O /tmp/kindleunpack.tar.gz "$KINDLEUNPACK_URL"; \
+    echo "${KINDLEUNPACK_SHA256}  /tmp/kindleunpack.tar.gz" | sha256sum -c -; \
+    mkdir -p /opt/kindleunpack; \
+    tar -xzf /tmp/kindleunpack.tar.gz -C /opt/kindleunpack --strip-components=1; \
+    rm /tmp/kindleunpack.tar.gz; \
+    test -f /opt/kindleunpack/lib/kindleunpack.py; \
+    python3 -I -c "import sys; sys.path.insert(0, '/opt/kindleunpack'); import lib.kindleunpack"
 
 # Copy our robust entrypoint script
 COPY docker-entrypoint.sh /entrypoint.sh

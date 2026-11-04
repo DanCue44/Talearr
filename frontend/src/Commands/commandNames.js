@@ -33,3 +33,5 @@ export const SEND_MATCHING_LOGS = 'SendMatchingLogs';
 // Talearr
 export const TALEARR_CONVERT_TO_M4B = 'TalearrConvertToM4b';
 export const TALEARR_CONVERT_LIBRARY_TO_M4B = 'TalearrConvertLibraryToM4b';
+export const TALEARR_CONVERT_TO_EPUB = 'TalearrConvertToEpub';
+export const TALEARR_CONVERT_LIBRARY_TO_EPUB = 'TalearrConvertLibraryToEpub';

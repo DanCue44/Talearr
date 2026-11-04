@@ -231,6 +231,38 @@ jobs:
           grep 'Bootstrap: Starting Talearr' talearr.log || true
           docker stop "$app" >/dev/null
 
+      - name: Smoke test (Kindle to EPUB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A public domain KF8 book from Project Gutenberg. When it cannot be fetched the
+          # check is skipped with a warning rather than failing the build.
+          dir="$RUNNER_TEMP/epub-smoke"
+          rm -rf "$dir"; mkdir -p "$dir"
+          if ! curl -fsSL -m 60 -o "$dir/book.azw3" "https://www.gutenberg.org/ebooks/11.kf8.images"; then
+            echo "::warning::Could not download the test ebook; Kindle to EPUB check skipped."
+            exit 0
+          fi
+          launcher='import sys; sys.path.insert(0, sys.argv.pop(1)); from lib.kindleunpack import main; sys.exit(main(sys.argv))'
+          docker run --rm --entrypoint python3 -v "$dir:/work" "$CI_KEY:smoke" \
+            -I -c "$launcher" /opt/kindleunpack --epub_version=A /work/book.azw3 /work/out
+          epub=$(find "$dir/out/mobi8" -name '*.epub' 2>/dev/null | head -1 || true)
+          if [[ -z "$epub" ]]; then
+            echo "::error::KindleUnpack did not make an EPUB."
+            exit 1
+          fi
+          check='import sys, zipfile
+          z = zipfile.ZipFile(sys.argv[1])
+          names = z.namelist()
+          assert z.read("mimetype").strip() == b"application/epub+zip", "mimetype"
+          assert "META-INF/container.xml" in names, "container"
+          assert any(n.endswith(".opf") for n in names), "opf"
+          assert any(n.endswith((".xhtml", ".html")) for n in names), "text"
+          print("EPUB ok:", len(names), "entries")'
+          docker run --rm --entrypoint python3 -v "$dir:/work" "$CI_KEY:smoke" \
+            -I -c "$check" "/work/${epub#"$dir/"}"
+          docker run --rm -v "$dir:/work" busybox rm -rf /work/out
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:

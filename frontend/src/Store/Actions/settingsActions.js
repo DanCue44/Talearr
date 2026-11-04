@@ -29,6 +29,7 @@ import qualityProfiles from './Settings/qualityProfiles';
 import releaseProfiles from './Settings/releaseProfiles';
 import remotePathMappings from './Settings/remotePathMappings';
 import rootFolders from './Settings/rootFolders';
+import talearrEpub from './Settings/talearrEpub';
 import talearrGrabPolicy from './Settings/talearrGrabPolicy';
 import talearrM4b from './Settings/talearrM4b';
 import talearrMetadataFallback from './Settings/talearrMetadataFallback';
@@ -65,6 +66,7 @@ export * from './Settings/rootFolders';
 export * from './Settings/development';
 export * from './Settings/ui';
 export * from './Settings/talearrGrabPolicy';
+export * from './Settings/talearrEpub';
 export * from './Settings/talearrM4b';
 export * from './Settings/talearrMetadataFallback';
 export * from './Settings/talearrRecordings';
@@ -110,6 +112,7 @@ export const defaultState = {
   development: development.defaultState,
   ui: ui.defaultState,
   talearrGrabPolicy: talearrGrabPolicy.defaultState,
+  talearrEpub: talearrEpub.defaultState,
   talearrM4b: talearrM4b.defaultState,
   talearrMetadataFallback: talearrMetadataFallback.defaultState,
   talearrRecordings: talearrRecordings.defaultState
@@ -163,6 +166,7 @@ export const actionHandlers = handleThunks({
   ...development.actionHandlers,
   ...ui.actionHandlers,
   ...talearrGrabPolicy.actionHandlers,
+  ...talearrEpub.actionHandlers,
   ...talearrM4b.actionHandlers,
   ...talearrMetadataFallback.actionHandlers,
   ...talearrRecordings.actionHandlers
@@ -207,6 +211,7 @@ export const reducers = createHandleActions({
   ...development.reducers,
   ...ui.reducers,
   ...talearrGrabPolicy.reducers,
+  ...talearrEpub.reducers,
   ...talearrM4b.reducers,
   ...talearrMetadataFallback.reducers,
   ...talearrRecordings.reducers

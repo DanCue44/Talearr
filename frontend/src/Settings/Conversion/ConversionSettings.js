@@ -12,6 +12,7 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
 import translate from 'Utilities/String/translate';
+import TalearrEpubConnector from './TalearrEpubConnector';
 import TalearrKindle from './TalearrKindle';
 import TalearrM4bConnector from './TalearrM4bConnector';
 import TalearrOpds from './TalearrOpds';
@@ -195,8 +196,13 @@ class ConversionSettings extends Component {
           }
 
           <TalearrM4bConnector
-            onChildMounted={onTalearrChildMounted}
-            onChildStateChange={onTalearrChildStateChange}
+            onChildMounted={(save) => onTalearrChildMounted('m4b', save)}
+            onChildStateChange={(state) => onTalearrChildStateChange('m4b', state)}
+          />
+
+          <TalearrEpubConnector
+            onChildMounted={(save) => onTalearrChildMounted('epub', save)}
+            onChildStateChange={(state) => onTalearrChildStateChange('epub', state)}
           />
 
           <TalearrReaderHandoff />
