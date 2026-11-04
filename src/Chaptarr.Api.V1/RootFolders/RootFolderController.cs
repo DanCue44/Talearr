@@ -220,13 +220,31 @@ namespace Chaptarr.Api.V1.RootFolders
             {
                 if (readOnly)
                 {
-                    _readOnlyLibrary?.SetReadOnly(model.Path, false);
+                    ClearReadOnly(model.Path);
                 }
 
                 throw;
             }
 
-            _readOnlyLibrary?.SetReadOnly(added.Path, readOnly);
+            if (readOnly)
+            {
+                // Talearr: a folder meant to be read-only never stays added without that protection.
+                try
+                {
+                    _readOnlyLibrary?.SetReadOnly(added.Path, true);
+                    EnsureReadOnly(added.Path);
+                }
+                catch
+                {
+                    _rootFolderService.Remove(added.Id);
+                    ClearReadOnly(model.Path);
+                    throw;
+                }
+            }
+            else
+            {
+                _readOnlyLibrary?.SetReadOnly(added.Path, false);
+            }
 
             return Created(added.Id);
         }
@@ -280,9 +298,34 @@ namespace Chaptarr.Api.V1.RootFolders
             if (rootFolderResource.ReadOnly.HasValue)
             {
                 _readOnlyLibrary?.SetReadOnly(existingRootFolder.Path, rootFolderResource.ReadOnly.Value);
+
+                if (rootFolderResource.ReadOnly.Value)
+                {
+                    EnsureReadOnly(existingRootFolder.Path);
+                }
             }
 
             return Accepted(model.Id);
+        }
+
+        private void EnsureReadOnly(string path)
+        {
+            if (_readOnlyLibrary != null && !_readOnlyLibrary.IsReadOnly(path))
+            {
+                throw new BadRequestException("Talearr could not save the read-only setting for this folder, so it is not protected. Check the logs and try again.");
+            }
+        }
+
+        private void ClearReadOnly(string path)
+        {
+            try
+            {
+                _readOnlyLibrary?.SetReadOnly(path, false);
+            }
+            catch
+            {
+                // The folder is already removed, and a stored path only counts while it is a root folder.
+            }
         }
 
         private RootFolderResource WithReadOnly(RootFolderResource resource)

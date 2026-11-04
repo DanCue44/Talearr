@@ -20,6 +20,7 @@ using NzbDrone.Core.Localization;
 using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.ReadOnlyLibrary;
 using NzbDrone.Core.Validation;
 using NzbDrone.Core.Validation.Paths;
 using NzbDrone.SignalR;
@@ -47,7 +48,13 @@ namespace Chaptarr.Core.Test.Api
 
             public List<RootFolder> All() => new();
             public List<RootFolder> AllWithSpaceStats() => new();
-            public RootFolder Add(RootFolder rootFolder) => throw new NotImplementedException();
+            public List<int> Removed { get; } = new();
+
+            public RootFolder Add(RootFolder rootFolder)
+            {
+                rootFolder.Id = 42;
+                return rootFolder;
+            }
 
             public RootFolder Update(RootFolder rootFolder)
             {
@@ -56,7 +63,7 @@ namespace Chaptarr.Core.Test.Api
                 return rootFolder;
             }
 
-            public void Remove(int id) => throw new NotImplementedException();
+            public void Remove(int id) => Removed.Add(id);
             public RootFolder Get(int id) => Existing?.Id == id ? Existing : null;
             public List<RootFolder> AllForTag(int tagId) => throw new NotImplementedException();
             public RootFolder GetBestRootFolder(string path) => throw new NotImplementedException();
@@ -128,7 +135,8 @@ namespace Chaptarr.Core.Test.Api
             public TestableRootFolderController(
                 StubRootFolderService rootFolderService,
                 StubAuthorService authorService,
-                StubLocalizationService localizationService)
+                StubLocalizationService localizationService,
+                ITalearrReadOnlyLibrary readOnlyLibrary = null)
                 : base(
                     rootFolderService,
                     DispatchProxy.Create<IRootFolderScanService, ThrowingProxy<IRootFolderScanService>>(),
@@ -148,7 +156,8 @@ namespace Chaptarr.Core.Test.Api
                     new FolderWritableValidator(DispatchProxy.Create<IDiskProvider, ThrowingProxy<IDiskProvider>>()),
                     new FolderReadableValidator(DispatchProxy.Create<IDiskProvider, ThrowingProxy<IDiskProvider>>()),
                     new QualityProfileExistsValidator(new TestQualityProfileService()),
-                    new MetadataProfileExistsValidator(new TestMetadataProfileService()))
+                    new MetadataProfileExistsValidator(new TestMetadataProfileService()),
+                    readOnlyLibrary)
             {
             }
 
@@ -166,11 +175,111 @@ namespace Chaptarr.Core.Test.Api
         private static TestableRootFolderController BuildController(
             StubRootFolderService rootFolderService,
             StubAuthorService authorService,
-            StubLocalizationService localizationService = null)
+            StubLocalizationService localizationService = null,
+            ITalearrReadOnlyLibrary readOnlyLibrary = null)
         {
             localizationService ??= new StubLocalizationService();
 
-            return new TestableRootFolderController(rootFolderService, authorService, localizationService);
+            return new TestableRootFolderController(rootFolderService, authorService, localizationService, readOnlyLibrary);
+        }
+
+        // A read-only store that can lose the flag or fail on the save after the folder is added.
+        private sealed class StubReadOnlyLibrary : ITalearrReadOnlyLibrary
+        {
+            private readonly HashSet<string> _roots = new();
+
+            public bool KeepFlag { get; set; } = true;
+            public bool FailAfterAdd { get; set; }
+            public int SetCount { get; private set; }
+
+            public IReadOnlyList<string> ReadOnlyRoots => _roots.ToList();
+
+            public bool IsReadOnly(string path) => _roots.Contains(path);
+
+            public void SetReadOnly(string rootFolderPath, bool readOnly)
+            {
+                SetCount++;
+                if (FailAfterAdd && readOnly && SetCount > 1)
+                {
+                    throw new InvalidOperationException("save failed");
+                }
+
+                if (readOnly && KeepFlag)
+                {
+                    _roots.Add(rootFolderPath);
+                }
+                else
+                {
+                    _roots.Remove(rootFolderPath);
+                }
+            }
+
+            public string RedirectForWrite(string path, BookMediaType mediaType) => path;
+        }
+
+        private static RootFolderResource ReadOnlyAudiobookRoot()
+        {
+            return new RootFolderResource
+            {
+                Name = "Media Library",
+                Path = "/audiobooks/audiobookshelf/",
+                FolderType = (int)FolderType.Audiobook,
+                ReadOnly = true
+            };
+        }
+
+        [Test]
+        public void post_should_keep_a_read_only_root_when_the_flag_is_saved()
+        {
+            var rootFolders = new StubRootFolderService();
+            var readOnly = new StubReadOnlyLibrary();
+            var controller = BuildController(rootFolders, new StubAuthorService(new List<Author>()), readOnlyLibrary: readOnly);
+
+            controller.CreateRootFolder(ReadOnlyAudiobookRoot());
+
+            Assert.That(rootFolders.Removed, Is.Empty);
+            Assert.That(readOnly.IsReadOnly("/audiobooks/audiobookshelf/"), Is.True);
+        }
+
+        [Test]
+        public void post_should_remove_a_read_only_root_when_the_flag_does_not_stick()
+        {
+            var rootFolders = new StubRootFolderService();
+            var readOnly = new StubReadOnlyLibrary { KeepFlag = false };
+            var controller = BuildController(rootFolders, new StubAuthorService(new List<Author>()), readOnlyLibrary: readOnly);
+
+            var ex = Assert.Throws<BadRequestException>(() => controller.CreateRootFolder(ReadOnlyAudiobookRoot()));
+
+            Assert.That(ex.Message, Does.Contain("read-only"));
+            Assert.That(rootFolders.Removed, Is.EqualTo(new[] { 42 }));
+        }
+
+        [Test]
+        public void post_should_remove_a_read_only_root_when_saving_the_flag_fails()
+        {
+            var rootFolders = new StubRootFolderService();
+            var readOnly = new StubReadOnlyLibrary { FailAfterAdd = true };
+            var controller = BuildController(rootFolders, new StubAuthorService(new List<Author>()), readOnlyLibrary: readOnly);
+
+            Assert.Throws<InvalidOperationException>(() => controller.CreateRootFolder(ReadOnlyAudiobookRoot()));
+
+            Assert.That(rootFolders.Removed, Is.EqualTo(new[] { 42 }));
+            Assert.That(readOnly.IsReadOnly("/audiobooks/audiobookshelf/"), Is.False);
+        }
+
+        [Test]
+        public void put_should_report_a_read_only_flag_that_does_not_stick()
+        {
+            var rootFolders = new StubRootFolderService
+            {
+                Existing = new RootFolder { Id = 7, Path = "/audiobooks/audiobookshelf/", FolderType = FolderType.Audiobook }
+            };
+            var readOnly = new StubReadOnlyLibrary { KeepFlag = false };
+            var controller = BuildController(rootFolders, new StubAuthorService(new List<Author>()), readOnlyLibrary: readOnly);
+            var resource = ReadOnlyAudiobookRoot();
+            resource.Id = 7;
+
+            Assert.Throws<BadRequestException>(() => controller.UpdateRootFolder(resource));
         }
 
         [Test]
