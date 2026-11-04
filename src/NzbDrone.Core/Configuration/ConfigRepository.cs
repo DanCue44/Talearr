@@ -19,6 +19,8 @@ namespace NzbDrone.Core.Configuration
 
         public Config Get(string key)
         {
+            // Config.Key stores keys in lower case, so look them up the same way.
+            key = key?.ToLowerInvariant();
             return Query(c => c.Key == key).SingleOrDefault();
         }
 
