@@ -730,9 +730,12 @@ namespace NzbDrone.Core.Talearr.Recordings
         // and two with no narrators need the same publisher.
         private static bool SameRecording(RecordingEditionInfo a, RecordingEditionInfo b)
         {
-            if (!string.IsNullOrWhiteSpace(a.Asin) && !string.IsNullOrWhiteSpace(b.Asin))
+            // Two Audible products can be one reading sold again (a re-release under a new ASIN), so
+            // different ASINs only join with the same narrators and a matching runtime.
+            var bothAsins = !string.IsNullOrWhiteSpace(a.Asin) && !string.IsNullOrWhiteSpace(b.Asin);
+            if (bothAsins && string.Equals(a.Asin.Trim(), b.Asin.Trim(), StringComparison.OrdinalIgnoreCase))
             {
-                return string.Equals(a.Asin.Trim(), b.Asin.Trim(), StringComparison.OrdinalIgnoreCase);
+                return true;
             }
 
             if (Known(a.Abridged) && Known(b.Abridged) && a.Abridged != b.Abridged)
@@ -756,6 +759,11 @@ namespace NzbDrone.Core.Talearr.Recordings
 
             var leftNames = a.Narrators.Select(TalearrAudibleMatcher.NormalizeName).Where(n => n.Length > 0).ToHashSet();
             var rightNames = b.Narrators.Select(TalearrAudibleMatcher.NormalizeName).Where(n => n.Length > 0).ToHashSet();
+            if (bothAsins)
+            {
+                return runtime == true && leftNames.Count > 0 && leftNames.SetEquals(rightNames);
+            }
+
             if (leftNames.Count > 0 && rightNames.Count > 0)
             {
                 return leftNames.IsSubsetOf(rightNames) || rightNames.IsSubsetOf(leftNames);

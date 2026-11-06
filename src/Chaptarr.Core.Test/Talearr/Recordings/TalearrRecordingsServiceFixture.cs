@@ -210,6 +210,20 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
         }
 
         [Test]
+        public void a_reading_sold_again_under_a_new_asin_is_one_candidate()
+        {
+            _world.AddFirm(FirmEditions.ScottBrickUs(), withFiles: true);
+            _world.LinkAudible(AddEdition(28769, "Blackstone Publishing", 682, "Simon Prebble"), "B002V19RO6", "unabridged", 682, "Simon Prebble");
+            _world.LinkAudible(AddEdition(28770, "Blackstone Audio", 686, "Simon Prebble"), "B004PLVY78", "unabridged", 686, "Simon Prebble");
+            _world.LinkAudible(AddEdition(28771, "Blackstone Audio", 900, "Simon Prebble"), "B00NEWREAD", "unabridged", 900, "Simon Prebble");
+
+            var candidates = CandidateEditionIds();
+
+            Assert.That(candidates, Has.One.EquivalentTo(new[] { 28769, 28770 }));
+            Assert.That(candidates, Has.One.EquivalentTo(new[] { 28771 }), "a new reading runs longer");
+        }
+
+        [Test]
         public void different_runtimes_or_publishers_stay_apart()
         {
             _world.AddFirm(FirmEditions.ScottBrickUs(), withFiles: true);
