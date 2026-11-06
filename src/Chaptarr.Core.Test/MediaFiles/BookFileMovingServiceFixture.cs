@@ -173,13 +173,29 @@ namespace Chaptarr.Core.Test.MediaFiles
             }
         }
 
+        private class RootFolderServiceProxy : DispatchProxy
+        {
+            public List<RootFolder> Folders { get; set; } = new();
+
+            protected override object Invoke(MethodInfo targetMethod, object[] args)
+            {
+                if (targetMethod?.Name == nameof(IRootFolderService.All))
+                {
+                    return Folders;
+                }
+
+                throw new NotImplementedException($"Test proxy does not implement {typeof(IRootFolderService).Name}.{targetMethod?.Name}");
+            }
+        }
+
         private static BookFileMovingService CreateService(
             IBuildFileNames fileNameBuilder,
             INamingConfigService namingConfigService,
             IDiskProvider diskProvider = null,
             IBuildAuthorPaths authorPathBuilder = null,
             IEditionService editionService = null,
-            IEbookColocationPlanner ebookColocationPlanner = null)
+            IEbookColocationPlanner ebookColocationPlanner = null,
+            IRootFolderService rootFolderService = null)
         {
             return new BookFileMovingService(
                 editionService ?? DispatchProxy.Create<IEditionService, ThrowingProxy<IEditionService>>(),
@@ -196,7 +212,8 @@ namespace Chaptarr.Core.Test.MediaFiles
                 DispatchProxy.Create<IEventAggregator, ThrowingProxy<IEventAggregator>>(),
                 DispatchProxy.Create<IConfigService, ThrowingProxy<IConfigService>>(),
                 DispatchProxy.Create<IFileMutationSafetyService, ThrowingProxy<IFileMutationSafetyService>>(),
-                LogManager.GetCurrentClassLogger());
+                LogManager.GetCurrentClassLogger(),
+                rootFolderService: rootFolderService);
         }
 
         [Test]
@@ -350,6 +367,54 @@ namespace Chaptarr.Core.Test.MediaFiles
 
             Assert.That(plan.CanOrganize, Is.False);
             Assert.That(plan.SkipReason, Does.Contain("current author folder cannot be determined"));
+        }
+
+        [TestCase(FolderType.Audiobook, true)]
+        [TestCase(FolderType.Mixed, true)]
+        [TestCase(FolderType.Ebook, false)]
+        public void should_rename_a_file_in_another_root_folder_where_it_is(FolderType otherRootType, bool canOrganize)
+        {
+            var authorRoot = @"C:udiobookshelf".AsOsAgnostic();
+            var otherRoot = @"C:udiobooks".AsOsAgnostic();
+            var sourceAuthorFolder = Path.Combine(otherRoot, "J.N. Chaney");
+            var fileNameBuilder = DispatchProxy.Create<IBuildFileNames, BuildFileNamesProxy>();
+            var fileNameProxy = (BuildFileNamesProxy)(object)fileNameBuilder;
+            fileNameProxy.AuthorFolderFactory = (_, _) => "J.N. Chaney";
+            fileNameProxy.BookFileNameFactory = (_, _, _, _) => Path.Combine("Herald of Justice", "file");
+            var rootFolderService = DispatchProxy.Create<IRootFolderService, RootFolderServiceProxy>();
+            ((RootFolderServiceProxy)(object)rootFolderService).Folders = new List<RootFolder>
+            {
+                new RootFolder { Path = authorRoot, FolderType = FolderType.Audiobook },
+                new RootFolder { Path = otherRoot, FolderType = otherRootType }
+            };
+            var service = CreateService(
+                fileNameBuilder,
+                DispatchProxy.Create<INamingConfigService, NamingConfigServiceProxy>(),
+                rootFolderService: rootFolderService);
+            var author = new Author { Id = 1, Name = "J.N. Chaney", AudiobookRootFolderPath = authorRoot };
+            var bookFile = new BookFile
+            {
+                Path = Path.Combine(sourceAuthorFolder, "Herald of Justice - Jeffrey Kafer", "original.m4b"),
+                EditionId = 7,
+                Edition = new Edition { Id = 7, BookId = 42, Book = new Book { Id = 42, AuthorId = author.Id } },
+                Quality = new QualityModel(Quality.M4B),
+                MediaType = "audiobook"
+            };
+
+            var plan = service.GetOrganizeDestination(bookFile, author, true);
+
+            Assert.That(plan.CanOrganize, Is.EqualTo(canOrganize));
+            if (canOrganize)
+            {
+                Assert.That(plan.RootFolderPath, Is.EqualTo(otherRoot));
+                Assert.That(plan.SourceAuthorFolderPath, Is.EqualTo(sourceAuthorFolder));
+                Assert.That(plan.DestinationPath, Is.EqualTo(Path.Combine(sourceAuthorFolder, "Herald of Justice", "file.m4b")));
+                Assert.That(plan.ShouldUpdateStoredAuthorPath, Is.False);
+            }
+            else
+            {
+                Assert.That(plan.SkipReason, Does.Contain(authorRoot));
+            }
         }
 
         [TestCase(false, true)]

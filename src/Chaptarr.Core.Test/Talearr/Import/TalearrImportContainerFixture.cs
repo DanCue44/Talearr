@@ -20,6 +20,7 @@ namespace Chaptarr.Core.Test.Talearr.Import
     public class TalearrImportContainerFixture
     {
         [TestCase(typeof(BookFileMovingService), "_talearrHardlinkMonitor")]
+        [TestCase(typeof(BookFileMovingService), "_rootFolderService")]
         [TestCase(typeof(DownloadImportModeResolver), "_configService")]
         [TestCase(typeof(ManualImportService), "_fileLanguageVerifier")]
         public void should_fill_the_optional_talearr_dependency(Type serviceType, string field)

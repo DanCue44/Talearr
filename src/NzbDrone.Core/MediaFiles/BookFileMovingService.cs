@@ -34,6 +34,7 @@ namespace NzbDrone.Core.MediaFiles
     {
         public bool CanOrganize { get; set; }
         public string SkipReason { get; set; }
+        public string RootFolderPath { get; set; }
         public string SourceAuthorFolderPath { get; set; }
         public string DestinationAuthorFolderPath { get; set; }
         public string DestinationPath { get; set; }
@@ -69,6 +70,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IFileMutationSafetyService _fileMutationSafetyService;
         private readonly ITalearrHardlinkMonitor _talearrHardlinkMonitor;
         private readonly ITalearrReadOnlyLibrary _talearrReadOnlyLibrary;
+        private readonly IRootFolderService _rootFolderService;
         private readonly Logger _logger;
 
         public BookFileMovingService(IEditionService editionService,
@@ -87,7 +89,8 @@ namespace NzbDrone.Core.MediaFiles
                                       IFileMutationSafetyService fileMutationSafetyService,
                                       Logger logger,
                                       ITalearrHardlinkMonitor talearrHardlinkMonitor = null,
-                                      ITalearrReadOnlyLibrary talearrReadOnlyLibrary = null)
+                                      ITalearrReadOnlyLibrary talearrReadOnlyLibrary = null,
+                                      IRootFolderService rootFolderService = null)
         {
             _editionService = editionService;
             _updateBookFileService = updateBookFileService;
@@ -106,6 +109,7 @@ namespace NzbDrone.Core.MediaFiles
             _logger = logger;
             _talearrHardlinkMonitor = talearrHardlinkMonitor;
             _talearrReadOnlyLibrary = talearrReadOnlyLibrary;
+            _rootFolderService = rootFolderService;
         }
 
         public BookFileMovePlan GetOrganizeDestination(BookFile bookFile, Author author, bool moveToCanonicalAuthorFolder, RenameBatchContext renameBatchContext = null)
@@ -138,9 +142,19 @@ namespace NzbDrone.Core.MediaFiles
                 return BookFileMovePlan.Skipped("No root folder is configured for this media type.");
             }
 
-            if (!TryGetPhysicalAuthorFolder(rootFolderPath, bookFile.Path, out var sourceAuthorFolderPath))
+            // Talearr: with more than one root folder for a media type, a file can sit in
+            // a different one than the author is set to. Rename it where it is.
+            var inAuthorRoot = TryGetPhysicalAuthorFolder(rootFolderPath, bookFile.Path, out var sourceAuthorFolderPath);
+            if (!inAuthorRoot)
             {
-                return BookFileMovePlan.Skipped("The file's current author folder cannot be determined from its configured root.");
+                var fileRootFolderPath = FindRootFolderHoldingFile(bookFile);
+                if (fileRootFolderPath == null ||
+                    !TryGetPhysicalAuthorFolder(fileRootFolderPath, bookFile.Path, out sourceAuthorFolderPath))
+                {
+                    return BookFileMovePlan.Skipped($"The file's current author folder cannot be determined from its configured root ({rootFolderPath}).");
+                }
+
+                rootFolderPath = fileRootFolderPath;
             }
 
             var mediaType = GetEffectiveMediaType(bookFile);
@@ -180,13 +194,30 @@ namespace NzbDrone.Core.MediaFiles
             return new BookFileMovePlan
             {
                 CanOrganize = true,
+                RootFolderPath = rootFolderPath,
                 SourceAuthorFolderPath = sourceAuthorFolderPath,
                 DestinationAuthorFolderPath = destinationAuthorFolderPath,
                 DestinationPath = destinationPath,
                 ReplicaPaths = colocationPlan.Applies ? colocationPlan.ReplicaPaths : null,
                 ShouldCleanupReplicas = colocationPlan.ShouldCleanupReplicas,
-                ShouldUpdateStoredAuthorPath = moveToCanonicalAuthorFolder && !colocationPlan.Applies
+                ShouldUpdateStoredAuthorPath = moveToCanonicalAuthorFolder && !colocationPlan.Applies && inAuthorRoot
             };
+        }
+
+        private string FindRootFolderHoldingFile(BookFile bookFile)
+        {
+            if (_rootFolderService == null)
+            {
+                return null;
+            }
+
+            var mediaType = ToMediaType(bookFile);
+            return _rootFolderService.All()
+                .Where(r => r.Path.IsNotNullOrWhiteSpace() && r.Path.IsParentPath(bookFile.Path))
+                .Where(r => r.FolderType == FolderType.Mixed ||
+                            (mediaType == BookMediaType.Ebook ? r.FolderType == FolderType.Ebook : r.FolderType == FolderType.Audiobook))
+                .MaxBy(r => r.Path.Length)
+                ?.Path;
         }
 
         public BookFile MoveBookFile(BookFile bookFile, Author author, BookFileMovePlan plan, RenameBatchContext renameBatchContext = null)
@@ -205,7 +236,7 @@ namespace NzbDrone.Core.MediaFiles
 
             if (plan.ReplicaPaths != null)
             {
-                EnsureBookFolder(bookFile, author, edition.Book, plan.DestinationPath, plan.DestinationAuthorFolderPath);
+                EnsureBookFolder(bookFile, author, edition.Book, plan.DestinationPath, plan.DestinationAuthorFolderPath, plan.RootFolderPath);
                 _logger.Debug("Colocating ebook file: {0} to {1}", bookFile, plan.DestinationPath);
 
                 if (bookFile.Path.PathNotEquals(plan.DestinationPath))
@@ -222,7 +253,7 @@ namespace NzbDrone.Core.MediaFiles
                 CleanupReplicaFilesIfAny(bookFile);
             }
 
-            EnsureBookFolder(bookFile, author, edition.Book, plan.DestinationPath, plan.DestinationAuthorFolderPath);
+            EnsureBookFolder(bookFile, author, edition.Book, plan.DestinationPath, plan.DestinationAuthorFolderPath, plan.RootFolderPath);
 
             _logger.Debug("Organizing book file: {0} to {1}", bookFile, plan.DestinationPath);
 
@@ -589,10 +620,10 @@ namespace NzbDrone.Core.MediaFiles
             return mediaType;
         }
 
-        private void EnsureBookFolder(BookFile bookFile, Author author, Book book, string filePath, string authorFolder)
+        private void EnsureBookFolder(BookFile bookFile, Author author, Book book, string filePath, string authorFolder, string rootFolderPath = null)
         {
             var trackFolder = Path.GetDirectoryName(filePath);
-            var rootFolderPath = author.GetRootFolderForQuality(bookFile.Quality.Quality);
+            rootFolderPath ??= author.GetRootFolderForQuality(bookFile.Quality.Quality);
             var rootFolder = new OsPath(rootFolderPath).FullPath;
 
             if (!_diskProvider.FolderExists(rootFolder))
