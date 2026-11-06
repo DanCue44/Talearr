@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Talearr.Recordings
 
     public sealed class RecordingCandidateInfo : RecordingEditionInfo
     {
-        // Near-identical editions folded into this candidate (same narrator, abridged status and runtime).
+        // Editions of the same recording folded into this candidate (see SameRecording).
         public List<int> EditionIds { get; set; } = new List<int>();
     }
 
@@ -668,8 +668,8 @@ namespace NzbDrone.Core.Talearr.Recordings
             info.AudibleConfidence = product != null ? facts.Link?.Confidence : null;
         }
 
-        // Audiobook editions of the primary row that are not already a recording, with near
-        // identical ones (same narrators, abridged status and runtime within 5%) folded together.
+        // Audiobook editions of the primary row that are not already a recording, with editions of
+        // the same recording folded together (see SameRecording).
         // Talearr: rowId picks another row's own editions (default: the primary row).
         private List<Candidate> AllCandidates(Context context, int? rowId = null)
         {
@@ -687,6 +687,10 @@ namespace NzbDrone.Core.Talearr.Recordings
                 .Where(e => !taken.Any(t => SameEditionKey(t, e)))
                 .ToList();
 
+            // Another edition of a reading the work already has (same Audible product, or the same
+            // narrators with nothing telling them apart) is that recording again, not a new one.
+            var recordings = context.Group.Books.Select(b => BuildRecording(context, b)).ToList();
+
             var siblings = own;
             var singles = editions.Select(edition =>
             {
@@ -696,13 +700,14 @@ namespace NzbDrone.Core.Talearr.Recordings
                 info.EditionIds.Add(edition.Id);
                 return new Candidate { Edition = edition, Info = info, Rank = RankOf(context, edition, info) };
             })
+            .Where(c => !recordings.Any(r => SameRecording(r, c.Info)))
             .OrderByDescending(c => c.Rank)
             .ToList();
 
             var groups = new List<Candidate>();
             foreach (var single in singles)
             {
-                var into = groups.FirstOrDefault(g => NearIdentical(g.Info, single.Info));
+                var into = groups.FirstOrDefault(g => SameRecording(g.Info, single.Info));
                 if (into == null)
                 {
                     groups.Add(single);
@@ -716,26 +721,66 @@ namespace NzbDrone.Core.Talearr.Recordings
             return groups;
         }
 
-        private static bool NearIdentical(RecordingEditionInfo a, RecordingEditionInfo b)
+        // Editions are listed by many publishers and stores, often with parts missing: one has the
+        // runtime, another the narrators, a third only says "unknown" for abridged. Two editions are
+        // the same recording when the Audible product is the same, or when nothing known differs:
+        // abridged status, language and runtime (5%) agree where both are known, and the narrators
+        // agree (one cast list may be shorter). An edition with no narrators only joins one with the
+        // same runtime from the same publisher,
+        // and two with no narrators need the same publisher.
+        private static bool SameRecording(RecordingEditionInfo a, RecordingEditionInfo b)
         {
-            if (a.Abridged != b.Abridged || !string.Equals(a.Language ?? string.Empty, b.Language ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(a.Asin) && !string.IsNullOrWhiteSpace(b.Asin))
+            {
+                return string.Equals(a.Asin.Trim(), b.Asin.Trim(), StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (Known(a.Abridged) && Known(b.Abridged) && a.Abridged != b.Abridged)
             {
                 return false;
             }
 
-            var leftNames = a.Narrators.Select(TalearrAudibleMatcher.NormalizeName).Where(n => n.Length > 0).OrderBy(n => n).ToList();
-            var rightNames = b.Narrators.Select(TalearrAudibleMatcher.NormalizeName).Where(n => n.Length > 0).OrderBy(n => n).ToList();
-            if (!leftNames.SequenceEqual(rightNames))
+            if (!string.IsNullOrWhiteSpace(a.Language) && !string.IsNullOrWhiteSpace(b.Language) &&
+                !string.Equals(a.Language, b.Language, StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
 
-            if (a.RuntimeMinutes.HasValue && b.RuntimeMinutes.HasValue)
+            var runtime = a.RuntimeMinutes.HasValue && b.RuntimeMinutes.HasValue
+                ? TalearrAudibleMatcher.RuntimeMatches(a.RuntimeMinutes * 60, b.RuntimeMinutes)
+                : null;
+            if (runtime == false)
             {
-                return TalearrAudibleMatcher.RuntimeMatches(a.RuntimeMinutes * 60, b.RuntimeMinutes) == true;
+                return false;
             }
 
-            return true;
+            var leftNames = a.Narrators.Select(TalearrAudibleMatcher.NormalizeName).Where(n => n.Length > 0).ToHashSet();
+            var rightNames = b.Narrators.Select(TalearrAudibleMatcher.NormalizeName).Where(n => n.Length > 0).ToHashSet();
+            if (leftNames.Count > 0 && rightNames.Count > 0)
+            {
+                return leftNames.IsSubsetOf(rightNames) || rightNames.IsSubsetOf(leftNames);
+            }
+
+            if (leftNames.Count == 0 && rightNames.Count == 0)
+            {
+                return runtime != false && SamePublisher(a.Publisher, b.Publisher);
+            }
+
+            return runtime == true && SamePublisher(a.Publisher, b.Publisher);
+        }
+
+        private static bool Known(string abridged)
+        {
+            return abridged == "abridged" || abridged == "unabridged";
+        }
+
+        // "Blackstone Audio" and "Blackstone Publishing" are one publisher: compare the first word.
+        private static bool SamePublisher(string a, string b)
+        {
+            string FirstWord(string name) => (name ?? string.Empty).Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.ToLowerInvariant();
+
+            var left = FirstWord(a);
+            return left != null && left == FirstWord(b);
         }
 
         // Abridged status known, preferred language, Audible link confidence, runtime known,

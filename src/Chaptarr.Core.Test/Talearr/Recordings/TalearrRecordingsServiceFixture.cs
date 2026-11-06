@@ -158,6 +158,71 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             Assert.That(view.Candidates.SelectMany(c => c.EditionIds), Does.Not.Contain(28705), "the existing recording is not a candidate");
         }
 
+        private Edition AddEdition(int id, string publisher, int minutes, params string[] narrators)
+        {
+            var edition = new Edition { Id = id, BookId = 3401, ForeignEditionId = $"gr:{id}-audiobook", Title = "The Firm", Language = "eng", Publisher = publisher, DurationSeconds = minutes * 60, ReadingFormatId = 2, NarratorNames = narrators.ToList() };
+            _world.Editions.Add(edition);
+            return edition;
+        }
+
+        private List<List<int>> CandidateEditionIds()
+        {
+            return _world.Recordings.GetRecordings(3401).Candidates.Select(c => c.EditionIds.OrderBy(id => id).ToList()).ToList();
+        }
+
+        [Test]
+        public void another_listing_of_the_recording_you_have_is_not_a_candidate()
+        {
+            _world.AddFirm(FirmEditions.ScottBrickUs(), withFiles: true);
+            _world.LinkAudible(FirmEditions.ScottBrickUs(), "B002V5BSLC", "unabridged", 1030, "Scott Brick");
+            AddEdition(28760, "Books on Tape", 0, "Scott Brick");
+            _world.LinkAudible(AddEdition(28761, "Random House Audio", 1031, "Scott Brick"), "B002V5BSLC", "unabridged", 1030, "Scott Brick");
+
+            var ids = CandidateEditionIds().SelectMany(c => c).ToList();
+
+            Assert.That(ids, Does.Not.Contain(28760), "same narrator, nothing tells it apart");
+            Assert.That(ids, Does.Not.Contain(28761), "same Audible product");
+            Assert.That(ids, Does.Not.Contain(28702), "the UK Scott Brick edition");
+            Assert.That(ids, Does.Contain(28705), "the Moffett reading is still offered");
+        }
+
+        [Test]
+        public void listings_with_missing_facts_fold_into_one_candidate()
+        {
+            _world.AddFirm(FirmEditions.ScottBrickUs(), withFiles: true);
+            _world.LinkAudible(FirmEditions.MoffettAbridged(), "B000MOFFET", "abridged", 360, "D.W. Moffett");
+            AddEdition(28762, "Random House Audio", 362, "D.W. Moffett");
+            AddEdition(28763, "Random House Audio", 361);
+
+            var moffett = CandidateEditionIds().Single(c => c.Contains(28705));
+
+            Assert.That(moffett, Is.EquivalentTo(new[] { 28705, 28762, 28763 }));
+        }
+
+        [Test]
+        public void a_shorter_cast_list_is_the_same_recording()
+        {
+            _world.AddFirm(FirmEditions.ScottBrickUs(), withFiles: true);
+            AddEdition(28764, "Audible Originals", 207, "Reader One", "Reader Two", "Reader Three");
+            AddEdition(28765, "Audible Originals", 207, "Reader Two", "Reader One");
+
+            Assert.That(CandidateEditionIds(), Has.One.EquivalentTo(new[] { 28764, 28765 }));
+        }
+
+        [Test]
+        public void different_runtimes_or_publishers_stay_apart()
+        {
+            _world.AddFirm(FirmEditions.ScottBrickUs(), withFiles: true);
+            AddEdition(28766, "Random House Audio", 360, "D.W. Moffett");
+            AddEdition(28767, "Random House Audio", 500, "D.W. Moffett");
+            AddEdition(28768, "Caedmon", 360);
+
+            var candidates = CandidateEditionIds();
+
+            Assert.That(candidates, Has.None.Contains(28766).And.Contains(28767));
+            Assert.That(candidates, Has.One.EquivalentTo(new[] { 28768 }), "no narrators and another publisher");
+        }
+
         [Test]
         public void narrator_kind_picks_that_narrators_edition()
         {
