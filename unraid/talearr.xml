@@ -15,7 +15,7 @@
   <Category>MediaApp:Books Downloaders:</Category>
   <WebUI>http://[IP]:[PORT:8789]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/DanCue44/Talearr/main/unraid/talearr.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/DanCue44/Talearr/main/Logo/talearr.png</Icon>
+  <Icon>https://raw.githubusercontent.com/DanCue44/unraid-templates/main/icons/talearr.png</Icon>
   <ExtraParams/>
   <PostArgs/>
   <CPUset/>
