@@ -210,6 +210,7 @@ class InteractiveImportRow extends Component {
       warnings = [],
       talearrMatchConfidence,
       talearrMatchNotes = [],
+      talearrCalibreEvidence,
       columns,
       additionalFile,
       isSelected,
@@ -314,6 +315,17 @@ class InteractiveImportRow extends Component {
       </Label>
     ) : null;
 
+    // Talearr: the file was identified from the Calibre library; hover for the evidence.
+    const calibreLabel = talearrCalibreEvidence ? (
+      <Label
+        className={styles.confidence}
+        kind={kinds.INFO}
+        title={talearrCalibreEvidence}
+      >
+        {'Calibre'}
+      </Label>
+    ) : null;
+
     const editionCell = !hasBook && !edition && suggestedEditionLabel ?
       <span className={styles.suggestedValue}>{editionTitle}</span> :
       (editionTitle || (!hasBook ? releaseGroup : ''));
@@ -394,6 +406,7 @@ class InteractiveImportRow extends Component {
             showBookNumberPlaceholder ? <InteractiveImportRowCellPlaceholder /> : bookCell
           }
           {confidenceLabel}
+          {calibreLabel}
         </TableRowCellButton>
 
         <TableRowCellButton
@@ -601,6 +614,7 @@ InteractiveImportRow.propTypes = {
   warnings: PropTypes.arrayOf(PropTypes.string),
   talearrMatchConfidence: PropTypes.string,
   talearrMatchNotes: PropTypes.arrayOf(PropTypes.string),
+  talearrCalibreEvidence: PropTypes.string,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
   tags: PropTypes.object,
   additionalFile: PropTypes.bool.isRequired,

@@ -52,6 +52,11 @@ namespace NzbDrone.Core.Parser.Model
         public string SuggestedForeignEditionId { get; set; }
         public string SuggestedEditionTitle { get; set; }
 
+        // Talearr: display-only Calibre evidence for the manual import preview, and a warning when
+        // Calibre identified the file but the metadata provider has no matching edition.
+        public string TalearrCalibreEvidence { get; set; }
+        public string TalearrCalibreWarning { get; set; }
+
         // Common tags extracted from multi-file book units
         public Dictionary<string, string> CommonTags { get; set; }
 

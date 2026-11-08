@@ -18,6 +18,7 @@ using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.Calibre;
 
 namespace Chaptarr.Core.Test.MediaFiles
 {
@@ -1149,6 +1150,88 @@ namespace Chaptarr.Core.Test.MediaFiles
             };
         }
 
+        // Talearr: the optional Calibre lookup (issue #4).
+        [TestCase(true)]
+        [TestCase(false)]
+        public void retry_match_uses_calibre_evidence_only_when_a_calibre_library_is_set(bool enabled)
+        {
+            using var library = new Chaptarr.Core.Test.Talearr.Calibre.CalibreTestLibrary();
+            var calibreId = library.AddBook("Dune", "Frank Herbert", "9780441013593", "eng", "PDF");
+            var path = library.FilePath(calibreId, "Dune", "Frank Herbert", "pdf");
+            var modified = new DateTime(2026, 7, 4, 1, 0, 0, DateTimeKind.Utc);
+            var file = CreateCalibreEbook(path, modified);
+            var calibre = new TalearrCalibreIdentifier(library.Settings(enabled), LogManager.GetCurrentClassLogger());
+            var context = CreateContext(new[] { file }, current => (modified, 100L), calibre);
+
+            context.Matching.OnMatch = (files, restrictToAuthorId, ctx, call) => new FileMatchResult
+            {
+                MatchedFiles = new[]
+                {
+                    new FileMatch { File = files[0], AuthorId = 5, BookId = 10, EditionId = 20 }
+                }
+            };
+
+            context.Sut.Execute(new RetryUnmappedMatchCommand
+            {
+                MediaType = "ebook",
+                UnmappedFiles = new UnmappedFilesSelection { Scope = "all" }
+            });
+
+            var matchedTags = context.Matching.Calls[0].Files[0].AllTags;
+            Assert.Multiple(() =>
+            {
+                Assert.That(matchedTags["title"], Is.EqualTo(enabled ? new[] { "Dune" } : new[] { "Microsoft Word - scan.docx" }));
+                Assert.That(matchedTags.ContainsKey("isbn"), Is.EqualTo(enabled));
+                Assert.That(file.AllTags["title"], Is.EqualTo(new[] { "Microsoft Word - scan.docx" }), "stored tags are never changed");
+                Assert.That(context.Import.Imports, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public void retry_match_says_when_calibre_identified_the_file_but_the_provider_has_no_edition()
+        {
+            using var library = new Chaptarr.Core.Test.Talearr.Calibre.CalibreTestLibrary();
+            var calibreId = library.AddBook("Dune", "Frank Herbert", "9780441013593", "eng", "PDF");
+            var path = library.FilePath(calibreId, "Dune", "Frank Herbert", "pdf");
+            var modified = new DateTime(2026, 7, 4, 1, 0, 0, DateTimeKind.Utc);
+            var file = CreateCalibreEbook(path, modified);
+            var calibre = new TalearrCalibreIdentifier(library.Settings(), LogManager.GetCurrentClassLogger());
+            var context = CreateContext(new[] { file }, current => (modified, 100L), calibre);
+
+            context.Matching.OnMatch = (files, restrictToAuthorId, ctx, call) => new FileMatchResult
+            {
+                UnmatchedFiles = files.Select(f => new UnmatchedFile { File = f, Reason = "NO_MATCH_HOLY_GRAIL" }).ToArray()
+            };
+
+            context.Sut.Execute(new RetryUnmappedMatchCommand
+            {
+                MediaType = "ebook",
+                UnmappedFiles = new UnmappedFilesSelection { Scope = "all" }
+            });
+
+            Assert.That(file.MatchDetails, Is.EqualTo($"CALIBRE_NO_PROVIDER_EDITION:calibreBook={calibreId}:isbn=9780441013593:NO_MATCH_HOLY_GRAIL"));
+            Assert.That(context.Import.Imports, Is.Empty);
+        }
+
+        private static BookFile CreateCalibreEbook(string path, DateTime modified)
+        {
+            return new BookFile
+            {
+                Id = 1,
+                Path = path,
+                EditionId = 0,
+                MediaType = "ebook",
+                Size = 100,
+                Modified = modified,
+                AllTags = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["title"] = new List<string> { "Microsoft Word - scan.docx" },
+                    ["author"] = new List<string> { "jsmith" }
+                },
+                Quality = new QualityModel { Quality = Quality.PDF }
+            };
+        }
+
         private static TestContext CreateContext(BookFile file, DateTime diskModified, long diskSize)
         {
             return CreateContext(new[] { file }, current => (diskModified, diskSize));
@@ -1159,7 +1242,7 @@ namespace Chaptarr.Core.Test.MediaFiles
             return CreateContext(files, current => (diskModified, current.Size));
         }
 
-        private static TestContext CreateContext(IEnumerable<BookFile> files, Func<BookFile, (DateTime Modified, long Size)> diskInfo)
+        private static TestContext CreateContext(IEnumerable<BookFile> files, Func<BookFile, (DateTime Modified, long Size)> diskInfo, ITalearrCalibreIdentifier calibre = null)
         {
             var fileList = files.ToList();
             var media = new StubMediaFileService { UnmappedFiles = fileList };
@@ -1208,7 +1291,8 @@ namespace Chaptarr.Core.Test.MediaFiles
                 pendingImports,
                 rootFolders,
                 authorService,
-                LogManager.GetCurrentClassLogger());
+                LogManager.GetCurrentClassLogger(),
+                calibre);
 
             return new TestContext(
                 sut, media, metadata, ingestProxy, matching, import, authorLibrary, pendingImports,

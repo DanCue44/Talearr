@@ -16,6 +16,7 @@ using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.Calibre;
 
 namespace NzbDrone.Core.MediaFiles.Commands
 {
@@ -35,6 +36,7 @@ namespace NzbDrone.Core.MediaFiles.Commands
         private readonly IRootFolderService _rootFolderService;
         private readonly IAuthorService _authorService;
         private readonly Logger _logger;
+        private readonly ITalearrCalibreIdentifier _talearrCalibre;
 
         public RetryUnmappedMatchCommandHandler(
             IMediaFileService mediaFileService,
@@ -50,7 +52,8 @@ namespace NzbDrone.Core.MediaFiles.Commands
             IPendingAuthorImportService pendingAuthorImportService,
             IRootFolderService rootFolderService,
             IAuthorService authorService,
-            Logger logger)
+            Logger logger,
+            ITalearrCalibreIdentifier talearrCalibre = null)
         {
             _mediaFileService = mediaFileService;
             _metadataTagService = metadataTagService;
@@ -66,6 +69,7 @@ namespace NzbDrone.Core.MediaFiles.Commands
             _rootFolderService = rootFolderService;
             _authorService = authorService;
             _logger = logger;
+            _talearrCalibre = talearrCalibre;
         }
 
         public void Execute(RetryUnmappedMatchCommand message)
@@ -115,6 +119,10 @@ namespace NzbDrone.Core.MediaFiles.Commands
 
             _logger.Info("[UNMAPPED-RETRY] Matching {0} unmapped files from stored evidence ({1} skipped)", discovered.Count, skipped);
 
+            // Talearr: when a Calibre library is set, Calibre's author, title, ISBN and language for
+            // an ebook it knows stand in for the file's own tags. The provider still finds the edition.
+            var calibre = TalearrCalibreEvidence.Apply(_talearrCalibre, discovered);
+
             var matchedPaths = new HashSet<string>(PathEqualityComparer.Instance);
             var alreadyLinkedPaths = new HashSet<string>(PathEqualityComparer.Instance);
             var applyFailedPaths = new HashSet<string>(PathEqualityComparer.Instance);
@@ -154,6 +162,7 @@ namespace NzbDrone.Core.MediaFiles.Commands
                 .Where(unmatched => unmatched?.File?.Path != null && !matchedPaths.Contains(unmatched.File.Path))
                 .ToList();
 
+            ExplainCalibreUnmatched(finalUnmatched, calibre);
             MarkUnmatchedAttempts(finalUnmatched, byPath);
             var queuedAuthors = QueueSuggestedAuthorImports(finalUnmatched, byPath);
 
@@ -677,6 +686,34 @@ namespace NzbDrone.Core.MediaFiles.Commands
 
             var unitKey = _unitDestination.BuildRootUnitKeyWithExtension(match.File.Path, canonicalEdition.Title, canonicalBook.MediaType);
             return _unitDestination.ResolveDestinationForUnit(canonicalBook, canonicalEdition, unitKey);
+        }
+
+        // Talearr: say so when Calibre identified a file that still did not match, so the reason
+        // is not mistaken for poor tags.
+        private void ExplainCalibreUnmatched(IEnumerable<UnmatchedFile> unmatchedFiles, IReadOnlyDictionary<string, TalearrCalibreIdentification> calibre)
+        {
+            if (calibre == null || calibre.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var unmatched in unmatchedFiles ?? Array.Empty<UnmatchedFile>())
+            {
+                if (unmatched?.File?.Path == null || !calibre.TryGetValue(unmatched.File.Path, out var identification))
+                {
+                    continue;
+                }
+
+                if (!identification.IsMatch)
+                {
+                    unmatched.Reason = $"CALIBRE_AMBIGUOUS:isbn={identification.Isbn}:books={identification.AmbiguousCount}:{unmatched.Reason ?? "NO_MATCH"}";
+                }
+                else if (!TalearrCalibreEvidence.ProviderOfferedEdition(unmatched))
+                {
+                    unmatched.Reason = TalearrCalibreEvidence.NoProviderEditionReasonCode(identification, unmatched.Reason);
+                    _logger.Info("[UNMAPPED-RETRY] {0}: {1}", unmatched.File.Path, TalearrCalibreEvidence.NoProviderEditionMessage(identification));
+                }
+            }
         }
 
         private void MarkUnmatchedAttempts(IEnumerable<UnmatchedFile> unmatchedFiles, IReadOnlyDictionary<string, BookFile> byPath)

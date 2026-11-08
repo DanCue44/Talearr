@@ -25,6 +25,9 @@ namespace Chaptarr.Core.Test.Talearr.Import
         [TestCase(typeof(NzbDrone.Core.MediaFiles.BookImport.Services.BookUnitDestinationService), "_rootFolderService")]
         [TestCase(typeof(DownloadImportModeResolver), "_configService")]
         [TestCase(typeof(ManualImportService), "_fileLanguageVerifier")]
+        [TestCase(typeof(ManualImportService), "_talearrCalibre")]
+        [TestCase(typeof(NzbDrone.Core.MediaFiles.BookImport.SimpleImportDecisionMaker), "_talearrCalibre")]
+        [TestCase(typeof(NzbDrone.Core.MediaFiles.Commands.RetryUnmappedMatchCommandHandler), "_talearrCalibre")]
         public void should_fill_the_optional_talearr_dependency(Type serviceType, string field)
         {
             var container = new Container(rules => rules.WithNzbDroneRules());

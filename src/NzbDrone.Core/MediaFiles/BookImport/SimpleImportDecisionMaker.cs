@@ -12,6 +12,7 @@ using NzbDrone.Core.MediaFiles.BookImport.Identification;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.Calibre;
 
 namespace NzbDrone.Core.MediaFiles.BookImport
 {
@@ -28,6 +29,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
         private readonly IEditionService _editionService;
         private readonly IMediaFileService _mediaFileService;
         private readonly Logger _logger;
+        private readonly ITalearrCalibreIdentifier _talearrCalibre;
 
         private sealed class ManualPreviewCandidate
         {
@@ -42,8 +44,10 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                                          IBookService bookService,
                                          IEditionService editionService,
                                          IMediaFileService mediaFileService,
-                                         Logger logger)
+                                         Logger logger,
+                                         ITalearrCalibreIdentifier talearrCalibre = null)
         {
+            _talearrCalibre = talearrCalibre;
             _metadataTagService = metadataTagService;
             _fileMatchingService = fileMatchingService;
             _authorService = authorService;
@@ -218,6 +222,11 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                 var restrictToAuthorId = idOverrides?.Author?.Id > 0 ? idOverrides.Author.Id : (int?)null;
                 var context = MatchingContextPresets.ForManualPreview();
                 context.CancellationToken = cancellationToken;
+
+                // Talearr: an ebook Calibre knows is matched on Calibre's author, title, ISBN and
+                // language. The row's displayed tags stay the file's own.
+                var calibre = TalearrCalibreEvidence.Apply(_talearrCalibre, candidates.Select(c => c.Discovered).ToList());
+
                 var result = _fileMatchingService
                     .MatchFilesToLibraryAsync(candidates.Select(c => c.Discovered).ToArray(), restrictToAuthorId, context)
                     .GetAwaiter()
@@ -240,13 +249,34 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                         continue;
                     }
 
+                    calibre.TryGetValue(candidate.Discovered.Path, out var calibreIdentification);
+                    if (calibreIdentification != null)
+                    {
+                        if (calibreIdentification.IsMatch)
+                        {
+                            candidate.LocalBook.TalearrCalibreEvidence = calibreIdentification.Describe();
+                        }
+                        else
+                        {
+                            candidate.LocalBook.TalearrCalibreWarning = calibreIdentification.Describe();
+                        }
+                    }
+
                     if (matchesByPath.TryGetValue(candidate.Discovered.Path, out var match))
                     {
                         ApplyMatch(candidate.LocalBook, match, bookCache, editionCache);
                         continue;
                     }
 
-                    if (!unmatchedByPath.TryGetValue(candidate.Discovered.Path, out var unmatched))
+                    unmatchedByPath.TryGetValue(candidate.Discovered.Path, out var unmatched);
+
+                    // Talearr: Calibre knows the book but the provider offered no edition for it.
+                    if (calibreIdentification?.IsMatch == true && !TalearrCalibreEvidence.ProviderOfferedEdition(unmatched))
+                    {
+                        candidate.LocalBook.TalearrCalibreWarning = TalearrCalibreEvidence.NoProviderEditionMessage(calibreIdentification);
+                    }
+
+                    if (unmatched == null)
                     {
                         continue;
                     }
