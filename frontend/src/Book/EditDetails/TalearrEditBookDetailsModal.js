@@ -42,7 +42,16 @@ function cleanSeries(rows) {
     .filter((row) => row.title);
 }
 
+// A series the book only names, with no link behind it, groups nothing yet.
+function hasUnlinkedSeries(entries) {
+  return (entries || []).some((entry) => entry.title && !entry.seriesId);
+}
+
 function sameSeries(rows, entries) {
+  if (hasUnlinkedSeries(entries)) {
+    return false;
+  }
+
   const left = cleanSeries(rows);
   const right = cleanSeries(toSeriesRows(entries));
 
@@ -335,6 +344,7 @@ class TalearrEditBookDetailsModal extends Component {
       title,
       series,
       narrators,
+      reset,
       saveError
     } = this.state;
 
@@ -453,6 +463,13 @@ class TalearrEditBookDetailsModal extends Component {
                   />
               }
             </div>
+
+            {
+              !reset.series && hasUnlinkedSeries(details.series.value) &&
+                <div className={styles.provider}>
+                  {'This book is not grouped with this series on the author page yet. Save to add it.'}
+                </div>
+            }
 
             <div className={styles.help}>
               {'A name that is not one of this author\'s series creates a new series. Leave # empty for an unnumbered book.'}

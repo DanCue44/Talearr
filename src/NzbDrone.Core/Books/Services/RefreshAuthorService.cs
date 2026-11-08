@@ -444,7 +444,8 @@ namespace NzbDrone.Core.Books
             var result = UpdateResult.None;
 
             // Check if metadata has changed
-            if (!local.Name.Equals(remote.Name) || !local.Overview.Equals(remote.Overview))
+            // Talearr: either side can have no overview (an author with no bio on Hardcover).
+            if (!string.Equals(local.Name, remote.Name) || !string.Equals(local.Overview, remote.Overview))
             {
                 result = UpdateResult.UpdateTags;
             }
@@ -1541,7 +1542,27 @@ namespace NzbDrone.Core.Books
                 var books = _bookService.GetBooksForRefresh(entity.Id, foreignIds: null);
                 HydrateLocalChildrenForRefresh(entity, books);
                 ApplyMergeRedirects(entity, books, remoteChildren);
+                AttachStaleIdentityBooks(entity, books, remoteChildren);
                 return books;
+            }
+
+            // Talearr: rows whose old provider id the server no longer returns are updated from the
+            // server's copy instead of getting a second row next to them (TalearrStaleIdentityReconciler).
+            private void AttachStaleIdentityBooks(Author entity, List<Book> localBooks, List<Book> remoteChildren)
+            {
+                if (localBooks == null || localBooks.Count == 0 || remoteChildren == null || remoteChildren.Count == 0)
+                {
+                    return;
+                }
+
+                try
+                {
+                    TalearrStaleIdentityReconciler.Attach(localBooks, remoteChildren, _logger, entity?.Name);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(ex, "[TALEARR-STALE-ID] Unable to match books with old ids for author '{0}'; the normal refresh rules apply", entity?.Name);
+                }
             }
 
             // Talearr: ids of book rows removed by the merge tool point at the kept row, so the

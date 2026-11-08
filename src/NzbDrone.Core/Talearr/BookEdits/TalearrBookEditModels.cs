@@ -13,6 +13,7 @@ namespace NzbDrone.Core.Talearr.BookEdits
         public string Position { get; set; }
 
         // API only: a series picked from the list. Never stored; the title is what is kept.
+        // In a response it is the series the book is linked to, null when nothing links it.
         public int? SeriesId { get; set; }
     }
 

@@ -1000,9 +1000,12 @@ namespace NzbDrone.Core.Talearr.BookEdits
                 }
             }
 
+            // The book's own series name with no link behind it (the series row was removed, e.g. a
+            // Goodreads series Hardcover does not list) groups nothing. No SeriesId tells the editor
+            // so saving it links the book instead of treating it as unchanged.
             if (result.Count == 0 && !string.IsNullOrWhiteSpace(row.SeriesName))
             {
-                result.Add(new TalearrSeriesEntry { SeriesId = row.SeriesId, Title = row.SeriesName, Position = EmptyToNull(row.SeriesPosition) });
+                result.Add(new TalearrSeriesEntry { Title = row.SeriesName, Position = EmptyToNull(row.SeriesPosition) });
             }
 
             // The book's main series first, as the book routes show it.
@@ -1025,7 +1028,7 @@ namespace NzbDrone.Core.Talearr.BookEdits
 
             if (result.Count == 0 && !string.IsNullOrWhiteSpace(provider.SeriesName))
             {
-                result.Add(new TalearrSeriesEntry { SeriesId = provider.SeriesId, Title = provider.SeriesName, Position = EmptyToNull(provider.SeriesPosition) });
+                result.Add(new TalearrSeriesEntry { Title = provider.SeriesName, Position = EmptyToNull(provider.SeriesPosition) });
             }
 
             return result

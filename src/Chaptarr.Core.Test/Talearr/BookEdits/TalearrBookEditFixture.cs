@@ -403,6 +403,41 @@ namespace Chaptarr.Core.Test.Talearr.BookEdits
         }
 
         [Test]
+        public void a_series_the_book_only_names_is_reported_unlinked_and_saving_it_links_the_book()
+        {
+            // A Chaptarr-era series Hardcover does not list: the refresh removed the Series row and
+            // its links but the book row still names it (issue #5).
+            _audiobook.SeriesId = 999;
+            _audiobook.SeriesName = "EDGE Force";
+            _audiobook.SeriesPosition = "2";
+            var other = _library.AddProviderSeries("Crematoria Online", BookMediaType.Audiobook, "gr:2");
+
+            var before = _service.Get(_audiobook.Id).Details;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(before.Series.Edited, Is.False);
+                Assert.That(before.Series.Value.Select(s => (s.Title, s.Position)), Is.EqualTo(new[] { ("EDGE Force", "2") }));
+                Assert.That(before.Series.Value.Single().SeriesId, Is.Null, "no series row links it, so the editor must not treat it as saved");
+                Assert.That(before.Series.ProviderValue.Single().SeriesId, Is.Null);
+            });
+
+            var after = Save(_audiobook.Id, new TalearrBookEditChange
+            {
+                Series = new List<TalearrSeriesEntry> { new TalearrSeriesEntry { Title = "EDGE Force", Position = "2" } }
+            });
+
+            var created = _library.Series.Single(s => s.Title == "EDGE Force" && s.MediaType == BookMediaType.Audiobook);
+            Assert.Multiple(() =>
+            {
+                Assert.That(after.Series.Value.Single().SeriesId, Is.EqualTo(created.Id));
+                Assert.That(_library.GetLinks(_audiobook.Id).Select(l => (l.SeriesId, l.Position)), Is.EqualTo(new[] { (created.Id, "2") }));
+                Assert.That(_audiobook.SeriesId, Is.EqualTo(created.Id));
+                Assert.That(_library.GetLinks(_audiobook.Id).Any(l => l.SeriesId == other.Id), Is.False);
+            });
+        }
+
+        [Test]
         public void series_number_survives_a_book_refresh()
         {
             Save(_audiobook.Id, new TalearrBookEditChange

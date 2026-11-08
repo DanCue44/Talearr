@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Dapper;
 using NLog;
 using NUnit.Framework;
@@ -15,6 +16,17 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
     [NonParallelizable]
     public class TalearrMergeFixture
     {
+        // Answers GetAuthor with one stored author; nothing else is called by the merge.
+        public class AuthorServiceProxy : DispatchProxy
+        {
+            public Author Author { get; set; }
+
+            protected override object Invoke(MethodInfo targetMethod, object[] args)
+            {
+                return targetMethod?.Name == nameof(IAuthorService.GetAuthor) && (int)args[0] == Author?.Id ? Author : null;
+            }
+        }
+
         private TalearrMigratedDatabase _db;
         private TalearrRecordingEventAggregator _events;
         private TalearrMergeService _subject;
@@ -288,6 +300,20 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
                 Assert.That(report.Changes["authorsRemoved"], Is.EqualTo(1));
                 Assert.That(report.Notes, Has.Some.Contains("nothing on disk was moved or deleted"));
             });
+        }
+
+        [Test]
+        public void merge_authors_sends_the_stored_author_not_an_empty_one()
+        {
+            var stored = new Author { Id = 1, Name = "Riley Sager" };
+            var authors = DispatchProxy.Create<IAuthorService, AuthorServiceProxy>();
+            ((AuthorServiceProxy)(object)authors).Author = stored;
+            var subject = new TalearrMergeService(_db.MainDatabase, _events, LogManager.GetLogger("TalearrMergeFixture"), authorService: authors);
+
+            subject.MergeAuthors(new TalearrMergeRequest { TargetId = 1, SourceIds = { 2 } });
+
+            // The author page builds the folder from the name; an id-only author has none.
+            Assert.That(_events.Events.OfType<AuthorUpdatedEvent>().Single().Author, Is.SameAs(stored));
         }
 
         [Test]

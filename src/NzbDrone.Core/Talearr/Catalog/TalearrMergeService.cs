@@ -69,14 +69,16 @@ namespace NzbDrone.Core.Talearr.Catalog
         private readonly IMainDatabase _database;
         private readonly IEventAggregator _eventAggregator;
         private readonly ITalearrMergeRedirectStore _redirects;
+        private readonly IAuthorService _authorService;
         private readonly Logger _logger;
         private readonly object _mergeLock = new object();
 
-        public TalearrMergeService(IMainDatabase database, IEventAggregator eventAggregator, Logger logger, ITalearrMergeRedirectStore redirects = null)
+        public TalearrMergeService(IMainDatabase database, IEventAggregator eventAggregator, Logger logger, ITalearrMergeRedirectStore redirects = null, IAuthorService authorService = null)
         {
             _database = database;
             _eventAggregator = eventAggregator;
             _redirects = redirects;
+            _authorService = authorService;
             _logger = logger;
         }
 
@@ -373,6 +375,19 @@ namespace NzbDrone.Core.Talearr.Catalog
             report.Changes[key] = existing + count;
         }
 
+        private Author LoadAuthor(int authorId)
+        {
+            try
+            {
+                return _authorService?.GetAuthor(authorId);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Talearr: could not load author {0} after a merge", authorId);
+                return null;
+            }
+        }
+
         private static string Describe(TalearrMergeReport report)
         {
             return string.Join(", ", report.Changes.Select(kv => $"{kv.Key}={kv.Value}"));
@@ -389,7 +404,14 @@ namespace NzbDrone.Core.Talearr.Catalog
                 // Tracked downloads that pointed at a merged-away book re-map themselves; statistics
                 // caches for the target author are dropped.
                 _eventAggregator.PublishEvent(new BookInfoRefreshedEvent(author, new List<Book>(), updated, removed));
-                _eventAggregator.PublishEvent(new AuthorUpdatedEvent(author));
+
+                // The author page is sent the whole author; an id-only one shows up blank (no name,
+                // folder or counts) until the page is reloaded.
+                var stored = LoadAuthor(authorId);
+                if (stored != null)
+                {
+                    _eventAggregator.PublishEvent(new AuthorUpdatedEvent(stored));
+                }
             }
             catch (Exception ex)
             {
