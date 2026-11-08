@@ -46,5 +46,8 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
         // Talearr: display-only match confidence (high, medium, low) and why.
         public string TalearrMatchConfidence { get; set; }
         public List<string> TalearrMatchNotes { get; set; }
+
+        // Talearr: display-only evidence from the Calibre library, when one is set and knows the file.
+        public string TalearrCalibreEvidence { get; set; }
     }
 }

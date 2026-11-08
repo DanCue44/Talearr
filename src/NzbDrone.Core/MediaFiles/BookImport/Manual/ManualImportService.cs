@@ -27,6 +27,7 @@ using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.MediaFiles.TalearrImport;
+using NzbDrone.Core.Talearr.Calibre;
 using NzbDrone.Core.Talearr.Import;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.BookImport.Identification;
@@ -80,6 +81,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
 	        private readonly IDownloadImportModeResolver _downloadImportModeResolver;
 	        private readonly IEventAggregator _eventAggregator;
 	        private readonly IDownloadedFileLanguageVerifier _fileLanguageVerifier;
+	        private readonly ITalearrCalibreIdentifier _talearrCalibre;
 	        private readonly Logger _logger;
 
         public ManualImportService(IDiskProvider diskProvider,
@@ -105,7 +107,8 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
 	                                   IDownloadImportModeResolver downloadImportModeResolver,
 	                                   IEventAggregator eventAggregator,
 	                                   Logger logger,
-	                                   IDownloadedFileLanguageVerifier fileLanguageVerifier = null)
+	                                   IDownloadedFileLanguageVerifier fileLanguageVerifier = null,
+	                                   ITalearrCalibreIdentifier talearrCalibre = null)
 	        {
 	            _diskProvider = diskProvider;
 	            _parsingService = parsingService;
@@ -130,6 +133,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
 	            _downloadImportModeResolver = downloadImportModeResolver;
 	            _eventAggregator = eventAggregator;
 	            _fileLanguageVerifier = fileLanguageVerifier;
+	            _talearrCalibre = talearrCalibre;
 	            _logger = logger;
 	        }
 
@@ -538,6 +542,19 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
                 {
                     item.Warnings.Add(languageMismatch + " Import anyway only if you want this language.");
                 }
+
+                // Talearr: what the Calibre library said about this file, when one is set.
+                item.TalearrCalibreEvidence = decision.Item.TalearrCalibreEvidence;
+                if (!string.IsNullOrWhiteSpace(decision.Item.TalearrCalibreEvidence))
+                {
+                    item.TalearrMatchNotes ??= new List<string>();
+                    item.TalearrMatchNotes.Add(decision.Item.TalearrCalibreEvidence);
+                }
+
+                if (!string.IsNullOrWhiteSpace(decision.Item.TalearrCalibreWarning))
+                {
+                    item.Warnings.Add(decision.Item.TalearrCalibreWarning);
+                }
             }
 
             return item;
@@ -764,6 +781,10 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
                     }
                 });
             }
+
+            // Talearr: the suggested row was found on Calibre's evidence in the preview, so the
+            // check against the added work uses the same evidence.
+            TalearrCalibreEvidence.Apply(_talearrCalibre, preparedSuggestedFiles.Select(file => file.Discovered).ToList());
 
             foreach (var suggestedGroup in preparedSuggestedFiles.GroupBy(file => new
                      {

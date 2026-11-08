@@ -44,6 +44,9 @@ namespace Chaptarr.Api.V1.ManualImport
         // Talearr: additive, display-only match confidence; Chaptarr clients ignore it.
         public string TalearrMatchConfidence { get; set; }
         public List<string> TalearrMatchNotes { get; set; }
+
+        // Talearr: additive, display-only Calibre evidence (when a Calibre library is set).
+        public string TalearrCalibreEvidence { get; set; }
     }
 
     public static class ManualImportResourceMapper
@@ -94,7 +97,8 @@ namespace Chaptarr.Api.V1.ManualImport
                 ReplaceExistingFiles = model.ReplaceExistingFiles,
                 DisableReleaseSwitching = model.DisableReleaseSwitching,
                 TalearrMatchConfidence = model.TalearrMatchConfidence,
-                TalearrMatchNotes = model.TalearrMatchNotes
+                TalearrMatchNotes = model.TalearrMatchNotes,
+                TalearrCalibreEvidence = model.TalearrCalibreEvidence
             };
         }
 
