@@ -16,6 +16,7 @@ import TableBody from 'Components/Table/TableBody';
 import TableRow from 'Components/Table/TableRow';
 import { icons, kinds, sizes } from 'Helpers/Props';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
+import { describeChange, readMergeError } from './talearrMergeLabels';
 import styles from './TalearrDuplicates.css';
 
 const authorColumns = [
@@ -35,32 +36,6 @@ const bookColumns = [
   { name: 'files', label: 'Files', isVisible: true },
   { name: 'ids', label: 'Work ids', isVisible: true }
 ];
-
-const changeLabels = {
-  books: 'books moved',
-  booksRemoved: 'duplicate book rows removed',
-  authorsRemoved: 'duplicate author rows removed',
-  editions: 'editions moved',
-  editionsFolded: 'identical editions folded together',
-  bookFiles: 'book files re-linked (files on disk untouched)',
-  history: 'history entries moved',
-  downloadHistory: 'download history entries moved',
-  pendingReleases: 'pending releases moved',
-  pendingImports: 'pending imports moved',
-  metadataFiles: 'metadata file records moved',
-  extraFiles: 'extra file records moved',
-  otherFiles: 'other file records moved',
-  legacyBlacklist: 'legacy blacklist rows moved',
-  seriesLinks: 'series links moved',
-  series: 'author series links moved',
-  narratorLinks: 'narrator links moved',
-  blocklist: 'blocklist entries extended'
-};
-
-function readError(xhr, fallback) {
-  const body = xhr && xhr.responseJSON;
-  return (body && body.message) || fallback;
-}
 
 function setKey(kind, set) {
   return `${kind}:${set.key}`;
@@ -136,7 +111,7 @@ class TalearrDuplicates extends Component {
 
     request.fail((xhr) => {
       if (!xhr.aborted) {
-        this.setState({ isFetching: false, error: readError(xhr, 'Unable to load possible duplicates.') });
+        this.setState({ isFetching: false, error: readMergeError(xhr, 'Unable to load possible duplicates.') });
       }
     });
   };
@@ -189,7 +164,7 @@ class TalearrDuplicates extends Component {
         this.setState({ preview, isMerging: false });
       })
       .fail((xhr) => {
-        const message = readError(xhr, 'Unable to preview the merge.');
+        const message = readMergeError(xhr, 'Unable to preview the merge.');
         this.setState({ previewError: message, canForce: message.indexOf('force=true') >= 0, isMerging: false });
       });
   };
@@ -207,7 +182,7 @@ class TalearrDuplicates extends Component {
 
       this.postMerge(forced, true, true)
         .done((result) => this.setState({ preview: result, isMerging: false }))
-        .fail((xhr) => this.setState({ previewError: readError(xhr, 'Unable to preview the merge.'), isMerging: false }));
+        .fail((xhr) => this.setState({ previewError: readMergeError(xhr, 'Unable to preview the merge.'), isMerging: false }));
 
       return;
     }
@@ -225,7 +200,7 @@ class TalearrDuplicates extends Component {
         this.fetchCandidates();
       })
       .fail((xhr) => {
-        this.setState({ previewError: readError(xhr, 'The merge failed; nothing was changed.'), preview: null, isMerging: false });
+        this.setState({ previewError: readMergeError(xhr, 'The merge failed; nothing was changed.'), preview: null, isMerging: false });
       });
   };
 
@@ -245,7 +220,7 @@ class TalearrDuplicates extends Component {
 
     this.postMergeAll(true)
       .done((preview) => this.setState({ mergeAll: preview, isMergingAll: false }))
-      .fail((xhr) => this.setState({ mergeAllError: readError(xhr, 'Unable to preview the merge.'), isMergingAll: false }));
+      .fail((xhr) => this.setState({ mergeAllError: readMergeError(xhr, 'Unable to preview the merge.'), isMergingAll: false }));
   };
 
   onConfirmMergeAll = () => {
@@ -263,7 +238,7 @@ class TalearrDuplicates extends Component {
         this.setState({ mergeAll: null, isMergingAll: false, lastMergeAll: result });
         this.fetchCandidates();
       })
-      .fail((xhr) => this.setState({ mergeAllError: readError(xhr, 'The merge failed; nothing was changed.'), isMergingAll: false }));
+      .fail((xhr) => this.setState({ mergeAllError: readMergeError(xhr, 'The merge failed; nothing was changed.'), isMergingAll: false }));
   };
 
   onCancelMergeAll = () => {
@@ -323,7 +298,7 @@ class TalearrDuplicates extends Component {
           {
             changes.length ?
               changes.map((key) => (
-                <li key={key}>{`${preview.changes[key]} ${changeLabels[key] || key}`}</li>
+                <li key={key}>{describeChange(key, preview.changes[key])}</li>
               )) :
               <li>{'Nothing else references the merged rows.'}</li>
           }
@@ -395,6 +370,16 @@ class TalearrDuplicates extends Component {
       <div key={set.key} className={styles.set}>
         <div className={styles.setHeader}>
           <span className={styles.setTitle}>{set.authors[0].name}</span>
+          {
+            set.match === 'middleName' ?
+              <Label
+                kind={kinds.WARNING}
+                title="Same first and last name; one has middle names or initials the other lacks. Check the books before merging."
+              >
+                {'Possible: middle names differ'}
+              </Label> :
+              null
+          }
           <Button
             kind={kinds.PRIMARY}
             size={sizes.SMALL}
@@ -516,7 +501,7 @@ class TalearrDuplicates extends Component {
 
         <PageContentBody>
           <div className={styles.intro}>
-            {'Possible duplicates: authors with the same name, and book rows of one author with the same title and media type. Ebook and audiobook rows of one book are siblings and are never listed or merged. Merge after reviewing the preview; files on disk are never touched.'}
+            {'Possible duplicates: authors with the same name (or the same first and last name where only middle names or initials differ), and book rows of one author with the same title and media type. Ebook and audiobook rows of one book are siblings and are never listed or merged. Merge after reviewing the preview; files on disk are never touched.'}
           </div>
 
           {

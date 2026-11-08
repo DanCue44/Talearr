@@ -266,6 +266,13 @@ namespace NzbDrone.Core.Talearr.Catalog
                 return true;
             }
 
+            // "Dietmar Wehr" and "Dietmar Arthur Wehr": the Duplicates page lists them, so the
+            // merge takes them without force.
+            if (TalearrDuplicateFinder.MiddleNamesAgree(target.Name, source.Name))
+            {
+                return true;
+            }
+
             return target.ProviderIds().Intersect(source.ProviderIds(), StringComparer.OrdinalIgnoreCase).Any();
         }
 
@@ -403,6 +410,13 @@ namespace NzbDrone.Core.Talearr.Catalog
             {
                 conn.Execute(@"UPDATE ""Authors"" SET ""Name"" = @Name WHERE ""Id"" = @Source", new { target.Name, Source = source.Id }, tran);
             }
+
+            // Book files hang off editions and come along with their books; counted for the preview.
+            Count(report, "bookFilesWithBooks", conn.ExecuteScalar<int>(
+                @"SELECT COUNT(*) FROM ""BookFiles"" f
+                  JOIN ""Editions"" e ON e.""Id"" = f.""EditionId""
+                  JOIN ""Books"" b ON b.""Id"" = e.""BookId""
+                  WHERE b.""AuthorId"" = @Source", p, tran));
 
             Step(report, "books", conn, tran, @"UPDATE ""Books"" SET ""AuthorId"" = @Target WHERE ""AuthorId"" = @Source", p);
             Step(report, "history", conn, tran, @"UPDATE ""History"" SET ""AuthorId"" = @Target WHERE ""AuthorId"" = @Source", p);

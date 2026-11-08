@@ -298,6 +298,44 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
             Assert.That(Scalar<int>("SELECT COUNT(*) FROM Authors WHERE Id = 3"), Is.EqualTo(1));
         }
 
+        [Test]
+        public void middle_name_variant_merges_without_force_and_previews_its_files()
+        {
+            using (var conn = _db.Open())
+            {
+                _db.Insert(conn, "Authors", new { Id = 4, Name = "Riley A. Sager", CleanName = "rileyasager", Path = "/books/Riley A. Sager" });
+                _db.Insert(conn, "Books", new { Id = 40, AuthorId = 4, Title = "Lock Every Door", CleanTitle = "lockeverydoor", MediaType = 0, AudiobookMonitored = false, EbookMonitored = false, AnyEditionOk = true });
+                _db.Insert(conn, "Editions", new { Id = 400, BookId = 40, Title = "Lock Every Door", ForeignEditionId = "e40", Monitored = true });
+                _db.Insert(conn, "BookFiles", new { Id = 4, EditionId = 400, Path = "/books/Riley A. Sager/Lock Every Door/a.m4b", Size = 1 });
+            }
+
+            var preview = _subject.MergeAuthors(new TalearrMergeRequest { TargetId = 1, SourceIds = { 4 }, DryRun = true });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(preview.Changes["books"], Is.EqualTo(1));
+                Assert.That(preview.Changes["bookFilesWithBooks"], Is.EqualTo(1));
+                Assert.That(Scalar<int>("SELECT COUNT(*) FROM Authors WHERE Id = 4"), Is.EqualTo(1), "dry run changes nothing");
+            });
+
+            _subject.MergeAuthors(new TalearrMergeRequest { TargetId = 1, SourceIds = { 4 } });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(Scalar<int>("SELECT COUNT(*) FROM Authors WHERE Id = 4"), Is.Zero);
+                Assert.That(Scalar<int>("SELECT AuthorId FROM Books WHERE Id = 40"), Is.EqualTo(1));
+                Assert.That(Scalar<int>("SELECT EditionId FROM BookFiles WHERE Id = 4"), Is.EqualTo(400));
+            });
+        }
+
+        [Test]
+        public void author_preview_counts_files_that_come_with_the_books()
+        {
+            var preview = _subject.MergeAuthors(new TalearrMergeRequest { TargetId = 1, SourceIds = { 2 }, DryRun = true });
+
+            Assert.That(preview.Changes["bookFilesWithBooks"], Is.EqualTo(1));
+        }
+
         // ---- finder ----
 
         [Test]
@@ -313,6 +351,66 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
             Assert.That(books.Books.Select(b => b.Id), Is.EqualTo(new[] { 11, 10 }), "rows with files first");
             Assert.That(books.Books.First().FileCount, Is.EqualTo(2));
             Assert.That(books.Books.First().EditionCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void finder_lists_middle_name_variants_as_possible_sets()
+        {
+            using (var conn = _db.Open())
+            {
+                _db.Insert(conn, "Authors", new { Id = 4, Name = "Riley A. Sager", CleanName = "rileyasager", Path = "/books/Riley A. Sager" });
+                _db.Insert(conn, "Authors", new { Id = 5, Name = "Riley B. Sager", CleanName = "rileybsager", Path = "/books/Riley B. Sager" });
+                _db.Insert(conn, "Authors", new { Id = 6, Name = "Dietmar Wehr", CleanName = "dietmarwehr", Path = "/books/Dietmar Wehr" });
+                _db.Insert(conn, "Authors", new { Id = 7, Name = "Dietmar Arthur Wehr", CleanName = "dietmararthurwehr", Path = "/books/Dietmar Arthur Wehr" });
+                _db.Insert(conn, "Authors", new { Id = 8, Name = "Wehr, Dietmar A.", CleanName = "wehrdietmara", Path = "/books/Wehr, Dietmar A." });
+                _db.Insert(conn, "Authors", new { Id = 9, Name = "Stephen A. Kingsley", CleanName = "stephenakingsley", Path = "/books/Stephen A. Kingsley" });
+                _db.Insert(conn, "Authors", new { Id = 10, Name = "Stephen B. Kingsley", CleanName = "stephenbkingsley", Path = "/books/Stephen B. Kingsley" });
+            }
+
+            var authors = new TalearrDuplicateFinder(_db.MainDatabase).Find().Authors;
+
+            var exact = authors.Where(a => a.Match == TalearrDuplicateAuthorSet.ExactMatch).ToList();
+            var loose = authors.Where(a => a.Match == TalearrDuplicateAuthorSet.MiddleNameMatch)
+                .Select(a => a.Authors.Select(x => x.Id).OrderBy(id => id).ToArray())
+                .ToList();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exact.Single().Authors.Select(a => a.Id), Is.EquivalentTo(new[] { 1, 2 }), "exact set unchanged");
+                Assert.That(loose, Has.Count.EqualTo(3));
+                Assert.That(loose, Has.Some.EqualTo(new[] { 1, 2, 4 }), "plain name with the A reading");
+                Assert.That(loose, Has.Some.EqualTo(new[] { 1, 2, 5 }), "plain name with the B reading");
+                Assert.That(loose, Has.Some.EqualTo(new[] { 6, 7, 8 }));
+                Assert.That(loose, Has.None.Contains(9).Or.Contains(10), "conflicting middles, no plain name");
+                Assert.That(loose, Has.None.Contains(3));
+                Assert.That(authors.Select(a => a.Key), Is.Unique);
+            });
+        }
+
+        [TestCase("Dietmar Wehr", "Dietmar Arthur Wehr", true)]
+        [TestCase("Dietmar Wehr", "Dietmar A. Wehr", true)]
+        [TestCase("Dietmar A. Wehr", "Dietmar Arthur Wehr", true)]
+        [TestCase("Wehr, Dietmar", "Dietmar Arthur Wehr", true)]
+        [TestCase("Wehr, Dietmar A.", "Dietmar Arthur Wehr", true)]
+        [TestCase("Ursula Le Guin", "Ursula K. Le Guin", true)]
+        [TestCase("George R. R. Martin", "George Martin", true)]
+        [TestCase("George R. R. Martin", "George Raymond Richard Martin", true)]
+        [TestCase("Gabriel Garcia Marquez", "Gabriel José García Márquez", true)]
+        [TestCase("John A. Smith", "John B. Smith", false)]
+        [TestCase("John Arthur Smith", "John Albert Smith", false)]
+        [TestCase("John Arthur Smith", "John B. Smith", false)]
+        [TestCase("John Smith", "Jane Smith", false)]
+        [TestCase("John Smith", "John Smyth", false)]
+        [TestCase("John A. Smith", "Jane A. Smith", false)]
+        [TestCase("Smith, John", "John Smithers", false)]
+        [TestCase("Martin Luther King Jr.", "Martin King Jr.", true)]
+        [TestCase("Martin Luther King Jr.", "Martin Luther King", false)]
+        [TestCase("Prince", "Prince", false)]
+        [TestCase("", "John Smith", false)]
+        public void middle_names_agree(string left, string right, bool expected)
+        {
+            Assert.That(TalearrDuplicateFinder.MiddleNamesAgree(left, right), Is.EqualTo(expected));
+            Assert.That(TalearrDuplicateFinder.MiddleNamesAgree(right, left), Is.EqualTo(expected), "symmetric");
         }
 
         [TestCase("Sager, Riley", "riley sager")]

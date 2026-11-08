@@ -1,0 +1,74 @@
+.modalBody {
+  composes: modalBody from '~Components/Modal/ModalBody.css';
+
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.intro {
+  margin-bottom: 10px;
+  color: var(--helpTextColor);
+}
+
+.filterInput {
+  composes: input from '~Components/Form/TextInput.css';
+
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+}
+
+.scroller {
+  flex: 1 1 auto;
+  max-height: 50vh;
+}
+
+.author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 8px;
+  border-bottom: 1px solid var(--borderColor);
+}
+
+.authorName {
+  font-weight: bold;
+}
+
+.meta {
+  margin-left: auto;
+  color: var(--helpTextColor);
+  font-size: 12px;
+}
+
+.more {
+  padding: 8px;
+  color: var(--helpTextColor);
+}
+
+.rowId {
+  margin: 0 6px;
+  color: var(--helpTextColor);
+  font-size: 12px;
+}
+
+.summary {
+  margin: 15px 0 8px;
+}
+
+.changes {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+
+.note {
+  margin-top: 6px;
+  color: var(--helpTextColor);
+}
+
+.leftButton {
+  composes: button from '~Components/Link/Button.css';
+
+  margin-right: auto;
+}
