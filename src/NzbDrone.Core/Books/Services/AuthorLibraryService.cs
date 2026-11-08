@@ -18,6 +18,8 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.ImportLists.Exclusions;
 using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.MetadataSource.BookInfo;
+using NzbDrone.Core.Talearr.Metadata.Source;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
@@ -239,6 +241,62 @@ namespace NzbDrone.Core.Books.Services
             }
         }
 
+        // Talearr: with Talearr's own source selected, refreshes read an author with a Hardcover id
+        // from Hardcover. An add that found the author by another id (a Goodreads search result)
+        // fetched the metadata server's catalog instead, and reconciling that into the library made
+        // the two sources undo each other: books the server merges or adds came back or went away
+        // on the next refresh. The catalog is read from Hardcover like the refresh; the books the
+        // add asked for are carried over from the server's data (as an extra id on Hardcover's copy
+        // of the same title, or as the server's book when Hardcover does not list it).
+        private async Task<Author> RefreshSourceBlobAsync(Author existingAuthor, string providerId, Author fetched, MonitoringConfig config)
+        {
+            var hardcoverId = existingAuthor?.HardcoverAuthorId?.Trim();
+            if ((_authorInfo as BookInfoProxy)?.TalearrSourceActive != true ||
+                !TalearrSourcePayloads.TryParseId(hardcoverId, out _) ||
+                TalearrSourcePayloads.TryParseId(providerId, out _))
+            {
+                return fetched;
+            }
+
+            Author author;
+            try
+            {
+                author = await FetchAuthorBlobAsync(hardcoverId);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Could not read author '{0}' ({1}) from Hardcover; using the {2} data", existingAuthor.Name, hardcoverId, providerId);
+                return fetched;
+            }
+
+            if (author == null)
+            {
+                return fetched;
+            }
+
+            author.Books ??= new List<Book>();
+            var requested = GetRequestedBookProviderIdsByMediaType(config);
+            foreach (var book in (fetched?.Books ?? new List<Book>()).Where(b => IsRequestedBook(requested, b)))
+            {
+                var same = author.Books
+                    .Where(b => b != null && b.MediaType == book.MediaType && TalearrTitleNormalizer.IsSameWorkTitle(b.Title, book.Title))
+                    .ToList();
+
+                if (same.Count == 1)
+                {
+                    same[0].RemoteProviderIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    same[0].RemoteProviderIds.UnionWith(BookIdentity.GetStableWorkProviderIdentityTokens(book));
+                }
+                else if (same.Count == 0)
+                {
+                    author.Books.Add(book);
+                }
+            }
+
+            _logger.Debug("Author '{0}' found by {1}; reconciling from Hardcover ({2}) like its refresh", existingAuthor.Name, providerId, hardcoverId);
+            return author;
+        }
+
         // Talearr: fetch from the metadata server; when that fails because the server is
         // unavailable (and the add allows it), build the author from the Open Library fallback.
         private async Task<(Author Author, bool UsedFallback)> FetchAuthorBlobOrFallbackAsync(string providerId, MonitoringConfig config)
@@ -419,6 +477,7 @@ namespace NzbDrone.Core.Books.Services
 
                 if (existingAuthor != null)
                 {
+                    author = await RefreshSourceBlobAsync(existingAuthor, providerId, author, config);
                     var handledAuthor = await HandleExistingAuthorAsync(existingAuthor, author, config);
                     return await QueueMissingRequestedWorks(handledAuthor, providerId, config);
                 }

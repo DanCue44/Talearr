@@ -26,8 +26,8 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
     // Hardcover duplicates (book_status_id 4 or canonical_id set) are not books of their own;
     // their ids are listed in the canonical work's provider_ids_all so a local row created from
     // the duplicate id still matches. Separate Hardcover books for one work ("Bound" and
-    // "Bound (Unabridged)", "Moderation" and "Moderation: A Novel") are folded the same way
-    // (FoldTitleVariants).
+    // "Bound (Unabridged)", "Moderation" and "Moderation: A Novel", or a title with a series
+    // subtitle in the same place of the same series) are folded the same way (FoldTitleVariants).
     public static class TalearrHardcoverMapper
     {
         public const string SourceName = "Hardcover";
@@ -212,6 +212,8 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 }
             }
 
+            FoldSeriesSubtitles(groups, order);
+
             foreach (var key in order)
             {
                 var group = groups[key];
@@ -272,6 +274,53 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             }
 
             return result;
+        }
+
+        // Talearr: a subtitle that names the series is not a generic one, so "Rise of the Crimson
+        // Order: A Crematoria Online LitRPG Novel" keeps its own key above. When such a book holds
+        // the same numbered place in the same series as a book with the bare main title, the two
+        // are one work listed twice: the subtitled group joins the bare one.
+        private static void FoldSeriesSubtitles(Dictionary<string, List<HardcoverBookRecord>> groups, List<string> order)
+        {
+            foreach (var key in order.ToList())
+            {
+                if (key.StartsWith("#", StringComparison.Ordinal) || !groups.TryGetValue(key, out var group))
+                {
+                    continue;
+                }
+
+                var mainKeys = group
+                    .Select(r => TalearrTitleNormalizer.NormalizeMain(r.Title))
+                    .Where(m => !string.IsNullOrEmpty(m) && m != key)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var mainKey in mainKeys)
+                {
+                    if (!groups.TryGetValue(mainKey, out var target) || ReferenceEquals(target, group) || !SameSeriesPlace(group, target))
+                    {
+                        continue;
+                    }
+
+                    target.AddRange(group.Where(r => target.All(t => t.Id != r.Id)));
+                    groups.Remove(key);
+                    order.Remove(key);
+                    break;
+                }
+            }
+        }
+
+        private static bool SameSeriesPlace(List<HardcoverBookRecord> left, List<HardcoverBookRecord> right)
+        {
+            static IEnumerable<(int, decimal)> Places(List<HardcoverBookRecord> records)
+            {
+                return records
+                    .SelectMany(r => r.Series ?? new List<HardcoverBookSeriesRecord>())
+                    .Where(s => s != null && !s.Compilation && s.Position.HasValue)
+                    .Select(s => (s.SeriesId, s.Position.Value));
+            }
+
+            return Places(left).Intersect(Places(right)).Any();
         }
 
         internal static V5AuthorData BuildAuthor(HardcoverAuthorRecord record)

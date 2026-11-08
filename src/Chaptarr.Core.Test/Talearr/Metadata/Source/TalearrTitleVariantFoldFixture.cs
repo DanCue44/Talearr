@@ -83,6 +83,47 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
             Assert.That(primary.UsersCount, Is.EqualTo(10));
         }
 
+        private static HardcoverBookRecord InSeries(HardcoverBookRecord book, int seriesId, decimal? position)
+        {
+            book.Series = new List<HardcoverBookSeriesRecord> { new HardcoverBookSeriesRecord { SeriesId = seriesId, Position = position } };
+            return book;
+        }
+
+        [Test]
+        public void a_series_subtitle_in_the_same_place_folds_into_the_bare_title()
+        {
+            // Hardcover lists Matthew J. Barbeler's first Crematoria Online book twice (issue #5).
+            var aliases = new Dictionary<int, List<int>>();
+            var folded = TalearrHardcoverMapper.FoldTitleVariants(new[]
+            {
+                InSeries(Book(2327493, "Rise of the Crimson Order", 2, 11), 7, 1),
+                InSeries(Book(2480401, "Rise of the Crimson Order: A Crematoria Online LitRPG Novel", 2, 21), 7, 1),
+                InSeries(Book(2683716, "Ashen Legacy", 1, 31), 7, 2)
+            }, aliases);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(folded.Select(b => b.Id), Is.EqualTo(new[] { 2327493, 2683716 }));
+                Assert.That(folded[0].Title, Is.EqualTo("Rise of the Crimson Order"));
+                Assert.That(folded[0].Editions.Select(e => e.Id), Is.EquivalentTo(new[] { 11, 21 }));
+                Assert.That(aliases[2327493], Is.EqualTo(new[] { 2480401 }));
+            });
+        }
+
+        [Test]
+        public void a_subtitle_without_the_same_series_place_stays_its_own_book()
+        {
+            var folded = TalearrHardcoverMapper.FoldTitleVariants(new[]
+            {
+                InSeries(Book(1, "Animal Farm", 50, 11), 3, 1),
+                Book(2, "Animal Farm: The Graphic Novel", 5, 21),
+                InSeries(Book(3, "Dune", 50, 31), 4, 1),
+                InSeries(Book(4, "Dune: House Atreides", 10, 41), 4, 0.5m)
+            }, new Dictionary<int, List<int>>());
+
+            Assert.That(folded.Select(b => b.Id), Is.EqualTo(new[] { 1, 2, 3, 4 }));
+        }
+
         [Test]
         public void compilations_are_not_folded()
         {
