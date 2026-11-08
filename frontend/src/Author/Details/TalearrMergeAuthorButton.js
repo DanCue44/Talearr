@@ -182,8 +182,9 @@ class TalearrMergeAuthorButton extends Component {
 
       this._abortPreview = null;
       const message = readMergeError(xhr, 'Unable to preview the merge.');
+      // The API's "Send force=true ..." sentence is for API callers; the button below is the UI's way.
       this.setState({
-        previewError: message,
+        previewError: message.replace(/\s*Send force=true[^.]*\./, ''),
         canForce: !force && message.indexOf('force=true') >= 0,
         isPreviewing: false
       });
