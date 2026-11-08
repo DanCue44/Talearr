@@ -6,9 +6,12 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using NLog;
+using NzbDrone.Common.Disk;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.RootFolders;
 
 namespace NzbDrone.Core.MediaFiles.BookImport.Services
 {
@@ -25,6 +28,8 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Services
         private readonly IBookService _bookService;
         private readonly IEditionService _editionService;
         private readonly IMainDatabase _mainDatabase;
+        private readonly IDiskProvider _diskProvider;
+        private readonly IRootFolderService _rootFolderService;
         private readonly Logger _logger;
 
         // Cache per canonical book + unit so we don't create multiple clones for the same physical unit.
@@ -36,12 +41,16 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Services
             IBookService bookService,
             IEditionService editionService,
             IMainDatabase mainDatabase,
-            Logger logger)
+            Logger logger,
+            IDiskProvider diskProvider = null,
+            IRootFolderService rootFolderService = null)
         {
             _mediaFileService = mediaFileService;
             _bookService = bookService;
             _editionService = editionService;
             _mainDatabase = mainDatabase;
+            _diskProvider = diskProvider;
+            _rootFolderService = rootFolderService;
             _logger = logger;
         }
 
@@ -142,6 +151,22 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Services
             // Check files on BOOK level, not edition - prevents different folders from collapsing onto same book
             // when they match different editions of the same work
             var existingFiles = _mediaFileService.GetFilesByBook(canonicalBook.Id) ?? new List<BookFile>();
+
+            // Talearr: a book moved by hand (to another folder or root folder) is found at its new
+            // path while its old row is still tracked, because a scan only drops missing rows of the
+            // folder it scanned, after importing. When every tracked file of the book is gone from a
+            // root folder that is still visible, this unit is that book moved: drop the stale rows
+            // and keep the book instead of cloning a second recording.
+            var moved = existingFiles.Where(IsGoneFromVisibleRoot).ToList();
+            if (moved.Count > 0 && moved.Count == existingFiles.Count)
+            {
+                _mediaFileService.DeleteMany(moved, DeleteMediaFileReason.MissingFromDisk);
+                _logger.Info("Book '{0}' was moved: its files are no longer at {1}; using the new location instead of adding another recording",
+                    canonicalBook.Title,
+                    string.Join(", ", moved.Select(f => f.Path)));
+                existingFiles = new List<BookFile>();
+            }
+
             if (existingFiles.Count == 0)
             {
                 // No existing files on canonical book → reuse canonical
@@ -173,6 +198,28 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Services
             var dest2 = (clone.BookId, clone.EditionId);
             if (!string.IsNullOrWhiteSpace(cacheKey)) _unitDestCache[cacheKey] = dest2;
             return dest2;
+        }
+
+        private bool IsGoneFromVisibleRoot(BookFile file)
+        {
+            if (_diskProvider == null || _rootFolderService == null || file?.Path.IsNullOrWhiteSpace() != false)
+            {
+                return false;
+            }
+
+            try
+            {
+                // A missing mount makes every file look gone; only trust "missing" under a visible root.
+                var root = _rootFolderService.GetBestRootFolder(file.Path);
+                return root != null &&
+                       _diskProvider.FolderExists(root.Path) &&
+                       !_diskProvider.FileExistsCanonical(file.Path);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Could not check whether {0} still exists", file.Path);
+                return false;
+            }
         }
 
         private static string BuildUnitDestCacheKey(Book canonicalBook, string unitKeyOrHash)
