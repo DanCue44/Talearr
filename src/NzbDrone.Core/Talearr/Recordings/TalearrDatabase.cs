@@ -279,6 +279,41 @@ CREATE TABLE IF NOT EXISTS BookDecisions (
 );
 
 CREATE INDEX IF NOT EXISTS IX_BookDecisions_BookId ON BookDecisions (BookId, CreatedAt);
+",
+
+            // 11: book detail edits (Talearr/BookEdits/TalearrBookEditStore). The title and series a
+            // user set for a work (keyed like BookGrabPolicies), narrators set for an edition (keyed
+            // by TalearrEditionKey), and the Series rows Talearr created for those edits. Each edit
+            // row also keeps the provider's values so clearing it can put them back. Losing it means
+            // the next refresh brings the provider's details back.
+            @"
+CREATE TABLE IF NOT EXISTS BookDetailEdits (
+    WorkKey    TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+    Title      TEXT,
+    Series     TEXT,
+    Provider   TEXT,
+    BookIdHint INTEGER,
+    UpdatedAt  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS NarratorEdits (
+    EditionKey TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+    WorkKey    TEXT NOT NULL COLLATE NOCASE,
+    Narrators  TEXT NOT NULL,
+    Provider   TEXT,
+    BookIdHint INTEGER,
+    UpdatedAt  TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS IX_NarratorEdits_WorkKey ON NarratorEdits (WorkKey);
+
+CREATE TABLE IF NOT EXISTS UserSeries (
+    SeriesId  INTEGER NOT NULL PRIMARY KEY,
+    AuthorId  INTEGER NOT NULL,
+    MediaType INTEGER NOT NULL,
+    Title     TEXT NOT NULL,
+    CreatedAt TEXT NOT NULL
+);
 "
         };
 
@@ -333,7 +368,7 @@ CREATE INDEX IF NOT EXISTS IX_BookDecisions_BookId ON BookDecisions (BookId, Cre
         {
             lock (_lock)
             {
-                _logger.Warn("Talearr: recreating {0} ({1}). It holds cached data (Audible facts, the Audiobookshelf library), which is fetched again, per-book abridged overrides, which fall back to the global grab policy, and book tags.", FileName, reason);
+                _logger.Warn("Talearr: recreating {0} ({1}). It holds cached data (Audible facts, the Audiobookshelf library), which is fetched again, per-book abridged overrides, which fall back to the global grab policy, book tags and book detail edits, which the next refresh replaces with the provider's details.", FileName, reason);
                 MoveAside();
                 _initialized = false;
                 InitializeCore(allowRecreate: false);
@@ -404,7 +439,7 @@ CREATE INDEX IF NOT EXISTS IX_BookDecisions_BookId ON BookDecisions (BookId, Cre
             }
             catch (Exception ex) when (allowRecreate && (ex is TalearrDatabaseUnusableException || IsCorruption(ex)))
             {
-                _logger.Warn("Talearr: {0} is unusable ({1}); recreating it. It holds cached data (Audible facts, the Audiobookshelf library), per-book abridged overrides (books fall back to the global grab policy) and book tags.", FileName, ex.Message);
+                _logger.Warn("Talearr: {0} is unusable ({1}); recreating it. It holds cached data (Audible facts, the Audiobookshelf library), per-book abridged overrides (books fall back to the global grab policy), book tags and book detail edits.", FileName, ex.Message);
                 MoveAside();
                 InitializeCore(allowRecreate: false);
             }

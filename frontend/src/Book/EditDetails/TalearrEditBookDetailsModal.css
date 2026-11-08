@@ -1,0 +1,57 @@
+.intro {
+  margin-top: 0;
+  color: var(--helpTextColor);
+}
+
+.field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.editedLabel {
+  margin-left: 6px;
+}
+
+.provider {
+  margin-top: 4px;
+  color: var(--helpTextColor);
+  font-size: 13px;
+}
+
+.help {
+  margin-top: 4px;
+  color: var(--helpTextColor);
+  font-size: 12px;
+}
+
+.providerButton {
+  margin-top: 6px;
+}
+
+.seriesRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-bottom: 6px;
+}
+
+.seriesTitle {
+  flex: 1 1 auto;
+}
+
+.seriesPosition {
+  flex: 0 0 70px;
+  width: 70px;
+}
+
+.seriesActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.seriesPicker {
+  flex: 1 1 200px;
+}

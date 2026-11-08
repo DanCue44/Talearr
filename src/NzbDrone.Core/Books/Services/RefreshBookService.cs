@@ -20,6 +20,7 @@ using NzbDrone.Core.ProgressMessaging;
 using NzbDrone.Core.Books.Services;
 using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.BookEdits;
 
 namespace NzbDrone.Core.Books
 {
@@ -49,6 +50,7 @@ namespace NzbDrone.Core.Books
         private readonly IEditionMetadataProfileFilter _editionMetadataProfileFilter;
         private readonly IMapCoversToLocal _mediaCoverService;
         private readonly Logger _logger;
+        private readonly ITalearrBookEditService _bookEdits;
         private EditionRefreshMatchingIndex _editionRefreshMatchingIndex;
 
         // Cache for book metadata during refresh
@@ -68,7 +70,8 @@ namespace NzbDrone.Core.Books
                                   IEditionSelector editionSelector,
                                   IEditionMetadataProfileFilter editionMetadataProfileFilter,
                                   IMapCoversToLocal mediaCoverService,
-                                  Logger logger)
+                                  Logger logger,
+                                  ITalearrBookEditService bookEdits = null)
         : base(logger)
         {
             _bookService = bookService;
@@ -86,6 +89,7 @@ namespace NzbDrone.Core.Books
             _editionMetadataProfileFilter = editionMetadataProfileFilter;
             _mediaCoverService = mediaCoverService;
             _logger = logger;
+            _bookEdits = bookEdits;
         }
 
         private string GetPrimaryProviderKey(Book b)
@@ -536,6 +540,9 @@ namespace NzbDrone.Core.Books
             var remoteForUpdate = RefreshEntityCopy.CloneBook(remote, includeEditions: false);
             remoteForUpdate.UseDbFieldsFrom(local);
 
+            // Talearr: a title or series the user edited wins over the provider's (Edit book details).
+            _bookEdits?.ApplyToRemoteBook(local, remoteForUpdate);
+
             // If local release date is null and remote doesn't have one either,
             // future refreshes can fill it if the configured metadata server adds it later.
             if (local.ReleaseDate == null && remoteForUpdate.ReleaseDate == null)
@@ -761,6 +768,10 @@ namespace NzbDrone.Core.Books
 
             var retentionSelection = BuildRetentionSelection(local, remote, remote.Editions.ToList());
             var editionsToImport = retentionSelection.RetainedEditions?.ToList() ?? new List<Edition>();
+
+            // Talearr: edited titles and narrators replace the provider's on copies of the remote
+            // editions, so the refresh neither overwrites them nor counts them as changed.
+            editionsToImport = _bookEdits?.ApplyToRemoteEditions(local, editionsToImport) ?? editionsToImport;
 
             var audiobookEditions = editionsToImport.Where(e => e?.ReadingFormatId == 2).ToList();
             var audiobookCount = audiobookEditions.Count;
@@ -1281,12 +1292,20 @@ namespace NzbDrone.Core.Books
                 }
             }
 
+            // Talearr: put edited book details back on anything a refresh path still overwrote.
+            _bookEdits?.Reapply(books);
+
             return updated;
         }
 
         public bool RefreshBookInfo(Book book, List<Book> remoteBooks, Author remoteData, bool forceUpdateFileTags)
         {
-            return RefreshEntityInfo(book, remoteBooks, remoteData, true, forceUpdateFileTags, null);
+            var updated = RefreshEntityInfo(book, remoteBooks, remoteData, true, forceUpdateFileTags, null);
+
+            // Talearr: as above.
+            _bookEdits?.Reapply(new List<Book> { book });
+
+            return updated;
         }
 
         public bool RefreshBookInfo(Book book)
