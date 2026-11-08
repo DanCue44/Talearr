@@ -29,6 +29,7 @@ import qualityProfiles from './Settings/qualityProfiles';
 import releaseProfiles from './Settings/releaseProfiles';
 import remotePathMappings from './Settings/remotePathMappings';
 import rootFolders from './Settings/rootFolders';
+import talearrCalibre from './Settings/talearrCalibre';
 import talearrEpub from './Settings/talearrEpub';
 import talearrGrabPolicy from './Settings/talearrGrabPolicy';
 import talearrM4b from './Settings/talearrM4b';
@@ -69,6 +70,7 @@ export * from './Settings/talearrGrabPolicy';
 export * from './Settings/talearrEpub';
 export * from './Settings/talearrM4b';
 export * from './Settings/talearrMetadataFallback';
+export * from './Settings/talearrCalibre';
 export * from './Settings/talearrRecordings';
 
 //
@@ -115,6 +117,7 @@ export const defaultState = {
   talearrEpub: talearrEpub.defaultState,
   talearrM4b: talearrM4b.defaultState,
   talearrMetadataFallback: talearrMetadataFallback.defaultState,
+  talearrCalibre: talearrCalibre.defaultState,
   talearrRecordings: talearrRecordings.defaultState
 };
 
@@ -169,6 +172,7 @@ export const actionHandlers = handleThunks({
   ...talearrEpub.actionHandlers,
   ...talearrM4b.actionHandlers,
   ...talearrMetadataFallback.actionHandlers,
+  ...talearrCalibre.actionHandlers,
   ...talearrRecordings.actionHandlers
 });
 
@@ -214,6 +218,7 @@ export const reducers = createHandleActions({
   ...talearrEpub.reducers,
   ...talearrM4b.reducers,
   ...talearrMetadataFallback.reducers,
+  ...talearrCalibre.reducers,
   ...talearrRecordings.reducers
 
 }, defaultState, section);
