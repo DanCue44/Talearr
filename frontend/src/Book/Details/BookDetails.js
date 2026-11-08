@@ -4,6 +4,7 @@ import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import AuthorHistoryTable from 'Author/History/AuthorHistoryTable';
 import DeleteBookModal from 'Book/Delete/DeleteBookModal';
 import EditBookModalConnector from 'Book/Edit/EditBookModalConnector';
+import TalearrEditBookDetailsModal from 'Book/EditDetails/TalearrEditBookDetailsModal';
 import TalearrBookExplain from 'Book/Explain/TalearrBookExplain';
 import BookFileEditorTable from 'BookFile/Editor/BookFileEditorTable';
 import IconButton from 'Components/Link/IconButton';
@@ -42,6 +43,7 @@ class BookDetails extends Component {
       isOrganizeModalOpen: false,
       isRetagModalOpen: false,
       isEditBookModalOpen: false,
+      isEditDetailsModalOpen: false,
       isDeleteBookModalOpen: false,
       selectedTabIndex: 0
     };
@@ -85,6 +87,15 @@ class BookDetails extends Component {
 
   onEditBookModalClose = () => {
     this.setState({ isEditBookModalOpen: false });
+  };
+
+  // Talearr: edit the title, series and narrators the metadata provider got wrong.
+  onEditDetailsPress = () => {
+    this.setState({ isEditDetailsModalOpen: true });
+  };
+
+  onEditDetailsModalClose = () => {
+    this.setState({ isEditDetailsModalOpen: false });
   };
 
   onDeleteBookPress = () => {
@@ -146,6 +157,7 @@ class BookDetails extends Component {
       isOrganizeModalOpen,
       isRetagModalOpen,
       isEditBookModalOpen,
+      isEditDetailsModalOpen,
       isDeleteBookModalOpen,
       selectedTabIndex
     } = this.state;
@@ -222,6 +234,13 @@ class BookDetails extends Component {
               label={translate('Edit')}
               iconName={icons.EDIT}
               onPress={this.onEditBookPress}
+            />
+
+            <PageToolbarButton
+              label="Edit Details"
+              title="Fix the title, series or narrators from the metadata provider"
+              iconName={icons.INFO}
+              onPress={this.onEditDetailsPress}
             />
 
             <PageToolbarButton
@@ -443,6 +462,13 @@ class BookDetails extends Component {
             authorId={author.id}
             onModalClose={this.onEditBookModalClose}
             onDeleteAuthorPress={this.onDeleteBookPress}
+          />
+
+          <TalearrEditBookDetailsModal
+            isOpen={isEditDetailsModalOpen}
+            bookId={id}
+            authorId={author.id}
+            onModalClose={this.onEditDetailsModalClose}
           />
 
           <DeleteBookModal
