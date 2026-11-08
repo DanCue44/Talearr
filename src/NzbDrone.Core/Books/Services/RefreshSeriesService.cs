@@ -6,6 +6,7 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.Talearr.BookEdits;
 
 namespace NzbDrone.Core.Books
 {
@@ -21,12 +22,14 @@ namespace NzbDrone.Core.Books
         private readonly ISeriesBookLinkService _linkService;
         private readonly IRefreshSeriesBookLinkService _refreshLinkService;
         private readonly Logger _logger;
+        private readonly ITalearrBookEditService _bookEdits;
 
         public RefreshSeriesService(IBookService bookService,
                                     ISeriesService seriesService,
                                     ISeriesBookLinkService linkService,
                                     IRefreshSeriesBookLinkService refreshLinkService,
-                                    Logger logger)
+                                    Logger logger,
+                                    ITalearrBookEditService bookEdits = null)
         : base(logger)
         {
             _bookService = bookService;
@@ -34,6 +37,7 @@ namespace NzbDrone.Core.Books
             _linkService = linkService;
             _refreshLinkService = refreshLinkService;
             _logger = logger;
+            _bookEdits = bookEdits;
         }
 
         private static bool HasMatchingGoodreadsSeriesId(Series local, Series remote)
@@ -480,6 +484,12 @@ namespace NzbDrone.Core.Books
             return RefreshEntityCopy.CloneSeriesBookLink(remoteChild);
         }
 
+        protected override void ProcessChildren(Series entity, SortedChildren children)
+        {
+            // Talearr: series links the user edited (Edit book details) are kept as they are.
+            _bookEdits?.FilterSeriesLinks(entity, children.Added, children.Updated, children.Deleted, children.UpToDate);
+        }
+
         protected override void AddChildren(List<SeriesBookLink> children)
         {
             _logger.Trace("[SERIES-DEBUG] AddChildren called with {0} SeriesBookLink records to insert", children.Count);
@@ -571,9 +581,11 @@ namespace NzbDrone.Core.Books
                     g.Key))
                 .ToList();
 
+            // Talearr: series created for a user's edit have no provider id and are never refreshed
+            // (or deleted as "not found in metadata").
             var existing = existingByAuthor
                 .Concat(existingBySeries)
-                .Where(s => s != null && s.IsOriginal)
+                .Where(s => s != null && s.IsOriginal && _bookEdits?.IsUserSeries(s.Id) != true)
                 .GroupBy(s => s.Id)
                 .Select(g => g.First())
                 .ToList();
@@ -602,6 +614,9 @@ namespace NzbDrone.Core.Books
             {
                 updated |= RefreshEntityInfo(item, providerBackedRemoteSeries, remoteData, forceBookRefresh, forceUpdateFileTags, lastUpdate);
             }
+
+            // Talearr: put edited series details back on anything the refresh still changed.
+            _bookEdits?.ReapplyAuthor(authorId);
 
             return updated;
         }
