@@ -151,10 +151,11 @@ namespace NzbDrone.Core.Books
 
                 foreach (var matchingBook in matchingBooks.Where(b => b != null).DistinctBy(b => b.Id))
                 {
+                    var position = PositionOrBookOwn(seriesBook.Position, matchingBook, remote.Title);
                     result.Add(new SeriesBookLink
                     {
-                        Position = seriesBook.Position,
-                        SeriesPosition = int.TryParse(seriesBook.Position, out var pos) ? pos : 0,
+                        Position = position,
+                        SeriesPosition = int.TryParse(position, out var pos) ? pos : 0,
                         Book = matchingBook,
                         BookId = matchingBook.Id,
 
@@ -167,6 +168,22 @@ namespace NzbDrone.Core.Books
             }
 
             return result;
+        }
+
+        // Talearr: the provider often lists a new book in a series without its number while the
+        // book's own record has it ("First Peacemaker #6"). An unnumbered slot takes the book's own
+        // number when the book names this same series.
+        public static string PositionOrBookOwn(string position, Book book, string seriesTitle)
+        {
+            if (position.IsNotNullOrWhiteSpace() || book == null || book.SeriesPosition.IsNullOrWhiteSpace())
+            {
+                return position;
+            }
+
+            static string Key(string title) => Regex.Replace(Regex.Replace((title ?? string.Empty).ToLowerInvariant(), "^the ", string.Empty), "[^a-z0-9]", string.Empty);
+
+            var seriesKey = Key(seriesTitle);
+            return seriesKey.Length > 0 && Key(book.SeriesName) == seriesKey ? book.SeriesPosition.Trim() : position;
         }
 
         private List<Series> FilterRemoteSeriesToLocalBooks(int authorId, List<Series> remoteSeries)
@@ -352,10 +369,11 @@ namespace NzbDrone.Core.Books
                             continue;
                         }
 
+                        var position = PositionOrBookOwn(seriesBook.Position, matchingBook, remote.Title);
                         var link = new SeriesBookLink
                         {
-                            Position = seriesBook.Position,
-                            SeriesPosition = int.TryParse(seriesBook.Position, out var pos) ? pos : 0,
+                            Position = position,
+                            SeriesPosition = int.TryParse(position, out var pos) ? pos : 0,
                             Book = matchingBook,
                             BookId = matchingBook.Id,
 
