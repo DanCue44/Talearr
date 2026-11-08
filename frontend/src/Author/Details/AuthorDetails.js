@@ -35,6 +35,7 @@ import AuthorDetailsSeriesConnector from './AuthorDetailsSeriesConnector';
 import AuthorDetailsControls from './AuthorDetailsControls';
 import SelectAuthorRootFolderModal from './SelectAuthorRootFolderModal';
 import TalearrAuthorCatalogButton from './TalearrAuthorCatalogButton';
+import TalearrMergeAuthorButton from './TalearrMergeAuthorButton';
 import styles from './AuthorDetails.css';
 
 function getExpandedState(newState) {
@@ -365,6 +366,11 @@ class AuthorDetails extends Component {
               authorId={id}
               authorName={authorName}
               catalogMode={talearrCatalogMode}
+            />
+
+            {/* Talearr: merge another author that is the same person into this one. */}
+            <TalearrMergeAuthorButton
+              authorId={id}
             />
 
             <PageToolbarButton
