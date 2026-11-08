@@ -267,6 +267,22 @@ namespace Chaptarr.Core.Test.Talearr.BookEdits
         }
 
         [Test]
+        public void a_row_added_after_the_edit_keeps_the_provider_title_for_a_reset()
+        {
+            Save(_audiobook.Id, new TalearrBookEditChange { Title = "The Hollow Crown" });
+
+            var copy = AddBook(3, BookMediaType.Audiobook, "The Hollow Crwn");
+            var refresh = new TestableEditRefreshBookService(_service, LogManager.GetLogger("TalearrTest"));
+            refresh.UpdateEntityPublic(copy, new Book { Title = "The Hollow Crwn", MediaType = BookMediaType.Audiobook, BaseBookId = "hc:4242" });
+            _service.Reapply(new[] { copy });
+
+            Assert.That(copy.Title, Is.EqualTo("The Hollow Crown"));
+
+            _service.Clear(copy.Id, new[] { "title" });
+            Assert.That(copy.Title, Is.EqualTo("The Hollow Crwn"));
+        }
+
+        [Test]
         public void edited_titles_and_narrators_survive_an_edition_refresh()
         {
             Save(_audiobook.Id, new TalearrBookEditChange { Title = "The Hollow Crown", Narrators = new List<string> { "Jane Reader", " Tom Voice ", "jane reader" } });
@@ -395,7 +411,7 @@ namespace Chaptarr.Core.Test.Talearr.BookEdits
             });
 
             var refresh = new TestableEditRefreshBookService(_service, LogManager.GetLogger("TalearrTest"));
-            var remote = new Book { Title = _audiobook.Title, MediaType = BookMediaType.Audiobook, SeriesName = "Crown Saga", SeriesPosition = null };
+            var remote = new Book { Title = _audiobook.Title, MediaType = BookMediaType.Audiobook, BaseBookId = "hc:4242", SeriesName = "Crown Saga", SeriesPosition = null };
             refresh.UpdateEntityPublic(_audiobook, remote);
 
             Assert.That(_audiobook.SeriesName, Is.EqualTo("Crown Saga"));

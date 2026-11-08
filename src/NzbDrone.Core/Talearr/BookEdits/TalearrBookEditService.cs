@@ -274,8 +274,17 @@ namespace NzbDrone.Core.Talearr.BookEdits
 
                     if (edit.HasTitle)
                     {
-                        if (provider?.TitleCaptured == true && !string.IsNullOrWhiteSpace(remote.Title) && provider.Title != remote.Title)
+                        // A row the edit has not reached yet (a new recording copy) keeps the
+                        // provider's title from this refresh before the edit replaces it.
+                        if (provider == null)
                         {
+                            provider = new TalearrProviderBookValues();
+                            edit.Provider[local.Id] = provider;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(remote.Title) && (!provider.TitleCaptured || provider.Title != remote.Title))
+                        {
+                            provider.TitleCaptured = true;
                             provider.Title = remote.Title;
                             dirty = true;
                         }
@@ -353,7 +362,7 @@ namespace NzbDrone.Core.Talearr.BookEdits
 
                         if (edit?.HasTitle == true)
                         {
-                            if (provider?.TitleCaptured == true && editionKey != null && !string.IsNullOrWhiteSpace(remote.Title) &&
+                            if (provider != null && editionKey != null && !string.IsNullOrWhiteSpace(remote.Title) &&
                                 (!provider.EditionTitles.TryGetValue(editionKey, out var known) || known != remote.Title))
                             {
                                 provider.EditionTitles[editionKey] = remote.Title;
@@ -370,9 +379,10 @@ namespace NzbDrone.Core.Talearr.BookEdits
 
                         if (editionKey != null && snapshot.NarratorsByKey.TryGetValue(editionKey, out var narratorEdit))
                         {
-                            if (narratorEdit.ProviderCaptured &&
-                                (narratorEdit.ProviderNarrator != remote.Narrator || !SameNames(narratorEdit.ProviderNarratorNames, remote.NarratorNames)))
+                            if (!narratorEdit.ProviderCaptured ||
+                                narratorEdit.ProviderNarrator != remote.Narrator || !SameNames(narratorEdit.ProviderNarratorNames, remote.NarratorNames))
                             {
+                                narratorEdit.ProviderCaptured = true;
                                 narratorEdit.ProviderNarrator = remote.Narrator;
                                 narratorEdit.ProviderNarratorNames = (remote.NarratorNames ?? new List<string>()).ToList();
                                 dirtyNarrators.Add(narratorEdit);
