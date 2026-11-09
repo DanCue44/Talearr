@@ -150,6 +150,9 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
         [TestCase("Part 2", "Part Two", false)]
         [TestCase("The Synchronicity War 1", "The Synchronicity War Part 1: Scifi action and adventure", true)]
         [TestCase("Rumors of War: A Novel of the Empire", "Rumors of War: The Other Story", false)]
+        [TestCase("Opening Moves", "Opening Moves: Symbiote Wars book 2", true)]
+        [TestCase("Recon by Fire", "Recon by Fire: Symbiote Wars, Book 4", true)]
+        [TestCase("Fist of Orion", "Fist of Orion: Fist of Orion, Book 2", false)]
         public void numbered_parts_compare_by_number(string local, string remote, bool same)
         {
             var row = Local(1, local, "gr:1");
@@ -185,6 +188,48 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
             var other = Remote("Herald of Justice", "gr:268656700");
 
             Assert.That(TalearrStaleIdentityReconciler.Attach(differentIds, new List<Book> { other }), Is.Zero);
+        }
+
+        [Test]
+        public void old_copies_under_different_ids_merge_into_the_one_with_files()
+        {
+            // Symbiote Wars: an old Goodreads row, an Audiobookshelf import with the files, and the
+            // server's empty copy. The refresh keeps the row with the files and merges the others.
+            var old = Local(10034, "Symbiote Wars", "gr:210377490");
+            var withFiles = Local(15160, "Symbiote Wars", "gr:222");
+            var empty = Hardcover(350, "Symbiote Wars", "hc:1846586");
+            var server = RemoteHardcover("Symbiote Wars", "hc:1846586");
+
+            var attached = TalearrStaleIdentityReconciler.Attach(new List<Book> { old, withFiles, empty }, new List<Book> { server }, isDisposable: b => b.Id != 15160);
+
+            Assert.That(attached, Is.EqualTo(1));
+            Assert.That(Carries(server, "gr:210377490") && Carries(server, "gr:222"), Is.True);
+        }
+
+        [Test]
+        public void old_copies_known_by_book_ids_merge_into_the_one_with_files()
+        {
+            // The same, with the Goodreads book ids Chaptarr stored instead of work ids
+            Book Row(int id, string gr) => new Book { Id = id, Title = "Opening Moves", BaseBookId = "gr:" + gr, GoodreadsBookId = gr, MediaType = BookMediaType.Audiobook, Editions = new List<Edition>() };
+            var old = Row(10035, "211566581");
+            var withFiles = Row(15161, "333");
+            var empty = Hardcover(516, "Opening Moves: Symbiote Wars book 2", "hc:1846574");
+            var server = RemoteHardcover("Opening Moves: Symbiote Wars book 2", "hc:1846574");
+
+            var attached = TalearrStaleIdentityReconciler.Attach(new List<Book> { old, withFiles, empty }, new List<Book> { server }, isDisposable: b => b.Id != 15161);
+
+            Assert.That(attached, Is.EqualTo(1));
+            Assert.That(old.RemoteProviderIds, Does.Contain("hc:1846574"));
+            Assert.That(withFiles.RemoteProviderIds, Does.Contain("hc:1846574"));
+        }
+
+        [Test]
+        public void old_copies_under_different_ids_both_worth_keeping_are_left_alone()
+        {
+            var locals = new List<Book> { Local(10034, "Symbiote Wars", "gr:210377490"), Local(15160, "Symbiote Wars", "gr:222") };
+            var server = RemoteHardcover("Symbiote Wars", "hc:1846586");
+
+            Assert.That(TalearrStaleIdentityReconciler.Attach(locals, new List<Book> { server }, isDisposable: _ => false), Is.Zero);
         }
 
         [Test]

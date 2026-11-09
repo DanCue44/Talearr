@@ -23,19 +23,21 @@ namespace NzbDrone.Core.Talearr.Catalog
     /// edition id picks between several). The remote book
     /// is given the local row's id, so the normal refresh updates the row in place and the drift
     /// check then moves it to the server's ids (files, monitoring and history stay). Several stale
-    /// rows of one title are attached together only when they share an id (recording copies of
-    /// one work); anything ambiguous is left to the normal refresh rules.
+    /// rows of one title are attached together when they share an id (recording copies of one
+    /// work), or when at most one of them is worth keeping, so the empty copies merge into it;
+    /// anything ambiguous is left to the normal refresh rules.
     ///
     /// When the server's copy is already matched, but only by rows the refresh may merge away (no
     /// files, nothing pinned), an old row worth keeping is attached to it as well. The refresh then
     /// keeps the row with the files and deletes the empty copy, instead of showing the book twice.
     /// Rows known only by an edition id (an Audible ASIN) count as old once no server book shares
-    /// that id, and "Part 1", "Book 1" and "Volume 1" compare equal to a bare "1".
+    /// that id, and "Part 1", "Book 1" and "Volume 1" compare equal to a bare "1". A series label
+    /// after the title ("Opening Moves: Symbiote Wars book 2") is not another book.
     /// Nothing is written to the database here.
     /// </summary>
     public static class TalearrStaleIdentityReconciler
     {
-        private static readonly Regex EndsWithNumber = new Regex(@"\d+$", RegexOptions.Compiled);
+        private static readonly Regex TrailingNumber = new Regex(@"\s*\d+$", RegexOptions.Compiled);
         private static readonly Regex NumberedPartRegex = new Regex(@"\b(?:part|book|volume|vol|episode)\s+(\d+)$", RegexOptions.Compiled);
 
         // isDisposable: whether the refresh may merge a row away (no files, not pinned). Without
@@ -119,8 +121,10 @@ namespace NzbDrone.Core.Talearr.Catalog
                     continue;
                 }
 
+                // Old copies under different ids (an old Goodreads row next to an Audiobookshelf
+                // import) are one book when at most one of them is worth keeping.
                 var token = SharedToken(group.ToList());
-                if (token == null)
+                if (token == null && (isDisposable == null || group.Count(local => !isDisposable(local)) > 1))
                 {
                     logger?.Debug("[TALEARR-STALE-ID] {0} stale rows of '{1}' for author '{2}' have different ids; left to the normal refresh rules",
                         group.Count(),
@@ -130,7 +134,23 @@ namespace NzbDrone.Core.Talearr.Catalog
                 }
 
                 var remote = candidates[0];
-                if (group.All(local => localWork[local.Id].Count == 0))
+                if (token == null)
+                {
+                    foreach (var local in group)
+                    {
+                        if (localWork[local.Id].Count == 0)
+                        {
+                            local.RemoteProviderIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            local.RemoteProviderIds.UnionWith(remoteWork[remote]);
+                        }
+                        else
+                        {
+                            remote.RemoteProviderIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            remote.RemoteProviderIds.UnionWith(localWork[local.Id]);
+                        }
+                    }
+                }
+                else if (group.All(local => localWork[local.Id].Count == 0))
                 {
                     // The refresh never matches a server book with a work id by an edition id, so
                     // rows known only by an ASIN take the server's work ids for this refresh instead.
@@ -152,7 +172,7 @@ namespace NzbDrone.Core.Talearr.Catalog
                 logger?.Info("[TALEARR-STALE-ID] Book {0} '{1}' ({2}) for author '{3}' is no longer listed under that id; updating it from '{4}' ({5})",
                     string.Join(",", group.Select(b => b.Id)),
                     group.First().Title,
-                    token,
+                    token ?? "different ids",
                     authorName ?? "Unknown",
                     remote.Title,
                     string.Join(",", remoteWork[remote].Where(t => !string.Equals(t, token, StringComparison.OrdinalIgnoreCase)).OrderBy(t => t, StringComparer.Ordinal)));
@@ -174,8 +194,9 @@ namespace NzbDrone.Core.Talearr.Catalog
 
         // The same title, or one side has no subtitle and the main titles agree ("The
         // Synchronicity War 1" and "The Synchronicity War Part 1: Scifi action and adventure").
-        // Two different subtitles never match, nor does a subtitle that is a number ("Fist of
-        // Orion: Book 2" is the next book, not "Fist of Orion").
+        // Two different subtitles never match, nor does a subtitle that is only a number ("Fist of
+        // Orion: Book 2" is the next book, not "Fist of Orion"). A series label with a number
+        // does ("Opening Moves: Symbiote Wars book 2" is "Opening Moves").
         private static bool SameTitle(string left, string right)
         {
             var leftFull = PartNumber(TalearrTitleNormalizer.NormalizeFull(left));
@@ -188,14 +209,29 @@ namespace NzbDrone.Core.Talearr.Catalog
             var leftHasSubtitle = TalearrTitleNormalizer.HasSubtitle(TalearrTitleNormalizer.StripFormatBrackets(left));
             var rightHasSubtitle = TalearrTitleNormalizer.HasSubtitle(TalearrTitleNormalizer.StripFormatBrackets(right));
             if ((leftHasSubtitle && rightHasSubtitle) ||
-                (leftHasSubtitle && EndsWithNumber.IsMatch(leftFull)) ||
-                (rightHasSubtitle && EndsWithNumber.IsMatch(rightFull)))
+                (leftHasSubtitle && IsNumberedSubtitle(left)) ||
+                (rightHasSubtitle && IsNumberedSubtitle(right)))
             {
                 return false;
             }
 
             var main = MainKey(left);
             return main.Length > 0 && string.Equals(main, MainKey(right), StringComparison.Ordinal);
+        }
+
+        // A subtitle that numbers another book of the series: "Book 2", or the title again with a
+        // number ("Fist of Orion: Fist of Orion, Book 2")
+        private static bool IsNumberedSubtitle(string title)
+        {
+            var stripped = TalearrTitleNormalizer.StripFormatBrackets(title);
+            var subtitle = PartNumber(TalearrTitleNormalizer.NormalizeFull(TalearrTitleNormalizer.GetSubtitle(stripped)));
+            var label = TrailingNumber.Replace(subtitle, string.Empty);
+            if (label.Length == subtitle.Length)
+            {
+                return false;
+            }
+
+            return label.Length == 0 || string.Equals(label, TalearrTitleNormalizer.NormalizeMain(stripped), StringComparison.Ordinal);
         }
 
         // The id every row of the group has: a work id first, else an edition id.
