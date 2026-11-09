@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Parser;
@@ -24,11 +25,22 @@ namespace NzbDrone.Core.Talearr.Catalog
     /// check then moves it to the server's ids (files, monitoring and history stay). Several stale
     /// rows of one title are attached together only when they share an id (recording copies of
     /// one work); anything ambiguous is left to the normal refresh rules.
+    ///
+    /// When the server's copy is already matched, but only by rows the refresh may merge away (no
+    /// files, nothing pinned), an old row worth keeping is attached to it as well. The refresh then
+    /// keeps the row with the files and deletes the empty copy, instead of showing the book twice.
+    /// Rows known only by an edition id (an Audible ASIN) count as old once no server book shares
+    /// that id, and "Part 1", "Book 1" and "Volume 1" compare equal to a bare "1".
     /// Nothing is written to the database here.
     /// </summary>
     public static class TalearrStaleIdentityReconciler
     {
-        public static int Attach(IReadOnlyCollection<Book> localBooks, List<Book> remoteBooks, Logger logger = null, string authorName = null)
+        private static readonly Regex EndsWithNumber = new Regex(@"\d+$", RegexOptions.Compiled);
+        private static readonly Regex NumberedPartRegex = new Regex(@"\b(?:part|book|volume|vol|episode)\s+(\d+)$", RegexOptions.Compiled);
+
+        // isDisposable: whether the refresh may merge a row away (no files, not pinned). Without
+        // it a server book another row matches is never taken.
+        public static int Attach(IReadOnlyCollection<Book> localBooks, List<Book> remoteBooks, Logger logger = null, string authorName = null, Func<Book, bool> isDisposable = null)
         {
             if (localBooks == null || localBooks.Count == 0 || remoteBooks == null || remoteBooks.Count == 0)
             {
@@ -48,30 +60,50 @@ namespace NzbDrone.Core.Talearr.Catalog
                 return local.MediaType == remote.MediaType && localWork[local.Id].Overlaps(remoteWork[remote]);
             }
 
-            var stale = locals
-                .Where(local => localWork[local.Id].Count > 0 && !remotes.Any(remote => SameWork(local, remote)))
-                .ToList();
+            // A row with no work id is matched by its edition ids, so it is old only when no server
+            // book of its media type shares one.
+            var localEditions = locals.ToDictionary(b => b.Id, BookIdentity.GetEditionProviderIdentityTokens);
+            var remoteEditions = remotes.ToDictionary(r => r, BookIdentity.GetEditionProviderIdentityTokens, BookReferenceComparer.Instance);
+
+            bool IsStale(Book local)
+            {
+                if (localWork[local.Id].Count > 0)
+                {
+                    return !remotes.Any(remote => SameWork(local, remote));
+                }
+
+                return localEditions[local.Id].Count > 0 &&
+                       !remotes.Any(remote => remote.MediaType == local.MediaType && localEditions[local.Id].Overlaps(remoteEditions[remote]));
+            }
+
+            var stale = locals.Where(IsStale).ToList();
 
             if (stale.Count == 0)
             {
                 return 0;
             }
 
+            // Server books no row matches, or only rows the refresh may merge away
+            var takenBy = remotes.ToDictionary(r => r, r => locals.Where(local => SameWork(local, r)).ToList(), BookReferenceComparer.Instance);
             var unmatchedRemotes = remotes
-                .Where(remote => remoteWork[remote].Count > 0 && !locals.Any(local => SameWork(local, remote)))
+                .Where(remote => remoteWork[remote].Count > 0 &&
+                                 (takenBy[remote].Count == 0 || (isDisposable != null && takenBy[remote].All(isDisposable))))
                 .ToList();
 
             var attached = 0;
-            foreach (var group in stale.GroupBy(local => (local.MediaType, Title: TalearrTitleNormalizer.NormalizeFull(local.Title))))
+            foreach (var group in stale.GroupBy(local => (local.MediaType, Title: MainKey(local.Title))))
             {
                 if (string.IsNullOrWhiteSpace(group.Key.Title))
                 {
                     continue;
                 }
 
+                // Merging an empty copy away only makes sense for an old row worth keeping
+                var keepsSomething = isDisposable != null && group.Any(local => !isDisposable(local));
                 var candidates = unmatchedRemotes
                     .Where(remote => remote.MediaType == group.Key.MediaType &&
-                                     string.Equals(TalearrTitleNormalizer.NormalizeFull(remote.Title), group.Key.Title, StringComparison.Ordinal))
+                                     (takenBy[remote].Count == 0 || keepsSomething) &&
+                                     group.All(local => SameTitle(local.Title, remote.Title)))
                     .ToList();
 
                 // Two server books with this title (a reissue, a different work): only a shared
@@ -98,8 +130,22 @@ namespace NzbDrone.Core.Talearr.Catalog
                 }
 
                 var remote = candidates[0];
-                remote.RemoteProviderIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                remote.RemoteProviderIds.Add(token);
+                if (group.All(local => localWork[local.Id].Count == 0))
+                {
+                    // The refresh never matches a server book with a work id by an edition id, so
+                    // rows known only by an ASIN take the server's work ids for this refresh instead.
+                    foreach (var local in group)
+                    {
+                        local.RemoteProviderIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        local.RemoteProviderIds.UnionWith(remoteWork[remote]);
+                    }
+                }
+                else
+                {
+                    remote.RemoteProviderIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    remote.RemoteProviderIds.Add(token);
+                }
+
                 unmatchedRemotes.Remove(remote);
                 attached++;
 
@@ -113,6 +159,43 @@ namespace NzbDrone.Core.Talearr.Catalog
             }
 
             return attached;
+        }
+
+        // "Part 1", "Book 1" or "Volume 1" at the end of a normalized title read as "1"
+        private static string PartNumber(string normalized)
+        {
+            return NumberedPartRegex.Replace(normalized, "$1");
+        }
+
+        private static string MainKey(string title)
+        {
+            return PartNumber(TalearrTitleNormalizer.NormalizeMain(title));
+        }
+
+        // The same title, or one side has no subtitle and the main titles agree ("The
+        // Synchronicity War 1" and "The Synchronicity War Part 1: Scifi action and adventure").
+        // Two different subtitles never match, nor does a subtitle that is a number ("Fist of
+        // Orion: Book 2" is the next book, not "Fist of Orion").
+        private static bool SameTitle(string left, string right)
+        {
+            var leftFull = PartNumber(TalearrTitleNormalizer.NormalizeFull(left));
+            var rightFull = PartNumber(TalearrTitleNormalizer.NormalizeFull(right));
+            if (string.Equals(leftFull, rightFull, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            var leftHasSubtitle = TalearrTitleNormalizer.HasSubtitle(TalearrTitleNormalizer.StripFormatBrackets(left));
+            var rightHasSubtitle = TalearrTitleNormalizer.HasSubtitle(TalearrTitleNormalizer.StripFormatBrackets(right));
+            if ((leftHasSubtitle && rightHasSubtitle) ||
+                (leftHasSubtitle && EndsWithNumber.IsMatch(leftFull)) ||
+                (rightHasSubtitle && EndsWithNumber.IsMatch(rightFull)))
+            {
+                return false;
+            }
+
+            var main = MainKey(left);
+            return main.Length > 0 && string.Equals(main, MainKey(right), StringComparison.Ordinal);
         }
 
         // The id every row of the group has: a work id first, else an edition id.

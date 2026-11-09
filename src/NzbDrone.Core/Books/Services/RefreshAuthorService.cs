@@ -1557,7 +1557,7 @@ namespace NzbDrone.Core.Books
 
                 try
                 {
-                    TalearrStaleIdentityReconciler.Attach(localBooks, remoteChildren, _logger, entity?.Name);
+                    TalearrStaleIdentityReconciler.Attach(localBooks, remoteChildren, _logger, entity?.Name, book => !ShouldPreserveLocalBookInstance(book));
                 }
                 catch (Exception ex)
                 {

@@ -71,6 +71,93 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
             Assert.That(Carries(herald, "gr:111"), Is.False);
         }
 
+        private static Book Hardcover(int id, string title, string hc)
+        {
+            return new Book { Id = id, Title = title, HardcoverBookId = hc, MediaType = BookMediaType.Audiobook, Editions = new List<Edition>() };
+        }
+
+        private static Book RemoteHardcover(string title, string hc)
+        {
+            return new Book { Title = title, HardcoverBookId = hc, MediaType = BookMediaType.Audiobook, Editions = new List<Edition>() };
+        }
+
+        [Test]
+        public void an_old_row_with_files_takes_the_server_book_from_an_empty_copy()
+        {
+            // Herald of Justice: the old row has the audiobook, the server's copy was added next to
+            // it without files. The refresh keeps the row with the files and merges the empty one.
+            var withFiles = Local(9838, "Herald of Justice", "gr:111");
+            var empty = Local(424, "Herald of Justice", "gr:268656700");
+            var herald = Remote("Herald of Justice", "gr:268656700");
+
+            var attached = TalearrStaleIdentityReconciler.Attach(new List<Book> { withFiles, empty }, new List<Book> { herald }, isDisposable: b => b.Id == 424);
+
+            Assert.That(attached, Is.EqualTo(1));
+            Assert.That(Carries(herald, "gr:111"), Is.True);
+        }
+
+        [Test]
+        public void a_server_book_matched_by_a_row_worth_keeping_is_not_taken()
+        {
+            var locals = new List<Book> { Local(9838, "Herald of Justice", "gr:111"), Local(424, "Herald of Justice", "gr:268656700") };
+            var herald = Remote("Herald of Justice", "gr:268656700");
+
+            Assert.That(TalearrStaleIdentityReconciler.Attach(locals, new List<Book> { herald }, isDisposable: _ => false), Is.Zero);
+            Assert.That(Carries(herald, "gr:111"), Is.False);
+        }
+
+        [Test]
+        public void an_old_empty_row_does_not_take_a_matched_server_book()
+        {
+            // Nothing to keep: the old row is deleted by the refresh as before.
+            var locals = new List<Book> { Local(9838, "Herald of Justice", "gr:111"), Local(424, "Herald of Justice", "gr:268656700") };
+            var herald = Remote("Herald of Justice", "gr:268656700");
+
+            Assert.That(TalearrStaleIdentityReconciler.Attach(locals, new List<Book> { herald }, isDisposable: _ => true), Is.Zero);
+        }
+
+        [Test]
+        public void a_row_known_only_by_its_asin_joins_the_part_of_the_same_number()
+        {
+            // The Synchronicity War: Audible's "The Synchronicity War 1" holds the files, Hardcover
+            // calls the book "The Synchronicity War Part 1".
+            var audible = new Book { Id = 381, Title = "The Synchronicity War 1", AudibleASIN = "B00QVL6T7K", MediaType = BookMediaType.Audiobook, Editions = new List<Edition>() };
+            var empty = Hardcover(376, "The Synchronicity War Part 1", "hc:479709");
+            var part1 = RemoteHardcover("The Synchronicity War Part 1", "hc:479709");
+            var part2 = RemoteHardcover("The Synchronicity War Part 2", "hc:913716");
+
+            var attached = TalearrStaleIdentityReconciler.Attach(new List<Book> { audible, empty }, new List<Book> { part1, part2 }, isDisposable: b => b.Id == 376);
+
+            Assert.That(attached, Is.EqualTo(1));
+            Assert.That(audible.RemoteProviderIds, Does.Contain("hc:479709"));
+            Assert.That(audible.RemoteProviderIds, Does.Not.Contain("hc:913716"));
+        }
+
+        [Test]
+        public void a_row_whose_asin_the_server_still_lists_is_left_alone()
+        {
+            var audible = new Book { Id = 381, Title = "The Synchronicity War 1", AudibleASIN = "B00QVL6T7K", MediaType = BookMediaType.Audiobook, Editions = new List<Edition>() };
+            var remote = new Book { Title = "The Synchronicity War 1", AudibleASIN = "B00QVL6T7K", MediaType = BookMediaType.Audiobook, Editions = new List<Edition>() };
+
+            Assert.That(TalearrStaleIdentityReconciler.Attach(new List<Book> { audible }, new List<Book> { remote }, isDisposable: _ => false), Is.Zero);
+            Assert.That(audible.RemoteProviderIds, Is.Null);
+        }
+
+        [TestCase("The Synchronicity War 2", "The Synchronicity War Part 2", true)]
+        [TestCase("The Synchronicity War 2", "The Synchronicity War Book 2", true)]
+        [TestCase("The Synchronicity War 2", "The Synchronicity War Volume 2", true)]
+        [TestCase("The Synchronicity War 2", "The Synchronicity War Part 3", false)]
+        [TestCase("Part 2", "Part Two", false)]
+        [TestCase("The Synchronicity War 1", "The Synchronicity War Part 1: Scifi action and adventure", true)]
+        [TestCase("Rumors of War: A Novel of the Empire", "Rumors of War: The Other Story", false)]
+        public void numbered_parts_compare_by_number(string local, string remote, bool same)
+        {
+            var row = Local(1, local, "gr:1");
+            var server = Remote(remote, "gr:2");
+
+            Assert.That(TalearrStaleIdentityReconciler.Attach(new List<Book> { row }, new List<Book> { server }), Is.EqualTo(same ? 1 : 0));
+        }
+
         [Test]
         public void two_server_books_with_the_title_are_left_alone_unless_an_edition_id_picks_one()
         {
