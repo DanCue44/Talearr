@@ -1019,6 +1019,16 @@ namespace Chaptarr.Api.V1.Books
                 return resource.ToModel(book, null);
             }
 
+            private static bool ResolveSideMonitored(bool? submitted, bool stored, bool isBookSide, bool legacyMonitored)
+            {
+                if (isBookSide && legacyMonitored != stored && submitted != !stored)
+                {
+                    return legacyMonitored;
+                }
+
+                return submitted ?? (isBookSide ? legacyMonitored : stored);
+            }
+
             public static Book ToModel(this BookResource resource, Book book, ReadarrFacadeContext facadeContext)
             {
             if (resource == null)
@@ -1044,23 +1054,12 @@ namespace Chaptarr.Api.V1.Books
             }
             else
             {
-                if (resource.AudiobookMonitored.HasValue)
-                {
-                    book.AudiobookMonitored = resource.AudiobookMonitored.Value;
-                }
-                else if (book.MediaType == BookMediaType.Audiobook)
-                {
-                    book.AudiobookMonitored = resource.Monitored;
-                }
-
-                if (resource.EbookMonitored.HasValue)
-                {
-                    book.EbookMonitored = resource.EbookMonitored.Value;
-                }
-                else if (book.MediaType == BookMediaType.Ebook)
-                {
-                    book.EbookMonitored = resource.Monitored;
-                }
+                // Talearr: the book Edit modal sends the whole book back with only Monitored
+                // changed, so a side flag that still matches the stored value must not undo it.
+                book.AudiobookMonitored = ResolveSideMonitored(
+                    resource.AudiobookMonitored, book.AudiobookMonitored, book.MediaType == BookMediaType.Audiobook, resource.Monitored);
+                book.EbookMonitored = ResolveSideMonitored(
+                    resource.EbookMonitored, book.EbookMonitored, book.MediaType == BookMediaType.Ebook, resource.Monitored);
             }
             book.AnyEditionOk = resource.AnyEditionOk;
             book.AddOptions = resource.AddOptions;
