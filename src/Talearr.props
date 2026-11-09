@@ -9,7 +9,7 @@
     database tooling key on it.
   -->
   <PropertyGroup>
-    <TalearrVersion Condition="'$(TalearrVersion)' == ''">0.18.59</TalearrVersion>
+    <TalearrVersion Condition="'$(TalearrVersion)' == ''">0.18.60</TalearrVersion>
 
     <!-- NuGet vulnerability advisories published after an upstream release would otherwise
          fail restore (TreatWarningsAsErrors). Keep them visible as warnings; package bumps
