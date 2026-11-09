@@ -107,6 +107,11 @@ namespace Chaptarr.Api.V1.Author
         // Talearr: "full" (all books by the author) or "tracked" (only the user's books). Read only;
         // change it with PUT /api/v1/talearr/authors/{id}/catalog.
         public string TalearrCatalogMode { get; set; }
+
+        // Talearr: where the author's audiobook details come from: "hardcover" (Audible fills the
+        // gaps) or "audible" (Audible leads). Sent with an author update to change it; left out
+        // (null) keeps it.
+        public string TalearrAudiobookSource { get; set; }
     }
 
     public static class AuthorResourceMapper

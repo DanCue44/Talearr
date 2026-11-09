@@ -314,6 +314,19 @@ CREATE TABLE IF NOT EXISTS UserSeries (
     Title     TEXT NOT NULL,
     CreatedAt TEXT NOT NULL
 );
+",
+
+            // 12: the last Audible catalog read for each author (Audible fill of the metadata
+            // source). Kept so an Audible outage does not drop the books it filled in; losing it
+            // only costs a refetch.
+            @"
+CREATE TABLE IF NOT EXISTS AudibleAuthorCatalogs (
+    AuthorKey   TEXT NOT NULL COLLATE NOCASE,
+    Marketplace TEXT NOT NULL COLLATE NOCASE,
+    Items       TEXT NOT NULL,
+    FetchedAt   TEXT NOT NULL,
+    PRIMARY KEY (AuthorKey, Marketplace)
+);
 "
         };
 

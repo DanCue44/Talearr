@@ -321,6 +321,51 @@ serves Hardcover ids itself (`TalearrSourcePayloads`, `TalearrSourceMatcher`):
 - Cost on a test server (19 authors): about 1 request per scheduled check plus about 9 per author
   that changed; the weekly full read is about 25 requests a day.
 
+## Audible (0.18.60)
+
+Hardcover is thin for many audiobooks: no audiobook edition, books left out of their series,
+books listed under a co-author only (Talearr #7: Symbiote Wars 1 to 3 by J.N. Chaney and Chris
+Kennedy). After the Open Library date fill, `TalearrSourcePayloads.GetAuthor` adds the author's
+Audible catalog to the payload (`TalearrAudibleFill`, `TalearrAudibleMerge`).
+
+- **Catalog** (`TalearrAudibleAuthorCatalog`): `catalog/products?author=` through the recordings
+  client (`TalearrAudibleClient.SearchAuthor`, one request a second, back-off on 429/503), up to
+  20 pages of 50, newest first, in the recordings marketplace. Kept: products that credit the
+  author (or a pseudonym) as an author, `SinglePartBook` / `MultiPartBook`, in the marketplace's
+  language. A read is reused for 3 days and the last good one is kept in talearr.db
+  (`AudibleAuthorCatalogs`, schema 12).
+- **Matching**: by ASIN, then the full title, then the same work title
+  (`TalearrTitleNormalizer.IsSameWorkTitle`) unless the book holds another number in a series the
+  listing names, then the same main title in the same series place. A series label in Audible's
+  subtitle or in brackets ("Symbiote Wars, Book 4", "(The Forgotten Ship Book 8)") is not part of
+  the title. Collections ("Books 1-3", box sets) never match a single book.
+- **Fill** (every author, Settings > Metadata > Recordings > Fill gaps from Audible, on by
+  default, `talearr.metadata.audiblefill`): a book with no audiobook edition gets Audible's
+  editions (`az:{ASIN}`, `-audiobook` appended); a book in no series gets Audible's series and
+  number; an empty number in the same series is filled; a lone audiobook edition without an ASIN
+  gets Audible's when a narrator agrees. Hardcover's values are never replaced and no book or
+  series is added.
+- **Audible leads** (per author, Edit > Audiobook details from > Audible,
+  `talearr.audiobooksource.hc:N` rows): matched books also get Audible's editions, ranked first for
+  edition selection; Audible's series and numbers win; audiobooks Hardcover does not list for the
+  author are added (`az:{ASIN}`, collections as omnibus books); series Hardcover does not have are
+  added by their Audible id (`Series.AmazonSeriesAsin`). Saving a change queues a forced refresh.
+  When Audible does not answer and no copy is stored, the refresh is skipped rather than dropping
+  those books. Switching back to Hardcover removes the Audible-only books that have no files and
+  are not monitored, like any book the source stops listing.
+- `GetBookInfo` / `GetWorkInfo` of an `az:` id with a Hardcover author hint read that author's
+  payload (single-book refresh). The stale-row reconciler takes old rows of the same title into
+  an Audible-only book, so a row from the Goodreads days becomes that book.
+
+### Series from Talearr's source
+
+`RefreshSeriesService` used to keep Goodreads-backed series only, so no Hardcover series was
+ever saved (series came only from rows made in the Goodreads days). Since 0.18.60 a series is
+known by its Goodreads, Hardcover or Audible id (`SeriesProviderKey`). A Goodreads series of the
+same title for the author takes the Hardcover id instead of a second series appearing next to it,
+and Goodreads series the source does not list are kept. The mapper drops Hardcover series named
+only "Book 1", "Volume 2" and the like.
+
 ## Phase 3b (next)
 
 1. **Switch refresh.** When `talearr.metadata.source` is `talearr`, `RefreshAuthorService` reads
@@ -332,8 +377,8 @@ serves Hardcover ids itself (`TalearrSourcePayloads`, `TalearrSourceMatcher`):
 3. **Local import matching** replacing `/api/v5/match`: ISBN and ASIN from file tags against
    local editions, then title and author against local books, then a Hardcover search.
 4. **Series from Hardcover.** Done in 0.18.13 for payloads from Talearr's source.
-5. **Gaps.** Open Library for works and ISBNs Hardcover lacks; Audible / Audnexus for audiobook
-   editions, narrators, runtime and chapters (the recordings client exists); possibly
+5. **Gaps.** Open Library for works and ISBNs Hardcover lacks; Audible audiobook editions and
+   series done in 0.18.60 (see "Audible" above); chapters still to do; possibly
    `book_mappings` for Goodreads and Open Library edition ids.
 6. **Health and settings test** against the active source; the metadata server probe only runs
    when the server is selected.

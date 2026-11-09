@@ -44,6 +44,7 @@ using NzbDrone.Core.Validation;
 using NzbDrone.Core.Validation.Paths;
 using NzbDrone.Http.REST.Attributes;
 using NzbDrone.Core.Talearr.Catalog;
+using NzbDrone.Core.Talearr.Metadata.Source;
 using NzbDrone.SignalR;
 using NLog;
 using Newtonsoft.Json;
@@ -108,6 +109,7 @@ namespace Chaptarr.Api.V1.Author
         private readonly IRootFolderService _rootFolderService;
         private readonly IProviderAliasService _providerAliasService;
         private readonly ITalearrAuthorCatalogStore _talearrCatalogStore;
+        private readonly ITalearrAudibleSourceSettings _talearrAudibleSource;
         private readonly IEventAggregator _eventAggregator;
 	        private readonly IAppFolderInfo _appFolderInfo;
 	        private readonly IBuildFileNames _fileNameBuilder;
@@ -142,10 +144,12 @@ namespace Chaptarr.Api.V1.Author
                             MetadataProfileExistsValidator metadataProfileExistsValidator,
                             AuthorFolderAsRootFolderValidator authorFolderAsRootFolderValidator,
                             IProviderAliasService providerAliasService = null,
-                            ITalearrAuthorCatalogStore talearrCatalogStore = null)
+                            ITalearrAuthorCatalogStore talearrCatalogStore = null,
+                            ITalearrAudibleSourceSettings talearrAudibleSource = null)
             : base(signalRBroadcaster)
         {
             _talearrCatalogStore = talearrCatalogStore;
+            _talearrAudibleSource = talearrAudibleSource;
             _authorService = authorService;
             _bookService = bookService;
             _bookMonitoredService = bookMonitoredService;
@@ -349,6 +353,7 @@ namespace Chaptarr.Api.V1.Author
 
             LinkRootFolderPath(new[] { author }, resource);
             LinkTalearrCatalogMode(resource);
+            LinkTalearrAudiobookSource(new[] { author }, resource);
 
             // Attach per-media-type statistics for live updates (used by Authors list without full refetch)
             try
@@ -387,6 +392,7 @@ namespace Chaptarr.Api.V1.Author
 
             LinkRootFolderPath(authors, authorResources.ToArray());
             LinkTalearrCatalogMode(authorResources.ToArray());
+            LinkTalearrAudiobookSource(authors, authorResources.ToArray());
 
             return authorResources;
         }
@@ -1091,6 +1097,14 @@ namespace Chaptarr.Api.V1.Author
 	            var model = authorResource.ToModel(author, facadeContext);
 	            var updatedAuthor = _authorService.UpdateAuthor(model);
 
+                // Talearr: a new audiobook source refetches the author's books from it.
+                if (_talearrAudibleSource != null &&
+                    TalearrAudiobookSources.TryParse(authorResource.TalearrAudiobookSource, out var audiobookSource) &&
+                    _talearrAudibleSource.SetAuthorSource(updatedAuthor.HardcoverAuthorId, audiobookSource))
+                {
+                    _commandQueueManager.Push(new RefreshAuthorCommand(updatedAuthor.Id, refreshMetadata: true, rescanFolders: false, forceRefresh: true));
+                }
+
                 var shouldReconcile = updatedAuthor.SyncMonitoredAcrossFormats == true &&
                                       HasSyncMonitoredAcrossFormatsEligibility(updatedAuthor) &&
                                       (authorResource.SyncMonitoredAcrossFormats == true || !wasSyncEnabled);
@@ -1261,6 +1275,27 @@ namespace Chaptarr.Api.V1.Author
             _commandQueueManager.Push(new DownloadAuthorMediaCommand(id, forceDownload));
 
             return Accepted();
+        }
+
+        // Talearr: the audiobook source of each author, by its Hardcover id.
+        private void LinkTalearrAudiobookSource(IEnumerable<NzbDrone.Core.Books.Author> authors, params AuthorResource[] resources)
+        {
+            var audible = new HashSet<string>(_talearrAudibleSource?.GetAudibleAuthors() ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            var keys = (authors ?? Enumerable.Empty<NzbDrone.Core.Books.Author>())
+                .Where(a => a != null)
+                .GroupBy(a => a.Id)
+                .ToDictionary(g => g.Key, g => g.First().HardcoverAuthorId?.Trim());
+
+            // Null for an author without a Hardcover id: the choice only applies to Talearr's source.
+            foreach (var resource in resources)
+            {
+                if (!keys.TryGetValue(resource.Id, out var key) || string.IsNullOrEmpty(key))
+                {
+                    continue;
+                }
+
+                resource.TalearrAudiobookSource = TalearrAudiobookSources.ToApi(audible.Contains(key) ? TalearrAudiobookSource.Audible : TalearrAudiobookSource.Hardcover);
+            }
         }
 
         // Talearr: one cached lookup of the Tracked authors for the whole list.

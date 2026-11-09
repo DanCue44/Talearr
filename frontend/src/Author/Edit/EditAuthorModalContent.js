@@ -27,6 +27,12 @@ import getErrorMessage from 'Utilities/Object/getErrorMessage';
 import translate from 'Utilities/String/translate';
 import styles from './EditAuthorModalContent.css';
 
+// Talearr: where an author's audiobook details come from (docs/TALEARR_METADATA_SOURCE.md).
+const audiobookSourceOptions = [
+  { key: 'hardcover', value: 'Hardcover (Audible fills the gaps)' },
+  { key: 'audible', value: 'Audible' }
+];
+
 class EditAuthorModalContent extends Component {
 
   //
@@ -116,7 +122,8 @@ class EditAuthorModalContent extends Component {
       ebookRootFolderPath,
       tags,
       audiobookTags,
-      ebookTags
+      ebookTags,
+      talearrAudiobookSource
     } = item;
 
     const {
@@ -301,6 +308,24 @@ class EditAuthorModalContent extends Component {
                     onChange={onInputChange}
                   />
                 </FormGroup>
+
+                {
+                  talearrAudiobookSource &&
+                    <FormGroup>
+                      <FormLabel>
+                        {'Audiobook details from'}
+                      </FormLabel>
+
+                      <FormInputGroup
+                        type={inputTypes.SELECT}
+                        name="talearrAudiobookSource"
+                        values={audiobookSourceOptions}
+                        helpText="Audible: this author's audiobooks, series and numbers follow Audible, including audiobooks Hardcover does not list for them. Saving a change refreshes the author."
+                        {...talearrAudiobookSource}
+                        onChange={onInputChange}
+                      />
+                    </FormGroup>
+                }
 
                 <FormGroup>
                   <FormLabel>

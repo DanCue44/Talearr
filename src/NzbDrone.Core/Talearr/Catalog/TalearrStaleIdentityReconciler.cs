@@ -32,7 +32,8 @@ namespace NzbDrone.Core.Talearr.Catalog
     /// keeps the row with the files and deletes the empty copy, instead of showing the book twice.
     /// Rows known only by an edition id (an Audible ASIN) count as old once no server book shares
     /// that id, and "Part 1", "Book 1" and "Volume 1" compare equal to a bare "1". A series label
-    /// after the title ("Opening Moves: Symbiote Wars book 2") is not another book.
+    /// after the title ("Opening Moves: Symbiote Wars book 2") is not another book. An audiobook
+    /// only Audible lists for the author (az:{ASIN}) takes an old row of its title like any other.
     /// Nothing is written to the database here.
     /// </summary>
     public static class TalearrStaleIdentityReconciler
@@ -85,10 +86,12 @@ namespace NzbDrone.Core.Talearr.Catalog
                 return 0;
             }
 
-            // Server books no row matches, or only rows the refresh may merge away
+            // Server books no row matches, or only rows the refresh may merge away. An audiobook
+            // only Audible lists (az:{ASIN}, the Audible fill of Talearr's source) has no work id
+            // but is a book of its own all the same.
             var takenBy = remotes.ToDictionary(r => r, r => locals.Where(local => SameWork(local, r)).ToList(), BookReferenceComparer.Instance);
             var unmatchedRemotes = remotes
-                .Where(remote => remoteWork[remote].Count > 0 &&
+                .Where(remote => (remoteWork[remote].Count > 0 || IsAudibleOnly(remote)) &&
                                  (takenBy[remote].Count == 0 || (isDisposable != null && takenBy[remote].All(isDisposable))))
                 .ToList();
 
@@ -134,7 +137,26 @@ namespace NzbDrone.Core.Talearr.Catalog
                 }
 
                 var remote = candidates[0];
-                if (token == null)
+                if (remoteWork[remote].Count == 0)
+                {
+                    // A book only Audible lists has no work id to hand over: each old row and the
+                    // book share the row's own old id for this refresh, which the refresh matches
+                    // as a work id.
+                    foreach (var local in group)
+                    {
+                        var bridge = localWork[local.Id].FirstOrDefault() ?? OldWorkId(local);
+                        if (bridge == null)
+                        {
+                            continue;
+                        }
+
+                        local.RemoteProviderIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        local.RemoteProviderIds.Add(bridge);
+                        remote.RemoteProviderIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        remote.RemoteProviderIds.Add(bridge);
+                    }
+                }
+                else if (token == null)
                 {
                     foreach (var local in group)
                     {
@@ -221,6 +243,31 @@ namespace NzbDrone.Core.Talearr.Catalog
 
         // A subtitle that numbers another book of the series: "Book 2", or the title again with a
         // number ("Fist of Orion: Fist of Orion, Book 2")
+        private static bool IsAudibleOnly(Book remote)
+        {
+            return AudibleId(remote) != null;
+        }
+
+        private static string AudibleId(Book remote)
+        {
+            return new[] { remote.BaseBookId, remote.ForeignEditionId }
+                .Select(id => id?.Trim())
+                .FirstOrDefault(id => id?.StartsWith("az:", StringComparison.OrdinalIgnoreCase) == true && id.IndexOf('-') < 0);
+        }
+
+        // The Goodreads, Hardcover or Open Library id an old row without work ids is stored under
+        // (Chaptarr kept Goodreads book ids in BaseBookId and GoodreadsBookId).
+        private static string OldWorkId(Book local)
+        {
+            return BookIdentity.GetProviderIdentityTokens(local)
+                .Where(t => t.StartsWith("gr:", StringComparison.OrdinalIgnoreCase) ||
+                            t.StartsWith("hc:", StringComparison.OrdinalIgnoreCase) ||
+                            t.StartsWith("ol:", StringComparison.OrdinalIgnoreCase))
+                .Where(t => t.IndexOf(':', 3) < 0 && t.IndexOf('-') < 0)
+                .OrderBy(t => t, StringComparer.Ordinal)
+                .FirstOrDefault();
+        }
+
         private static bool IsNumberedSubtitle(string title)
         {
             var stripped = TalearrTitleNormalizer.StripFormatBrackets(title);

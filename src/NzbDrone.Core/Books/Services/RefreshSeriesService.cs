@@ -6,6 +6,7 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Talearr.BookEdits;
 
 namespace NzbDrone.Core.Books
@@ -48,13 +49,60 @@ namespace NzbDrone.Core.Books
                    local.GoodreadsSeriesId.Equals(remote.GoodreadsSeriesId, StringComparison.OrdinalIgnoreCase);
         }
 
+        // Talearr: the provider id a series is known by. The metadata server's series are
+        // Goodreads-backed (its conversion drops the others); series from Talearr's own source
+        // carry a Hardcover id, or an Audible one from its Audible fill.
+        internal static string SeriesProviderKey(Series series)
+        {
+            if (series == null)
+            {
+                return null;
+            }
+
+            return new[] { series.GoodreadsSeriesId, series.HardcoverSeriesId, series.AmazonSeriesAsin }
+                .Select(id => id?.Trim())
+                .FirstOrDefault(id => !id.IsNullOrWhiteSpace());
+        }
+
+        // Talearr: a series from Talearr's own source has no Goodreads id; it is the same series as
+        // a local one with its Hardcover or Audible id.
+        private static bool HasMatchingTalearrSeriesId(Series local, Series remote)
+        {
+            static bool Same(string left, string right) =>
+                left.IsNotNullOrWhiteSpace() && right.IsNotNullOrWhiteSpace() && left.Trim().Equals(right.Trim(), StringComparison.OrdinalIgnoreCase);
+
+            return remote?.GoodreadsSeriesId.IsNullOrWhiteSpace() == true &&
+                   (Same(local?.HardcoverSeriesId, remote.HardcoverSeriesId) || Same(local?.AmazonSeriesAsin, remote.AmazonSeriesAsin));
+        }
+
+        // Talearr: a series kept from the Goodreads metadata (no Hardcover id yet) is the same
+        // series as one from Talearr's own source with the same title, so the existing row takes the
+        // new id instead of a second series of that name appearing next to it.
+        internal static bool IsLegacyTitleMatch(Series local, Series remote)
+        {
+            if (local == null || remote == null ||
+                !IsLegacyGoodreadsSeries(local) ||
+                remote.GoodreadsSeriesId.IsNotNullOrWhiteSpace())
+            {
+                return false;
+            }
+
+            var localTitle = TalearrTitleNormalizer.NormalizeFull(local.Title);
+            return localTitle.Length > 0 && localTitle == TalearrTitleNormalizer.NormalizeFull(remote.Title);
+        }
+
+        private static bool IsLegacyGoodreadsSeries(Series series)
+        {
+            return series.GoodreadsSeriesId.IsNotNullOrWhiteSpace() && series.HardcoverSeriesId.IsNullOrWhiteSpace();
+        }
+
         private static bool MatchesRemoteSeries(Series local, Series remote)
         {
             return local != null &&
                    remote != null &&
                    local.MediaType == remote.MediaType &&
                    local.IsOriginal &&
-                   HasMatchingGoodreadsSeriesId(local, remote);
+                   (HasMatchingGoodreadsSeriesId(local, remote) || HasMatchingTalearrSeriesId(local, remote) || IsLegacyTitleMatch(local, remote));
         }
 
         private static string BuildBookLookupKey(BookMediaType mediaType, string providerId)
@@ -281,9 +329,11 @@ namespace NzbDrone.Core.Books
 
         protected override Series GetEntityByForeignId(Series local)
         {
-            if (!string.IsNullOrEmpty(local.GoodreadsSeriesId))
+            // Talearr: by the Hardcover or Audible id when there is no Goodreads one.
+            var providerKey = SeriesProviderKey(local);
+            if (!string.IsNullOrEmpty(providerKey))
             {
-                var series = _seriesService.FindById(local.GoodreadsSeriesId, local.MediaType);
+                var series = _seriesService.FindById(providerKey, local.MediaType);
                 if (series != null) return series;
             }
 
@@ -538,8 +588,11 @@ namespace NzbDrone.Core.Books
                 authorId, remoteSeries.Count);
 
             // We only persist Goodreads-backed series. Amazon-only series are considered invalid and are not saved.
+            // Talearr: the metadata server's conversion already drops those; what reaches here
+            // without a Goodreads id comes from Talearr's own source and is kept by its Hardcover
+            // or Audible id.
             var goodreadsBackedRemoteSeries = remoteSeries
-                .Where(s => s != null && !s.GoodreadsSeriesId.IsNullOrWhiteSpace())
+                .Where(s => s != null && SeriesProviderKey(s) != null)
                 .ToList();
 
             if (goodreadsBackedRemoteSeries.Count != remoteSeries.Count)
@@ -564,7 +617,7 @@ namespace NzbDrone.Core.Books
 
             // Defensive: prevent duplicate inserts if the metadata payload contains duplicates.
             var providerBackedRemoteSeries = goodreadsBackedRemoteSeries
-                .GroupBy(s => $"{(int)s.MediaType}|{s.GoodreadsSeriesId?.Trim()}",
+                .GroupBy(s => $"{(int)s.MediaType}|{SeriesProviderKey(s)}",
                     StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.First())
                 .ToList();
@@ -592,7 +645,7 @@ namespace NzbDrone.Core.Books
             var existingBySeries = providerBackedRemoteSeries
                 .GroupBy(s => s.MediaType)
                 .SelectMany(g => _seriesService.FindById(
-                    g.Select(s => s.GoodreadsSeriesId)
+                    g.Select(SeriesProviderKey)
                         .Where(id => !id.IsNullOrWhiteSpace())
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToList(),
@@ -621,9 +674,16 @@ namespace NzbDrone.Core.Books
             // - Matched originals get metadata + link reconciliation
             // - Unmatched narrator variants are preserved via ShouldDelete=false
             // - Legacy provider-id-less originals (if any slip through) are deleted via ShouldDelete=true
+            // Talearr: with Talearr's own source (no Goodreads ids in the payload), a series kept
+            // from the Goodreads metadata that the source does not list stays as it is; only the
+            // metadata server can remove Goodreads series.
+            var remoteHasGoodreads = providerBackedRemoteSeries.Any(s => s.GoodreadsSeriesId.IsNotNullOrWhiteSpace());
             var all = existing
                 .Concat(toAdd)
                 .Where(s => s != null && s.IsOriginal && remoteMediaTypes.Contains(s.MediaType))
+                .Where(s => remoteHasGoodreads ||
+                            !IsLegacyGoodreadsSeries(s) ||
+                            providerBackedRemoteSeries.Any(remote => MatchesRemoteSeries(s, remote)))
                 .GroupBy(s => s.Id)
                 .Select(g => g.First())
                 .ToList();

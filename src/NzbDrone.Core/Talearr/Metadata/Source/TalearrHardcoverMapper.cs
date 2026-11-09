@@ -33,6 +33,12 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         public const string SourceName = "Hardcover";
         public const string SiteUrl = "https://hardcover.app";
 
+        // A Hardcover series whose whole name is a place ("Book 1", "Volume 2") is a data entry
+        // mistake, not a series.
+        private static readonly System.Text.RegularExpressions.Regex PlaceOnlySeriesName = new System.Text.RegularExpressions.Regex(
+            @"^\s*(?:book|volume|vol\.?|part|episode|novel)\s*#?\s*\d+(?:\.\d+)?\s*$",
+            System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
         // V5 reading formats (V5Edition): 1 physical, 2 audio, 3 ebook.
         public const int V5Physical = 1;
         public const int V5Audio = 2;
@@ -403,6 +409,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 .ToList();
 
             var featured = (record.Series ?? new List<HardcoverBookSeriesRecord>())
+                .Where(s => s != null && !(series != null && series.TryGetValue(s.SeriesId, out var named) && PlaceOnlySeriesName.IsMatch(named?.Name ?? string.Empty)))
                 .OrderByDescending(s => s.Featured)
                 .ThenBy(s => s.SeriesId)
                 .FirstOrDefault();
@@ -544,7 +551,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
 
             foreach (var seriesRecord in (catalog.Series ?? new Dictionary<int, HardcoverSeriesRecord>()).Values.OrderBy(s => s.Id))
             {
-                if (string.IsNullOrWhiteSpace(seriesRecord.Name))
+                if (string.IsNullOrWhiteSpace(seriesRecord.Name) || PlaceOnlySeriesName.IsMatch(seriesRecord.Name))
                 {
                     continue;
                 }

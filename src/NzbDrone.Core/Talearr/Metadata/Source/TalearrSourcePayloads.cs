@@ -12,8 +12,8 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         // True when the metadata source setting is Talearr and a Hardcover token is saved.
         bool IsActive { get; }
 
-        // The author's full payload (Hardcover catalog, mapped, gaps filled). Null when Hardcover
-        // has no such author.
+        // The author's full payload (Hardcover catalog, mapped, gaps filled from Open Library and
+        // Audible). Null when Hardcover has no such author.
         V5AuthorResponse GetAuthor(int hardcoverAuthorId, bool useCache = true);
 
         // Change signatures ("ETags") for refresh, one request per 100 authors.
@@ -42,26 +42,30 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         private readonly ITalearrMetadataSourceSettingsService _settings;
         private readonly ITalearrHardcoverMetadataClient _hardcover;
         private readonly ITalearrSourceGapFill _gapFill;
+        private readonly ITalearrAudibleFill _audibleFill;
         private readonly Logger _logger;
         private readonly Func<DateTime> _clock;
 
         public TalearrSourcePayloads(ITalearrMetadataSourceSettingsService settings,
                                      ITalearrHardcoverMetadataClient hardcover,
                                      ITalearrSourceGapFill gapFill,
+                                     ITalearrAudibleFill audibleFill,
                                      Logger logger)
-            : this(settings, hardcover, gapFill, logger, () => DateTime.UtcNow)
+            : this(settings, hardcover, gapFill, audibleFill, logger, () => DateTime.UtcNow)
         {
         }
 
         internal TalearrSourcePayloads(ITalearrMetadataSourceSettingsService settings,
                                        ITalearrHardcoverMetadataClient hardcover,
                                        ITalearrSourceGapFill gapFill,
+                                       ITalearrAudibleFill audibleFill,
                                        Logger logger,
                                        Func<DateTime> clock)
         {
             _settings = settings;
             _hardcover = hardcover;
             _gapFill = gapFill;
+            _audibleFill = audibleFill;
             _logger = logger;
             _clock = clock;
         }
@@ -120,6 +124,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             }
 
             var filled = _gapFill?.FillMissingDates(response) ?? 0;
+            _audibleFill?.Apply(response);
             _logger.Debug("[TALEARR-SOURCE] Author hc:{0} ({1}): {2} works, {3} series, {4} dates from Open Library, {5} Hardcover requests",
                 hardcoverAuthorId, response.Author?.Name, response.Books.Count, response.Series.Count, filled, catalog?.RequestCount ?? 0);
 

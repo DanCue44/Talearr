@@ -233,6 +233,30 @@ namespace Chaptarr.Core.Test.Talearr.Catalog
         }
 
         [Test]
+        public void an_old_row_is_attached_to_an_audiobook_only_audible_lists()
+        {
+            // Gaining the Edge: Hardcover does not list it under J.N. Chaney; with Audible leading
+            // it comes back as az:{ASIN}, and the old Goodreads row becomes that book.
+            var old = Local(604, "Gaining the Edge", "gr:215410099");
+            var audible = new Book { Title = "Gaining the Edge", ForeignEditionId = "az:B0D4FKJX6M", BaseBookId = "az:B0D4FKJX6M", MediaType = BookMediaType.Audiobook, Editions = new List<Edition>() };
+
+            Assert.That(TalearrStaleIdentityReconciler.Attach(new List<Book> { old }, new List<Book> { audible }), Is.EqualTo(1));
+            Assert.That(Carries(audible, "gr:215410099"), Is.True);
+        }
+
+        [Test]
+        public void a_row_known_by_a_book_id_takes_the_audible_id()
+        {
+            // The same with the Goodreads book id Chaptarr stored (no work id): both share that old
+            // id for the refresh, which then matches them by work id.
+            var old = new Book { Id = 604, Title = "Gaining the Edge", BaseBookId = "gr:215410099", GoodreadsBookId = "gr:215410099", MediaType = BookMediaType.Audiobook, Editions = new List<Edition>() };
+            var audible = new Book { Title = "Gaining the Edge", ForeignEditionId = "az:B0D4FKJX6M", BaseBookId = "az:B0D4FKJX6M", MediaType = BookMediaType.Audiobook, Editions = new List<Edition>() };
+
+            Assert.That(TalearrStaleIdentityReconciler.Attach(new List<Book> { old }, new List<Book> { audible }), Is.EqualTo(1));
+            Assert.That(BookIdentity.FindWorkFirstMatchResult(new[] { old }, audible).Matches, Is.EqualTo(new[] { old }));
+        }
+
+        [Test]
         public void media_types_and_other_titles_never_match()
         {
             var locals = new List<Book> { Local(1, "Herald of Justice", "gr:111", mediaType: BookMediaType.Ebook), Local(2, "Fist of Orion", "gr:222") };

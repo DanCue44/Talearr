@@ -1021,6 +1021,82 @@ namespace Chaptarr.Core.Test.Books
             });
         }
 
+        private static (TestableRefreshSeriesService Sut, StubSeriesService Series, StubSeriesBookLinkService Links) CreateTalearr(List<Book> books, params Series[] existing)
+        {
+            var bookService = DispatchProxy.Create<IBookService, BookServiceProxy>();
+            ((BookServiceProxy)(object)bookService).Books = books;
+
+            var seriesService = new StubSeriesService();
+            seriesService.SeriesByAuthor.AddRange(existing);
+
+            var linkService = new StubSeriesBookLinkService();
+            foreach (var series in existing)
+            {
+                linkService.SetLinks(series.Id);
+            }
+
+            var sut = new TestableRefreshSeriesService(bookService, seriesService, linkService,
+                new RefreshSeriesBookLinkService(linkService, LogManager.GetCurrentClassLogger()), LogManager.GetCurrentClassLogger());
+            return (sut, seriesService, linkService);
+        }
+
+        // Talearr: with Talearr's own source the payload's series carry Hardcover (or Audible) ids
+        // and no Goodreads one; they used to be dropped here, so no Hardcover series was ever saved.
+        [Test]
+        public void talearr_source_series_are_saved_by_their_hardcover_id()
+        {
+            var book = new Book { Id = 605, AuthorId = 1, Title = "Recon by Fire", MediaType = BookMediaType.Audiobook, HardcoverBookId = "hc:1904547" };
+            var remote = CreateRemoteSeries("Symbiote Wars", null, BookMediaType.Audiobook, book);
+            remote.HardcoverSeriesId = "hc:171839";
+            var (sut, series, links) = CreateTalearr(new List<Book> { book });
+
+            sut.RefreshSeriesInfo(1, new List<Series> { remote }, new Author { Id = 1 }, false, false, null);
+
+            Assert.That(series.Inserted.Select(s => s.HardcoverSeriesId), Is.EqualTo(new[] { "hc:171839" }));
+            Assert.That(links.Inserted.Select(l => l.BookId), Is.EqualTo(new[] { 605 }));
+        }
+
+        [Test]
+        public void a_goodreads_series_of_the_same_title_takes_the_hardcover_id_instead_of_a_second_series()
+        {
+            var book = new Book { Id = 601, AuthorId = 1, Title = "Symbiote Wars", MediaType = BookMediaType.Audiobook, HardcoverBookId = "hc:1846586" };
+            var legacy = new Series { Id = 31, Title = "Symbiote Wars", GoodreadsSeriesId = "gr:388697", AmazonSeriesAsin = "az:B0CT4NYQ7P", MediaType = BookMediaType.Audiobook };
+            var remote = CreateRemoteSeries("Symbiote Wars", null, BookMediaType.Audiobook, book);
+            remote.HardcoverSeriesId = "hc:171839";
+            var (sut, series, _) = CreateTalearr(new List<Book> { book }, legacy);
+
+            sut.RefreshSeriesInfo(1, new List<Series> { remote }, new Author { Id = 1 }, false, false, null);
+
+            Assert.That(series.Inserted, Is.Empty);
+            Assert.That(legacy.HardcoverSeriesId, Is.EqualTo("hc:171839"));
+            Assert.That(legacy.GoodreadsSeriesId, Is.EqualTo("gr:388697"));
+            Assert.That(series.DeletedIds, Is.Empty);
+        }
+
+        [Test]
+        public void goodreads_series_talearrs_source_does_not_list_are_kept()
+        {
+            var book = new Book { Id = 1, AuthorId = 1, Title = "Afterfall", MediaType = BookMediaType.Audiobook, HardcoverBookId = "hc:1" };
+            var legacy = new Series { Id = 7, Title = "Only On Goodreads", GoodreadsSeriesId = "gr:7", MediaType = BookMediaType.Audiobook };
+            var remote = CreateRemoteSeries("Afterfall Saga", null, BookMediaType.Audiobook, book);
+            remote.HardcoverSeriesId = "hc:9";
+            var (sut, series, _) = CreateTalearr(new List<Book> { book }, legacy);
+
+            sut.RefreshSeriesInfo(1, new List<Series> { remote }, new Author { Id = 1 }, false, false, null);
+
+            Assert.That(series.DeletedIds, Is.Empty);
+            Assert.That(sut.DeleteCalls, Is.Zero);
+        }
+
+        [Test]
+        public void series_provider_key_prefers_goodreads_then_hardcover_then_audible()
+        {
+            Assert.That(RefreshSeriesService.SeriesProviderKey(new Series { GoodreadsSeriesId = "gr:1", HardcoverSeriesId = "hc:2" }), Is.EqualTo("gr:1"));
+            Assert.That(RefreshSeriesService.SeriesProviderKey(new Series { HardcoverSeriesId = "hc:2", AmazonSeriesAsin = "az:B0" }), Is.EqualTo("hc:2"));
+            Assert.That(RefreshSeriesService.SeriesProviderKey(new Series { AmazonSeriesAsin = "az:B0" }), Is.EqualTo("az:B0"));
+            Assert.That(RefreshSeriesService.SeriesProviderKey(new Series()), Is.Null);
+        }
+
         private static Series CreateRemoteSeries(string title, string goodreadsSeriesId, BookMediaType mediaType, params Book[] books)
         {
             var series = new Series

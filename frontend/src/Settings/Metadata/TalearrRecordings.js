@@ -69,6 +69,21 @@ function TalearrRecordings(props) {
               />
             </FormGroup>
 
+            {
+              settings.audibleFill &&
+                <FormGroup size={sizes.MEDIUM}>
+                  <FormLabel>{'Fill gaps from Audible'}</FormLabel>
+
+                  <FormInputGroup
+                    type={inputTypes.CHECK}
+                    name="audibleFill"
+                    helpText="When Hardcover has a book but no audiobook edition, series or series number for it, Talearr takes them from Audible. To have Audible lead for one author, including audiobooks Hardcover does not list, use the author's Edit."
+                    onChange={onInputChange}
+                    {...settings.audibleFill}
+                  />
+                </FormGroup>
+            }
+
             <FormGroup size={sizes.MEDIUM}>
               <FormLabel>{'Audible facts from'}</FormLabel>
 

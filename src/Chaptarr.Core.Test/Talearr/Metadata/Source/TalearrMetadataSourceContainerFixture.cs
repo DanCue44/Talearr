@@ -41,6 +41,7 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
                 global::Chaptarr.Core.Test.Talearr.MetadataFallback.HardcoverConfigProxy.Create(),
                 LogManager.GetCurrentClassLogger()));
             container.RegisterInstance<ITalearrSourceGapFill>(new TalearrSourceGapFill(null, LogManager.GetCurrentClassLogger()));
+            container.RegisterInstance<ITalearrAudibleFill>(new TalearrAudibleFill(null, null, LogManager.GetCurrentClassLogger()));
             container.Register<ITalearrSourcePayloads, TalearrSourcePayloads>();
 
             Assert.That(container.Resolve<ITalearrSourcePayloads>().IsActive, Is.True);

@@ -9,6 +9,7 @@ using NLog;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.MetadataSource.Audible;
 using NzbDrone.Core.MetadataSource.Audible.Resources;
+using NzbDrone.Core.Talearr.Metadata.Source;
 
 namespace NzbDrone.Core.Talearr.Recordings
 {
@@ -30,6 +31,10 @@ namespace NzbDrone.Core.Talearr.Recordings
         // Catalog search by title and author. Found products only.
         AudibleLookupResult Search(string marketplace, string title, string author);
 
+        // One page (0 based) of an author's catalog, newest first, with series. Used by the
+        // Audible fill of Talearr's metadata source.
+        AudibleCatalogPage SearchAuthor(string marketplace, string author, int page);
+
         // Audnexus, one ASIN per call. Ok, NotFound or RegionUnavailable.
         AudibleLookupResult GetFromAudnexus(string marketplace, string asin);
 
@@ -49,6 +54,8 @@ namespace NzbDrone.Core.Talearr.Recordings
     {
         public const int BatchSize = 25;
         public const string ResponseGroups = "product_desc,contributors,product_attrs";
+        public const string AuthorResponseGroups = "product_desc,contributors,product_attrs,series,media";
+        public const int AuthorPageSize = 50;
         public static readonly TimeSpan MinimumInterval = TimeSpan.FromSeconds(1);
         public static readonly TimeSpan FirstBackoff = TimeSpan.FromMinutes(1);
         public static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(30);
@@ -167,6 +174,75 @@ namespace NzbDrone.Core.Talearr.Recordings
             }
 
             return result;
+        }
+
+        public AudibleCatalogPage SearchAuthor(string marketplace, string author, int page)
+        {
+            var market = TalearrAudibleMarketplaces.Get(marketplace);
+            var result = new AudibleCatalogPage();
+            if (string.IsNullOrWhiteSpace(author))
+            {
+                return result;
+            }
+
+            var lookup = new AudibleLookupResult();
+            var url = $"{market.ApiBaseUrl}/1.0/catalog/products?author={Uri.EscapeDataString(author.Trim())}" +
+                      $"&num_results={AuthorPageSize}&page={Math.Max(0, page)}&products_sort_by=-ReleaseDate&response_groups={AuthorResponseGroups}";
+
+            var content = Fetch(market.ApiBaseUrl, url, market, lookup);
+            var response = content == null ? null : Deserialize<AudibleAuthorCatalogResponse>(content, lookup);
+            result.Throttled = lookup.Throttled;
+            result.Failed = lookup.Failed;
+            if (response == null)
+            {
+                return result;
+            }
+
+            result.TotalResults = response.TotalResults;
+            foreach (var product in response.Products ?? new List<AudibleAuthorCatalogProduct>())
+            {
+                if (product == null || !LooksLikeAsin(product.Asin) || string.IsNullOrWhiteSpace(product.Title))
+                {
+                    continue;
+                }
+
+                result.Items.Add(new AudibleCatalogItem
+                {
+                    Asin = product.Asin.Trim().ToUpperInvariant(),
+                    Title = product.Title.Trim(),
+                    Subtitle = string.IsNullOrWhiteSpace(product.Subtitle) ? null : product.Subtitle.Trim(),
+                    Authors = (product.Authors ?? new List<AudibleAuthorCatalogName>()).Select(a => a?.Name?.Trim()).Where(n => !string.IsNullOrEmpty(n)).ToList(),
+                    Narrators = (product.Narrators ?? new List<AudibleAuthorCatalogName>()).Select(a => a?.Name?.Trim()).Where(n => !string.IsNullOrEmpty(n)).ToList(),
+                    Series = (product.Series ?? new List<AudibleAuthorCatalogSeries>())
+                        .Where(s => s != null && !string.IsNullOrWhiteSpace(s.Title))
+                        .Select(s => new AudibleCatalogSeries
+                        {
+                            Asin = LooksLikeAsin(s.Asin) ? s.Asin.Trim().ToUpperInvariant() : null,
+                            Title = s.Title.Trim(),
+                            Sequence = string.IsNullOrWhiteSpace(s.Sequence) ? null : s.Sequence.Trim()
+                        })
+                        .ToList(),
+                    RuntimeMinutes = product.RuntimeLengthMin > 0 ? product.RuntimeLengthMin : null,
+                    ReleaseDate = IsoDate(product.ReleaseDate),
+                    Language = product.Language?.Trim().ToLowerInvariant(),
+                    FormatType = product.FormatType?.Trim().ToLowerInvariant(),
+                    DeliveryType = product.ContentDeliveryType?.Trim(),
+                    Publisher = product.PublisherName,
+                    Summary = product.MerchandisingSummary,
+                    ImageUrl = BestImage(product.ProductImages)
+                });
+            }
+
+            return result;
+        }
+
+        private static string BestImage(Dictionary<string, string> images)
+        {
+            return (images ?? new Dictionary<string, string>())
+                .Where(kvp => !string.IsNullOrWhiteSpace(kvp.Value))
+                .OrderByDescending(kvp => int.TryParse(kvp.Key, NumberStyles.Integer, CultureInfo.InvariantCulture, out var size) ? size : 0)
+                .Select(kvp => kvp.Value)
+                .FirstOrDefault();
         }
 
         public AudibleLookupResult GetFromAudnexus(string marketplace, string asin)

@@ -4,6 +4,7 @@ using Chaptarr.Http;
 using Chaptarr.Http.REST;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using NzbDrone.Core.Talearr.Metadata.Source;
 using NzbDrone.Core.Talearr.Recordings;
 using NzbDrone.Http.REST.Attributes;
 
@@ -27,6 +28,10 @@ namespace Chaptarr.Api.V1.Config
         public int? MinBitrateGainKbps { get; set; }
         public int? RuntimeTolerancePct { get; set; }
 
+        // Audible fills what Hardcover lacks for every author (talearr.metadata.audiblefill).
+        // Nullable like the guard fields.
+        public bool? AudibleFill { get; set; }
+
         // Read only: the marketplaces Talearr knows, for a settings dropdown.
         public List<TalearrMarketplaceResource> AvailableMarketplaces { get; set; }
     }
@@ -42,10 +47,12 @@ namespace Chaptarr.Api.V1.Config
     public class TalearrRecordingsConfigController : RestController<TalearrRecordingsConfigResource>
     {
         private readonly ITalearrRecordingsSettingsService _settingsService;
+        private readonly ITalearrAudibleSourceSettings _audibleSource;
 
-        public TalearrRecordingsConfigController(ITalearrRecordingsSettingsService settingsService)
+        public TalearrRecordingsConfigController(ITalearrRecordingsSettingsService settingsService, ITalearrAudibleSourceSettings audibleSource = null)
         {
             _settingsService = settingsService;
+            _audibleSource = audibleSource;
 
             SharedValidator.RuleFor(c => c.Marketplace)
                 .Must(TalearrAudibleMarketplaces.IsKnown)
@@ -64,7 +71,7 @@ namespace Chaptarr.Api.V1.Config
         [HttpGet]
         public TalearrRecordingsConfigResource GetConfig()
         {
-            return ToResource(_settingsService.Get());
+            return WithAudibleFill(ToResource(_settingsService.Get()));
         }
 
         [RestPutById]
@@ -84,7 +91,18 @@ namespace Chaptarr.Api.V1.Config
                 RuntimeTolerancePct = resource.RuntimeTolerancePct ?? current.RuntimeTolerancePct
             });
 
-            return Accepted(ToResource(saved));
+            if (resource.AudibleFill.HasValue && _audibleSource != null && resource.AudibleFill.Value != _audibleSource.FillEnabled)
+            {
+                _audibleSource.SetFillEnabled(resource.AudibleFill.Value);
+            }
+
+            return Accepted(WithAudibleFill(ToResource(saved)));
+        }
+
+        private TalearrRecordingsConfigResource WithAudibleFill(TalearrRecordingsConfigResource resource)
+        {
+            resource.AudibleFill = _audibleSource?.FillEnabled;
+            return resource;
         }
 
         internal static TalearrRecordingsConfigResource ToResource(TalearrRecordingsSettings settings)

@@ -373,6 +373,10 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             {
                 return ConvertV5AuthorResponse(_talearrSource.GetAuthor(hardcoverAuthorId, useCache));
             }
+            catch (TalearrAudibleUnavailableException ex)
+            {
+                throw new BookInfoException(ex.Message, ex);
+            }
             catch (TalearrHardcoverException ex)
             {
                 throw new BookInfoException($"Hardcover: {ex.Message}", ex);
@@ -450,6 +454,29 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             }
 
             return Tuple.Create(GetAuthorMetadataKey(author), book, new List<Author> { author });
+        }
+
+        // Talearr: a book the Audible fill added for a Hardcover author (az:{ASIN}) is read from
+        // that author's payload, not from the metadata server.
+        private bool TryGetTalearrAudibleBook(string bookId, BookMediaType mediaType, string authorHintProviderId, out Tuple<string, Book, List<Author>> result)
+        {
+            result = null;
+            if (!TalearrSourceActive ||
+                bookId?.StartsWith("az:", StringComparison.OrdinalIgnoreCase) != true ||
+                !TalearrSourcePayloads.TryParseId(authorHintProviderId, out var hardcoverAuthorId))
+            {
+                return false;
+            }
+
+            var author = GetTalearrAuthor(hardcoverAuthorId, useCache: true) ?? throw new BookNotFoundException(bookId);
+            var matches = (author.Books ?? new List<Book>())
+                .Where(b => b != null && (string.Equals(b.ForeignEditionId, bookId.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                                          BookIdentity.GetProviderIdentityTokens(b).Contains(bookId.Trim())))
+                .ToList();
+
+            var book = matches.FirstOrDefault(b => b.MediaType == mediaType) ?? matches.FirstOrDefault() ?? throw new BookNotFoundException(bookId);
+            result = Tuple.Create(GetAuthorMetadataKey(author), book, new List<Author> { author });
+            return true;
         }
 
         private Author GetAuthorInfoFromV5(string authorId, bool useCache = true, bool importAllWorks = true)
@@ -1271,8 +1298,10 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                     var baseSeries = ConvertV5SeriesToDomain(v5Series);
 
                     // Enforce Goodreads-backed series only. Amazon-only series are considered invalid and are not persisted.
-                    // Talearr: payloads from Talearr's own source (Hardcover) keep Hardcover-backed series.
-                    var talearrHardcoverSeries = v5Response.TalearrSource && !string.IsNullOrWhiteSpace(baseSeries.HardcoverSeriesId);
+                    // Talearr: payloads from Talearr's own source (Hardcover) keep Hardcover-backed series,
+                    // and the Audible series its Audible fill adds (az:{series ASIN}).
+                    var talearrHardcoverSeries = v5Response.TalearrSource &&
+                                                 (!string.IsNullOrWhiteSpace(baseSeries.HardcoverSeriesId) || !string.IsNullOrWhiteSpace(baseSeries.AmazonSeriesAsin));
                     if (string.IsNullOrWhiteSpace(baseSeries.GoodreadsSeriesId) && !talearrHardcoverSeries)
                     {
                         _logger.Debug("[SERIES-V5] Skipping series '{0}' for author {1} because it has no Goodreads series ID",
@@ -1380,6 +1409,12 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                     AddKey(book.HardcoverBookId);
                     AddKey(book.GoodreadsWorkId);
                     AddKey(book.OpenLibraryWorkId);
+
+                    // Talearr: Audible-only books from the Audible fill are known by az:{ASIN} alone.
+                    if (v5Response.TalearrSource && book.ForeignEditionId?.StartsWith("az:", StringComparison.OrdinalIgnoreCase) == true)
+                    {
+                        AddKey(book.ForeignEditionId);
+                    }
                 }
 
                 foreach (var series in allSeries.Where(s => s != null))
@@ -2404,6 +2439,11 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 return GetTalearrBook(hardcoverBookId, mediaType, normalizedForeignBookId);
             }
 
+            if (TryGetTalearrAudibleBook(normalizedForeignBookId, mediaType, authorHintProviderId, out var audibleBook))
+            {
+                return audibleBook;
+            }
+
             try
             {
                 _logger.Debug("Getting book info for foreignBookId: {0}", normalizedForeignBookId);
@@ -2439,6 +2479,11 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             if (TalearrSourceActive && TalearrSourcePayloads.TryParseId(normalizedForeignWorkId, out var hardcoverWorkId))
             {
                 return GetTalearrBook(hardcoverWorkId, mediaType, normalizedForeignWorkId);
+            }
+
+            if (TryGetTalearrAudibleBook(normalizedForeignWorkId, mediaType, authorHintProviderId, out var audibleWork))
+            {
+                return audibleWork;
             }
 
             try

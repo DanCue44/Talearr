@@ -61,7 +61,8 @@ function createMapStateToProps() {
         'ebookRootFolderPath',
         'tags',
         'audiobookTags',
-        'ebookTags'
+        'ebookTags',
+        'talearrAudiobookSource'
       ]);
 
       const settings = selectSettings(authorSettings, pendingChanges, saveError);
