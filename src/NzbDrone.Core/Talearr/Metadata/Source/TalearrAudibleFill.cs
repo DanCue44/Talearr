@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
@@ -22,7 +23,8 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
     }
 
     // Talearr: the Audible step of Talearr's metadata source. Authors set to Audible always get
-    // it, the others only while the fill is on (TalearrAudibleSourceSettings).
+    // it, the others while the fill is on or when they have audiobooks added from Audible
+    // (TalearrAudibleSourceSettings).
     public class TalearrAudibleFill : ITalearrAudibleFill
     {
         private readonly ITalearrAudibleSourceSettings _settings;
@@ -45,7 +47,9 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             }
 
             var leads = _settings.GetAuthorSource(author.Id) == TalearrAudiobookSource.Audible;
-            if (!leads && !_settings.FillEnabled)
+            var kept = leads ? new List<string>() : _settings.GetKeptBooks(author.Id).ToList();
+            var fill = _settings.FillEnabled;
+            if (!leads && !fill && kept.Count == 0)
             {
                 return new TalearrAudibleMergeStats();
             }
@@ -65,7 +69,9 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 return new TalearrAudibleMergeStats();
             }
 
-            var stats = TalearrAudibleMerge.Apply(response, catalog.Items, leads, catalog.Marketplace);
+            // With the fill off, only the books added from Audible are used.
+            var items = leads || fill ? catalog.Items : catalog.Items.Where(i => kept.Contains(i.Asin, StringComparer.OrdinalIgnoreCase)).ToList();
+            var stats = TalearrAudibleMerge.Apply(response, items, leads, catalog.Marketplace, kept);
             _logger.Debug("[TALEARR-AUDIBLE] {0} ({1}, {2} Audible audiobooks{3}): {4}",
                 author.Name, leads ? "Audible leads" : "fill", catalog.Items.Count, catalog.Stale ? ", stored copy" : string.Empty, stats);
 

@@ -30,8 +30,13 @@ function hasAddedMediaType(props, mediaType) {
   return (props.addedMediaTypes || []).includes(mediaType);
 }
 
+// Talearr: an audiobook only Audible lists (az: id) has no ebook to add.
+function getMediaTypes(props) {
+  return props.audiobookOnly ? ['audiobook'] : MEDIA_TYPES;
+}
+
 function getMissingMediaTypes(props) {
-  return MEDIA_TYPES.filter((mediaType) => !hasAddedMediaType(props, mediaType));
+  return getMediaTypes(props).filter((mediaType) => !hasAddedMediaType(props, mediaType));
 }
 
 function canSelectBoth(props) {
@@ -41,7 +46,7 @@ function canSelectBoth(props) {
     return false;
   }
 
-  return getMissingMediaTypes(props).length === MEDIA_TYPES.length;
+  return getMediaTypes(props).length > 1 && getMissingMediaTypes(props).length === MEDIA_TYPES.length;
 }
 
 function normalizeDefaultMediaType(value, allowBoth, missingMediaTypes) {
@@ -94,7 +99,7 @@ function getAddButtonLabel(props, mediaType) {
   const missingMediaTypes = getMissingMediaTypes(props);
 
   if (!missingMediaTypes.length) {
-    return 'Both Formats Added';
+    return props.audiobookOnly ? 'Audiobook Added' : 'Both Formats Added';
   }
 
   if (!canAddSelectedMediaType(props, mediaType)) {
@@ -207,6 +212,7 @@ class AddNewBookModalContent extends Component {
       onSetDefaultMediaType,
       isSavingDefaultMediaType,
       onModalClose,
+      audiobookOnly,
       ...otherProps
     } = this.props;
 
@@ -281,6 +287,7 @@ class AddNewBookModalContent extends Component {
                 includeBothMediaType={allowBothMediaType}
                 isExistingAuthor={isExistingAuthor}
                 selectedMediaType={this.state.selectedMediaType}
+                audiobookOnly={audiobookOnly}
                 onMediaTypeChange={this.onMediaTypeChange}
                 defaultMediaType={defaultMediaType}
                 onSetDefaultMediaType={onSetDefaultMediaType}
@@ -364,6 +371,7 @@ AddNewBookModalContent.propTypes = {
   isQueued: PropTypes.bool.isRequired,
   addNotice: PropTypes.string,
   addError: PropTypes.object,
+  audiobookOnly: PropTypes.bool,
   addedMediaTypes: PropTypes.arrayOf(PropTypes.oneOf(['audiobook', 'ebook'])),
   addFailedMediaType: PropTypes.oneOf(['audiobook', 'ebook']),
   isExistingAuthor: PropTypes.bool.isRequired,

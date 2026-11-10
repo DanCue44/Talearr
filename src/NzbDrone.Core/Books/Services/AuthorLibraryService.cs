@@ -678,6 +678,13 @@ namespace NzbDrone.Core.Books.Services
                 return false;
             }
 
+            // Talearr: an audiobook added from Audible (az:{ASIN}) has no work id.
+            var talearrAudibleAsin = TalearrAudibleBookRequests.Asin(normalized);
+            if (talearrAudibleAsin != null)
+            {
+                return TalearrAudibleBookRequests.FindBook(_bookService.GetBooksByAuthor(authorId), talearrAudibleAsin, mediaType, _editionService.GetEditionsByBook) != null;
+            }
+
             return _bookService.FindAllByWorkProviderId(
                     normalized.Substring(0, separator),
                     ProviderIdHelper.StripPrefix(normalized),

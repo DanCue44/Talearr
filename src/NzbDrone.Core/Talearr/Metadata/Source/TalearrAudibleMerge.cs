@@ -40,6 +40,10 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
     // does not list for the author are added as books of their own (az:{ASIN}), collections as
     // omnibus books.
     //
+    // Kept (books added from an Audible search result, TalearrAudibleSourceSettings.GetKeptBooks):
+    // in fill mode too, a kept listing Hardcover does not have is added as its own book, so the
+    // added book stays in the author's payload.
+    //
     // Ids: an Audible edition is az:{ASIN} (ConvertV5EditionToDomain appends -audiobook), an
     // Audible-only book az:{ASIN} of its first listing, a series Hardcover does not have
     // az:{series ASIN} (Series.AmazonSeriesAsin). Hardcover ids are never changed, so local rows
@@ -60,7 +64,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         private static readonly Regex TagRegex = new Regex(@"<[^>]+>", RegexOptions.Compiled);
         private static readonly Regex BracketRegex = new Regex(@"\s*[\(\[](?<label>[^\)\]]*)[\)\]]", RegexOptions.Compiled);
 
-        public static TalearrAudibleMergeStats Apply(V5AuthorResponse response, IEnumerable<AudibleCatalogItem> items, bool audibleLeads, string marketplace)
+        public static TalearrAudibleMergeStats Apply(V5AuthorResponse response, IEnumerable<AudibleCatalogItem> items, bool audibleLeads, string marketplace, IReadOnlyCollection<string> keptAsins = null)
         {
             var stats = new TalearrAudibleMergeStats();
             if (response?.Books == null)
@@ -121,9 +125,11 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 FillBook(response, book, work, audibleLeads, domain, stats);
             }
 
-            if (audibleLeads)
+            var kept = new HashSet<string>(keptAsins ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            if (audibleLeads || kept.Count > 0)
             {
-                foreach (var work in unmatched.Concat(works.Where(w => w.IsCollection)))
+                foreach (var work in unmatched.Concat(works.Where(w => w.IsCollection))
+                             .Where(w => audibleLeads || w.Items.Any(i => kept.Contains(i.Asin))))
                 {
                     if (response.Books.Any(b => b?.Editions?.Any(e => SharesAsin(e, work)) == true))
                     {

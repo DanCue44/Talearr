@@ -35,6 +35,9 @@ namespace NzbDrone.Core.Talearr.Recordings
         // Audible fill of Talearr's metadata source.
         AudibleCatalogPage SearchAuthor(string marketplace, string author, int page);
 
+        // A keyword search (title, author or both), best matches first; one page of KeywordPageSize.
+        AudibleCatalogPage SearchKeywords(string marketplace, string keywords);
+
         // Audnexus, one ASIN per call. Ok, NotFound or RegionUnavailable.
         AudibleLookupResult GetFromAudnexus(string marketplace, string asin);
 
@@ -56,6 +59,7 @@ namespace NzbDrone.Core.Talearr.Recordings
         public const string ResponseGroups = "product_desc,contributors,product_attrs";
         public const string AuthorResponseGroups = "product_desc,contributors,product_attrs,series,media";
         public const int AuthorPageSize = 50;
+        public const int KeywordPageSize = 25;
         public static readonly TimeSpan MinimumInterval = TimeSpan.FromSeconds(1);
         public static readonly TimeSpan FirstBackoff = TimeSpan.FromMinutes(1);
         public static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(30);
@@ -185,10 +189,30 @@ namespace NzbDrone.Core.Talearr.Recordings
                 return result;
             }
 
-            var lookup = new AudibleLookupResult();
             var url = $"{market.ApiBaseUrl}/1.0/catalog/products?author={Uri.EscapeDataString(author.Trim())}" +
                       $"&num_results={AuthorPageSize}&page={Math.Max(0, page)}&products_sort_by=-ReleaseDate&response_groups={AuthorResponseGroups}";
 
+            return FetchCatalogPage(market, url, result);
+        }
+
+        public AudibleCatalogPage SearchKeywords(string marketplace, string keywords)
+        {
+            var market = TalearrAudibleMarketplaces.Get(marketplace);
+            var result = new AudibleCatalogPage();
+            if (string.IsNullOrWhiteSpace(keywords))
+            {
+                return result;
+            }
+
+            var url = $"{market.ApiBaseUrl}/1.0/catalog/products?keywords={Uri.EscapeDataString(keywords.Trim())}" +
+                      $"&num_results={KeywordPageSize}&products_sort_by=Relevance&response_groups={AuthorResponseGroups}";
+
+            return FetchCatalogPage(market, url, result);
+        }
+
+        private AudibleCatalogPage FetchCatalogPage(TalearrAudibleMarketplace market, string url, AudibleCatalogPage result)
+        {
+            var lookup = new AudibleLookupResult();
             var content = Fetch(market.ApiBaseUrl, url, market, lookup);
             var response = content == null ? null : Deserialize<AudibleAuthorCatalogResponse>(content, lookup);
             result.Throttled = lookup.Throttled;

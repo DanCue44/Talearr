@@ -55,7 +55,7 @@ calendar, notifications and the Readarr API. On top of that:
 - **Audible facts**: narrator, runtime and abridged or unabridged for each edition.
 - **Audible fills the gaps**: audiobook editions, series and series numbers Hardcover is missing
   come from Audible. Per author, Audible can lead instead, adding the audiobooks Hardcover does
-  not list for them.
+  not list for them. The add search shows those audiobooks too, so one can be added on its own.
 - **Multi-disc import**, naming tokens, an audio quality ladder and an optional merge to M4B.
 
 ### Library

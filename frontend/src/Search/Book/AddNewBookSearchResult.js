@@ -128,6 +128,7 @@ class AddNewBookSearchResult extends Component {
 
     return {
       initialMediaType: mediaType,
+      audiobookOnly: String(foreignBookId ?? '').toLowerCase().startsWith('az:'),
       foreignBookId,
       foreignAuthorId: author.foreignAuthorId,
       book,
@@ -252,6 +253,7 @@ class AddNewBookSearchResult extends Component {
                   localEbookBooks={ebookInstances}
                   canAdd={canAdd}
                   size={28}
+                  audiobookOnly={foreignBookIdLower.startsWith('az:')}
                   onAdd={this.onAddFormatPress}
                 />
 

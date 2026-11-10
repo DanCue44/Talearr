@@ -167,6 +167,7 @@ function BookFormatActions(props) {
     canAdd,
     size,
     showAddActions,
+    audiobookOnly,
     onAdd
   } = props;
 
@@ -185,15 +186,19 @@ function BookFormatActions(props) {
         showAddActions={showAddActions}
         onAdd={onAdd}
       />
-      <BookFormatAction
-        mediaType="ebook"
-        title={title}
-        instances={localEbookBooks}
-        canAdd={canAdd}
-        size={size}
-        showAddActions={showAddActions}
-        onAdd={onAdd}
-      />
+      {
+        audiobookOnly ?
+          null :
+          <BookFormatAction
+            mediaType="ebook"
+            title={title}
+            instances={localEbookBooks}
+            canAdd={canAdd}
+            size={size}
+            showAddActions={showAddActions}
+            onAdd={onAdd}
+          />
+      }
     </div>
   );
 }
@@ -215,6 +220,7 @@ BookFormatActions.propTypes = {
   canAdd: PropTypes.bool.isRequired,
   size: PropTypes.number,
   showAddActions: PropTypes.bool,
+  audiobookOnly: PropTypes.bool,
   onAdd: PropTypes.func
 };
 
@@ -222,7 +228,8 @@ BookFormatActions.defaultProps = {
   localAudiobookBooks: [],
   localEbookBooks: [],
   size: 18,
-  showAddActions: true
+  showAddActions: true,
+  audiobookOnly: false
 };
 
 export default BookFormatActions;

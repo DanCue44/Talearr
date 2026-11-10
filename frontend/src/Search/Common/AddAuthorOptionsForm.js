@@ -88,6 +88,7 @@ class AddAuthorOptionsForm extends Component {
       ebookTags,
       isWindows,
       isExistingAuthor,
+      audiobookOnly,
       onInputChange,
       ...otherProps
     } = this.props;
@@ -100,7 +101,7 @@ class AddAuthorOptionsForm extends Component {
     // Root folder option availability is resolved inside RootFolderSelectInputConnector.
     // Keep the media-type toggle enabled so users can switch media types and configure settings.
     const hasAudiobookRootFolder = true;
-    const hasEbookRootFolder = true;
+    const hasEbookRootFolder = !audiobookOnly;
 
     return (
       <Form {...otherProps}>
@@ -481,6 +482,7 @@ AddAuthorOptionsForm.propTypes = {
   includeNoneMetadataProfile: PropTypes.bool.isRequired,
   includeSpecificBookMonitor: PropTypes.bool.isRequired,
   includeBothMediaType: PropTypes.bool,
+  audiobookOnly: PropTypes.bool,
   defaultMediaType: PropTypes.string,
   onSetDefaultMediaType: PropTypes.func,
   isSavingDefaultMediaType: PropTypes.bool,

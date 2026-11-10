@@ -14,7 +14,10 @@ using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.Books.Calibre;
+using NzbDrone.Core.Books.Commands;
+using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Talearr.Catalog;
+using NzbDrone.Core.Talearr.Metadata.Source;
 
 namespace NzbDrone.Core.Books
 {
@@ -43,6 +46,9 @@ namespace NzbDrone.Core.Books
         private readonly IEditionService _editionService;
         private readonly IEditionSelector _editionSelector;
         private readonly IEditionMetadataProfileFilter _editionMetadataProfileFilter;
+        private readonly ITalearrAudibleSourceSettings _talearrAudibleSettings;
+        private readonly ITalearrSourcePayloads _talearrSource;
+        private readonly IManageCommandQueue _commandQueue;
 
         public AddBookService(IAuthorService authorService,
                                IAuthorLibraryService authorLibraryService,
@@ -60,8 +66,14 @@ namespace NzbDrone.Core.Books
                                IEditionSelector editionSelector,
                                IEditionMetadataProfileFilter editionMetadataProfileFilter,
                                IMetadataProfileService metadataProfileService,
-                               Logger logger)
+                               Logger logger,
+                               ITalearrAudibleSourceSettings talearrAudibleSettings = null,
+                               ITalearrSourcePayloads talearrSource = null,
+                               IManageCommandQueue commandQueue = null)
         {
+            _commandQueue = commandQueue;
+            _talearrAudibleSettings = talearrAudibleSettings;
+            _talearrSource = talearrSource;
             _authorService = authorService;
             _authorLibraryService = authorLibraryService;
             _bookService = bookService;
@@ -421,6 +433,45 @@ namespace NzbDrone.Core.Books
                 });
             }
 
+            // Talearr: an audiobook only Audible lists (az:{ASIN}, from the add search) joins its
+            // Hardcover author's catalog: it is kept there, so the author's payload has it now and
+            // on every refresh (TalearrAudibleMerge).
+            var talearrAudibleAsin = TalearrAudibleBookRequests.Asin(workProviderId);
+            if (talearrAudibleAsin != null)
+            {
+                if (!authorProviderId.StartsWith("hc:", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ValidationException(new[]
+                    {
+                        new ValidationFailure("Author", "Cannot add book: an Audible audiobook is added to its author on Hardcover, and none was found.")
+                    });
+                }
+
+                _talearrAudibleSettings.KeepBook(authorProviderId, talearrAudibleAsin);
+            }
+
+            try
+            {
+                var added = await RequestBookThroughAuthorCatalog(requestedBook, workProviderId, authorProviderId);
+
+                // The add stores the book; its series place comes with the author's next refresh,
+                // so run that now.
+                if (talearrAudibleAsin != null && added?.AuthorId > 0)
+                {
+                    _commandQueue?.Push(new RefreshAuthorCommand(added.AuthorId, refreshMetadata: true, rescanFolders: false));
+                }
+
+                return added;
+            }
+            catch (Exception ex) when (talearrAudibleAsin != null && ex is not PendingBookRequestException)
+            {
+                _talearrAudibleSettings.ForgetBook(talearrAudibleAsin);
+                throw;
+            }
+        }
+
+        private async Task<Book> RequestBookThroughAuthorCatalog(Book requestedBook, string workProviderId, string authorProviderId)
+        {
             var mediaType = requestedBook.MediaType;
             var searchRequested = requestedBook.AddOptions?.SearchForNewBook == true;
             var requestedIds = new List<string> { workProviderId };
@@ -578,6 +629,13 @@ namespace NzbDrone.Core.Books
                 return null;
             }
 
+            // Talearr: an Audible audiobook (az:{ASIN}) has no work id; find it by its ASIN.
+            var talearrAudibleAsin = TalearrAudibleBookRequests.Asin(workProviderId);
+            if (talearrAudibleAsin != null)
+            {
+                return TalearrAudibleBookRequests.FindBook(_bookService.GetBooksByAuthor(authorId), talearrAudibleAsin, mediaType, _editionService.GetEditionsByBook);
+            }
+
             var matches = _bookService.FindAllByWorkProviderId(
                     workProviderId.Substring(0, separator),
                     ProviderIdHelper.StripPrefix(workProviderId),
@@ -615,6 +673,15 @@ namespace NzbDrone.Core.Books
                 {
                     return normalized;
                 }
+            }
+
+            // Talearr: an audiobook only Audible lists, picked from the add search, is requested by
+            // its ASIN; Talearr's metadata source adds it to the author (see RequestBookThroughAuthorCatalog).
+            if (_talearrSource?.IsActive == true && _talearrAudibleSettings != null &&
+                !string.IsNullOrWhiteSpace(book?.Author?.HardcoverAuthorId) &&
+                TalearrAudibleBookRequests.RequestedAsin(book) is string talearrAsin)
+            {
+                return "az:" + talearrAsin;
             }
 
             var editionProviderId = BookEditionIdentity.GetCanonicalEditionProviderIds(book, _logger, "AddBookService.ResolveRequestedWork")

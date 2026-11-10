@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -71,6 +72,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         private readonly CachingService _authorCache;
         private readonly ITalearrMetadataFallback _metadataFallback;
         private readonly ITalearrSourcePayloads _talearrSource;
+        private readonly ITalearrAudibleBookSearch _talearrAudibleSearch;
         // private readonly IGoodreadsAutocompleteFallback _autocompleteFallback; // Removed - not used
 
         public BookInfoProxy(IHttpClient httpClient,
@@ -87,7 +89,8 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                              ICacheManager cacheManager,
                              IMetadataServerHealthGate metadataServerHealthGate,
                              ITalearrMetadataFallback metadataFallback = null,
-                             ITalearrSourcePayloads talearrSource = null)
+                             ITalearrSourcePayloads talearrSource = null,
+                             ITalearrAudibleBookSearch talearrAudibleSearch = null)
         {
             _httpClient = httpClient;
             _cachedHttpClient = cachedHttpClient;
@@ -105,6 +108,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             _metadataServerHealthGate = metadataServerHealthGate ?? throw new ArgumentNullException(nameof(metadataServerHealthGate));
             _metadataFallback = metadataFallback;
             _talearrSource = talearrSource;
+            _talearrAudibleSearch = talearrAudibleSearch;
 
             _authorCache = new CachingService(new MemoryCacheProvider(new MemoryCache(new MemoryCacheOptions { SizeLimit = 150 })));
             _authorCache.DefaultCachePolicy = new CacheDefaults
@@ -2725,6 +2729,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                     ApplyAuthorSearchSummaries(filtered.OfType<Author>(), "hardcover");
 
                     _logger.Debug($"[BookInfoProxy] Hardcover filtered results: {filtered.Count}");
+                    filtered.AddRange(SearchTalearrAudible(title, filtered));
                     return filtered;
                 }
                 catch (NzbDroneClientException ex)
@@ -2774,6 +2779,61 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
 
             _logger.Debug($"[BookInfoProxy] Final result count: {result.Count} (unique authors + books)");
             return result;
+        }
+
+        // Talearr: audiobooks only Audible lists for an author on Hardcover (TalearrAudibleBookSearch),
+        // after the Hardcover results. Adding one keeps it in that author's catalog (AddBookService).
+        private List<object> SearchTalearrAudible(string title, List<object> hardcoverResults)
+        {
+            if (!TalearrSourceActive || _talearrAudibleSearch == null)
+            {
+                return new List<object>();
+            }
+
+            var books = new List<object>();
+            foreach (var hit in _talearrAudibleSearch.Search(title, hardcoverResults))
+            {
+                var item = hit.Item;
+                var book = MapAudibleCatalogBookToDomain(new AudibleCatalogBookResource
+                {
+                    Asin = item.Asin,
+                    Title = item.Title,
+                    Subtitle = item.Subtitle,
+                    Summary = item.Summary,
+                    ImageUrl = item.ImageUrl,
+                    LengthMinutes = item.RuntimeMinutes,
+                    Publisher = item.Publisher,
+                    Language = item.Language,
+                    ReleaseDate = DateTime.TryParse(item.ReleaseDate, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var released) ? released : null,
+                    ContentDeliveryType = item.DeliveryType,
+                    Authors = item.Authors.Select(a => new AudibleCatalogAuthorResource { Name = a }).ToList(),
+                    Narrators = item.Narrators.Select(n => new AudibleCatalogNarratorResource { Name = n }).ToList(),
+                    Series = item.Series.Select(x => new AudibleCatalogSeriesResource { Asin = x.Asin, Name = x.Title, Position = x.Sequence }).ToList()
+                });
+
+                if (book?.Author == null)
+                {
+                    continue;
+                }
+
+                book.Title = hit.Title;
+                book.Author.Name = hit.AuthorName;
+                book.Author.CleanName = Parser.Parser.CleanAuthorName(hit.AuthorName ?? string.Empty);
+                book.Author.SortName = hit.AuthorName?.ToLowerInvariant();
+                book.Author.NameLastFirst = hit.AuthorName?.ToLastFirst();
+                book.Author.SortNameLastFirst = hit.AuthorName?.ToLastFirst()?.ToLowerInvariant();
+                book.Author.HardcoverAuthorId = hit.HardcoverAuthorId;
+                book.Author.TitleSlug = hit.HardcoverAuthorId;
+                book.Author.AudnexusAuthorId = null;
+                books.Add(book);
+            }
+
+            if (books.Count > 0)
+            {
+                _logger.Debug("[BookInfoProxy] Audible adds {0} audiobooks Hardcover does not list for '{1}'", books.Count, title);
+            }
+
+            return books;
         }
 
         private static string BuildHardcoverSearchCacheKey(string title, string apiToken)

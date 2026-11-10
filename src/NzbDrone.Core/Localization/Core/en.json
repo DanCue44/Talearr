@@ -1775,7 +1775,7 @@
   "SearchHintPrefix": "You can also search using the",
   "SearchHintProviderAudible": "Audiobooks searches Audible by title or keywords. You can also paste an Audible/Amazon ASIN, such as B08G9PRS1K.",
   "SearchHintProviderGoodreads": "Goodreads accepts title or author searches, ISBNs, ASINs, and Goodreads IDs such as author:128382, work:4912783, or edition:18241.",
-  "SearchHintProviderHardcover": "Hardcover searches authors, books, and series by name or title.",
+  "SearchHintProviderHardcover": "Hardcover searches authors, books, and series by name or title. Audiobooks only Audible lists for an author come after them.",
   "SearchMonitored": "Search Monitored",
   "SearchNoAuthorsPrompt": "You haven't added any authors yet, do you want to add an existing library location (Root Folder) and update?",
   "SearchPriority": "Search Priority",

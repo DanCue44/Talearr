@@ -357,6 +357,23 @@ Audible catalog to the payload (`TalearrAudibleFill`, `TalearrAudibleMerge`).
   payload (single-book refresh). The stale-row reconciler takes old rows of the same title into
   an Audible-only book, so a row from the Goodreads days becomes that book.
 
+### Adding a book only Audible lists (0.18.61)
+
+Hardcover sometimes files an audiobook under a combined author ("J.N. Chaney, Chris Kennedy" for
+Gaining the Edge), so neither author lists it and the add search's Hardcover result goes to the
+wrong author.
+
+- **Search**: the Hardcover search (Add New, Hardcover) also asks Audible
+  (`TalearrAudibleClient.SearchKeywords`, `TalearrAudibleBookSearch`). An Audible audiobook whose
+  author is in the library, or is one of the Hardcover results, is shown after the Hardcover
+  results, under that author, unless a Hardcover result already has the same work for the same
+  author. Its id is `az:{ASIN}`; only the audiobook can be added.
+- **Add**: `AddBookService` requests `az:{ASIN}` from the author's catalog. The ASIN is kept for
+  that author first (`talearr.audiblebook.hc:N.{asin}` = keep), so the Audible step adds the book
+  to the author's payload even when Audible does not lead (`TalearrAudibleMerge`, kept ASINs), then
+  the usual add monitors it and an author refresh places it in its series. A failed add forgets
+  the ASIN; deleting the book or the author forgets it too.
+
 ### Series from Talearr's source
 
 `RefreshSeriesService` used to keep Goodreads-backed series only, so no Hardcover series was
