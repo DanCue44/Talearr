@@ -19,6 +19,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         public const string AbridgedPolicyKey = "talearr.grabpolicy.abridged";
         public const string AllowBundlesKey = "talearr.grabpolicy.allowbundles";
         public const string FailRejectedImportsKey = "talearr.grabpolicy.failrejectedimports";
+        public const string FailStalledDownloadsKey = "talearr.grabpolicy.failstalleddownloads";
         public const string MaxAutomaticRetriesKey = "talearr.grabpolicy.maxautomaticretries";
         public const string RetryFailedGrabsKey = "talearr.grabpolicy.retryfailedgrabs";
 
@@ -68,14 +69,16 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 _repository.Upsert(AbridgedPolicyKey, policy.AbridgedPolicy.ToString().ToLowerInvariant());
                 _repository.Upsert(AllowBundlesKey, policy.AllowBundles.ToString());
                 _repository.Upsert(FailRejectedImportsKey, policy.FailRejectedImports.ToString());
+                _repository.Upsert(FailStalledDownloadsKey, policy.FailStalledDownloads.ToString());
                 _repository.Upsert(MaxAutomaticRetriesKey, policy.EffectiveMaxAutomaticRetries.ToString());
                 _repository.Upsert(RetryFailedGrabsKey, policy.RetryFailedGrabs.ToString());
 
                 _cached = null;
-                _logger.Info("Talearr grab policy saved: abridged={0}, allowBundles={1}, failRejectedImports={2}, maxAutomaticRetries={3}, retryFailedGrabs={4}",
+                _logger.Info("Talearr grab policy saved: abridged={0}, allowBundles={1}, failRejectedImports={2}, failStalledDownloads={3}, maxAutomaticRetries={4}, retryFailedGrabs={5}",
                     policy.AbridgedPolicy,
                     policy.AllowBundles,
                     policy.FailRejectedImports,
+                    policy.FailStalledDownloads,
                     policy.EffectiveMaxAutomaticRetries,
                     policy.RetryFailedGrabs);
 
@@ -103,6 +106,11 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             if (bool.TryParse(Read(FailRejectedImportsKey), out var failRejectedImports))
             {
                 policy.FailRejectedImports = failRejectedImports;
+            }
+
+            if (bool.TryParse(Read(FailStalledDownloadsKey), out var failStalledDownloads))
+            {
+                policy.FailStalledDownloads = failStalledDownloads;
             }
 
             if (int.TryParse(Read(MaxAutomaticRetriesKey), out var maxRetries))

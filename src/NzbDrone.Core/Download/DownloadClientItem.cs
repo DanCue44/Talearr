@@ -30,6 +30,10 @@ namespace NzbDrone.Core.Download
         public bool Removed { get; set; }
         public bool DownloadForced { get; set; }
 
+        // Talearr: this item alone is paused in the client (the client itself is not paused,
+        // and it was not added paused on purpose). TalearrStalledDownloadService reads it.
+        public bool ItemPaused { get; set; }
+
         // Optional: precise list of file paths reported by the download client for this item
         // When available, download import should prefer this list over directory enumeration
         public List<string> FilePaths { get; set; }

@@ -7,7 +7,7 @@ using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.Config
 {
-    // Talearr: grab policy settings (abridged audiobooks, bundles, automatic retry, re-search after failed grabs). A new
+    // Talearr: grab policy settings (abridged audiobooks, bundles, automatic retry, re-search after failed grabs, stalled downloads). A new
     // route; no existing route or field changes. Values are stored by TalearrGrabPolicyService
     // as talearr.grabpolicy.* rows in the Config table, which Chaptarr ignores.
     public class TalearrGrabPolicyConfigResource : RestResource
@@ -19,6 +19,7 @@ namespace Chaptarr.Api.V1.Config
 
         // Optional on PUT: a client that does not send it keeps the stored value.
         public bool? RetryFailedGrabs { get; set; }
+        public bool? FailStalledDownloads { get; set; }
     }
 
     [V1ApiController("config/talearrgrabpolicy")]
@@ -53,6 +54,7 @@ namespace Chaptarr.Api.V1.Config
                 AbridgedPolicy = resource.AbridgedPolicy,
                 AllowBundles = resource.AllowBundles,
                 FailRejectedImports = resource.FailRejectedImports,
+                FailStalledDownloads = resource.FailStalledDownloads ?? _grabPolicyService.Get().FailStalledDownloads,
                 MaxAutomaticRetries = resource.MaxAutomaticRetries,
                 RetryFailedGrabs = resource.RetryFailedGrabs ?? _grabPolicyService.Get().RetryFailedGrabs
             });
@@ -68,6 +70,7 @@ namespace Chaptarr.Api.V1.Config
                 AbridgedPolicy = policy.AbridgedPolicy,
                 AllowBundles = policy.AllowBundles,
                 FailRejectedImports = policy.FailRejectedImports,
+                FailStalledDownloads = policy.FailStalledDownloads,
                 MaxAutomaticRetries = policy.EffectiveMaxAutomaticRetries,
                 RetryFailedGrabs = policy.RetryFailedGrabs
             };

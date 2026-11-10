@@ -37,6 +37,10 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         // blocklists the release and (with Automatic Redownload on) searches for the next one.
         public bool FailRejectedImports { get; set; } = true;
 
+        // On by default: a download left paused in its client with nothing changing for 6 hours
+        // is failed, so it is blocklisted and replaced (TalearrStalledDownloadService).
+        public bool FailStalledDownloads { get; set; } = true;
+
         // Failed downloads per book (within RetryWindowDays) before automatic searching stops.
         public int MaxAutomaticRetries { get; set; } = DefaultMaxAutomaticRetries;
 
@@ -69,6 +73,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 AbridgedPolicy = AbridgedPolicy,
                 AllowBundles = AllowBundles,
                 FailRejectedImports = FailRejectedImports,
+                FailStalledDownloads = FailStalledDownloads,
                 MaxAutomaticRetries = MaxAutomaticRetries,
                 RetryFailedGrabs = RetryFailedGrabs
             };

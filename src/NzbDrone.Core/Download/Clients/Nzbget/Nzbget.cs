@@ -82,6 +82,9 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
                 {
                     queueItem.Status = DownloadItemStatus.Paused;
                     queueItem.RemainingSize = remainingSize;
+
+                    // Talearr: TalearrStalledDownloadService.
+                    queueItem.ItemPaused = !globalStatus.DownloadPaused && !Settings.AddPaused;
                 }
                 else
                 {

@@ -96,6 +96,18 @@ function TalearrGrabPolicy(props) {
             </FormGroup>
 
             <FormGroup>
+              <FormLabel>{'Fail stalled downloads'}</FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.CHECK}
+                name="failStalledDownloads"
+                helpText="When a download sits paused in NZBGet for 6 hours with nothing changing (for example a release with only par2 repair files left), mark it failed so it is blocklisted and the next-best release is searched for. Downloads you grabbed yourself only get a warning in the queue."
+                onChange={onInputChange}
+                {...settings.failStalledDownloads}
+              />
+            </FormGroup>
+
+            <FormGroup>
               <FormLabel>{'Automatic retry limit'}</FormLabel>
 
               <FormInputGroup

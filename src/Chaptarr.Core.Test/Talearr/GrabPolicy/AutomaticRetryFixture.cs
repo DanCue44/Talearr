@@ -268,6 +268,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
             Assert.That(defaults.AbridgedPolicy, Is.EqualTo(AbridgedAudiobookPolicy.UnabridgedOnly));
             Assert.That(defaults.AllowBundles, Is.False);
             Assert.That(defaults.FailRejectedImports, Is.True);
+            Assert.That(defaults.FailStalledDownloads, Is.True);
             Assert.That(defaults.EffectiveMaxAutomaticRetries, Is.EqualTo(3));
 
             store.Save(new TalearrGrabPolicy
@@ -275,6 +276,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
                 AbridgedPolicy = AbridgedAudiobookPolicy.PreferUnabridged,
                 AllowBundles = true,
                 FailRejectedImports = false,
+                FailStalledDownloads = false,
                 MaxAutomaticRetries = 50
             });
 
@@ -285,6 +287,7 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
             Assert.That(reloaded.AbridgedPolicy, Is.EqualTo(AbridgedAudiobookPolicy.PreferUnabridged));
             Assert.That(reloaded.AllowBundles, Is.True);
             Assert.That(reloaded.FailRejectedImports, Is.False);
+            Assert.That(reloaded.FailStalledDownloads, Is.False);
             Assert.That(reloaded.EffectiveMaxAutomaticRetries, Is.EqualTo(TalearrGrabPolicy.MaxAutomaticRetriesLimit));
         }
 
