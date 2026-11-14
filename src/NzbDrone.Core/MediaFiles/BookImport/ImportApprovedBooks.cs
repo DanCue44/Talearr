@@ -1131,9 +1131,24 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                                     _logger.Debug("[RELOCATE] Found existing tracked file for same book at path; will relocate and update row: {0}", localBook.Path);
                                 }
                             }
+                            else if (localBook.IsManualImport && localBook.ExistingFile)
+                            {
+                                // The user explicitly picked a different book for a file that already lives in a
+                                // root folder (including read-only ones). Relink the tracked row in place: the file
+                                // stays where it is and only its edition link changes.
+                                _logger.Debug("[TRACKED-RELINK] Manual import reassigning tracked file from edition {0} to edition {1} of book {2}; will update row in place: {3}",
+                                    existingFileAtPath.EditionId, edition.Id, book.Id, localBook.Path);
+
+                                relocateExistingFile = existingFileAtPath;
+                                relocateOriginalPath = existingFileAtPath.Path;
+                                existingFileOriginalEditionId = existingFileAtPath.EditionId;
+                                existingFileAlreadyAtDestination = true;
+                            }
                             else
                             {
                                 // File already exists but is linked to a different book/edition - genuine conflict
+                                _logger.Debug("[CLEAN-IMPORT] File is already tracked under edition {0} of a different book; import blocked: {1}",
+                                    existingFileAtPath.EditionId, localBook.Path);
                                 return (new ImportResult(decision, "File already exists in database and is linked to a different book - import blocked"), null);
                             }
                         }

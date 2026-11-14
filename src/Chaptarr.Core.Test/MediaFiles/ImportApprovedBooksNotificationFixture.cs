@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading;
 using NLog;
 using NUnit.Framework;
+using NzbDrone.Common.Disk;
 using NzbDrone.Core.Blocklisting;
 using NzbDrone.Common.Messaging;
 using NzbDrone.Core.Books;
@@ -1302,7 +1303,7 @@ namespace Chaptarr.Core.Test.MediaFiles
         }
 
         [Test]
-        public void should_reject_file_tracked_to_a_different_book_without_mutating_it()
+        public void should_reject_non_library_file_tracked_to_a_different_book_without_mutating_it()
         {
             var context = CreateExistingEbookContext();
             var otherBook = new Book
@@ -1341,7 +1342,8 @@ namespace Chaptarr.Core.Test.MediaFiles
                 context.Author,
                 context.Book,
                 context.Edition,
-                context.Path);
+                context.Path,
+                existingFile: false);
 
             Assert.That(import.Results, Has.Count.EqualTo(1));
             Assert.That(import.Results[0].Result, Is.EqualTo(ImportResultType.Skipped));
@@ -1355,6 +1357,77 @@ namespace Chaptarr.Core.Test.MediaFiles
             Assert.That(trackedFile.CalibreId, Is.EqualTo(46));
             Assert.That(eventAggregator.Events, Is.Empty);
             Assert.That(import.EditionService.SetMonitoredCalls, Is.Empty);
+        }
+
+        [Test]
+        [NonParallelizable]
+        public void should_relink_read_only_file_tracked_to_a_different_book_in_place_on_manual_import()
+        {
+            var context = CreateExistingEbookContext(monitored: false);
+            var otherBook = new Book
+            {
+                Id = 9998,
+                AuthorId = context.Author.Id,
+                Author = context.Author,
+                Title = "A Different Book",
+                CleanTitle = "adifferentbook",
+                MediaType = BookMediaType.Ebook
+            };
+            var otherEdition = new Edition
+            {
+                Id = 19998,
+                BookId = otherBook.Id,
+                Book = otherBook,
+                Title = otherBook.Title,
+                Monitored = true,
+                IsEbook = true
+            };
+            var originalDateAdded = new DateTime(2024, 7, 8, 9, 10, 11, DateTimeKind.Utc);
+            var trackedFile = new BookFile
+            {
+                Id = 8007,
+                Path = context.Path,
+                EditionId = otherEdition.Id,
+                Edition = otherEdition,
+                DateAdded = originalDateAdded,
+                CalibreId = 47
+            };
+            var mediaFileService = new StubMediaFileService { FileAtPath = trackedFile };
+            var eventAggregator = new CapturingEventAggregator();
+
+            // The file lives in a read-only library folder. The mover is a throwing proxy, so any
+            // copy, move or rename attempt fails the import.
+            ReadOnlyPathGuard.SetRoots(new[] { "/ebooks" });
+            try
+            {
+                var import = ImportExistingEbook(
+                    mediaFileService,
+                    eventAggregator,
+                    context.Author,
+                    context.Book,
+                    context.Edition,
+                    context.Path);
+
+                Assert.That(import.Results, Has.Count.EqualTo(1));
+                Assert.That(import.Results[0].Result, Is.EqualTo(ImportResultType.Imported));
+                Assert.That(mediaFileService.AddedFiles, Is.Empty);
+                Assert.That(mediaFileService.DeletedFiles, Is.Empty);
+                Assert.That(mediaFileService.UpdatedFiles, Has.Count.EqualTo(1));
+                Assert.That(mediaFileService.UpdatedFiles[0], Is.SameAs(trackedFile));
+                Assert.That(trackedFile.Id, Is.EqualTo(8007));
+                Assert.That(trackedFile.Path, Is.EqualTo(context.Path));
+                Assert.That(trackedFile.EditionId, Is.EqualTo(context.Edition.Id));
+                Assert.That(trackedFile.Edition, Is.SameAs(context.Edition));
+                Assert.That(trackedFile.DateAdded, Is.EqualTo(originalDateAdded));
+                Assert.That(trackedFile.CalibreId, Is.EqualTo(47));
+                Assert.That(eventAggregator.Events.OfType<BookFileAddedEvent>().Single().BookFile, Is.SameAs(trackedFile));
+                Assert.That(import.EditionService.SetMonitoredCalls, Has.Count.EqualTo(1));
+                Assert.That(import.EditionService.SetMonitoredCalls[0].Edition, Is.SameAs(context.Edition));
+            }
+            finally
+            {
+                ReadOnlyPathGuard.SetRoots(Array.Empty<string>());
+            }
         }
     }
 }
