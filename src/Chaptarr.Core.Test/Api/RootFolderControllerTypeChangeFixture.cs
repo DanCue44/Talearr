@@ -742,5 +742,56 @@ namespace Chaptarr.Core.Test.Api
                 Assert.That(root.AudiobookSettings, Does.Not.Contain("\"MonitorExistingBooks\""));
             });
         }
+
+        // Issue #8: a root folder saved with "Books to Monitor When Added" and "Monitor New Books"
+        // set to None must read back as None, and must stay None when a client sends the resource
+        // it read straight back (old Chaptarr-shaped fields included).
+        [TestCase(FolderType.Audiobook, true)]
+        [TestCase(FolderType.Audiobook, false)]
+        [TestCase(FolderType.Mixed, true)]
+        [TestCase(FolderType.Mixed, false)]
+        public void none_monitoring_defaults_should_survive_save_read_and_resave(FolderType folderType, bool monitored)
+        {
+            var gate = monitored ? "true" : "false";
+            var ebookSide = folderType == FolderType.Mixed
+                ? "\"ebookMonitored\":" + gate + ",\"ebookMonitorExistingMode\":\"none\",\"ebookMonitorNewItems\":\"none\",\"ebookQualityProfileId\":3,\"ebookMetadataProfileId\":4,\"ebookTags\":[]"
+                : "\"ebookMonitored\":null,\"ebookMonitorExistingMode\":null,\"ebookMonitorNewItems\":null,\"ebookQualityProfileId\":null,\"ebookMetadataProfileId\":null,\"ebookTags\":null";
+
+            // The body the settings page sends when the folder is saved.
+            var json = "{\"name\":\"Library\",\"path\":\"/audiobooks/library\",\"folderType\":" + (int)folderType +
+                       ",\"defaultTags\":[],\"isCalibreLibrary\":false,\"readOnly\":false,\"placeEbooksWithAudiobooks\":false," +
+                       "\"audiobookMonitored\":" + gate + ",\"audiobookMonitorExistingMode\":\"none\",\"audiobookMonitorNewItems\":\"none\"," +
+                       "\"audiobookQualityProfileId\":1,\"audiobookMetadataProfileId\":2,\"audiobookTags\":[]," + ebookSide + "}";
+
+            for (var save = 0; save < 3; save++)
+            {
+                var stored = STJson.Deserialize<RootFolderResource>(json).ToModel();
+                var read = new RootFolder
+                {
+                    Name = stored.Name,
+                    Path = stored.Path,
+                    FolderType = stored.FolderType,
+                    AudiobookSettings = stored.AudiobookSettings,
+                    EbookSettings = stored.EbookSettings
+                }.ToResource();
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(read.AudiobookMonitored, Is.EqualTo(monitored));
+                    Assert.That(read.AudiobookMonitorExistingMode, Is.EqualTo(MonitorTypes.None));
+                    Assert.That(read.AudiobookMonitorNewItems, Is.EqualTo(NewItemMonitorTypes.None));
+
+                    if (folderType == FolderType.Mixed)
+                    {
+                        Assert.That(read.EbookMonitored, Is.EqualTo(monitored));
+                        Assert.That(read.EbookMonitorExistingMode, Is.EqualTo(MonitorTypes.None));
+                        Assert.That(read.EbookMonitorNewItems, Is.EqualTo(NewItemMonitorTypes.None));
+                    }
+                });
+
+                // Next pass saves exactly what was read.
+                json = STJson.ToJson(read);
+            }
+        }
     }
 }
