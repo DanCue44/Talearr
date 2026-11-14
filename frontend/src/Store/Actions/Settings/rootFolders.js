@@ -177,7 +177,12 @@ export default {
         return Array.isArray(value) ? value : [];
       };
 
-      const { id, ...otherPayload } = payload;
+      const {
+        id,
+        applyAudiobookMonitorNewItemsToAuthors = false,
+        applyEbookMonitorNewItemsToAuthors = false,
+        ...otherPayload
+      } = payload;
       const rawData = getProviderState({ id, ...otherPayload }, getState, section);
 
       // Build a clean payload with explicit field handling
@@ -288,7 +293,21 @@ export default {
       // saveData.defaultQualityProfileId - NEVER
       // saveData.defaultMetadataProfileId - NEVER
 
-      const requestUrl = id ? `/rootFolder/${id}` : '/rootFolder';
+      // Talearr (issue #8): optionally copy a changed Monitor New Books default onto the
+      // authors already in this folder. Only sent on an update, and only when asked for.
+      const applyParams = [];
+
+      if (id && applyAudiobookMonitorNewItemsToAuthors) {
+        applyParams.push('applyAudiobookMonitorNewItemsToAuthors=true');
+      }
+
+      if (id && applyEbookMonitorNewItemsToAuthors) {
+        applyParams.push('applyEbookMonitorNewItemsToAuthors=true');
+      }
+
+      const requestUrl = id ?
+        `/rootFolder/${id}${applyParams.length ? `?${applyParams.join('&')}` : ''}` :
+        '/rootFolder';
 
       const { request } = createAjaxRequest({
         url: requestUrl,

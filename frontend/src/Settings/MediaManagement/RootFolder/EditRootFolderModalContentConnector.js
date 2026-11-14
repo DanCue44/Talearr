@@ -2,7 +2,8 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { coerceFolderType } from 'Helpers/Props/folderTypes';
+import { coerceFolderType, FolderType } from 'Helpers/Props/folderTypes';
+import { fetchAuthor } from 'Store/Actions/authorActions';
 import { deleteRootFolder, fetchMediaManagementSettings, fetchRootFolders, saveMediaManagementSettings, saveRootFolder, setMediaManagementSettingsValue, setRootFolderValue } from 'Store/Actions/settingsActions';
 import createProviderSettingsSelector from 'Store/Selectors/createProviderSettingsSelector';
 import createSettingsSectionSelector from 'Store/Selectors/createSettingsSectionSelector';
@@ -20,10 +21,11 @@ function createMapStateToProps() {
     (state) => state.settings.advancedSettings,
     (state) => state.settings.metadataProfiles,
     (state) => state.settings.rootFolders,
+    (state) => state.authors.isPopulated,
     createProviderSettingsSelector('rootFolders'),
     createSettingsSectionSelector('mediaManagement'),
     (state, { folderType }) => folderType,
-    (advancedSettings, metadataProfiles, rootFolders, rootFolderSettings, mediaManagementSettings, folderTypeProp) => {
+    (advancedSettings, metadataProfiles, rootFolders, isAuthorsPopulated, rootFolderSettings, mediaManagementSettings, folderTypeProp) => {
       const mediaManagement = mediaManagementSettings.settings || {};
 
       return {
@@ -31,6 +33,7 @@ function createMapStateToProps() {
         advancedSettings,
         showMetadataProfile: metadataProfiles.items.length > 1,
         rootFolders: rootFolders.items || [],
+        isAuthorsPopulated,
         isMediaManagementPopulated: mediaManagementSettings.isPopulated,
         defaultAudiobookRootFolderPath: mediaManagement.defaultAudiobookRootFolderPath?.value || '',
         defaultEbookRootFolderPath: mediaManagement.defaultEbookRootFolderPath?.value || '',
@@ -47,13 +50,16 @@ const mapDispatchToProps = {
   fetchMediaManagementSettings,
   setMediaManagementSettingsValue,
   saveMediaManagementSettings,
-  fetchRootFolders
+  fetchRootFolders,
+  fetchAuthor
 };
 
 class EditRootFolderModalContentConnector extends Component {
   state = {
     defaultAudiobookRootFolder: null,
-    defaultEbookRootFolder: null
+    defaultEbookRootFolder: null,
+    applyAudiobookMonitorNewItemsToAuthors: false,
+    applyEbookMonitorNewItemsToAuthors: false
   };
 
   componentDidMount() {
@@ -82,11 +88,18 @@ class EditRootFolderModalContentConnector extends Component {
         this.props.onRootFolderAdded({ value: this.pendingNewRootFolderPath });
       }
 
+      if (this.pendingAppliedToAuthors && this.props.isAuthorsPopulated) {
+        // Existing authors' Monitor New Books changed on the server; reload them.
+        this.props.fetchAuthor();
+      }
+
       this.clearPendingRootFolderSave();
 
       this.setState({
         defaultAudiobookRootFolder: null,
-        defaultEbookRootFolder: null
+        defaultEbookRootFolder: null,
+        applyAudiobookMonitorNewItemsToAuthors: false,
+        applyEbookMonitorNewItemsToAuthors: false
       });
 
       if (this.props.onSaveSuccess) {
@@ -101,6 +114,7 @@ class EditRootFolderModalContentConnector extends Component {
   pendingOriginalRootFolderPath = null;
   pendingRootFolder = null;
   pendingDefaultRootFolderStates = null;
+  pendingAppliedToAuthors = false;
 
   getExistingRootFolder = () => {
     const { id, item, rootFolders } = this.props;
@@ -251,7 +265,35 @@ class EditRootFolderModalContentConnector extends Component {
     }
   };
 
+  // Talearr (issue #8): whether a saved root folder's Monitor New Books default for a format
+  // has been changed in the dialog, and how many authors already sit in it for that format.
+  getMonitorNewItemsApplyState = (mediaType) => {
+    const { item } = this.props;
+    const existingRootFolder = this.getExistingRootFolder();
+    const isAudiobook = mediaType === rootFolderMediaTypes.AUDIOBOOK;
+    const folderType = coerceFolderType(item?.folderType?.value);
+    const supportsMediaType = folderType === FolderType.Mixed ||
+      folderType === (isAudiobook ? FolderType.Audiobook : FolderType.Ebook);
+
+    if (!existingRootFolder || !supportsMediaType) {
+      return { isAvailable: false, authorCount: 0 };
+    }
+
+    const fieldName = isAudiobook ? 'audiobookMonitorNewItems' : 'ebookMonitorNewItems';
+    const currentValue = item?.[fieldName]?.value || 'none';
+    const savedValue = existingRootFolder[fieldName] || 'none';
+    const authorCount = (isAudiobook ?
+      existingRootFolder.audiobookAuthorCount :
+      existingRootFolder.ebookAuthorCount) || 0;
+
+    return {
+      isAvailable: currentValue !== savedValue && authorCount > 0,
+      authorCount
+    };
+  };
+
   clearPendingRootFolderSave = () => {
+    this.pendingAppliedToAuthors = false;
     this.pendingNewRootFolderPath = null;
     this.pendingOriginalRootFolderPath = null;
     this.pendingRootFolder = null;
@@ -288,7 +330,24 @@ class EditRootFolderModalContentConnector extends Component {
       }
     }
 
-    this.props.saveRootFolder({ id: this.props.id });
+    const applyAudiobookMonitorNewItemsToAuthors = !!id &&
+      this.state.applyAudiobookMonitorNewItemsToAuthors &&
+      this.getMonitorNewItemsApplyState(rootFolderMediaTypes.AUDIOBOOK).isAvailable;
+    const applyEbookMonitorNewItemsToAuthors = !!id &&
+      this.state.applyEbookMonitorNewItemsToAuthors &&
+      this.getMonitorNewItemsApplyState(rootFolderMediaTypes.EBOOK).isAvailable;
+
+    this.pendingAppliedToAuthors = applyAudiobookMonitorNewItemsToAuthors || applyEbookMonitorNewItemsToAuthors;
+
+    this.props.saveRootFolder({
+      id: this.props.id,
+      applyAudiobookMonitorNewItemsToAuthors,
+      applyEbookMonitorNewItemsToAuthors
+    });
+  };
+
+  onApplyMonitorNewItemsToAuthorsChange = ({ name, value }) => {
+    this.setState({ [name]: value });
   };
 
   onDeleteRootFolderPress = () => {
@@ -311,6 +370,8 @@ class EditRootFolderModalContentConnector extends Component {
   render() {
     const audiobookDefaultRootFolderState = this.getDefaultRootFolderState(rootFolderMediaTypes.AUDIOBOOK);
     const ebookDefaultRootFolderState = this.getDefaultRootFolderState(rootFolderMediaTypes.EBOOK);
+    const audiobookApplyState = this.getMonitorNewItemsApplyState(rootFolderMediaTypes.AUDIOBOOK);
+    const ebookApplyState = this.getMonitorNewItemsApplyState(rootFolderMediaTypes.EBOOK);
 
     return (
       <EditRootFolderModalContent
@@ -321,6 +382,13 @@ class EditRootFolderModalContentConnector extends Component {
         isDefaultEbookRootFolder={ebookDefaultRootFolderState.value}
         isDefaultEbookRootFolderDisabled={ebookDefaultRootFolderState.isDisabled}
         isDefaultEbookRootFolderAutomatic={ebookDefaultRootFolderState.isAutomatic}
+        canApplyAudiobookMonitorNewItemsToAuthors={audiobookApplyState.isAvailable}
+        audiobookAuthorCount={audiobookApplyState.authorCount}
+        applyAudiobookMonitorNewItemsToAuthors={this.state.applyAudiobookMonitorNewItemsToAuthors}
+        canApplyEbookMonitorNewItemsToAuthors={ebookApplyState.isAvailable}
+        ebookAuthorCount={ebookApplyState.authorCount}
+        applyEbookMonitorNewItemsToAuthors={this.state.applyEbookMonitorNewItemsToAuthors}
+        onApplyMonitorNewItemsToAuthorsChange={this.onApplyMonitorNewItemsToAuthorsChange}
         onSavePress={this.onSavePress}
         onInputChange={this.onInputChange}
         onDefaultAudiobookRootFolderChange={this.onDefaultAudiobookRootFolderChange}
@@ -340,6 +408,7 @@ EditRootFolderModalContentConnector.propTypes = {
   saveError: PropTypes.object,
   item: PropTypes.object.isRequired,
   rootFolders: PropTypes.arrayOf(PropTypes.object).isRequired,
+  isAuthorsPopulated: PropTypes.bool.isRequired,
   isMediaManagementPopulated: PropTypes.bool.isRequired,
   defaultAudiobookRootFolderPath: PropTypes.string.isRequired,
   defaultEbookRootFolderPath: PropTypes.string.isRequired,
@@ -351,6 +420,7 @@ EditRootFolderModalContentConnector.propTypes = {
   setMediaManagementSettingsValue: PropTypes.func.isRequired,
   saveMediaManagementSettings: PropTypes.func.isRequired,
   fetchRootFolders: PropTypes.func.isRequired,
+  fetchAuthor: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired,
   onDeleteRootFolderPress: PropTypes.func,
   onSaveSuccess: PropTypes.func

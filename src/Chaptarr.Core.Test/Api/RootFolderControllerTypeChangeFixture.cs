@@ -107,6 +107,14 @@ namespace Chaptarr.Core.Test.Api
             public List<Book> GetAuthorBooksFromCache(int authorId) => throw new NotImplementedException();
             public List<int> GetAuthorIdsByMetadataProfileId(int metadataProfileId) => throw new NotImplementedException();
             public void ClearAuthorCache() => throw new NotImplementedException();
+
+            public List<(string RootFolderPath, BookMediaType MediaType, NewItemMonitorTypes MonitorNewItems)> MonitorNewItemsApplied { get; } = new();
+
+            public List<Author> SetMonitorNewItemsForRootFolder(string rootFolderPath, BookMediaType mediaType, NewItemMonitorTypes monitorNewItems)
+            {
+                MonitorNewItemsApplied.Add((rootFolderPath, mediaType, monitorNewItems));
+                return new List<Author>();
+            }
         }
 
         private sealed class StubLocalizationService : ILocalizationService
@@ -741,6 +749,118 @@ namespace Chaptarr.Core.Test.Api
                 Assert.That(root.AudiobookSettings, Does.Contain("\"MonitorExistingMode\""));
                 Assert.That(root.AudiobookSettings, Does.Not.Contain("\"MonitorExistingBooks\""));
             });
+        }
+
+        private static (StubRootFolderService RootFolders, StubAuthorService Authors, TestableRootFolderController Controller) BuildMixedRootForApply()
+        {
+            var rootFolderService = new StubRootFolderService
+            {
+                Existing = new RootFolder
+                {
+                    Id = 42,
+                    Name = "Library",
+                    Path = "/library",
+                    FolderType = FolderType.Mixed
+                }
+            };
+            var authorService = new StubAuthorService(new List<Author>
+            {
+                new Author { Id = 1, AudiobookRootFolderPath = "/library", EbookRootFolderPath = "/library" }
+            });
+
+            return (rootFolderService, authorService, BuildController(rootFolderService, authorService));
+        }
+
+        private static RootFolderResource MixedRootWithMonitorNewItems(NewItemMonitorTypes audiobook, NewItemMonitorTypes ebook)
+        {
+            return new RootFolderResource
+            {
+                Id = 42,
+                Name = "Library",
+                Path = "/library",
+                FolderType = (int)FolderType.Mixed,
+                AudiobookQualityProfileId = 1,
+                AudiobookMetadataProfileId = 2,
+                AudiobookMonitorNewItems = audiobook,
+                EbookQualityProfileId = 3,
+                EbookMetadataProfileId = 4,
+                EbookMonitorNewItems = ebook
+            };
+        }
+
+        // Issue #8: saving a root folder without the apply option never touches existing authors.
+        [Test]
+        public void put_without_apply_flags_should_not_change_existing_authors()
+        {
+            var (rootFolders, authors, controller) = BuildMixedRootForApply();
+
+            controller.UpdateRootFolder(MixedRootWithMonitorNewItems(NewItemMonitorTypes.None, NewItemMonitorTypes.None));
+
+            Assert.That(rootFolders.UpdateCallCount, Is.EqualTo(1));
+            Assert.That(authors.MonitorNewItemsApplied, Is.Empty);
+        }
+
+        // Issue #8: the apply option copies only the chosen format's saved Monitor New Books value.
+        [Test]
+        public void put_with_ebook_apply_flag_should_apply_only_the_ebook_monitor_new_items_value()
+        {
+            var (_, authors, controller) = BuildMixedRootForApply();
+
+            controller.UpdateRootFolder(MixedRootWithMonitorNewItems(NewItemMonitorTypes.All, NewItemMonitorTypes.None),
+                applyAudiobookMonitorNewItemsToAuthors: false,
+                applyEbookMonitorNewItemsToAuthors: true);
+
+            Assert.That(authors.MonitorNewItemsApplied, Has.Count.EqualTo(1));
+            Assert.That(authors.MonitorNewItemsApplied[0].RootFolderPath, Is.EqualTo("/library"));
+            Assert.That(authors.MonitorNewItemsApplied[0].MediaType, Is.EqualTo(BookMediaType.Ebook));
+            Assert.That(authors.MonitorNewItemsApplied[0].MonitorNewItems, Is.EqualTo(NewItemMonitorTypes.None));
+        }
+
+        [Test]
+        public void put_with_apply_flag_for_a_format_the_folder_does_not_hold_should_do_nothing()
+        {
+            var rootFolderService = new StubRootFolderService
+            {
+                Existing = new RootFolder { Id = 42, Name = "Audio", Path = "/audio", FolderType = FolderType.Audiobook }
+            };
+            var authorService = new StubAuthorService(new List<Author>());
+            var controller = BuildController(rootFolderService, authorService);
+
+            controller.UpdateRootFolder(new RootFolderResource
+            {
+                Id = 42,
+                Name = "Audio",
+                Path = "/audio",
+                FolderType = (int)FolderType.Audiobook,
+                AudiobookQualityProfileId = 1,
+                AudiobookMetadataProfileId = 2,
+                AudiobookMonitorNewItems = NewItemMonitorTypes.None
+            },
+            applyAudiobookMonitorNewItemsToAuthors: false,
+            applyEbookMonitorNewItemsToAuthors: true);
+
+            Assert.That(authorService.MonitorNewItemsApplied, Is.Empty);
+        }
+
+        [Test]
+        public void get_should_report_author_counts_per_format()
+        {
+            var rootFolderService = new StubRootFolderService
+            {
+                Existing = new RootFolder { Id = 42, Name = "Library", Path = "/library", FolderType = FolderType.Mixed }
+            };
+            var authorService = new StubAuthorService(new List<Author>
+            {
+                new Author { Id = 1, AudiobookRootFolderPath = "/library", EbookRootFolderPath = "/library" },
+                new Author { Id = 2, AudiobookRootFolderPath = "/library/", EbookRootFolderPath = "/other" },
+                new Author { Id = 3, AudiobookRootFolderPath = "/library-two" }
+            });
+            var controller = BuildController(rootFolderService, authorService);
+
+            var resource = controller.GetResourceByIdWithErrorHandler(42).Value;
+
+            Assert.That(resource.AudiobookAuthorCount, Is.EqualTo(2));
+            Assert.That(resource.EbookAuthorCount, Is.EqualTo(1));
         }
 
         // Issue #8: a root folder saved with "Books to Monitor When Added" and "Monitor New Books"

@@ -94,6 +94,11 @@ namespace Chaptarr.Api.V1.RootFolders
         public bool Accessible { get; set; }
         public long? FreeSpace { get; set; }
         public long? TotalSpace { get; set; }
+
+        // Talearr: read-only counts of the authors already in this root folder per format, so the
+        // edit dialog can offer to apply a changed Monitor New Books default to them. Ignored on save.
+        public int? AudiobookAuthorCount { get; set; }
+        public int? EbookAuthorCount { get; set; }
     }
 
     public static class RootFolderResourceMapper

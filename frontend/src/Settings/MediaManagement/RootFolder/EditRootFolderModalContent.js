@@ -30,6 +30,12 @@ import styles from './EditRootFolderModalContent.css';
 // Temporary toggle: hide Calibre controls in the GUI until Calibre support is restored.
 const SHOW_CALIBRE_UI = false;
 
+function getApplyToAuthorsLabel(authorCount) {
+  return authorCount === 1 ?
+    translate('MonitorNewItemsApplyToAuthor') :
+    translate('MonitorNewItemsApplyToAuthors', { count: authorCount });
+}
+
 class EditRootFolderModalContent extends Component {
   constructor(props, context) {
     super(props, context);
@@ -170,6 +176,13 @@ class EditRootFolderModalContent extends Component {
       isDefaultEbookRootFolderAutomatic,
       onDefaultAudiobookRootFolderChange,
       onDefaultEbookRootFolderChange,
+      canApplyAudiobookMonitorNewItemsToAuthors,
+      audiobookAuthorCount,
+      applyAudiobookMonitorNewItemsToAuthors,
+      canApplyEbookMonitorNewItemsToAuthors,
+      ebookAuthorCount,
+      applyEbookMonitorNewItemsToAuthors,
+      onApplyMonitorNewItemsToAuthorsChange,
       ...otherProps
     } = this.props;
 
@@ -460,6 +473,24 @@ class EditRootFolderModalContent extends Component {
                         />
                       </FormGroup>
 
+                      {
+                        canApplyAudiobookMonitorNewItemsToAuthors &&
+                          <FormGroup>
+                            <FormLabel>
+                              {translate('MonitorNewItemsExistingAuthors')}
+                            </FormLabel>
+
+                            <FormInputGroup
+                              type={inputTypes.CHECK}
+                              name="applyAudiobookMonitorNewItemsToAuthors"
+                              value={applyAudiobookMonitorNewItemsToAuthors}
+                              helpText={getApplyToAuthorsLabel(audiobookAuthorCount)}
+                              helpTextWarning={applyAudiobookMonitorNewItemsToAuthors ? translate('MonitorNewItemsApplyToAuthorsHelpText') : undefined}
+                              onChange={onApplyMonitorNewItemsToAuthorsChange}
+                            />
+                          </FormGroup>
+                      }
+
                       <FormGroup>
                         <FormLabel>
                           {translate('AudiobookQualityProfile')}
@@ -604,6 +635,24 @@ class EditRootFolderModalContent extends Component {
                           onChange={onInputChange}
                         />
                       </FormGroup>
+
+                      {
+                        canApplyEbookMonitorNewItemsToAuthors &&
+                          <FormGroup>
+                            <FormLabel>
+                              {translate('MonitorNewItemsExistingAuthors')}
+                            </FormLabel>
+
+                            <FormInputGroup
+                              type={inputTypes.CHECK}
+                              name="applyEbookMonitorNewItemsToAuthors"
+                              value={applyEbookMonitorNewItemsToAuthors}
+                              helpText={getApplyToAuthorsLabel(ebookAuthorCount)}
+                              helpTextWarning={applyEbookMonitorNewItemsToAuthors ? translate('MonitorNewItemsApplyToAuthorsHelpText') : undefined}
+                              onChange={onApplyMonitorNewItemsToAuthorsChange}
+                            />
+                          </FormGroup>
+                      }
 
                       <FormGroup>
                         <FormLabel>
@@ -946,6 +995,13 @@ EditRootFolderModalContent.propTypes = {
   onInputChange: PropTypes.func.isRequired,
   onDefaultAudiobookRootFolderChange: PropTypes.func.isRequired,
   onDefaultEbookRootFolderChange: PropTypes.func.isRequired,
+  canApplyAudiobookMonitorNewItemsToAuthors: PropTypes.bool.isRequired,
+  audiobookAuthorCount: PropTypes.number.isRequired,
+  applyAudiobookMonitorNewItemsToAuthors: PropTypes.bool.isRequired,
+  canApplyEbookMonitorNewItemsToAuthors: PropTypes.bool.isRequired,
+  ebookAuthorCount: PropTypes.number.isRequired,
+  applyEbookMonitorNewItemsToAuthors: PropTypes.bool.isRequired,
+  onApplyMonitorNewItemsToAuthorsChange: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired,
   onSavePress: PropTypes.func.isRequired,
   onDeleteRootFolderPress: PropTypes.func

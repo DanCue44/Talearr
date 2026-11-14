@@ -191,7 +191,10 @@ namespace Chaptarr.Api.V1.RootFolders
         protected override RootFolderResource GetResourceById(int id)
         {
             var rootFolders = _rootFolderService.All();
-            return WithReadOnly(_rootFolderService.Get(id).ToResource(rootFolders, _configService.DefaultAudiobookRootFolderPath, _configService.DefaultEbookRootFolderPath));
+            var resource = WithReadOnly(_rootFolderService.Get(id).ToResource(rootFolders, _configService.DefaultAudiobookRootFolderPath, _configService.DefaultEbookRootFolderPath));
+            WithAuthorCounts(new List<RootFolderResource> { resource }, _authorService.GetAllAuthors(bypassCache: true));
+
+            return resource;
         }
 
         [RestPostById]
@@ -250,7 +253,9 @@ namespace Chaptarr.Api.V1.RootFolders
         }
 
         [RestPutById]
-        public ActionResult<RootFolderResource> UpdateRootFolder([FromBody] RootFolderResource rootFolderResource)
+        public ActionResult<RootFolderResource> UpdateRootFolder([FromBody] RootFolderResource rootFolderResource,
+                                                                 [FromQuery] bool applyAudiobookMonitorNewItemsToAuthors = false,
+                                                                 [FromQuery] bool applyEbookMonitorNewItemsToAuthors = false)
         {
             var model = rootFolderResource.ToModel();
 
@@ -295,6 +300,19 @@ namespace Chaptarr.Api.V1.RootFolders
             }
 
             _rootFolderService.Update(model);
+
+            // Talearr: optionally copy a format's Monitor New Books default onto the authors already
+            // in this folder. Only that author setting changes; no book is monitored or unmonitored.
+            if (applyAudiobookMonitorNewItemsToAuthors)
+            {
+                ApplyMonitorNewItemsToAuthors(model, BookMediaType.Audiobook);
+            }
+
+            if (applyEbookMonitorNewItemsToAuthors)
+            {
+                ApplyMonitorNewItemsToAuthors(model, BookMediaType.Ebook);
+            }
+
             if (rootFolderResource.ReadOnly.HasValue)
             {
                 _readOnlyLibrary?.SetReadOnly(existingRootFolder.Path, rootFolderResource.ReadOnly.Value);
@@ -306,6 +324,40 @@ namespace Chaptarr.Api.V1.RootFolders
             }
 
             return Accepted(model.Id);
+        }
+
+        private void ApplyMonitorNewItemsToAuthors(RootFolder rootFolder, BookMediaType mediaType)
+        {
+            var supportsMediaType = rootFolder.FolderType == FolderType.Mixed ||
+                                    (mediaType == BookMediaType.Audiobook && rootFolder.FolderType == FolderType.Audiobook) ||
+                                    (mediaType == BookMediaType.Ebook && rootFolder.FolderType == FolderType.Ebook);
+
+            if (!supportsMediaType)
+            {
+                return;
+            }
+
+            var settings = mediaType == BookMediaType.Audiobook
+                ? rootFolder.GetAudiobookSettings()
+                : rootFolder.GetEbookSettings();
+
+            if (settings?.MonitorNewItems == null)
+            {
+                return;
+            }
+
+            _authorService.SetMonitorNewItemsForRootFolder(rootFolder.Path, mediaType, settings.MonitorNewItems.Value);
+        }
+
+        private static void WithAuthorCounts(IEnumerable<RootFolderResource> resources, List<NzbDrone.Core.Books.Author> authors)
+        {
+            authors ??= new List<NzbDrone.Core.Books.Author>();
+
+            foreach (var resource in resources.Where(r => r != null))
+            {
+                resource.AudiobookAuthorCount = authors.Count(a => AuthorRootFolderMembership.IsInRootFolder(a, resource.Path, BookMediaType.Audiobook));
+                resource.EbookAuthorCount = authors.Count(a => AuthorRootFolderMembership.IsInRootFolder(a, resource.Path, BookMediaType.Ebook));
+            }
         }
 
         private void EnsureReadOnly(string path)
@@ -344,9 +396,12 @@ namespace Chaptarr.Api.V1.RootFolders
             var allRootFolders = _rootFolderService.AllWithSpaceStats();
             var rootFolders = RootFolderMediaTypeFilter.Filter(allRootFolders, mediaType);
 
-            return rootFolders.ToResource(allRootFolders, _configService.DefaultAudiobookRootFolderPath, _configService.DefaultEbookRootFolderPath)
+            var resources = rootFolders.ToResource(allRootFolders, _configService.DefaultAudiobookRootFolderPath, _configService.DefaultEbookRootFolderPath)
                 .Select(WithReadOnly)
                 .ToList();
+            WithAuthorCounts(resources, _authorService.GetAllAuthors());
+
+            return resources;
         }
 
         [RestDeleteById]

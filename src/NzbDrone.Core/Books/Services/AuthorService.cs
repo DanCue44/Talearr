@@ -57,6 +57,15 @@ namespace NzbDrone.Core.Books
             throw new NotSupportedException();
         }
         List<Author> UpdateAuthors(List<Author> authors, bool useExistingRelativeFolder);
+
+        // Talearr: sets one format's Monitor New Books on every author whose root folder for that
+        // format is rootFolderPath. Only that column is written; books and other settings are left alone.
+        // The default exists only for lightweight test doubles. Every production implementation must override it.
+        List<Author> SetMonitorNewItemsForRootFolder(string rootFolderPath, BookMediaType mediaType, NewItemMonitorTypes monitorNewItems)
+        {
+            throw new NotSupportedException();
+        }
+
         Dictionary<int, string> AllAuthorPaths();
         bool AuthorPathExists(string folder);
         void RemoveAddOptions(Author author);
@@ -1236,6 +1245,44 @@ namespace NzbDrone.Core.Books
         public List<int> GetAuthorIdsByMetadataProfileId(int metadataProfileId)
         {
             return _authorRepository.GetAuthorIdsByMetadataProfileId(metadataProfileId);
+        }
+
+        public List<Author> SetMonitorNewItemsForRootFolder(string rootFolderPath, BookMediaType mediaType, NewItemMonitorTypes monitorNewItems)
+        {
+            var authors = AuthorRootFolderMembership.InRootFolder(_authorRepository.All(), rootFolderPath, mediaType);
+
+            if (authors.Count == 0)
+            {
+                return authors;
+            }
+
+            foreach (var author in authors)
+            {
+                if (mediaType == BookMediaType.Audiobook)
+                {
+                    author.AudiobookMonitorNewItems = monitorNewItems;
+                }
+                else
+                {
+                    author.EbookMonitorNewItems = monitorNewItems;
+                }
+            }
+
+            // One batched write of a single column, so nothing else on the author can change.
+            if (mediaType == BookMediaType.Audiobook)
+            {
+                _authorRepository.SetFields(authors, a => a.AudiobookMonitorNewItems);
+            }
+            else
+            {
+                _authorRepository.SetFields(authors, a => a.EbookMonitorNewItems);
+            }
+
+            _cache.Clear();
+            _authorByIdCache.Clear();
+            _logger.Info("Set {0} Monitor New Books to {1} for {2} author(s) in root folder {3}", mediaType, monitorNewItems, authors.Count, rootFolderPath);
+
+            return authors;
         }
 
         public void ClearAuthorCache()
