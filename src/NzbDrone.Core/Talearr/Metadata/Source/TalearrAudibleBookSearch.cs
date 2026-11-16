@@ -25,6 +25,11 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         // same author. Each is placed under an author with a Hardcover id: one in the library,
         // else one of the Hardcover results. Empty when Audible does not answer.
         List<TalearrAudibleSearchHit> Search(string term, IReadOnlyCollection<object> hardcoverResults);
+
+        // The library author with a Hardcover id that an Audible author name belongs to (its name,
+        // an alias, or the same name with or without middle names), or null when there is none or
+        // more than one. Only HardcoverAuthorId and AuthorName are set.
+        TalearrAudibleSearchHit FindLibraryAuthor(IEnumerable<string> audibleAuthorNames);
     }
 
     // Talearr: the Audible part of the add search while Talearr's metadata source is on. Hardcover
@@ -83,25 +88,37 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
 
             return TalearrAudibleMerge.GroupWorks(page.Items.Where(i => TalearrAudibleAuthorCatalog.IsAuthorsBook(i, wanted, language)))
                 .Where(w => !w.IsCollection)
-                .Select(w => Hit(w, authors))
+                .Select(w => Hit(w.Lead, w.FullTitle, authors))
                 .Where(h => h != null && !HardcoverHas(hardcoverBooks, h))
                 .Take(MaxHits)
                 .ToList();
         }
 
-        private static TalearrAudibleSearchHit Hit(TalearrAudibleMerge.Work work, Dictionary<string, (string Id, string Name)> authors)
+        public TalearrAudibleSearchHit FindLibraryAuthor(IEnumerable<string> audibleAuthorNames)
+        {
+            var names = audibleAuthorNames?.Where(n => !string.IsNullOrWhiteSpace(n)).ToList() ?? new List<string>();
+            if (names.Count == 0)
+            {
+                return null;
+            }
+
+            return Hit(new AudibleCatalogItem { Authors = names }, null, KnownAuthors(Array.Empty<object>()));
+        }
+
+        private static TalearrAudibleSearchHit Hit(AudibleCatalogItem lead, string title, Dictionary<string, (string Id, string Name)> authors)
         {
             // Audible lists the lead author first.
-            foreach (var name in work.Lead.Authors)
+            foreach (var name in lead.Authors)
             {
-                if (authors.TryGetValue(TalearrSourceGapFill.Normalize(name), out var author))
+                var author = TalearrAuthorNameMatch.FindUnique(TalearrSourceGapFill.Normalize(name), authors, a => a.Id);
+                if (author.HasValue)
                 {
                     return new TalearrAudibleSearchHit
                     {
-                        Item = work.Lead,
-                        Title = work.FullTitle,
-                        HardcoverAuthorId = author.Id,
-                        AuthorName = author.Name
+                        Item = lead,
+                        Title = title,
+                        HardcoverAuthorId = author.Value.Id,
+                        AuthorName = author.Value.Name
                     };
                 }
             }
@@ -126,11 +143,20 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
 
             void Add(Author author)
             {
-                var name = TalearrSourceGapFill.Normalize(author?.Name);
                 var id = author?.HardcoverAuthorId?.Trim();
-                if (name.Length > 0 && !string.IsNullOrEmpty(id) && id.StartsWith("hc:", StringComparison.OrdinalIgnoreCase) && !authors.ContainsKey(name))
+                if (string.IsNullOrEmpty(id) || !id.StartsWith("hc:", StringComparison.OrdinalIgnoreCase))
                 {
-                    authors[name] = (id, author.Name);
+                    return;
+                }
+
+                // The author's other names (Hardcover's alternate names) find it too.
+                foreach (var other in new[] { author.Name }.Concat(author.Aliases ?? new List<string>()))
+                {
+                    var name = TalearrSourceGapFill.Normalize(other);
+                    if (name.Length > 0 && !authors.ContainsKey(name))
+                    {
+                        authors[name] = (id, author.Name);
+                    }
                 }
             }
 

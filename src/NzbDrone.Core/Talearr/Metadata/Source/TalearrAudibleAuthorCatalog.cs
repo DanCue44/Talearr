@@ -104,7 +104,11 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             }
 
             var stored = Load(authorKey, marketplace);
-            if (stored != null && now - stored.FetchedAt < FreshFor)
+
+            // An empty copy read before Audible's shorter spelling of the name was tried
+            // (Talearr #10) is read again.
+            var retryShortName = stored?.Items?.Count == 0 && ShortNames(names).Count > 0;
+            if (stored != null && now - stored.FetchedAt < FreshFor && !retryShortName)
             {
                 Remember(cacheKey, stored);
                 return stored;
@@ -141,12 +145,53 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             var language = MarketplaceLanguage(marketplace);
             var byAsin = new Dictionary<string, AudibleCatalogItem>(StringComparer.OrdinalIgnoreCase);
 
+            if (!FetchName(marketplace, names[0], wanted, language, byAsin))
+            {
+                return null;
+            }
+
+            // Audible may list the author without a middle name ("Dietmar Wehr" for Hardcover's
+            // "Dietmar Arthur Wehr"), and its author search then finds nothing under the full name.
+            if (byAsin.Count == 0)
+            {
+                foreach (var shortName in ShortNames(names))
+                {
+                    if (!FetchName(marketplace, shortName, wanted, language, byAsin))
+                    {
+                        return null;
+                    }
+
+                    if (byAsin.Count > 0)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            _logger.Debug("[TALEARR-AUDIBLE] {0}: {1} audiobooks on Audible {2}", names[0], byAsin.Count, marketplace);
+            return byAsin.Values.ToList();
+        }
+
+        // The first and last name of the author's names that have middle names.
+        private static List<string> ShortNames(List<string> names)
+        {
+            var full = new HashSet<string>(names.Select(TalearrSourceGapFill.Normalize), StringComparer.Ordinal);
+            return names
+                .Select(n => TalearrAuthorNameMatch.ShortForm(TalearrSourceGapFill.Normalize(n)))
+                .Where(n => n != null && !full.Contains(n))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+        }
+
+        // False when a page went unanswered.
+        private bool FetchName(string marketplace, string name, HashSet<string> wanted, string language, Dictionary<string, AudibleCatalogItem> byAsin)
+        {
             for (var page = 0; page < MaxPages; page++)
             {
-                var result = _client.SearchAuthor(marketplace, names[0], page);
+                var result = _client.SearchAuthor(marketplace, name, page);
                 if (!result.Answered)
                 {
-                    return null;
+                    return false;
                 }
 
                 foreach (var item in result.Items)
@@ -164,8 +209,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 }
             }
 
-            _logger.Debug("[TALEARR-AUDIBLE] {0}: {1} audiobooks on Audible {2}", names[0], byAsin.Count, marketplace);
-            return byAsin.Values.ToList();
+            return true;
         }
 
         internal static bool IsAuthorsBook(AudibleCatalogItem item, HashSet<string> wantedNames, string language)
@@ -185,7 +229,11 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 return false;
             }
 
-            return item.Authors.Any(a => wantedNames.Contains(TalearrSourceGapFill.Normalize(a)));
+            return item.Authors.Any(a =>
+            {
+                var name = TalearrSourceGapFill.Normalize(a);
+                return wantedNames.Contains(name) || wantedNames.Any(w => TalearrAuthorNameMatch.SameAuthor(w, name));
+            });
         }
 
         // The language Audible reports for the marketplace's own books.

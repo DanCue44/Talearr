@@ -2644,7 +2644,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                             var book = MapAudibleCatalogBookToDomain(bookInfo);
                             if (book != null)
                             {
-                                return BuildAudibleCatalogSearchResults(new List<Book> { book });
+                                return BuildAudibleCatalogSearchResults(AttachLibraryAuthors(new List<Book> { book }));
                             }
                         }
 
@@ -2663,7 +2663,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                             .Where(b => b != null)
                             .ToList();
 
-                        return BuildAudibleCatalogSearchResults(audibleBooks);
+                        return BuildAudibleCatalogSearchResults(AttachLibraryAuthors(audibleBooks));
                     }
 
                     return new List<object>();
@@ -2817,14 +2817,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 }
 
                 book.Title = hit.Title;
-                book.Author.Name = hit.AuthorName;
-                book.Author.CleanName = Parser.Parser.CleanAuthorName(hit.AuthorName ?? string.Empty);
-                book.Author.SortName = hit.AuthorName?.ToLowerInvariant();
-                book.Author.NameLastFirst = hit.AuthorName?.ToLastFirst();
-                book.Author.SortNameLastFirst = hit.AuthorName?.ToLastFirst()?.ToLowerInvariant();
-                book.Author.HardcoverAuthorId = hit.HardcoverAuthorId;
-                book.Author.TitleSlug = hit.HardcoverAuthorId;
-                book.Author.AudnexusAuthorId = null;
+                SetHardcoverAuthor(book.Author, hit);
                 books.Add(book);
             }
 
@@ -2834,6 +2827,50 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             }
 
             return books;
+        }
+
+        // Talearr #10: Audible lists some audiobooks without the author's Audible id ("Dietmar Wehr"
+        // on The System States Rebellion Omnibus), which left the result without an author to
+        // add it to. While Talearr's metadata source is on, such a result goes to the library
+        // author it belongs to, the way the add search places Audible-only audiobooks.
+        private List<Book> AttachLibraryAuthors(List<Book> books)
+        {
+            if (!TalearrSourceActive || _talearrAudibleSearch == null || books == null)
+            {
+                return books;
+            }
+
+            foreach (var book in books)
+            {
+                var author = book?.Author;
+                if (author == null ||
+                    !string.IsNullOrWhiteSpace(author.AudnexusAuthorId) ||
+                    !string.IsNullOrWhiteSpace(author.HardcoverAuthorId))
+                {
+                    continue;
+                }
+
+                var hit = _talearrAudibleSearch.FindLibraryAuthor(new[] { author.Name });
+                if (hit != null)
+                {
+                    _logger.Debug("[BookInfoProxy] Audible lists '{0}' without an author id; using library author {1} ({2})", book.Title, hit.AuthorName, hit.HardcoverAuthorId);
+                    SetHardcoverAuthor(author, hit);
+                }
+            }
+
+            return books;
+        }
+
+        private static void SetHardcoverAuthor(Author author, TalearrAudibleSearchHit hit)
+        {
+            author.Name = hit.AuthorName;
+            author.CleanName = Parser.Parser.CleanAuthorName(hit.AuthorName ?? string.Empty);
+            author.SortName = hit.AuthorName?.ToLowerInvariant();
+            author.NameLastFirst = hit.AuthorName?.ToLastFirst();
+            author.SortNameLastFirst = hit.AuthorName?.ToLastFirst()?.ToLowerInvariant();
+            author.HardcoverAuthorId = hit.HardcoverAuthorId;
+            author.TitleSlug = hit.HardcoverAuthorId;
+            author.AudnexusAuthorId = null;
         }
 
         private static string BuildHardcoverSearchCacheKey(string title, string apiToken)
