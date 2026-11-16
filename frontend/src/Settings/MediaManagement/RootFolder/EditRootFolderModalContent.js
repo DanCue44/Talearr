@@ -30,7 +30,13 @@ import styles from './EditRootFolderModalContent.css';
 // Temporary toggle: hide Calibre controls in the GUI until Calibre support is restored.
 const SHOW_CALIBRE_UI = false;
 
-function getApplyToAuthorsLabel(authorCount) {
+function getApplyToAuthorsLabel(authorCount, isChanged) {
+  if (!isChanged) {
+    return authorCount === 1 ?
+      translate('MonitorNewItemsApplyToMismatchedAuthor') :
+      translate('MonitorNewItemsApplyToMismatchedAuthors', { count: authorCount });
+  }
+
   return authorCount === 1 ?
     translate('MonitorNewItemsApplyToAuthor') :
     translate('MonitorNewItemsApplyToAuthors', { count: authorCount });
@@ -178,9 +184,11 @@ class EditRootFolderModalContent extends Component {
       onDefaultEbookRootFolderChange,
       canApplyAudiobookMonitorNewItemsToAuthors,
       audiobookAuthorCount,
+      isAudiobookMonitorNewItemsChanged,
       applyAudiobookMonitorNewItemsToAuthors,
       canApplyEbookMonitorNewItemsToAuthors,
       ebookAuthorCount,
+      isEbookMonitorNewItemsChanged,
       applyEbookMonitorNewItemsToAuthors,
       onApplyMonitorNewItemsToAuthorsChange,
       ...otherProps
@@ -484,7 +492,7 @@ class EditRootFolderModalContent extends Component {
                               type={inputTypes.CHECK}
                               name="applyAudiobookMonitorNewItemsToAuthors"
                               value={applyAudiobookMonitorNewItemsToAuthors}
-                              helpText={getApplyToAuthorsLabel(audiobookAuthorCount)}
+                              helpText={getApplyToAuthorsLabel(audiobookAuthorCount, isAudiobookMonitorNewItemsChanged)}
                               helpTextWarning={applyAudiobookMonitorNewItemsToAuthors ? translate('MonitorNewItemsApplyToAuthorsHelpText') : undefined}
                               onChange={onApplyMonitorNewItemsToAuthorsChange}
                             />
@@ -647,7 +655,7 @@ class EditRootFolderModalContent extends Component {
                               type={inputTypes.CHECK}
                               name="applyEbookMonitorNewItemsToAuthors"
                               value={applyEbookMonitorNewItemsToAuthors}
-                              helpText={getApplyToAuthorsLabel(ebookAuthorCount)}
+                              helpText={getApplyToAuthorsLabel(ebookAuthorCount, isEbookMonitorNewItemsChanged)}
                               helpTextWarning={applyEbookMonitorNewItemsToAuthors ? translate('MonitorNewItemsApplyToAuthorsHelpText') : undefined}
                               onChange={onApplyMonitorNewItemsToAuthorsChange}
                             />
@@ -997,9 +1005,11 @@ EditRootFolderModalContent.propTypes = {
   onDefaultEbookRootFolderChange: PropTypes.func.isRequired,
   canApplyAudiobookMonitorNewItemsToAuthors: PropTypes.bool.isRequired,
   audiobookAuthorCount: PropTypes.number.isRequired,
+  isAudiobookMonitorNewItemsChanged: PropTypes.bool.isRequired,
   applyAudiobookMonitorNewItemsToAuthors: PropTypes.bool.isRequired,
   canApplyEbookMonitorNewItemsToAuthors: PropTypes.bool.isRequired,
   ebookAuthorCount: PropTypes.number.isRequired,
+  isEbookMonitorNewItemsChanged: PropTypes.bool.isRequired,
   applyEbookMonitorNewItemsToAuthors: PropTypes.bool.isRequired,
   onApplyMonitorNewItemsToAuthorsChange: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired,

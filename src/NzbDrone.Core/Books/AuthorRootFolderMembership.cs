@@ -22,6 +22,21 @@ namespace NzbDrone.Core.Books
             return authorRootFolderPath.IsNotNullOrWhiteSpace() && authorRootFolderPath.PathEquals(rootFolderPath);
         }
 
+        // Talearr (issue #8): authors in the folder for a format whose Monitor New Books differs
+        // from the folder's value. An author with no value of its own counts as not matching.
+        public static int CountNotMatching(IEnumerable<Author> authors, string rootFolderPath, BookMediaType mediaType, NewItemMonitorTypes? folderValue)
+        {
+            if (!folderValue.HasValue)
+            {
+                return 0;
+            }
+
+            return InRootFolder(authors, rootFolderPath, mediaType)
+                .Count(author => (mediaType == BookMediaType.Audiobook
+                    ? author.AudiobookMonitorNewItems
+                    : author.EbookMonitorNewItems) != folderValue.Value);
+        }
+
         public static List<Author> InRootFolder(IEnumerable<Author> authors, string rootFolderPath, BookMediaType mediaType)
         {
             return (authors ?? Enumerable.Empty<Author>())

@@ -265,8 +265,9 @@ class EditRootFolderModalContentConnector extends Component {
     }
   };
 
-  // Talearr (issue #8): whether a saved root folder's Monitor New Books default for a format
-  // has been changed in the dialog, and how many authors already sit in it for that format.
+  // Talearr (issue #8): whether to offer applying a saved root folder's Monitor New Books default
+  // for a format to its existing authors. Offered when the value was changed in the dialog, or,
+  // with the value unchanged, when some authors in the folder don't match it.
   getMonitorNewItemsApplyState = (mediaType) => {
     const { item } = this.props;
     const existingRootFolder = this.getExistingRootFolder();
@@ -276,19 +277,25 @@ class EditRootFolderModalContentConnector extends Component {
       folderType === (isAudiobook ? FolderType.Audiobook : FolderType.Ebook);
 
     if (!existingRootFolder || !supportsMediaType) {
-      return { isAvailable: false, authorCount: 0 };
+      return { isAvailable: false, authorCount: 0, isChanged: false };
     }
 
     const fieldName = isAudiobook ? 'audiobookMonitorNewItems' : 'ebookMonitorNewItems';
     const currentValue = item?.[fieldName]?.value || 'none';
     const savedValue = existingRootFolder[fieldName] || 'none';
-    const authorCount = (isAudiobook ?
+    const totalAuthorCount = (isAudiobook ?
       existingRootFolder.audiobookAuthorCount :
       existingRootFolder.ebookAuthorCount) || 0;
+    const mismatchCount = (isAudiobook ?
+      existingRootFolder.audiobookAuthorMismatchCount :
+      existingRootFolder.ebookAuthorMismatchCount) || 0;
+    const isChanged = currentValue !== savedValue;
+    const authorCount = isChanged ? totalAuthorCount : mismatchCount;
 
     return {
-      isAvailable: currentValue !== savedValue && authorCount > 0,
-      authorCount
+      isAvailable: authorCount > 0,
+      authorCount,
+      isChanged
     };
   };
 
@@ -384,9 +391,11 @@ class EditRootFolderModalContentConnector extends Component {
         isDefaultEbookRootFolderAutomatic={ebookDefaultRootFolderState.isAutomatic}
         canApplyAudiobookMonitorNewItemsToAuthors={audiobookApplyState.isAvailable}
         audiobookAuthorCount={audiobookApplyState.authorCount}
+        isAudiobookMonitorNewItemsChanged={audiobookApplyState.isChanged}
         applyAudiobookMonitorNewItemsToAuthors={this.state.applyAudiobookMonitorNewItemsToAuthors}
         canApplyEbookMonitorNewItemsToAuthors={ebookApplyState.isAvailable}
         ebookAuthorCount={ebookApplyState.authorCount}
+        isEbookMonitorNewItemsChanged={ebookApplyState.isChanged}
         applyEbookMonitorNewItemsToAuthors={this.state.applyEbookMonitorNewItemsToAuthors}
         onApplyMonitorNewItemsToAuthorsChange={this.onApplyMonitorNewItemsToAuthorsChange}
         onSavePress={this.onSavePress}

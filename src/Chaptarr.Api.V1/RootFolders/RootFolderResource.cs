@@ -99,6 +99,11 @@ namespace Chaptarr.Api.V1.RootFolders
         // edit dialog can offer to apply a changed Monitor New Books default to them. Ignored on save.
         public int? AudiobookAuthorCount { get; set; }
         public int? EbookAuthorCount { get; set; }
+
+        // Talearr: how many of those authors have a Monitor New Books value that differs from this
+        // folder's saved value, so the dialog can offer to apply it without changing the folder first.
+        public int? AudiobookAuthorMismatchCount { get; set; }
+        public int? EbookAuthorMismatchCount { get; set; }
     }
 
     public static class RootFolderResourceMapper

@@ -863,6 +863,30 @@ namespace Chaptarr.Core.Test.Api
             Assert.That(resource.EbookAuthorCount, Is.EqualTo(1));
         }
 
+        // Issue #8 follow-up: with the folder already on None, the dialog needs to know how many
+        // authors in it still differ, so it can offer to apply None without changing the folder first.
+        [Test]
+        public void get_should_report_authors_that_do_not_match_the_folder_monitor_new_items()
+        {
+            var folder = new RootFolder { Id = 42, Name = "Library", Path = "/library", FolderType = FolderType.Mixed };
+            folder.SetAudiobookSettings(new MediaTypeSettings { MonitorNewItems = NewItemMonitorTypes.None });
+            var rootFolderService = new StubRootFolderService { Existing = folder };
+            var authorService = new StubAuthorService(new List<Author>
+            {
+                new Author { Id = 1, AudiobookRootFolderPath = "/library", AudiobookMonitorNewItems = NewItemMonitorTypes.None },
+                new Author { Id = 2, AudiobookRootFolderPath = "/library", AudiobookMonitorNewItems = NewItemMonitorTypes.All },
+                new Author { Id = 3, AudiobookRootFolderPath = "/library/" },
+                new Author { Id = 4, AudiobookRootFolderPath = "/other", AudiobookMonitorNewItems = NewItemMonitorTypes.All }
+            });
+            var controller = BuildController(rootFolderService, authorService);
+
+            var resource = controller.GetResourceByIdWithErrorHandler(42).Value;
+
+            Assert.That(resource.AudiobookAuthorCount, Is.EqualTo(3));
+            Assert.That(resource.AudiobookAuthorMismatchCount, Is.EqualTo(2));
+            Assert.That(resource.EbookAuthorMismatchCount, Is.EqualTo(0));
+        }
+
         // Issue #8: a root folder saved with "Books to Monitor When Added" and "Monitor New Books"
         // set to None must read back as None, and must stay None when a client sends the resource
         // it read straight back (old Chaptarr-shaped fields included).

@@ -357,6 +357,8 @@ namespace Chaptarr.Api.V1.RootFolders
             {
                 resource.AudiobookAuthorCount = authors.Count(a => AuthorRootFolderMembership.IsInRootFolder(a, resource.Path, BookMediaType.Audiobook));
                 resource.EbookAuthorCount = authors.Count(a => AuthorRootFolderMembership.IsInRootFolder(a, resource.Path, BookMediaType.Ebook));
+                resource.AudiobookAuthorMismatchCount = AuthorRootFolderMembership.CountNotMatching(authors, resource.Path, BookMediaType.Audiobook, resource.AudiobookMonitorNewItems);
+                resource.EbookAuthorMismatchCount = AuthorRootFolderMembership.CountNotMatching(authors, resource.Path, BookMediaType.Ebook, resource.EbookMonitorNewItems);
             }
         }
 
