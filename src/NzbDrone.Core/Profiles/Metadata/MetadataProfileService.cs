@@ -350,7 +350,10 @@ namespace NzbDrone.Core.Profiles.Metadata
 
         private static string GetBookProviderId(Book book)
         {
+            // Talearr: a book only Audible lists has no Hardcover, Goodreads or Open Library
+            // work id; its az:{ASIN} id is what lets a copy the user owns stay protected.
             return BookEditionIdentity.GetCanonicalWorkProviderIds(book).FirstOrDefault()
+                   ?? (TalearrAudibleBookRequests.RequestedAsin(book) is string asin ? "az:" + asin : null)
                    ?? book?.GoodreadsBookId
                    ?? book?.Id.ToString();
         }

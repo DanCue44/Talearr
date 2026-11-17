@@ -517,6 +517,11 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 CoverUrl = lead.ImageUrl,
                 HasAudiobook = true,
                 IsOmnibus = work.IsCollection,
+
+                // Audible's listener ratings stand in for Hardcover's, so the metadata profile's
+                // popularity rule can keep the book.
+                RatingCount = work.Items.Sum(i => i.RatingCount ?? 0),
+                RatingAverage = (decimal)WorkRating(work),
                 Editions = editions,
                 Links = new Dictionary<string, string> { ["audible"] = url },
                 ProviderUrls = new ProviderUrlMap()
@@ -524,6 +529,13 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
 
             book.ProviderUrls.SetNormalized("audible", url);
             return book;
+        }
+
+        private static double WorkRating(Work work)
+        {
+            var rated = work.Items.Where(i => i.RatingCount > 0 && i.RatingAverage > 0).ToList();
+            var votes = rated.Sum(i => i.RatingCount.Value);
+            return votes == 0 ? 0 : rated.Sum(i => i.RatingAverage.Value * i.RatingCount.Value) / votes;
         }
 
         private static V5Edition NewEdition(AudibleCatalogItem item, Work work, string domain)

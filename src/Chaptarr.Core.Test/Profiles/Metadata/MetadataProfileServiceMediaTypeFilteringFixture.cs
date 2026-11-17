@@ -480,6 +480,47 @@ namespace Chaptarr.Core.Test.Profiles.Metadata
             Assert.That(result, Has.Count.EqualTo(1));
         }
 
+        // Talearr #10: a book only Audible lists has just an az:{ASIN} id. A copy the user owns
+        // stays, even with no ratings under a popularity rule.
+        [TestCase(true, 1)]
+        [TestCase(false, 0)]
+        public void should_keep_an_owned_audible_only_book(bool owned, int expectedCount)
+        {
+            var profile = CreateProfile(id: 1);
+            profile.MinPopularity = 1;
+            var dbAuthor = new Author { Id = 1, Name = "Dietmar Wehr" };
+
+            Book AudibleBook()
+            {
+                return new Book
+                {
+                    Title = "The Synchronicity War 1",
+                    MediaType = BookMediaType.Audiobook,
+                    RemoteProviderIds = new HashSet<string> { "az:B00QVLIZ9K" },
+                    Ratings = new Ratings(),
+                    Editions = new List<Edition> { new Edition { ForeignEditionId = "az:B00QVLIZ9K", Title = "The Synchronicity War 1" } }
+                };
+            }
+
+            var localBook = AudibleBook();
+            localBook.Id = 20863;
+            localBook.AuthorId = dbAuthor.Id;
+            var localEdition = localBook.Editions.Single();
+            localEdition.Id = 67000;
+            localEdition.BookId = localBook.Id;
+            localEdition.Book = localBook;
+            var files = owned
+                ? new List<BookFile> { new BookFile { Id = 1, EditionId = localEdition.Id, Edition = localEdition, MediaType = "audiobook", Path = "/audiobooks/Dietmar Arthur Wehr/The Synchronicity War 1.m4b" } }
+                : new List<BookFile>();
+
+            var remoteAuthor = new Author { Id = dbAuthor.Id, Name = dbAuthor.Name, Books = new List<Book> { AudibleBook() } };
+
+            var result = CreateService(profile, dbAuthor, new List<Book> { localBook }, new List<Edition> { localEdition }, files)
+                .FilterBooks(remoteAuthor, profile.Id);
+
+            Assert.That(result, Has.Count.EqualTo(expectedCount));
+        }
+
         // Talearr: an explicitly requested book passes the book-level profile rules.
         [TestCase(true, 1)]
         [TestCase(false, 0)]

@@ -108,7 +108,11 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             // An empty copy read before Audible's shorter spelling of the name was tried
             // (Talearr #10) is read again.
             var retryShortName = stored?.Items?.Count == 0 && ShortNames(names).Count > 0;
-            if (stored != null && now - stored.FetchedAt < FreshFor && !retryShortName)
+
+            // A copy stored before Talearr read Audible's ratings is read again, so books only
+            // Audible lists have a popularity for the metadata profile.
+            var withoutRatings = stored?.Items?.Count > 0 && stored.Items.All(i => i.RatingCount == null);
+            if (stored != null && now - stored.FetchedAt < FreshFor && !retryShortName && !withoutRatings)
             {
                 Remember(cacheKey, stored);
                 return stored;

@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Talearr.Recordings
     {
         public const int BatchSize = 25;
         public const string ResponseGroups = "product_desc,contributors,product_attrs";
-        public const string AuthorResponseGroups = "product_desc,contributors,product_attrs,series,media";
+        public const string AuthorResponseGroups = "product_desc,contributors,product_attrs,series,media,rating";
         public const int AuthorPageSize = 50;
         public const int KeywordPageSize = 25;
         public static readonly TimeSpan MinimumInterval = TimeSpan.FromSeconds(1);
@@ -253,7 +253,9 @@ namespace NzbDrone.Core.Talearr.Recordings
                     DeliveryType = product.ContentDeliveryType?.Trim(),
                     Publisher = product.PublisherName,
                     Summary = product.MerchandisingSummary,
-                    ImageUrl = BestImage(product.ProductImages)
+                    ImageUrl = BestImage(product.ProductImages),
+                    RatingCount = product.Rating?.OverallDistribution?.NumRatings ?? 0,
+                    RatingAverage = product.Rating?.OverallDistribution?.AverageRating ?? 0
                 });
             }
 

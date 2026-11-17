@@ -116,6 +116,27 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
             Assert.That(proxy.Queries, Is.EqualTo(new[] { "Dietmar Arthur Wehr" }));
         }
 
+        [Test]
+        public void a_stored_catalog_without_ratings_is_read_again()
+        {
+            using var folder = new TalearrTestFolder();
+            var database = folder.CreateDatabase();
+            var client = DispatchProxy.Create<ITalearrAudibleClient, AuthorClientProxy>();
+            var proxy = (AuthorClientProxy)(object)client;
+            proxy.Pages["Dietmar Wehr"] = Page(Item(Omnibus, "The System States Rebellion Omnibus", null));
+
+            new TalearrAudibleAuthorCatalog(client, null, database, LogManager.GetCurrentClassLogger()).Get(Wehr, new[] { "Dietmar Wehr" });
+
+            var rated = Item(Omnibus, "The System States Rebellion Omnibus", null);
+            rated.RatingCount = 836;
+            proxy.Pages["Dietmar Wehr"] = Page(rated);
+            var result = new TalearrAudibleAuthorCatalog(client, null, database, LogManager.GetCurrentClassLogger()).Get(Wehr, new[] { "Dietmar Wehr" });
+            new TalearrAudibleAuthorCatalog(client, null, database, LogManager.GetCurrentClassLogger()).Get(Wehr, new[] { "Dietmar Wehr" });
+
+            Assert.That(proxy.Queries, Has.Count.EqualTo(2));
+            Assert.That(result.Items.Single().RatingCount, Is.EqualTo(836));
+        }
+
         private static TalearrAudibleBookSearch Search(List<Author> library, params AudibleCatalogItem[] items)
         {
             var client = DispatchProxy.Create<ITalearrAudibleClient, TalearrAudibleBookAddFixture.AudibleClientProxy>();

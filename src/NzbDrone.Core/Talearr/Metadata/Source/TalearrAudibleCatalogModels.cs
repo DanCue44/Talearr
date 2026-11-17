@@ -30,6 +30,10 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
         public string Publisher { get; set; }
         public string Summary { get; set; }
         public string ImageUrl { get; set; }
+
+        // Audible's listener ratings; null in a copy stored before Talearr read them.
+        public int? RatingCount { get; set; }
+        public double? RatingAverage { get; set; }
     }
 
     public sealed class AudibleCatalogSeries
@@ -106,6 +110,24 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
 
         [JsonProperty("product_images")]
         public Dictionary<string, string> ProductImages { get; set; }
+
+        [JsonProperty("rating")]
+        public AudibleAuthorCatalogRating Rating { get; set; }
+    }
+
+    internal sealed class AudibleAuthorCatalogRating
+    {
+        [JsonProperty("overall_distribution")]
+        public AudibleAuthorCatalogRatingDistribution OverallDistribution { get; set; }
+    }
+
+    internal sealed class AudibleAuthorCatalogRatingDistribution
+    {
+        [JsonProperty("num_ratings")]
+        public int? NumRatings { get; set; }
+
+        [JsonProperty("average_rating")]
+        public double? AverageRating { get; set; }
     }
 
     internal sealed class AudibleAuthorCatalogName

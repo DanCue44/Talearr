@@ -229,6 +229,27 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
             Assert.That(stats.SeriesCreated, Is.EqualTo(1));
         }
 
+        // Talearr #10: a book only Audible lists carries Audible's listener ratings, so the
+        // metadata profile's popularity rule keeps it.
+        [Test]
+        public void a_book_only_audible_lists_carries_its_audible_ratings()
+        {
+            var response = Single("hc:1", "Phoenix On Fire", null, null, null);
+            var thunder = InSeries("B07B9LJSB9", "The Complete Thunder Series", null, "Thunder", "1-3");
+            thunder.RatingCount = 1073;
+            thunder.RatingAverage = 4.4;
+            var unrated = InSeries("B0HBNPZ7W9", "Non-Linear Visions #1", null, "Non-Linear Visions", "1");
+            unrated.RatingCount = 0;
+            unrated.RatingAverage = 0;
+
+            TalearrAudibleMerge.Apply(response, new[] { thunder, unrated }, audibleLeads: true, "us");
+
+            var added = BookById(response, "az:B07B9LJSB9");
+            Assert.That(added.RatingCount, Is.EqualTo(1073));
+            Assert.That(added.RatingAverage, Is.EqualTo(4.4m).Within(0.001m));
+            Assert.That(BookById(response, "az:B0HBNPZ7W9").RatingCount, Is.EqualTo(0));
+        }
+
         private static V5AuthorResponse Single(string id, string title, string subtitle, string series, string position)
         {
             var book = new V5Book { Id = id, BaseBookId = id, HardcoverBookId = id, Title = title, Subtitle = subtitle, SeriesName = series, SeriesPosition = position, Editions = new List<V5Edition>() };
