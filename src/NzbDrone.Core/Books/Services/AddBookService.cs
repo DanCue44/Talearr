@@ -415,6 +415,8 @@ namespace NzbDrone.Core.Books
 
         private async Task<Book> RequestBookThroughAuthorCatalog(Book requestedBook)
         {
+            FillLibraryAuthorProviderIds(requestedBook, _authorService, _logger);
+
             var workProviderId = ResolveRequestedWorkProviderId(requestedBook);
             if (string.IsNullOrWhiteSpace(workProviderId))
             {
@@ -696,6 +698,36 @@ namespace NzbDrone.Core.Books
                 .Concat(resolvedBook?.RemoteProviderIds ?? Enumerable.Empty<string>())
                 .Select(providerId => TryCanonicalizeWorkId(providerId))
                 .FirstOrDefault(providerId => !string.IsNullOrWhiteSpace(providerId));
+        }
+
+        // Talearr #10: an add can name a library author (Author.Id) without that author's provider
+        // ids, as an Audible result does. The library author's ids are the ones that count, so an
+        // Audible-only audiobook still joins its Hardcover author.
+        internal static void FillLibraryAuthorProviderIds(Book book, IAuthorService authorService, Logger logger)
+        {
+            var author = book?.Author;
+            if (author == null || author.Id <= 0 || !string.IsNullOrWhiteSpace(author.HardcoverAuthorId))
+            {
+                return;
+            }
+
+            Author libraryAuthor;
+            try
+            {
+                libraryAuthor = authorService.GetAuthor(author.Id);
+            }
+            catch (ModelNotFoundException)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(libraryAuthor?.HardcoverAuthorId))
+            {
+                return;
+            }
+
+            logger.Debug("[AddBook] Using library author {0} ({1}) for '{2}'", libraryAuthor.Name, libraryAuthor.HardcoverAuthorId, book.Title);
+            author.HardcoverAuthorId = libraryAuthor.HardcoverAuthorId;
         }
 
         private static string GetAuthorProviderId(Author author)

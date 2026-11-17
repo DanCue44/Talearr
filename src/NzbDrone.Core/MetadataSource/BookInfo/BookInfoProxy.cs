@@ -2829,10 +2829,11 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             return books;
         }
 
-        // Talearr #10: Audible lists some audiobooks without the author's Audible id ("Dietmar Wehr"
-        // on The System States Rebellion Omnibus), which left the result without an author to
-        // add it to. While Talearr's metadata source is on, such a result goes to the library
-        // author it belongs to, the way the add search places Audible-only audiobooks.
+        // Talearr #10: an Audible result has no Hardcover author, so it had no author to add it
+        // to, whether Audible gives the author's Audible id (The Complete Thunder Series) or not
+        // (The System States Rebellion Omnibus). While Talearr's metadata source is on, such a
+        // result goes to the library author it belongs to, the way the add search places
+        // Audible-only audiobooks.
         private List<Book> AttachLibraryAuthors(List<Book> books)
         {
             if (!TalearrSourceActive || _talearrAudibleSearch == null || books == null)
@@ -2843,9 +2844,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             foreach (var book in books)
             {
                 var author = book?.Author;
-                if (author == null ||
-                    !string.IsNullOrWhiteSpace(author.AudnexusAuthorId) ||
-                    !string.IsNullOrWhiteSpace(author.HardcoverAuthorId))
+                if (author == null || !string.IsNullOrWhiteSpace(author.HardcoverAuthorId))
                 {
                     continue;
                 }
@@ -2853,7 +2852,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 var hit = _talearrAudibleSearch.FindLibraryAuthor(new[] { author.Name });
                 if (hit != null)
                 {
-                    _logger.Debug("[BookInfoProxy] Audible lists '{0}' without an author id; using library author {1} ({2})", book.Title, hit.AuthorName, hit.HardcoverAuthorId);
+                    _logger.Debug("[BookInfoProxy] Audible lists '{0}' without a Hardcover author; using library author {1} ({2})", book.Title, hit.AuthorName, hit.HardcoverAuthorId);
                     SetHardcoverAuthor(author, hit);
                 }
             }
