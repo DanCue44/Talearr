@@ -5,6 +5,7 @@ using System.Reflection;
 using NLog;
 using NUnit.Framework;
 using NzbDrone.Core.Books;
+using NzbDrone.Core.Books.Services;
 using NzbDrone.Core.Datastore;
 
 namespace Chaptarr.Core.Test.Talearr.Metadata.Source
@@ -49,6 +50,18 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
 
             Assert.That(newAuthor.Author.HardcoverAuthorId, Is.Null);
             Assert.That(missing.Author.HardcoverAuthorId, Is.Null);
+        }
+
+        [TestCase("hc:1071895", "hc:259462", true)]
+        [TestCase("hc:1071895", "hc:1071895", false)]
+        [TestCase(null, "hc:259462", false)]
+        [TestCase("hc:1071895", null, false)]
+        public void another_hardcover_entry_keeps_the_library_authors_details(string library, string found, bool other)
+        {
+            var existing = new Author { Id = 213, Name = "Dietmar Wehr", HardcoverAuthorId = library };
+            var remote = new Author { Name = "Dietmar Arthur Wehr", HardcoverAuthorId = found };
+
+            Assert.That(AuthorLibraryService.IsOtherHardcoverEntry(existing, remote), Is.EqualTo(other));
         }
 
         private static List<Author> Library()

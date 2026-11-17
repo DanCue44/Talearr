@@ -1191,8 +1191,21 @@ namespace NzbDrone.Core.Books.Services
         private async Task<Author> HandleExistingAuthorAsync(Author existingAuthor, Author remoteAuthor, MonitoringConfig config)
         {
             existingAuthor = MergeMissingProviderIds(existingAuthor, remoteAuthor);
-            existingAuthor = ApplyAuthorMetadata(existingAuthor, remoteAuthor);
-            SeedAuthorSyncMetadata(existingAuthor, remoteAuthor, null);
+
+            // Talearr #10: Hardcover can list one author twice ("Dietmar Wehr" and "Dietmar Arthur
+            // Wehr"). When the other entry finds the library author through a shared id, the
+            // library author keeps its own name and details; it refreshes from its own entry, and
+            // taking the other's renamed it back and forth.
+            if (IsOtherHardcoverEntry(existingAuthor, remoteAuthor))
+            {
+                _logger.Info("Hardcover author {0} ({1}) is the library author {2} ({3}) under another Hardcover entry; keeping the library author's details",
+                    remoteAuthor.Name, remoteAuthor.HardcoverAuthorId, existingAuthor.Name, existingAuthor.HardcoverAuthorId);
+            }
+            else
+            {
+                existingAuthor = ApplyAuthorMetadata(existingAuthor, remoteAuthor);
+                SeedAuthorSyncMetadata(existingAuthor, remoteAuthor, null);
+            }
 
             if (config != null)
             {
@@ -1277,6 +1290,13 @@ namespace NzbDrone.Core.Books.Services
             }
 
             return existingAuthor;
+        }
+
+        internal static bool IsOtherHardcoverEntry(Author existingAuthor, Author remoteAuthor)
+        {
+            var existing = ProviderIdHelper.Normalize(existingAuthor?.HardcoverAuthorId, "hc");
+            var remote = ProviderIdHelper.Normalize(remoteAuthor?.HardcoverAuthorId, "hc");
+            return existing != null && remote != null && !string.Equals(existing, remote, StringComparison.OrdinalIgnoreCase);
         }
 
         private Author ApplyAuthorMetadata(Author existingAuthor, Author remoteAuthor)
