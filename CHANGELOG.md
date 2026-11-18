@@ -2,6 +2,16 @@
 
 Notable changes to Talearr are listed here, newest first. Talearr's version number is its own and is separate from the Chaptarr version it is based on.
 
+## 0.18.67 - 2026-11-17
+
+### Added
+- A new grab policy, Prefer Abridged: abridged releases rank first and unabridged ones are still accepted. It can be set globally or per book.
+
+### Fixed
+- Asking for a second recording of an audiobook (such as the abridged reading while the unabridged one is still being searched for) adds it as a recording of its own instead of switching the book to it, so the reading already wanted keeps being searched for.
+- When a completed download matches a different edition than the one grabbed for, the message now says how the two differ (abridged or unabridged, narrator, publisher, year, ISBN or ASIN) and how long the files run. A download that turns out to be the other reading is failed and replaced when failing rejected imports is on.
+- While looking for an abridged recording, a release with no abridged or unabridged marking that is as large as the unabridged reading would be is skipped.
+
 ## 0.18.66 - 2026-11-17
 
 ### Fixed
