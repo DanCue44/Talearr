@@ -24,6 +24,12 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             @"^Completed download is by (?<found>.+?), not (?<expected>.+?) \(grabbed for ",
             RegexOptions.Compiled | RegexOptions.Singleline);
 
+        // "Grabbed for the abridged recording (...), but these files run 14 h 20 min and match the
+        //  unabridged recording ..." (TalearrEditionMismatch): the release is the other reading.
+        private static readonly Regex WrongReadingRegex = new Regex(
+            @"^Grabbed for the (?<expected>abridged|unabridged) recording\b.*?, but these files (?:run .+? and )?match the (?<found>abridged|unabridged) recording\b",
+            RegexOptions.Compiled | RegexOptions.Singleline);
+
         private static readonly Regex QuotedTitleRegex = new Regex(@"'(?<title>.+?)' \(BookId \d+", RegexOptions.Compiled);
 
         // "No supported audio or ebook files were found in ... Unsupported extension(s): .diz, .nfo, .zip."
@@ -110,6 +116,18 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                 }
 
                 return string.Format("release contains '{0}', not the wanted book", matched);
+            }
+
+            // Talearr: the other reading of the book (abridged for unabridged or the reverse) is
+            // never the wanted recording, whatever is tried again.
+            var wrongReading = WrongReadingRegex.Match(message);
+            if (wrongReading.Success)
+            {
+                var expectedReading = wrongReading.Groups["expected"].Value;
+                var foundReading = wrongReading.Groups["found"].Value;
+                return expectedReading == foundReading
+                    ? null
+                    : string.Format("release is the {0} recording, not the wanted {1} one", foundReading, expectedReading);
             }
 
             // Talearr: a different author is a different book, the same as a wrong-book match.

@@ -26,6 +26,7 @@ using NzbDrone.Core.Qualities;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Talearr.GrabPolicy;
 using NzbDrone.Core.Talearr.Import;
+using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.MediaFiles
 {
@@ -64,6 +65,8 @@ namespace NzbDrone.Core.MediaFiles
         // the constructor with the most resolvable parameters, which is the Talearr one.
         private readonly IDownloadArchiveUnpacker _archiveUnpacker;
         private readonly IDownloadedFileLanguageVerifier _fileLanguageVerifier;
+        private readonly ITalearrAbridgedResolver _abridgedResolver;
+        private readonly ITalearrAudibleFactsService _audibleFacts;
 
         public DownloadedBooksImportService(
             IDiskProvider diskProvider,
@@ -109,8 +112,12 @@ namespace NzbDrone.Core.MediaFiles
             IMediaInfoExtractor mediaInfoExtractor,
             Logger logger,
             IDownloadArchiveUnpacker archiveUnpacker,
-            IDownloadedFileLanguageVerifier fileLanguageVerifier)
+            IDownloadedFileLanguageVerifier fileLanguageVerifier,
+            ITalearrAbridgedResolver abridgedResolver = null,
+            ITalearrAudibleFactsService audibleFacts = null)
         {
+            _abridgedResolver = abridgedResolver;
+            _audibleFacts = audibleFacts;
             _archiveUnpacker = archiveUnpacker;
             _fileLanguageVerifier = fileLanguageVerifier;
             _diskProvider = diskProvider;
@@ -1126,8 +1133,36 @@ namespace NzbDrone.Core.MediaFiles
                     continue;
                 }
 
-                decision.Reject(new Rejection(
-                    $"Completed download was grabbed for edition '{expectedEdition.Title}', but import matched edition '{matchedEdition.Title}'. Talearr could not verify the expected edition."));
+                decision.Reject(new Rejection(DescribeEditionMismatch(matchedBook, expectedEdition, matchedEdition, decisions)));
+            }
+        }
+
+        // Talearr: names both editions by what tells them apart (editions of one book usually
+        // share a title) and says how long the downloaded files run.
+        private string DescribeEditionMismatch(Book book, Edition expected, Edition matched, List<ImportDecision<LocalBook>> decisions)
+        {
+            try
+            {
+                var siblings = _editionService.GetEditionsByBook(book.Id) ?? new List<Edition>();
+                foreach (var edition in new[] { expected, matched })
+                {
+                    if (edition != null && !siblings.Any(e => e.Id == edition.Id))
+                    {
+                        siblings.Add(edition);
+                    }
+                }
+
+                var facts = _audibleFacts?.GetCachedFacts(siblings);
+                var seconds = decisions
+                    .Where(d => d?.Item?.Book?.Id == book.Id)
+                    .Sum(d => (long)(d.Item.DurationSeconds ?? 0));
+
+                return TalearrEditionMismatch.Message(expected, matched, siblings, seconds > 0 ? seconds : null, _abridgedResolver, facts);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Talearr: could not describe the editions of '{0}'", book.Title);
+                return $"Completed download was grabbed for edition '{expected.Title}' (EditionId {expected.Id}), but import matched edition '{matched.Title}' (EditionId {matched.Id}). Talearr could not verify the expected edition.";
             }
         }
 
