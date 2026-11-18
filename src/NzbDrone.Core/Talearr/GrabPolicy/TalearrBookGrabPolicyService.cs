@@ -148,7 +148,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         {
             if (policy.HasValue && !Enum.IsDefined(typeof(AbridgedAudiobookPolicy), policy.Value))
             {
-                return Invalid(bookId, "abridgedPolicy must be unabridgedOnly, abridgedOnly, preferUnabridged, any or null");
+                return Invalid(bookId, "abridgedPolicy must be unabridgedOnly, abridgedOnly, preferUnabridged, preferAbridged, any or null");
             }
 
             var target = FindTarget(bookId, out var problem);

@@ -377,13 +377,14 @@ namespace Chaptarr.Core.Test.Talearr.GrabPolicy
         }
 
         [Test]
-        public void abridged_only_is_appended_last_so_stored_and_numeric_values_keep_their_meaning()
+        public void new_values_are_appended_last_so_stored_and_numeric_values_keep_their_meaning()
         {
             Assert.That((int)AbridgedAudiobookPolicy.UnabridgedOnly, Is.EqualTo(0));
             Assert.That((int)AbridgedAudiobookPolicy.PreferUnabridged, Is.EqualTo(1));
             Assert.That((int)AbridgedAudiobookPolicy.Any, Is.EqualTo(2));
             Assert.That((int)AbridgedAudiobookPolicy.AbridgedOnly, Is.EqualTo(3));
-            Assert.That(Enum.GetValues(typeof(AbridgedAudiobookPolicy)).Cast<int>().Max(), Is.EqualTo(3));
+            Assert.That((int)AbridgedAudiobookPolicy.PreferAbridged, Is.EqualTo(4));
+            Assert.That(Enum.GetValues(typeof(AbridgedAudiobookPolicy)).Cast<int>().Max(), Is.EqualTo(4));
         }
 
         [Test]

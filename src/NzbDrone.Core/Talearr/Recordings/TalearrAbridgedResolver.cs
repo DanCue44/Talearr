@@ -47,6 +47,10 @@ namespace NzbDrone.Core.Talearr.Recordings
 
         // One edition, judged against its siblings (all editions of the same row).
         AbridgedResolution ResolveEdition(Edition edition, IReadOnlyCollection<Edition> siblings, IReadOnlyCollection<BookFile> files = null);
+
+        // The runtime of the work's unabridged reading in minutes, from cached Audible facts or an
+        // edition marked unabridged; null when none is known. No network calls.
+        int? UnabridgedRuntimeMinutes(Book book) => null;
     }
 
     // Talearr: decides whether a recording is abridged. First answer wins:
@@ -149,6 +153,34 @@ namespace NzbDrone.Core.Talearr.Recordings
 
             // 4. Files.
             return ResolveByFiles(all, files, facts) ?? AbridgedResolution.Unknown;
+        }
+
+        public int? UnabridgedRuntimeMinutes(Book book)
+        {
+            if (book == null || book.MediaType != BookMediaType.Audiobook)
+            {
+                return null;
+            }
+
+            try
+            {
+                var editions = SafeEditions(book);
+                var facts = CachedFacts(editions);
+                var seconds = editions
+                    .Where(e => ProductFor(e, facts)?.Abridged == AbridgedMarker.Unabridged ||
+                                (ProductFor(e, facts) == null && ExplicitText(e) == AbridgedMarker.Unabridged))
+                    .Select(e => RuntimeSeconds(e, facts))
+                    .Where(s => s >= MinimumComparableSeconds)
+                    .DefaultIfEmpty(0)
+                    .Max();
+
+                return seconds > 0 ? seconds / 60 : (int?)null;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Talearr: no unabridged runtime for book {0}", book.Id);
+                return null;
+            }
         }
 
         private AbridgedResolution Heuristic(Edition edition, List<Edition> all, Dictionary<int, EditionAudibleFacts> facts = null)

@@ -99,6 +99,16 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             var marker = AbridgedReleaseDetector.DetectRelease(subject.Release);
             var scope = Scope(target);
 
+            // An unmarked release far too big for an abridged reading is the unabridged one.
+            if (marker == AbridgedMarker.Unknown && WantsAbridgedReading(subject, target, resolver))
+            {
+                var unabridged = UnabridgedSizeCheck(subject, resolver);
+                if (unabridged != null)
+                {
+                    return new AbridgedJudgement(false, $"Looks like the unabridged recording ({unabridged}){scope}");
+                }
+            }
+
             switch (target.Policy)
             {
                 case AbridgedAudiobookPolicy.UnabridgedOnly:
@@ -150,7 +160,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
 
             var marker = AbridgedReleaseDetector.DetectRelease(subject.Release);
 
-            if (target.Policy == AbridgedAudiobookPolicy.AbridgedOnly)
+            if (target.Policy == AbridgedAudiobookPolicy.AbridgedOnly || target.Policy == AbridgedAudiobookPolicy.PreferAbridged)
             {
                 return marker switch
                 {
@@ -173,12 +183,76 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
             return flip ? 1 : -1;
         }
 
+        // Bitrate an unabridged reading is assumed to be encoded at, at least. A release at least
+        // this big for the whole unabridged runtime is not an abridged reading (those run about a
+        // third of it).
+        public const int UnabridgedMinimumKbps = 56;
+
+        // Whether a release for this target has to be the abridged reading: "abridged only", or a
+        // row that wants an abridged edition under a policy that does not insist on unabridged.
+        private static bool WantsAbridgedReading(RemoteBook subject, AbridgedTarget target, ITalearrAbridgedResolver resolver)
+        {
+            switch (target.Policy)
+            {
+                case AbridgedAudiobookPolicy.AbridgedOnly:
+                    return true;
+                case AbridgedAudiobookPolicy.Any:
+                case AbridgedAudiobookPolicy.PreferAbridged:
+                    return false;
+                default:
+                    return !target.IsStrict && AbridgedReleaseDetector.WantsAbridged(subject, resolver);
+            }
+        }
+
+        // "812 MB for a book whose unabridged reading runs 14 h 20 min" when the release size
+        // fits the unabridged runtime, else null (also when the size or runtime is unknown).
+        internal static string UnabridgedSizeCheck(RemoteBook subject, ITalearrAbridgedResolver resolver)
+        {
+            var size = subject?.Release?.Size ?? 0;
+            var row = WantedRows(subject).FirstOrDefault();
+            if (size <= 0 || row == null || resolver == null)
+            {
+                return null;
+            }
+
+            int? minutes;
+            try
+            {
+                minutes = resolver.UnabridgedRuntimeMinutes(row);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            if (!minutes.HasValue || minutes.Value <= 0)
+            {
+                return null;
+            }
+
+            var threshold = (long)minutes.Value * 60 * UnabridgedMinimumKbps * 1000 / 8;
+            if (size < threshold)
+            {
+                return null;
+            }
+
+            return $"{size / 1_000_000} MB for a book whose unabridged reading runs {FormatRuntime(minutes.Value)}";
+        }
+
+        public static string FormatRuntime(int minutes)
+        {
+            var hours = minutes / 60;
+            var rest = minutes % 60;
+            return hours == 0 ? $"{rest} min" : rest == 0 ? $"{hours} h" : $"{hours} h {rest} min";
+        }
+
         public static string Describe(AbridgedAudiobookPolicy policy)
         {
             return policy switch
             {
                 AbridgedAudiobookPolicy.AbridgedOnly => "abridged only",
                 AbridgedAudiobookPolicy.PreferUnabridged => "prefer unabridged",
+                AbridgedAudiobookPolicy.PreferAbridged => "prefer abridged",
                 AbridgedAudiobookPolicy.Any => "any",
                 _ => "unabridged only"
             };

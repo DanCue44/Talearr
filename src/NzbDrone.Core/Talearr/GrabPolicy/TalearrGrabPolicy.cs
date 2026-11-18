@@ -15,7 +15,11 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         // Abridged releases only: explicitly unabridged releases are rejected, and unmarked ones
         // are accepted only when the wanted edition is itself abridged. Ranking prefers abridged.
         // Also a per-book override (TalearrBookGrabPolicyService).
-        AbridgedOnly = 3
+        AbridgedOnly = 3,
+
+        // Abridged releases rank first, unabridged ones are still allowed. The mirror of
+        // PreferUnabridged.
+        PreferAbridged = 4
     }
 
     // Talearr: grab policy settings. Stored as talearr.* rows in the existing Config table

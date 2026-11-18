@@ -14,6 +14,7 @@ const abridgedPolicyOptions = [
   { key: 'unabridgedOnly', value: 'Unabridged only' },
   { key: 'abridgedOnly', value: 'Abridged only' },
   { key: 'preferUnabridged', value: 'Prefer unabridged' },
+  { key: 'preferAbridged', value: 'Prefer abridged' },
   { key: 'any', value: 'Any (no preference)' }
 ];
 
@@ -21,6 +22,8 @@ function getAbridgedHelpText(value) {
   switch (value) {
     case 'preferUnabridged':
       return 'Abridged audiobook releases can be grabbed, but always rank below unabridged ones.';
+    case 'preferAbridged':
+      return 'Abridged audiobook releases rank first, but unabridged ones can still be grabbed.';
     case 'abridgedOnly':
       return 'Only abridged audiobook releases are grabbed. Before searching, Talearr monitors an abridged edition of the book when one is known; releases marked unabridged are skipped, and unmarked ones too unless the monitored edition is abridged. Books with their own abridged setting (for example from Allseerr) keep it.';
     case 'any':

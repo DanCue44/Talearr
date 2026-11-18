@@ -7,7 +7,7 @@ namespace Chaptarr.Api.V1.Talearr
 {
     public class TalearrBookGrabPolicyBody
     {
-        // unabridgedOnly | abridgedOnly | preferUnabridged | any | null (null clears the override)
+        // unabridgedOnly | abridgedOnly | preferUnabridged | preferAbridged | any | null (null clears the override)
         public string AbridgedPolicy { get; set; }
     }
 
@@ -59,14 +59,14 @@ namespace Chaptarr.Api.V1.Talearr
             {
                 if (!TalearrBookGrabPolicyService.TryParseApiValue(value, out var parsed))
                 {
-                    return BadRequest(new TalearrGrabPolicyProblem { Message = "abridgedPolicy must be unabridgedOnly, abridgedOnly, preferUnabridged, any or null" });
+                    return BadRequest(new TalearrGrabPolicyProblem { Message = "abridgedPolicy must be unabridgedOnly, abridgedOnly, preferUnabridged, preferAbridged, any or null" });
                 }
 
                 policy = parsed;
             }
             else if (value != null)
             {
-                return BadRequest(new TalearrGrabPolicyProblem { Message = "abridgedPolicy must be unabridgedOnly, abridgedOnly, preferUnabridged, any or null" });
+                return BadRequest(new TalearrGrabPolicyProblem { Message = "abridgedPolicy must be unabridgedOnly, abridgedOnly, preferUnabridged, preferAbridged, any or null" });
             }
 
             return ToActionResult(_bookGrabPolicyService.Set(bookId, policy));
