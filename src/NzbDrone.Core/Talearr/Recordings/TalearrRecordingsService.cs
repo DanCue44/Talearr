@@ -177,6 +177,8 @@ namespace NzbDrone.Core.Talearr.Recordings
         private readonly ITalearrRecordingsStore _store;
         private readonly ITalearrRecordingsSettingsService _settingsService;
         private readonly IManageCommandQueue _commandQueueManager;
+        private readonly ITalearrBookGrabPolicyService _bookGrabPolicyService;
+        private readonly ITalearrGrabPolicyService _grabPolicyService;
         private readonly Logger _logger;
 
         public TalearrRecordingsService(IBookService bookService,
@@ -188,8 +190,12 @@ namespace NzbDrone.Core.Talearr.Recordings
                                         ITalearrRecordingsStore store,
                                         ITalearrRecordingsSettingsService settingsService,
                                         IManageCommandQueue commandQueueManager,
-                                        Logger logger)
+                                        Logger logger,
+                                        ITalearrBookGrabPolicyService bookGrabPolicyService = null,
+                                        ITalearrGrabPolicyService grabPolicyService = null)
         {
+            _bookGrabPolicyService = bookGrabPolicyService;
+            _grabPolicyService = grabPolicyService;
             _bookService = bookService;
             _editionService = editionService;
             _mediaFileService = mediaFileService;
@@ -391,10 +397,15 @@ namespace NzbDrone.Core.Talearr.Recordings
             var primary = context.Group.Primary;
             var primaryHadFiles = context.FilesByBook.TryGetValue(primary.Id, out var primaryFiles) && primaryFiles.Count > 0;
 
+            // A primary row without files that is already wanted for another reading (say the
+            // unabridged one, searching right now) keeps it: the asked recording gets a row of its own.
+            var keepPrimary = chosen.BookId == primary.Id && !primaryHadFiles &&
+                              PrimaryWantsOtherReading(primary, context.PrimaryEditions, kind);
+
             Book result;
             try
             {
-                result = _bookService.AddWantedEdition(chosen.BookId, chosen.Id);
+                result = _bookService.AddWantedEdition(chosen.BookId, chosen.Id, keepPrimary);
             }
             catch (ArgumentException ex)
             {
@@ -445,6 +456,75 @@ namespace NzbDrone.Core.Talearr.Recordings
                 Recording = refreshed?.Recordings.FirstOrDefault(r => r.BookId == result.Id),
                 SearchQueued = searchQueued
             };
+        }
+
+        // The reading (unabridged or abridged) a wanted primary row without files is committed to,
+        // when that is not the asked kind. Committed means: a pinned edition (ManualAdd) of a known
+        // reading, else a per-book grab policy, else the global policy when the monitored edition
+        // does not say otherwise. Narrator and edition requests, rows nobody wants yet and policy
+        // "any" commit to nothing, so the old pin on the book itself still applies to them.
+        private bool PrimaryWantsOtherReading(Book primary, List<Edition> editions, string kind)
+        {
+            if (kind != RecordingKinds.Abridged && kind != RecordingKinds.Unabridged)
+            {
+                return false;
+            }
+
+            if (primary == null || !primary.Monitored || !primary.AudiobookMonitored)
+            {
+                return false;
+            }
+
+            var wanted = WantedReading(primary, editions ?? new List<Edition>());
+            if (wanted == AbridgedMarker.Unknown)
+            {
+                return false;
+            }
+
+            var asked = kind == RecordingKinds.Abridged ? AbridgedMarker.Abridged : AbridgedMarker.Unabridged;
+            if (wanted == asked)
+            {
+                return false;
+            }
+
+            _logger.Debug("Talearr: '{0}' is wanted for its {1} reading, so the {2} recording gets a row of its own",
+                primary.Title,
+                wanted == AbridgedMarker.Abridged ? "abridged" : "unabridged",
+                kind);
+            return true;
+        }
+
+        private AbridgedMarker WantedReading(Book primary, List<Edition> editions)
+        {
+            var monitored = editions.Where(e => e.Monitored).OrderBy(e => e.Id).FirstOrDefault();
+            var monitoredReading = monitored == null
+                ? AbridgedMarker.Unknown
+                : _abridgedResolver?.ResolveEdition(monitored, editions)?.Marker ?? AbridgedMarker.Unknown;
+
+            if (monitored != null && monitored.ManualAdd && monitoredReading != AbridgedMarker.Unknown)
+            {
+                return monitoredReading;
+            }
+
+            var bookPolicy = TalearrBookGrabPolicyService.ResolveOverride(_bookGrabPolicyService, primary);
+            var policy = bookPolicy ?? TalearrGrabPolicyService.Resolve(_grabPolicyService).AbridgedPolicy;
+
+            switch (policy)
+            {
+                case AbridgedAudiobookPolicy.UnabridgedOnly:
+                case AbridgedAudiobookPolicy.PreferUnabridged:
+                    // Under the global policy an abridged monitored edition is itself wanted.
+                    return !bookPolicy.HasValue && monitoredReading == AbridgedMarker.Abridged
+                        ? AbridgedMarker.Unknown
+                        : AbridgedMarker.Unabridged;
+                case AbridgedAudiobookPolicy.AbridgedOnly:
+                case AbridgedAudiobookPolicy.PreferAbridged:
+                    return !bookPolicy.HasValue && monitoredReading == AbridgedMarker.Unabridged
+                        ? AbridgedMarker.Unknown
+                        : AbridgedMarker.Abridged;
+                default:
+                    return AbridgedMarker.Unknown;
+            }
         }
 
         public RemoveRecordingOutcome RemoveRecording(int bookId, bool deleteFiles)

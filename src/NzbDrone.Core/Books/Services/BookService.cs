@@ -81,6 +81,11 @@ namespace NzbDrone.Core.Books
             List<Book> GetBooksForDisplay(int? authorId = null, string mediaType = null);
             List<Book> GetBooksByBaseId(string baseBookId);
             Book AddWantedEdition(int bookId, int editionId);
+
+            // Talearr: keepPrimary makes a separate wanted copy row even when the book has no
+            // files, instead of pinning the edition on the book itself (which is already wanted
+            // for another recording).
+            Book AddWantedEdition(int bookId, int editionId, bool keepPrimary) => AddWantedEdition(bookId, editionId);
             bool ShouldSearchForMediaType(Book book, string mediaType);
             BookBucketResource GetBookBuckets(string sortKey, string sortDirection, bool includeUnmonitored = false, string mediaType = null, bool? downloaded = null);
             BookBucketResource GetBookBuckets(string sortKey, string sortDirection, bool includeUnmonitored, string mediaType, bool? downloaded, bool? monitored, bool? missing = null, bool? wanted = null) => GetBookBuckets(sortKey, sortDirection, includeUnmonitored, mediaType, downloaded);
@@ -2351,6 +2356,11 @@ namespace NzbDrone.Core.Books
 
         public Book AddWantedEdition(int bookId, int editionId)
         {
+            return AddWantedEdition(bookId, editionId, false);
+        }
+
+        public Book AddWantedEdition(int bookId, int editionId, bool keepPrimary)
+        {
             var baseBook = GetBook(bookId);
             if (baseBook == null)
             {
@@ -2375,7 +2385,7 @@ namespace NzbDrone.Core.Books
 
             // If this book has no files, it is already a "missing" instance; just pin the selected edition here.
             var existingFiles = _mediaFileService.GetFilesByBook(baseBook.Id);
-            if (!existingFiles.Any())
+            if (!keepPrimary && !existingFiles.Any())
             {
                 var editions = _editionService.GetEditionsByBook(baseBook.Id);
 
