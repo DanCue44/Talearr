@@ -2,6 +2,12 @@
 
 Notable changes to Talearr are listed here, newest first. Talearr's version number is its own and is separate from the Chaptarr version it is based on.
 
+## 0.18.68 - 2026-11-20
+
+### Fixed
+- Audiobooks that Audible titles after their series (every Illusionist book is listed as "Viridian Gate Online", some without their own title) are now matched to the right book by series and book number, and keep the book's own title (#3).
+- An Audible audiobook no longer goes to a bare Hardcover copy of a book that sits outside any series when the real book is in the series. The profile filters dropped such copies, and the audiobook with them.
+
 ## 0.18.67 - 2026-11-17
 
 ### Added
