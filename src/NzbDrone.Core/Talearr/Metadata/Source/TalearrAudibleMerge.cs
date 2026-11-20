@@ -78,13 +78,41 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             var works = GroupWorks(items);
             var claimed = new HashSet<V5Book>();
             var matches = new List<(Work Work, V5Book Book)>();
+            var placeMatched = new HashSet<V5Book>();
             var unmatched = new List<Work>();
+
+            var places = SeriesPlaces(response);
+
+            // A place match takes the one book in that place of the series, when the listing names
+            // that book or names no book (its title is shared by listings at other places, like
+            // "Viridian Gate Online" for The Illusionist 2 and 3).
+            var sharedTitles = works
+                .Where(w => !w.IsCollection)
+                .GroupBy(w => TalearrTitleNormalizer.NormalizeFull(w.FullTitle), StringComparer.Ordinal)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToHashSet(StringComparer.Ordinal);
 
             // Exact matches (ASIN, then the full title) first, so a looser title match never takes
             // a book another listing names exactly.
             foreach (var work in works.Where(w => !w.IsCollection))
             {
                 var book = MatchExact(response.Books, work);
+
+                // A title match outside any series loses to the book in the listing's series place
+                // that the listing names: Hardcover keeps bare copies like "Viridian Gate Online:
+                // Nomad Soul: A litRPG Adventure" next to "Nomad Soul", The Illusionist #1, and the
+                // profile filters drop the bare copy with the audiobook on it.
+                if (book != null && !places.ContainsKey(book) && !HasWorkAsin(book, work))
+                {
+                    var placed = MatchBySeriesPlace(response.Books.Where(b => !claimed.Contains(b)), work, places, sharedTitles);
+                    if (placed != null)
+                    {
+                        book = placed;
+                        placeMatched.Add(book);
+                    }
+                }
+
                 if (book != null && claimed.Add(book))
                 {
                     matches.Add((work, book));
@@ -95,7 +123,19 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 }
             }
 
-            var places = SeriesPlaces(response);
+            // Next a title Audible gives only after the series name, or not at all (see sharedTitles),
+            // before a looser title match can hand the listing to a bare copy outside the series.
+            foreach (var work in unmatched.ToList())
+            {
+                var book = MatchBySeriesPlace(response.Books.Where(b => !claimed.Contains(b)), work, places, sharedTitles);
+                if (book != null && claimed.Add(book))
+                {
+                    matches.Add((work, book));
+                    placeMatched.Add(book);
+                    unmatched.Remove(work);
+                }
+            }
+
             foreach (var work in unmatched.ToList())
             {
                 var book = MatchLoose(response.Books.Where(b => !claimed.Contains(b) && !OtherPlace(b, work, places)), work);
@@ -122,7 +162,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             foreach (var (work, book) in matches)
             {
                 stats.Matched++;
-                FillBook(response, book, work, audibleLeads, domain, stats);
+                FillBook(response, book, work, audibleLeads, domain, stats, placeMatched.Contains(book));
             }
 
             var kept = new HashSet<string>(keptAsins ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
@@ -182,7 +222,9 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 var title = WorkTitle(item);
                 var fullTitle = string.IsNullOrWhiteSpace(subtitle) ? title : $"{title}: {subtitle}";
                 var collection = IsCollection(item);
-                var key = (collection ? "c|" : "w|") + TalearrTitleNormalizer.NormalizeFull(fullTitle);
+                // Some series title every book after the series ("Viridian Gate Online", subtitle
+                // "Illusionist Series, Book 2"), so listings at different places stay apart.
+                var key = (collection ? "c|" : "w|") + TalearrTitleNormalizer.NormalizeFull(fullTitle) + PlaceKey(item);
 
                 if (!byKey.TryGetValue(key, out var work))
                 {
@@ -355,6 +397,61 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             return candidates.Count == 1 ? candidates[0] : null;
         }
 
+        private static V5Book MatchBySeriesPlace(IEnumerable<V5Book> books, Work work, Dictionary<V5Book, HashSet<string>> places, HashSet<string> sharedTitles)
+        {
+            var workPlaces = work.Lead.Series
+                .Where(s => IsNumber(s.Sequence))
+                .Select(s => $"{TalearrSourceGapFill.Normalize(s.Title)}|{NormalizeNumber(s.Sequence)}")
+                .ToList();
+
+            if (workPlaces.Count == 0)
+            {
+                return null;
+            }
+
+            var candidates = books
+                .Where(b => b != null && !b.IsOmnibus &&
+                            places.TryGetValue(b, out var bookPlaces) && workPlaces.Any(bookPlaces.Contains))
+                .ToList();
+
+            if (candidates.Count != 1)
+            {
+                return null;
+            }
+
+            var book = candidates[0];
+            var full = TalearrTitleNormalizer.NormalizeFull(work.FullTitle);
+            var named = new[] { BookTitle(book), book.Title }
+                .Select(TalearrTitleNormalizer.NormalizeFull)
+                .Any(t => t.Length > 0 && $" {full} ".Contains($" {t} ", StringComparison.Ordinal));
+
+            return named || sharedTitles.Contains(full) ? book : null;
+        }
+
+        private static bool HasWorkAsin(V5Book book, Work work)
+        {
+            return book.Editions?.Any(e => EditionAsins(e).Any(a => work.Items.Any(i => string.Equals(i.Asin, a, StringComparison.OrdinalIgnoreCase)))) == true;
+        }
+
+        private static bool SharesMainTitle(string editionTitle, string bookTitle)
+        {
+            var edition = TalearrTitleNormalizer.NormalizeFull(editionTitle);
+            var book = TalearrTitleNormalizer.NormalizeFull(bookTitle);
+            if (edition.Length == 0 || book.Length == 0)
+            {
+                return true;
+            }
+
+            return $" {edition} ".Contains($" {book} ", StringComparison.Ordinal) ||
+                   $" {book} ".Contains($" {edition} ", StringComparison.Ordinal);
+        }
+
+        private static string PlaceKey(AudibleCatalogItem item)
+        {
+            var series = item.Series.FirstOrDefault(s => IsNumber(s.Sequence));
+            return series == null ? string.Empty : $"|{TalearrSourceGapFill.Normalize(series.Title)}|{NormalizeNumber(series.Sequence)}";
+        }
+
         private static V5Book MatchLoose(IEnumerable<V5Book> books, Work work)
         {
             var candidates = books
@@ -380,7 +477,7 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             return inSeries.Count == 1 ? inSeries[0] : null;
         }
 
-        private static void FillBook(V5AuthorResponse response, V5Book book, Work work, bool audibleLeads, string domain, TalearrAudibleMergeStats stats)
+        private static void FillBook(V5AuthorResponse response, V5Book book, Work work, bool audibleLeads, string domain, TalearrAudibleMergeStats stats, bool byPlace = false)
         {
             book.Editions ??= new List<V5Edition>();
             var audio = book.Editions.Where(e => e?.ReadingFormatId == TalearrHardcoverMapper.V5Audio).ToList();
@@ -396,6 +493,15 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                     }
 
                     var edition = NewEdition(item, work, domain);
+                    if (byPlace || !SharesMainTitle(edition.Title, book.Title))
+                    {
+                        // Matched by series place: Audible's title leads with the series
+                        // ("Viridian Gate Online: Sharper's Coin"), so the recording keeps the
+                        // book's own title.
+                        edition.Title = book.Title;
+                        edition.Subtitle = TalearrTitleNormalizer.NormalizeFull(book.Subtitle) == TalearrTitleNormalizer.NormalizeFull(book.Title) ? null : book.Subtitle;
+                    }
+
                     edition.RatingCount = rank > 0 ? rank-- : 0;
                     book.Editions.Add(edition);
                     stats.EditionsAdded++;
