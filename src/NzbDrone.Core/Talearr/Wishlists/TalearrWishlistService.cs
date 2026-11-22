@@ -28,6 +28,12 @@ namespace NzbDrone.Core.Talearr.Wishlists
         // An uploaded CSV export; kept in <config>/talearr-wishlists/<id>.csv.
         public string Csv { get; set; }
 
+        // Author list: the pasted names, one per line (kept like an uploaded file).
+        public string Text { get; set; }
+
+        // Author rows: "all", "future" (the default) or "none".
+        public string AuthorMonitor { get; set; }
+
         public bool? Audiobook { get; set; }
         public bool? Ebook { get; set; }
         public bool? SearchOnAdd { get; set; }
@@ -75,6 +81,8 @@ namespace NzbDrone.Core.Talearr.Wishlists
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly IAppFolderInfo _appFolderInfo;
         private readonly Logger _logger;
+        private readonly ISearchForNewAuthor _authorSearch;
+        private readonly ITalearrWishlistUrlFetcher _urlFetcher;
         private readonly object _syncLock = new object();
 
         public TalearrWishlistService(ITalearrWishlistStore store,
@@ -89,8 +97,12 @@ namespace NzbDrone.Core.Talearr.Wishlists
                                       IConfigService configService,
                                       IManageCommandQueue commandQueueManager,
                                       IAppFolderInfo appFolderInfo,
-                                      Logger logger)
+                                      Logger logger,
+                                      ISearchForNewAuthor authorSearch = null,
+                                      ITalearrWishlistUrlFetcher urlFetcher = null)
         {
+            _authorSearch = authorSearch;
+            _urlFetcher = urlFetcher;
             _store = store;
             _hardcover = hardcover;
             _bookSearch = bookSearch;
@@ -168,7 +180,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
         {
             var wishlist = new TalearrWishlist { Id = "preview", Name = request?.Name ?? "Preview" };
             Apply(wishlist, request ?? new TalearrWishlistRequest(), saveUpload: false);
-            return PreviewCore(wishlist, request?.Csv);
+            return PreviewCore(wishlist, UploadedContent(request));
         }
 
         public TalearrWishlistSyncResult Sync(string id)
@@ -248,6 +260,15 @@ namespace NzbDrone.Core.Talearr.Wishlists
                     }
 
                     wishlist.LastError = null;
+
+                    var unmatched = result.Items
+                        .Where(i => i.Row?.IsAuthor == true && i.State == TalearrWishlistStates.NoMatch)
+                        .Select(i => i.Row.Author)
+                        .ToList();
+                    if (unmatched.Any())
+                    {
+                        _logger.Warn("Talearr: wishlist '{0}': no author found for {1}{2}", wishlist.Name, string.Join(", ", unmatched.Take(20)), unmatched.Count > 20 ? $" and {unmatched.Count - 20} more" : string.Empty);
+                    }
                 }
                 catch (Exception ex) when (ex is TalearrWishlistException || ex is IOException || ex is FormatException || ex is UnauthorizedAccessException)
                 {
@@ -300,6 +321,16 @@ namespace NzbDrone.Core.Talearr.Wishlists
 
         private (string Format, List<TalearrWishlistRow> Rows) ReadRows(TalearrWishlist wishlist, string csv)
         {
+            if (wishlist.Kind == TalearrWishlistKinds.UrlList)
+            {
+                if (_urlFetcher == null)
+                {
+                    throw new TalearrWishlistException("URL lists are not available.");
+                }
+
+                return (TalearrWishlistFormats.UrlList, TalearrWishlistLines.ParseMixed(_urlFetcher.Fetch(wishlist.Url)));
+            }
+
             if (wishlist.Kind == TalearrWishlistKinds.HardcoverList)
             {
                 var (name, rows) = _hardcover.GetList(wishlist.Url);
@@ -319,6 +350,11 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 }
 
                 csv = File.ReadAllText(wishlist.Path);
+            }
+
+            if (wishlist.Kind == TalearrWishlistKinds.AuthorList)
+            {
+                return (TalearrWishlistFormats.Authors, TalearrWishlistLines.ParseAuthors(csv));
             }
 
             // An owned library has no to-read shelf: every row counts.
@@ -389,6 +425,11 @@ namespace NzbDrone.Core.Talearr.Wishlists
         // ISBN, then title and author.
         internal TalearrWishlistItem Resolve(TalearrWishlistRow row)
         {
+            if (row.IsAuthor)
+            {
+                return ResolveAuthor(row);
+            }
+
             var item = new TalearrWishlistItem { Row = row, BookTitle = row.Title, AuthorName = row.Author };
 
             if (!string.IsNullOrWhiteSpace(row.BookProviderId))
@@ -445,6 +486,86 @@ namespace NzbDrone.Core.Talearr.Wishlists
             return item;
         }
 
+        // Matches an author name through the metadata's author search. An author already in the
+        // library (by name) needs no lookup.
+        internal TalearrWishlistItem ResolveAuthor(TalearrWishlistRow row)
+        {
+            var item = new TalearrWishlistItem { Row = row, AuthorName = row.Author };
+
+            try
+            {
+                var local = _authorService.FindByName(DisplayName(row.Author));
+                if (local != null)
+                {
+                    item.AuthorName = local.Name;
+                    item.AuthorProviderId = AuthorProviderId(local);
+                    item.State = TalearrWishlistStates.InLibrary;
+                    item.Message = "Already in the library";
+                    return item;
+                }
+
+                if (_authorSearch == null)
+                {
+                    item.State = TalearrWishlistStates.Failed;
+                    item.Message = "Author search is not available";
+                    return item;
+                }
+
+                var match = PickAuthor(_authorSearch.SearchForNewAuthor(DisplayName(row.Author)), row.Author);
+                if (match == null || AuthorProviderId(match) == null)
+                {
+                    item.State = TalearrWishlistStates.NoMatch;
+                    item.Message = "No author by that name in the metadata";
+                    return item;
+                }
+
+                item.AuthorName = match.Name;
+                item.AuthorProviderId = AuthorProviderId(match);
+                item.State = TalearrWishlistStates.New;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Talearr: wishlist author lookup failed for '{0}'", row.Author);
+                item.State = TalearrWishlistStates.Failed;
+                item.Message = "The metadata lookup failed; tried again on the next sync";
+            }
+
+            return item;
+        }
+
+        // "Tolkien, J.R.R." is searched as "J.R.R. Tolkien".
+        internal static string DisplayName(string name)
+        {
+            var value = (name ?? string.Empty).Trim();
+            var comma = value.IndexOf(',');
+            if (comma > 0 && comma == value.LastIndexOf(',') && comma < value.Length - 1)
+            {
+                value = value.Substring(comma + 1).Trim() + " " + value.Substring(0, comma).Trim();
+            }
+
+            return value;
+        }
+
+        // Only a result with the same name (ignoring case, accents, punctuation and spacing of
+        // initials) counts, so a list never adds a different author.
+        internal static Author PickAuthor(List<Author> candidates, string name)
+        {
+            var wanted = TalearrWishlistCsv.Simplify(DisplayName(name));
+            if (wanted.Length == 0)
+            {
+                return null;
+            }
+
+            var compact = wanted.Replace(" ", string.Empty);
+            return (candidates ?? new List<Author>())
+                .Where(a => a != null)
+                .FirstOrDefault(a =>
+                {
+                    var candidate = TalearrWishlistCsv.Simplify(a.Name);
+                    return candidate == wanted || candidate.Replace(" ", string.Empty) == compact;
+                });
+        }
+
         internal static Book Pick(List<Book> candidates, TalearrWishlistRow row, bool trustIdentifier)
         {
             var list = (candidates ?? new List<Book>()).Where(b => b != null).ToList();
@@ -496,11 +617,14 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 {
                     TalearrWishlistKinds.HardcoverList => TalearrWishlistKinds.HardcoverList,
                     TalearrWishlistKinds.AudibleLibrary => TalearrWishlistKinds.AudibleLibrary,
+                    TalearrWishlistKinds.AuthorList => TalearrWishlistKinds.AuthorList,
+                    TalearrWishlistKinds.UrlList => TalearrWishlistKinds.UrlList,
                     _ => TalearrWishlistKinds.File
                 };
             }
 
             wishlist.AddUnmonitored = request.AddUnmonitored ?? wishlist.AddUnmonitored;
+            wishlist.AuthorMonitor = TalearrWishlistAuthorMonitor.Normalize(request.AuthorMonitor ?? wishlist.AuthorMonitor);
 
             wishlist.Name = string.IsNullOrWhiteSpace(request.Name) ? wishlist.Name : request.Name.Trim();
             wishlist.Url = request.Url?.Trim() ?? wishlist.Url;
@@ -515,17 +639,30 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 wishlist.Path = request.Path.Trim();
             }
 
-            if (!string.IsNullOrWhiteSpace(request.Csv))
+            var uploaded = UploadedContent(request);
+            if (!string.IsNullOrWhiteSpace(uploaded) && TalearrWishlistKinds.IsFileBacked(wishlist.Kind))
             {
                 // Validate before keeping it.
-                var (format, _) = TalearrWishlistCsv.Parse(request.Csv, wishlist.ToReadOnly);
-                wishlist.Format = format;
+                if (wishlist.Kind == TalearrWishlistKinds.AuthorList)
+                {
+                    if (TalearrWishlistLines.ParseAuthors(uploaded).Count == 0)
+                    {
+                        throw new TalearrWishlistException("Add at least one author name, one per line.");
+                    }
+
+                    wishlist.Format = TalearrWishlistFormats.Authors;
+                }
+                else
+                {
+                    var (format, _) = TalearrWishlistCsv.Parse(uploaded, wishlist.ToReadOnly);
+                    wishlist.Format = format;
+                }
 
                 if (saveUpload)
                 {
                     var path = UploadPath(wishlist.Id);
                     Directory.CreateDirectory(Path.GetDirectoryName(path));
-                    File.WriteAllText(path, request.Csv);
+                    File.WriteAllText(path, uploaded);
                     wishlist.Path = path;
                 }
             }
@@ -536,6 +673,8 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 {
                     TalearrWishlistKinds.HardcoverList => "Hardcover list",
                     TalearrWishlistKinds.AudibleLibrary => "Audible library",
+                    TalearrWishlistKinds.AuthorList => "Authors",
+                    TalearrWishlistKinds.UrlList => "URL list",
                     _ => "Wishlist"
                 };
             }
@@ -555,10 +694,23 @@ namespace NzbDrone.Core.Talearr.Wishlists
 
             if (TalearrWishlistKinds.IsFileBacked(wishlist.Kind) && string.IsNullOrWhiteSpace(wishlist.Path))
             {
-                throw new TalearrWishlistException(wishlist.Kind == TalearrWishlistKinds.AudibleLibrary
-                    ? "Upload your Audible library export (audible-cli CSV or a list of ASINs) or give the path of one on the server."
-                    : "Upload a CSV export or give the path of one on the server.");
+                throw new TalearrWishlistException(wishlist.Kind switch
+                {
+                    TalearrWishlistKinds.AudibleLibrary => "Upload your Audible library export (audible-cli CSV or a list of ASINs) or give the path of one on the server.",
+                    TalearrWishlistKinds.AuthorList => "Paste the author names, one per line, or give the path of a text file on the server.",
+                    _ => "Upload a CSV export or give the path of one on the server."
+                });
             }
+
+            if (wishlist.Kind == TalearrWishlistKinds.UrlList && !TalearrWishlistUrlFetcher.IsValidUrl(wishlist.Url))
+            {
+                throw new TalearrWishlistException("Use the http or https address of a plain text or JSON list.");
+            }
+        }
+
+        private static string UploadedContent(TalearrWishlistRequest request)
+        {
+            return !string.IsNullOrWhiteSpace(request?.Text) ? request.Text : request?.Csv;
         }
 
         private string UploadPath(string id)
@@ -605,6 +757,12 @@ namespace NzbDrone.Core.Talearr.Wishlists
             // Preview: what a sync would do, without doing it.
             public void Describe(TalearrWishlistItem item)
             {
+                if (item.Row?.IsAuthor == true)
+                {
+                    DescribeAuthor(item);
+                    return;
+                }
+
                 if (IsExcluded(item))
                 {
                     item.State = TalearrWishlistStates.Excluded;
@@ -642,6 +800,12 @@ namespace NzbDrone.Core.Talearr.Wishlists
 
             public void Act(TalearrWishlistItem item)
             {
+                if (item.Row?.IsAuthor == true)
+                {
+                    ActAuthor(item);
+                    return;
+                }
+
                 if (IsExcluded(item))
                 {
                     item.State = TalearrWishlistStates.Excluded;
@@ -727,6 +891,118 @@ namespace NzbDrone.Core.Talearr.Wishlists
 
                 item.State = monitored > 0 ? TalearrWishlistStates.Monitored : TalearrWishlistStates.InLibrary;
                 item.Message = monitored > 0 ? "Monitored" : Owned ? "Already in the library" : "Already monitored";
+            }
+
+            private string AuthorMonitorText => _wishlist.AuthorMonitor switch
+            {
+                TalearrWishlistAuthorMonitor.All => "all books",
+                TalearrWishlistAuthorMonitor.None => "no books",
+                _ => "new books only"
+            };
+
+            private bool DescribeAuthorKnown(TalearrWishlistItem item)
+            {
+                if (_exclusions.Any(e => string.Equals(e.ForeignId, item.AuthorProviderId, StringComparison.OrdinalIgnoreCase)))
+                {
+                    item.State = TalearrWishlistStates.Excluded;
+                    item.Message = "On the import list exclusions";
+                    return true;
+                }
+
+                var id = item.AuthorProviderId ?? string.Empty;
+                var prefix = id.Contains(':') ? id.Substring(0, id.IndexOf(':')) : "hc";
+                var raw = id.Contains(':') ? id.Substring(id.IndexOf(':') + 1) : id;
+                if (Safe(() => _service._authorService.FindByProviderId(prefix, raw)) != null)
+                {
+                    item.State = TalearrWishlistStates.InLibrary;
+                    item.Message = "Already in the library";
+                    return true;
+                }
+
+                return false;
+            }
+
+            private void DescribeAuthor(TalearrWishlistItem item)
+            {
+                if (!DescribeAuthorKnown(item))
+                {
+                    item.Message = $"Will add the author, monitoring {AuthorMonitorText}";
+                }
+            }
+
+            // Adds the author following its whole catalog, as Add New Author does, through
+            // upstream's pending author import.
+            private void ActAuthor(TalearrWishlistItem item)
+            {
+                if (DescribeAuthorKnown(item))
+                {
+                    return;
+                }
+
+                var monitor = _wishlist.AuthorMonitor;
+                var existing = monitor == TalearrWishlistAuthorMonitor.All ? MonitorTypes.All : monitor == TalearrWishlistAuthorMonitor.None ? MonitorTypes.None : MonitorTypes.Future;
+                var newItems = monitor == TalearrWishlistAuthorMonitor.None ? NewItemMonitorTypes.None : NewItemMonitorTypes.All;
+                var search = _wishlist.SearchOnAdd && monitor == TalearrWishlistAuthorMonitor.All;
+
+                var config = new MonitoringConfig
+                {
+                    CreateAudiobook = false,
+                    CreateEbook = false,
+                    QueueIfUnavailable = true,
+                    RequestedBy = "Talearr author list: " + _wishlist.Name,
+                    AuthorName = item.AuthorName,
+                    SearchForMissingBooks = search,
+                    MonitorMode = existing
+                };
+
+                foreach (var mediaType in Wanted())
+                {
+                    var root = Root(mediaType);
+                    if (root.Path == null)
+                    {
+                        item.State = TalearrWishlistStates.Failed;
+                        item.Message = $"No root folder is set up for {(mediaType == BookMediaType.Audiobook ? "audiobooks" : "ebooks")}";
+                        return;
+                    }
+
+                    var tags = new HashSet<int>(root.Settings.Tags ?? new List<int>());
+                    if (mediaType == BookMediaType.Audiobook)
+                    {
+                        config.CreateAudiobook = true;
+                        config.AudiobookRootFolderPath = root.Path;
+                        config.AudiobookQualityProfileId = root.Settings.QualityProfileId;
+                        config.AudiobookMetadataProfileId = root.Settings.MetadataProfileId;
+                        config.AudiobookMonitored = monitor != TalearrWishlistAuthorMonitor.None;
+                        config.AudiobookMonitorNewItems = newItems;
+                        config.AudiobookMonitorExistingMode = existing;
+                        config.AudiobookTags = tags;
+                    }
+                    else
+                    {
+                        config.CreateEbook = true;
+                        config.EbookRootFolderPath = root.Path;
+                        config.EbookQualityProfileId = root.Settings.QualityProfileId;
+                        config.EbookMetadataProfileId = root.Settings.MetadataProfileId;
+                        config.EbookMonitored = monitor != TalearrWishlistAuthorMonitor.None;
+                        config.EbookMonitorNewItems = newItems;
+                        config.EbookMonitorExistingMode = existing;
+                        config.EbookTags = tags;
+                    }
+                }
+
+                config.Tags = new HashSet<int>((config.AudiobookTags ?? new HashSet<int>()).Concat(config.EbookTags ?? new HashSet<int>()));
+
+                var pendingId = _service._pendingAuthorImportService.EnqueueAsync(item.AuthorProviderId, config, config.RequestedBy).GetAwaiter().GetResult();
+                if (pendingId > 0)
+                {
+                    _queued = true;
+                    item.State = TalearrWishlistStates.Queued;
+                    item.Message = $"Adding the author, monitoring {AuthorMonitorText}";
+                    return;
+                }
+
+                item.State = TalearrWishlistStates.InLibrary;
+                item.Message = "Already in the library";
             }
 
             public void Finish()

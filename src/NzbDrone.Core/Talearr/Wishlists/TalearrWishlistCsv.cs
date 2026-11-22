@@ -15,6 +15,8 @@ namespace NzbDrone.Core.Talearr.Wishlists
         public const string Generic = "csv";
         public const string Hardcover = "hardcover";
         public const string AsinList = "asinList";
+        public const string Authors = "authors";
+        public const string UrlList = "urlList";
     }
 
     // Talearr: reads wishlist exports. The format is recognised from the header row:
@@ -127,6 +129,11 @@ namespace NzbDrone.Core.Talearr.Wishlists
 
         public static string RowKey(TalearrWishlistRow row)
         {
+            if (row.IsAuthor)
+            {
+                return "author:" + Simplify(row.Author);
+            }
+
             if (!string.IsNullOrWhiteSpace(row.BookProviderId))
             {
                 return row.BookProviderId.ToLowerInvariant();

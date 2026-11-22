@@ -24,6 +24,45 @@ namespace Chaptarr.Core.Test.Talearr.Wishlists
             "B002V0QK4C,Dune,,,Frank Herbert,\"Scott Brick, Orlagh Cassidy\",Dune,1,Science Fiction,1263,,,4.6,50,2026-10-02,2007-01-01,,\n";
 
         [Test]
+        public void author_lines_skip_blanks_comments_and_repeats()
+        {
+            var rows = TalearrWishlistLines.ParseAuthors("# list\r\n Andy  Weir \r\n\r\nandy weir\nN. K. Jemisin\n");
+
+            Assert.That(rows.Select(r => r.Author), Is.EqualTo(new[] { "Andy Weir", "N. K. Jemisin" }));
+            Assert.That(rows.All(r => r.IsAuthor), Is.True);
+            Assert.That(rows[0].Key, Is.EqualTo("author:andy weir"));
+        }
+
+        [Test]
+        public void mixed_lines_tell_isbns_and_asins_from_author_names()
+        {
+            var rows = TalearrWishlistLines.ParseMixed("ISBN 978-0-451-52493-5\nB08GB58KD5\nAndy Weir\n");
+
+            Assert.That(rows[0].Isbn, Is.EqualTo("9780451524935"));
+            Assert.That(rows[1].Asin, Is.EqualTo("B08GB58KD5"));
+            Assert.That(rows[2].IsAuthor, Is.True);
+            Assert.That(rows[2].Author, Is.EqualTo("Andy Weir"));
+        }
+
+        [TestCase("[\"Andy Weir\", \"9780451524935\"]")]
+        [TestCase("[{\"name\": \"Andy Weir\"}, {\"isbn13\": \"9780451524935\", \"title\": \"1984\"}]")]
+        [TestCase("{\"items\": [\"Andy Weir\", {\"isbn\": \"9780451524935\"}]}")]
+        public void json_lists_are_read(string json)
+        {
+            var rows = TalearrWishlistLines.ParseMixed(json);
+
+            Assert.That(rows.Count, Is.EqualTo(2));
+            Assert.That(rows.Single(r => r.IsAuthor).Author, Is.EqualTo("Andy Weir"));
+            Assert.That(rows.Single(r => !r.IsAuthor).Isbn, Is.EqualTo("9780451524935"));
+        }
+
+        [Test]
+        public void broken_json_is_reported()
+        {
+            Assert.Throws<System.FormatException>(() => TalearrWishlistLines.ParseMixed("[\"Andy Weir\""));
+        }
+
+        [Test]
         public void a_plain_asin_list_is_read_with_or_without_a_header()
         {
             var (format, rows) = TalearrWishlistCsv.Parse("asin\nB08GB58KD5\n b002v0qk4c \n\nB08GB58KD5\n");

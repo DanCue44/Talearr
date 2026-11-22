@@ -24,6 +24,8 @@ namespace Chaptarr.Core.Test.Talearr.BookEdits
         [TestCase(typeof(RefreshBookService), "_editionLocks")]
         [TestCase(typeof(EditionService), "_editionLocks")]
         [TestCase(typeof(NzbDrone.Core.Books.Commands.ProcessPendingImportsCommandHandler), "_ownedBooks")]
+        [TestCase(typeof(NzbDrone.Core.Talearr.Wishlists.TalearrWishlistService), "_authorSearch")]
+        [TestCase(typeof(NzbDrone.Core.Talearr.Wishlists.TalearrWishlistService), "_urlFetcher")]
         public void should_fill_the_book_edit_dependency(Type serviceType, string field)
         {
             var container = new Container(rules => rules.WithNzbDroneRules());

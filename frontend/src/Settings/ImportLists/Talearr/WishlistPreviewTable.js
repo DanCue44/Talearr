@@ -48,16 +48,21 @@ function WishlistPreviewTable({ preview }) {
                 <TableRow key={item.row.key}>
                   <TableRowCell>
                     <div className={styles.left}>
-                      {item.row.title}
+                      {item.row.isAuthor ? item.row.author : item.row.title}
                       <span className={styles.sub}>
-                        {[item.row.author, item.row.isbn, item.row.asin].filter(Boolean).join(' · ')}
+                        {item.row.isAuthor ? 'Author' : [item.row.author, item.row.isbn, item.row.asin].filter(Boolean).join(' · ')}
                       </span>
                     </div>
                   </TableRowCell>
 
                   <TableRowCell>
                     <div className={styles.left}>
-                      {matchTitle}
+                      {item.row.isAuthor && item.authorProviderId ? item.authorName : matchTitle}
+                      {
+                        item.row.isAuthor && item.authorProviderId ?
+                          <span className={styles.sub}>{item.authorProviderId}</span> :
+                          null
+                      }
                       {
                         item.bookProviderId ?
                           <span className={styles.sub}>{[item.authorName, item.bookProviderId].filter(Boolean).join(' · ')}</span> :

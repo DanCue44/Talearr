@@ -33,6 +33,8 @@ namespace Chaptarr.Core.Test.Talearr.Wishlists
         private List<string> _searches;
         private Func<string, List<Book>> _search;
         private List<TalearrWishlistRow> _hardcoverRows;
+        private Dictionary<string, List<Author>> _authorSearch;
+        private string _urlContent;
         private TalearrWishlistService _service;
 
         [SetUp]
@@ -52,6 +54,8 @@ namespace Chaptarr.Core.Test.Talearr.Wishlists
             _pushed = new List<Command>();
             _searches = new List<string>();
             _hardcoverRows = new List<TalearrWishlistRow>();
+            _authorSearch = new Dictionary<string, List<Author>>(StringComparer.OrdinalIgnoreCase);
+            _urlContent = string.Empty;
             _search = q => q switch
             {
                 "9780451524935" => new List<Book> { Found("1984", "George Orwell", "gr:153313", "gr:3706") },
@@ -120,7 +124,19 @@ namespace Chaptarr.Core.Test.Talearr.Wishlists
 
             var (authors, authorsFake) = Fake<IAuthorService>.Create();
             authorsFake.On(nameof(IAuthorService.GetAuthor), args => _authors[(int)args[0]])
-                .On(nameof(IAuthorService.UpdateAuthor), args => args[0]);
+                .On(nameof(IAuthorService.UpdateAuthor), args => args[0])
+                .On(nameof(IAuthorService.FindByName), args => _authors.Values.FirstOrDefault(a => string.Equals(a.Name, (string)args[0], StringComparison.OrdinalIgnoreCase)))
+                .On(nameof(IAuthorService.FindByProviderId), args => _authors.Values.FirstOrDefault(a => a.GoodreadsAuthorId == (string)args[0] + ":" + (string)args[1]));
+
+            var (authorSearch, authorSearchFake) = Fake<ISearchForNewAuthor>.Create();
+            authorSearchFake.On(nameof(ISearchForNewAuthor.SearchForNewAuthor), args =>
+            {
+                _searches.Add("author:" + (string)args[0]);
+                return _authorSearch.TryGetValue((string)args[0], out var found) ? found : new List<Author>();
+            });
+
+            var (fetcher, fetcherFake) = Fake<ITalearrWishlistUrlFetcher>.Create();
+            fetcherFake.On(nameof(ITalearrWishlistUrlFetcher.Fetch), _ => _urlContent);
 
             var (exclusions, exclusionsFake) = Fake<IImportListExclusionService>.Create();
             exclusionsFake.On(nameof(IImportListExclusionService.All), _ => _exclusions);
@@ -163,7 +179,7 @@ namespace Chaptarr.Core.Test.Talearr.Wishlists
             foldersFake.On("get_" + nameof(IAppFolderInfo.AppDataFolder), _ => _folder);
 
             var store = new TalearrWishlistStore(repository, LogManager.GetCurrentClassLogger());
-            return new TalearrWishlistService(store, hardcover, search, books, authors, exclusions, pending, roots, resolver, config, queue, folders, LogManager.GetCurrentClassLogger());
+            return new TalearrWishlistService(store, hardcover, search, books, authors, exclusions, pending, roots, resolver, config, queue, folders, LogManager.GetCurrentClassLogger(), authorSearch, fetcher);
         }
 
         private List<Book> Record(string query)
@@ -401,6 +417,74 @@ namespace Chaptarr.Core.Test.Talearr.Wishlists
             Assert.That(result.Queued, Is.EqualTo(1));
             Assert.That(result.NoMatch, Is.EqualTo(1));
             Assert.That(_searches, Is.EqualTo(new[] { "B08GB58KD5", "B000000000" }), "no title search for a row without a title");
+        }
+
+        [Test]
+        public void an_author_list_adds_each_author_following_new_books_and_reports_names_it_cannot_find()
+        {
+            _authors[11].GoodreadsAuthorId = "gr:3706";
+            _authorSearch["Andy Weir"] = new List<Author> { new Author { Name = "Andy Weir", GoodreadsAuthorId = "gr:6540057" } };
+            _authorSearch["J.R.R. Tolkien"] = new List<Author> { new Author { Name = "Christopher Tolkien", GoodreadsAuthorId = "gr:1" }, new Author { Name = "J. R. R. Tolkien", GoodreadsAuthorId = "gr:656983" } };
+            _authorSearch["Nobody Atall"] = new List<Author> { new Author { Name = "Somebody Else", GoodreadsAuthorId = "gr:2" } };
+
+            var wishlist = _service.Create(new TalearrWishlistRequest { Kind = TalearrWishlistKinds.AuthorList, Text = "# my authors\nAndy Weir\n\ngeorge orwell\nTolkien, J.R.R.\nNobody Atall\nAndy Weir\n" });
+            Assert.That(wishlist.Name, Is.EqualTo("Authors"));
+            Assert.That(wishlist.AuthorMonitor, Is.EqualTo(TalearrWishlistAuthorMonitor.Future));
+
+            var preview = _service.Preview(wishlist.Id);
+            Assert.That(preview.RowCount, Is.EqualTo(4));
+            Assert.That(_enqueued, Is.Empty, "the preview changes nothing");
+
+            var result = _service.Sync(wishlist.Id);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_enqueued.Select(e => e.ProviderId), Is.EqualTo(new[] { "gr:6540057", "gr:656983" }));
+                var config = _enqueued[0].Config;
+                Assert.That(config.TalearrTrackedCatalog, Is.False, "an author from a list follows its catalog");
+                Assert.That(config.CreateAudiobook, Is.True);
+                Assert.That(config.CreateEbook, Is.False);
+                Assert.That(config.AudiobookMonitored, Is.True);
+                Assert.That(config.AudiobookMonitorExistingMode, Is.EqualTo(MonitorTypes.Future));
+                Assert.That(config.AudiobookMonitorNewItems, Is.EqualTo(NewItemMonitorTypes.All));
+                Assert.That(config.SearchForMissingBooks, Is.False);
+                Assert.That(config.AudiobookRootFolderPath, Is.EqualTo("/audiobooks"));
+                Assert.That(result.Queued, Is.EqualTo(2));
+                Assert.That(result.AlreadyThere, Is.EqualTo(1), "George Orwell is in the library");
+                Assert.That(result.NoMatch, Is.EqualTo(1));
+                Assert.That(result.Items.Single(i => i.State == TalearrWishlistStates.NoMatch).Row.Author, Is.EqualTo("Nobody Atall"));
+                Assert.That(_searches, Does.Not.Contain("author:george orwell"));
+            });
+        }
+
+        [Test]
+        public void an_author_list_set_to_all_books_searches_them_when_added()
+        {
+            _authorSearch["Andy Weir"] = new List<Author> { new Author { Name = "Andy Weir", GoodreadsAuthorId = "gr:6540057" } };
+            var wishlist = _service.Create(new TalearrWishlistRequest { Kind = TalearrWishlistKinds.AuthorList, Text = "Andy Weir", AuthorMonitor = "all", Ebook = true, Audiobook = false });
+
+            _service.Sync(wishlist.Id);
+
+            var config = _enqueued.Single().Config;
+            Assert.That(config.EbookMonitorExistingMode, Is.EqualTo(MonitorTypes.All));
+            Assert.That(config.SearchForMissingBooks, Is.True);
+            Assert.That(config.CreateAudiobook, Is.False);
+        }
+
+        [Test]
+        public void a_url_list_reads_authors_and_books_from_json()
+        {
+            _authorSearch["Andy Weir"] = new List<Author> { new Author { Name = "Andy Weir", GoodreadsAuthorId = "gr:6540057" } };
+            _urlContent = "{\"authors\": [\"Andy Weir\"], \"books\": [{\"isbn\": \"978-0-451-52493-5\"}]}";
+
+            Assert.Throws<TalearrWishlistException>(() => _service.Create(new TalearrWishlistRequest { Kind = TalearrWishlistKinds.UrlList, Url = "ftp://example.com/list" }));
+            var wishlist = _service.Create(new TalearrWishlistRequest { Kind = TalearrWishlistKinds.UrlList, Url = "https://example.com/list.json" });
+
+            var result = _service.Sync(wishlist.Id);
+
+            Assert.That(_enqueued.Single().ProviderId, Is.EqualTo("gr:6540057"));
+            Assert.That(result.Monitored, Is.EqualTo(1), "the ISBN matched 1984, already in the library");
+            Assert.That(_books[5002].AudiobookMonitored, Is.True);
         }
 
         [Test]

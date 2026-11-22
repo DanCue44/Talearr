@@ -22,7 +22,20 @@ const sourceOptions = [
   { key: 'upload', value: 'Upload a CSV export' },
   { key: 'path', value: 'CSV file on the server' },
   { key: 'hardcoverList', value: 'Hardcover list' },
-  { key: 'audibleLibrary', value: 'Owned Audible library' }
+  { key: 'audibleLibrary', value: 'Owned Audible library' },
+  { key: 'authorList', value: 'Author names' },
+  { key: 'urlList', value: 'List from a URL' }
+];
+
+const authorListStorage = [
+  { key: 'paste', value: 'Paste the names' },
+  { key: 'path', value: 'Text file on the server' }
+];
+
+const authorMonitorOptions = [
+  { key: 'future', value: 'New books only' },
+  { key: 'all', value: 'All books' },
+  { key: 'none', value: 'None' }
 ];
 
 const audibleLibraryStorage = [
@@ -45,13 +58,20 @@ function initialForm(wishlist) {
       toReadOnly: true,
       enabled: true,
       addUnmonitored: true,
-      storage: 'upload'
+      storage: 'upload',
+      text: '',
+      authorMonitor: 'future'
     };
   }
 
   let source = wishlist.uploaded ? 'upload' : 'path';
-  if (wishlist.kind === 'hardcoverList' || wishlist.kind === 'audibleLibrary') {
+  if (['hardcoverList', 'audibleLibrary', 'authorList', 'urlList'].includes(wishlist.kind)) {
     source = wishlist.kind;
+  }
+
+  let storage = wishlist.uploaded ? 'upload' : 'path';
+  if (wishlist.kind === 'authorList' && wishlist.uploaded) {
+    storage = 'paste';
   }
 
   return {
@@ -67,8 +87,18 @@ function initialForm(wishlist) {
     toReadOnly: wishlist.toReadOnly,
     enabled: wishlist.enabled,
     addUnmonitored: wishlist.addUnmonitored,
-    storage: wishlist.uploaded ? 'upload' : 'path'
+    storage,
+    text: '',
+    authorMonitor: wishlist.authorMonitor || 'future'
   };
+}
+
+function usesPaste(form) {
+  return form.source === 'authorList' && form.storage === 'paste';
+}
+
+function hasAuthors(form) {
+  return form.source === 'authorList' || form.source === 'urlList';
 }
 
 function usesUpload(form) {
@@ -76,11 +106,11 @@ function usesUpload(form) {
 }
 
 function usesPath(form) {
-  return form.source === 'path' || (form.source === 'audibleLibrary' && form.storage === 'path');
+  return form.source === 'path' || ((form.source === 'audibleLibrary' || form.source === 'authorList') && form.storage === 'path');
 }
 
 function toKind(source) {
-  if (source === 'hardcoverList' || source === 'audibleLibrary') {
+  if (['hardcoverList', 'audibleLibrary', 'authorList', 'urlList'].includes(source)) {
     return source;
   }
 
@@ -92,9 +122,11 @@ function toRequest(form) {
     name: form.name,
     kind: toKind(form.source),
     path: usesPath(form) ? form.path : null,
-    url: form.source === 'hardcoverList' ? form.url : null,
+    url: form.source === 'hardcoverList' || form.source === 'urlList' ? form.url : null,
     csv: usesUpload(form) ? form.csv : null,
+    text: usesPaste(form) && form.text ? form.text : null,
     addUnmonitored: form.addUnmonitored,
+    authorMonitor: form.authorMonitor,
     audiobook: form.audiobook,
     ebook: form.ebook,
     searchOnAdd: form.searchOnAdd,
@@ -143,8 +175,12 @@ class EditWishlistModal extends Component {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const name = this.state.form.name || file.name.replace(/\.csv$/i, '');
-      this.setState({ form: { ...this.state.form, csv: reader.result, fileName: file.name, name }, preview: null, error: null });
+      const name = this.state.form.name || file.name.replace(/\.(csv|txt)$/i, '');
+      const loaded = usesPaste(this.state.form) ?
+        { text: reader.result } :
+        { csv: reader.result };
+
+      this.setState({ form: { ...this.state.form, ...loaded, fileName: file.name, name }, preview: null, error: null });
     };
     reader.readAsText(file);
   };
@@ -152,7 +188,7 @@ class EditWishlistModal extends Component {
   onPreviewPress = () => {
     const { wishlist } = this.props;
     const { form } = this.state;
-    const unchangedSaved = wishlist && !form.csv && usesUpload(form);
+    const unchangedSaved = wishlist && !form.csv && !form.text && (usesUpload(form) || usesPaste(form));
 
     this.setState({ isPreviewing: true, error: null });
 
@@ -204,7 +240,8 @@ class EditWishlistModal extends Component {
   render() {
     const { isOpen, wishlist, onModalClose } = this.props;
     const { form, isPreviewing, isSaving, preview, error } = this.state;
-    const needsFile = usesUpload(form) && !form.csv && !(wishlist && wishlist.uploaded);
+    const savedUpload = !!(wishlist && wishlist.uploaded);
+    const needsFile = (usesUpload(form) && !form.csv && !savedUpload) || (usesPaste(form) && !form.text.trim() && !savedUpload);
     const owned = form.source === 'audibleLibrary';
     const ownedUnmonitored = owned && form.addUnmonitored;
 
@@ -250,6 +287,44 @@ class EditWishlistModal extends Component {
               }
 
               {
+                form.source === 'authorList' ?
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>{'Names'}</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.SELECT}
+                      name="storage"
+                      values={authorListStorage}
+                      value={form.storage}
+                      helpText="One author name per line. Each name is looked up in the metadata; names that match no author are listed in the preview and the log."
+                      onChange={this.onInputChange}
+                    />
+                  </FormGroup> :
+                  null
+              }
+
+              {
+                usesPaste(form) ?
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>{'Authors'}</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.TEXT_AREA}
+                      name="text"
+                      value={form.text}
+                      helpText={savedUpload && !form.text ? 'Leave empty to keep the names saved before, or load a text file' : 'Or load a text file below'}
+                      onChange={this.onInputChange}
+                    />
+                    <div className={styles.fileInput}>
+                      <input
+                        type="file"
+                        accept=".txt,text/plain"
+                        onChange={this.onFileChange}
+                      />
+                    </div>
+                  </FormGroup> :
+                  null
+              }
+
+              {
                 usesUpload(form) ?
                   <FormGroup size={sizes.MEDIUM}>
                     <FormLabel>{owned ? 'File' : 'CSV file'}</FormLabel>
@@ -276,6 +351,37 @@ class EditWishlistModal extends Component {
                       name="path"
                       value={form.path}
                       helpText="Read again on every sync, so you can replace the file with a newer export, for example /config/wishlists/goodreads.csv"
+                      onChange={this.onInputChange}
+                    />
+                  </FormGroup> :
+                  null
+              }
+
+              {
+                form.source === 'urlList' ?
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>{'List URL'}</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.TEXT}
+                      name="url"
+                      value={form.url}
+                      helpText="Read on every sync. Plain text with one author name, ISBN or ASIN per line, or JSON: a list of names, or objects with name, isbn, asin or title."
+                      onChange={this.onInputChange}
+                    />
+                  </FormGroup> :
+                  null
+              }
+
+              {
+                hasAuthors(form) ?
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>{'Monitor'}</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.SELECT}
+                      name="authorMonitor"
+                      values={authorMonitorOptions}
+                      value={form.authorMonitor}
+                      helpText="Which books of each added author are monitored. Authors already in the library are left as they are."
                       onChange={this.onInputChange}
                     />
                   </FormGroup> :
@@ -353,13 +459,14 @@ class EditWishlistModal extends Component {
                       type={inputTypes.CHECK}
                       name="searchOnAdd"
                       value={form.searchOnAdd}
+                      helpText={hasAuthors(form) ? 'For authors: only when monitoring all books' : undefined}
                       onChange={this.onInputChange}
                     />
                   </FormGroup>
               }
 
               {
-                owned ?
+                owned || hasAuthors(form) ?
                   null :
                   <FormGroup size={sizes.MEDIUM}>
                     <FormLabel>{'Only to-read rows'}</FormLabel>

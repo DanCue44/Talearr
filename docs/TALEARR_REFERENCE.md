@@ -158,6 +158,7 @@ See [TALEARR_WISHLISTS.md](TALEARR_WISHLISTS.md).
 
 - **Settings > Import Lists > Wishlists**: StoryGraph to-read and Audible wishlist exports, an
   owned Audible library export (added without monitoring, so it is never searched),
+  pasted author names and lists of authors, ISBNs or ASINs from a URL (bulk author add),
   Goodreads CSV exports, any title/author/ISBN/ASIN CSV, and Hardcover lists by URL (upstream's
   Goodreads and Hardcover Library import lists are unchanged and cover shelves and Want to Read).
 - Each row is matched (ASIN, ISBN, then title and author) and added with "Only this book": only
