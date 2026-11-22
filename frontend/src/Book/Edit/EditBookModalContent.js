@@ -114,7 +114,7 @@ class EditBookModalContent extends Component {
 
             <FormGroup>
               <FormLabel>
-                {'Lock edition'}
+                {'Lock Edition'}
               </FormLabel>
 
               <FormInputGroup
@@ -144,7 +144,7 @@ class EditBookModalContent extends Component {
               talearrSeriesOptions.length > 1 &&
                 <FormGroup>
                   <FormLabel>
-                    {'Preferred series'}
+                    {'Preferred Series'}
                   </FormLabel>
 
                   <FormInputGroup
