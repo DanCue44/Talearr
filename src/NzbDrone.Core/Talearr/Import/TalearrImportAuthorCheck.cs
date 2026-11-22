@@ -45,7 +45,7 @@ namespace NzbDrone.Core.Talearr.Import
             var otherTag = authorTags.FirstOrDefault(value => TalearrReleaseIdentityGuard.IsOtherAuthorTag(value, expectedAuthor, books));
             if (otherTag != null)
             {
-                return otherTag.Trim();
+                return IsMisspelling(otherTag, expectedAuthor.Name) ? null : otherTag.Trim();
             }
 
             // Audiobook part files are often named after the narrator or the chapter, so only an
@@ -53,8 +53,65 @@ namespace NzbDrone.Core.Talearr.Import
             var isAudio = item.Path.IsNotNullOrWhiteSpace() &&
                           MediaFileExtensions.AudioExtensions.Contains(Path.GetExtension(item.Path));
             var fromFileName = isAudio ? null : TalearrReleaseIdentityGuard.FindOtherAuthor(fileName, expectedAuthor, books);
+            var other = fromFileName ?? TalearrReleaseIdentityGuard.FindOtherAuthor(downloadTitle, expectedAuthor, books);
 
-            return fromFileName ?? TalearrReleaseIdentityGuard.FindOtherAuthor(downloadTitle, expectedAuthor, books);
+            return other != null && IsMisspelling(other, expectedAuthor.Name) ? null : other;
+        }
+
+        // A name that differs from the expected author's by one slip in one word of seven letters or more ("William R.
+        // Fortschen" for William R. Forstchen: two letters swapped) is the same author misspelled,
+        // not someone else. Every other word must match, and the slipped word keeps its first letter.
+        internal static bool IsMisspelling(string found, string expected)
+        {
+            var foundWords = NameWords(found);
+            var expectedWords = NameWords(expected);
+            if (foundWords.Count == 0 || foundWords.Count != expectedWords.Count)
+            {
+                return false;
+            }
+
+            var differing = foundWords.Zip(expectedWords, (a, b) => (a, b)).Where(pair => pair.a != pair.b).ToList();
+            if (differing.Count != 1)
+            {
+                return false;
+            }
+
+            var (word, wanted) = differing[0];
+            return wanted.Length >= 7 && word.Length >= 7 && word[0] == wanted[0] && OneSlipApart(word, wanted);
+        }
+
+        private static List<string> NameWords(string name)
+        {
+            return (name ?? string.Empty)
+                .ToLowerInvariant()
+                .Split(new[] { ' ', '.', ',', '-', '\'', '\u2019' }, StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
+        }
+
+        // One letter changed, added, dropped, or two neighbouring letters swapped.
+        private static bool OneSlipApart(string a, string b)
+        {
+            if (Math.Abs(a.Length - b.Length) > 1)
+            {
+                return false;
+            }
+
+            var start = 0;
+            while (start < a.Length && start < b.Length && a[start] == b[start])
+            {
+                start++;
+            }
+
+            var restA = a.Substring(start);
+            var restB = b.Substring(start);
+
+            if (restA.Length == restB.Length)
+            {
+                return restA.Substring(Math.Min(1, restA.Length)) == restB.Substring(Math.Min(1, restB.Length)) ||
+                       (restA.Length >= 2 && restA[0] == restB[1] && restA[1] == restB[0] && restA.Substring(2) == restB.Substring(2));
+            }
+
+            return restA.Length > restB.Length ? restA.Substring(1) == restB : restB.Substring(1) == restA;
         }
 
         public static string BuildRejection(string otherAuthor, Author expectedAuthor, string bookLabel)
