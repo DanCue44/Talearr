@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using NLog;
 using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Books.Services;
@@ -22,6 +23,11 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
         private const int SearchMaxPages = 10;
         private static readonly Regex BookNumberSuffixRegex = new Regex(@"\s*,?\s*book\s+\d+\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex MultiWhitespaceRegex = new Regex(@"\s{2,}", RegexOptions.Compiled);
+
+        // Talearr: at most this many extra fallback queries (apostrophe-free title, author name
+        // variants) per search. Fallback tiers only run when the tiers before them found nothing.
+        private const int MaxExtraVariants = 2;
+        private static readonly char[] Apostrophes = { '\'', '\u2019', '\u2018', '\u02BC', '`' };
 
         public MyAnonaMouseSettings Settings { get; set; }
         public Logger Logger { get; set; }
@@ -73,7 +79,103 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             // Use JSON API for enhanced metadata
             pageableRequests.Add(GetJsonApiRequests(searchCriteria));
 
+            // Talearr: fallback tiers for author names MAM lists differently: without a middle
+            // initial ("George R R Martin" -> "George Martin") and with every diacritic folded,
+            // including letters the accent strip keeps ("Jo Nesbø" -> "Jo Nesbo"). Readarr #1572, #3273.
+            foreach (var variant in BuildAuthorVariants(searchCriteria?.Author?.Name))
+            {
+                Logger.Debug("MAM_SEARCH_FALLBACK_TERM: '{0}' (author name variant)", variant);
+                pageableRequests.AddTier(GetJsonApiRequests(variant, searchCriteria));
+            }
+
             return pageableRequests;
+        }
+
+        // The primary author query plus up to MaxExtraVariants different spellings, primary excluded.
+        internal static List<string> BuildAuthorVariants(string authorName)
+        {
+            var variants = new List<string>();
+            if (string.IsNullOrWhiteSpace(authorName))
+            {
+                return variants;
+            }
+
+            var primary = System.Web.HttpUtility.UrlDecode(SearchCriteriaBase.GetQueryTitle(authorName)).Trim();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { primary };
+
+            void Add(string candidate)
+            {
+                candidate = MultiWhitespaceRegex.Replace(candidate ?? string.Empty, " ").Trim();
+                if (variants.Count < MaxExtraVariants && candidate.Length > 0 && seen.Add(candidate))
+                {
+                    variants.Add(candidate);
+                }
+            }
+
+            var folded = FoldDiacritics(primary);
+            Add(RemoveMiddleInitials(folded));
+            Add(folded);
+
+            return variants;
+        }
+
+        // "George R R Martin" -> "George Martin". Needs a real first name, so "J K Rowling" is kept.
+        internal static string RemoveMiddleInitials(string name)
+        {
+            var tokens = (name ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length < 3 || tokens[0].Length < 2)
+            {
+                return name;
+            }
+
+            var kept = new List<string> { tokens[0] };
+            for (var i = 1; i < tokens.Length - 1; i++)
+            {
+                if (tokens[i].Length > 1)
+                {
+                    kept.Add(tokens[i]);
+                }
+            }
+
+            kept.Add(tokens[tokens.Length - 1]);
+            return string.Join(" ", kept);
+        }
+
+        // Accent strip plus the letters it leaves alone (ø, æ, ł, ß, ...).
+        internal static string FoldDiacritics(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return text;
+            }
+
+            var stripped = text.RemoveAccent();
+            var builder = new StringBuilder(stripped.Length);
+            foreach (var c in stripped)
+            {
+                switch (c)
+                {
+                    case 'ø': builder.Append('o'); break;
+                    case 'Ø': builder.Append('O'); break;
+                    case 'æ': builder.Append("ae"); break;
+                    case 'Æ': builder.Append("Ae"); break;
+                    case 'œ': builder.Append("oe"); break;
+                    case 'Œ': builder.Append("Oe"); break;
+                    case 'ł': builder.Append('l'); break;
+                    case 'Ł': builder.Append('L'); break;
+                    case 'đ': builder.Append('d'); break;
+                    case 'Đ': builder.Append('D'); break;
+                    case 'ð': builder.Append('d'); break;
+                    case 'Ð': builder.Append('D'); break;
+                    case 'þ': builder.Append("th"); break;
+                    case 'Þ': builder.Append("Th"); break;
+                    case 'ß': builder.Append("ss"); break;
+                    case 'ı': builder.Append('i'); break;
+                    default: builder.Append(c); break;
+                }
+            }
+
+            return builder.ToString();
         }
 
         private IEnumerable<IndexerRequest> GetRecentJsonApiRequests()
@@ -155,12 +257,36 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
                 decodedQuery += decodedAuthor.Trim();
             }
 
+            // Talearr: "Ender's Game" is searched as "Ender s Game" above; MAM often lists it as
+            // "Enders Game", so also try the title with the apostrophe removed (Chaptarr #379).
+            var extraVariants = 0;
+            var hasApostrophe = HasApostrophe(originalDecodedTitle) || HasApostrophe(originalDecodedAuthor);
+            var joinedTitle = hasApostrophe ? RemoveApostrophes(originalDecodedTitle) : string.Empty;
+            var joinedQuery = hasApostrophe ? JoinTerms(joinedTitle, RemoveApostrophes(originalDecodedAuthor)) : string.Empty;
+
+            void AddVariant(string term, string logMessage)
+            {
+                var before = searchTerms.Count;
+                if (extraVariants >= MaxExtraVariants)
+                {
+                    return;
+                }
+
+                AddSearchTerm(term, logMessage, isFallback: true);
+                if (searchTerms.Count > before)
+                {
+                    extraVariants++;
+                }
+            }
+
             AddSearchTerm(decodedQuery, "MAM_SEARCH_TERM: '{0}' (decoded from: '{1}')");
+            AddVariant(joinedQuery, "MAM_SEARCH_FALLBACK_TERM: '{0}' (apostrophe removed)");
 
             if (!string.IsNullOrWhiteSpace(decodedTitle) &&
                 !string.Equals(decodedTitle.Trim(), decodedQuery, StringComparison.OrdinalIgnoreCase))
             {
                 AddSearchTerm(decodedTitle, "MAM_SEARCH_FALLBACK_TERM: '{0}' (title-only fallback)", isFallback: true);
+                AddVariant(joinedTitle, "MAM_SEARCH_FALLBACK_TERM: '{0}' (title-only, apostrophe removed)");
             }
 
             // Interactive search: add a fallback query for verbose titles like "... , Book 3" that can hurt recall.
@@ -201,6 +327,32 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             var normalized = title.Replace("’", " ").Replace("'", " ");
             normalized = MultiWhitespaceRegex.Replace(normalized, " ").Trim();
             return normalized;
+        }
+
+        private static bool HasApostrophe(string text)
+        {
+            return !string.IsNullOrEmpty(text) && text.IndexOfAny(Apostrophes) >= 0;
+        }
+
+        // "Ender’s Game" -> "Enders Game".
+        private static string RemoveApostrophes(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return text ?? string.Empty;
+            }
+
+            foreach (var apostrophe in Apostrophes)
+            {
+                text = text.Replace(apostrophe.ToString(), string.Empty);
+            }
+
+            return MultiWhitespaceRegex.Replace(text, " ").Trim();
+        }
+
+        private static string JoinTerms(string title, string author)
+        {
+            return string.Join(" ", new[] { title?.Trim(), author?.Trim() }.Where(t => !string.IsNullOrWhiteSpace(t)));
         }
 
         private IEnumerable<IndexerRequest> GetJsonApiRequests(AuthorSearchCriteria searchCriteria)

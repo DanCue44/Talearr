@@ -400,6 +400,121 @@ namespace Chaptarr.Core.Test.Indexers
             Assert.That(payload["tor"]?["searchType"]?.Value<string>(), Is.EqualTo("all"));
         }
 
+        // Talearr: Chaptarr #379, curly apostrophes.
+        [TestCase("Ender\u2019s Game")]
+        [TestCase("Ender's Game")]
+        public void should_add_apostrophe_removed_variants_after_the_spaced_ones(string title)
+        {
+            var chain = CreateGenerator().GetSearchRequests(new BookSearchCriteria
+            {
+                Author = new Author { Name = "Orson Scott Card" },
+                BookTitle = title
+            });
+
+            Assert.That(GetTierTexts(chain), Is.EqualTo(new[]
+            {
+                "Ender s Game Orson Scott Card",
+                "Enders Game Orson Scott Card",
+                "Ender s Game",
+                "Enders Game"
+            }));
+        }
+
+        [Test]
+        public void should_not_add_apostrophe_variants_when_there_is_no_apostrophe()
+        {
+            var chain = CreateGenerator().GetSearchRequests(new BookSearchCriteria
+            {
+                Author = new Author { Name = "Guy Hayley" },
+                BookTitle = "Godblight"
+            });
+
+            Assert.That(GetTierTexts(chain), Is.EqualTo(new[] { "Godblight Guy Hayley", "Godblight" }));
+        }
+
+        [Test]
+        public void should_cap_extra_variants_at_two_with_book_number_fallback()
+        {
+            var chain = CreateGenerator().GetSearchRequests(new BookSearchCriteria
+            {
+                Author = new Author { Name = "Joe Abercrombie" },
+                BookTitle = "The Hero\u2019s Peace, Book 2",
+                InteractiveSearch = true
+            });
+
+            var texts = GetTierTexts(chain);
+
+            Assert.That(texts, Is.EqualTo(new[]
+            {
+                "Hero s Peace Book 2 Joe Abercrombie",
+                "Heros Peace Book 2 Joe Abercrombie",
+                "Hero s Peace Book 2",
+                "Heros Peace Book 2",
+                "Hero s Peace"
+            }));
+            Assert.That(texts, Is.Unique);
+        }
+
+        [Test]
+        public void author_search_should_add_a_variant_without_middle_initials()
+        {
+            var chain = CreateGenerator().GetSearchRequests(new AuthorSearchCriteria
+            {
+                Author = new Author { Name = "George R. R. Martin" }
+            });
+
+            Assert.That(GetTierTexts(chain), Is.EqualTo(new[] { "George R R Martin", "George Martin" }));
+        }
+
+        [Test]
+        public void author_search_should_fold_diacritics_the_accent_strip_keeps()
+        {
+            var chain = CreateGenerator().GetSearchRequests(new AuthorSearchCriteria
+            {
+                Author = new Author { Name = "Jo Nesb\u00f8" }
+            });
+
+            Assert.That(GetTierTexts(chain), Is.EqualTo(new[] { "Jo Nesb\u00f8", "Jo Nesbo" }));
+        }
+
+        [Test]
+        public void author_search_should_add_at_most_two_deduplicated_variants()
+        {
+            var chain = CreateGenerator().GetSearchRequests(new AuthorSearchCriteria
+            {
+                Author = new Author { Name = "S\u00f8ren A. Kierkeg\u00e5rd" }
+            });
+
+            // The accent strip already turns \u00e5 into a; \u00f8 needs the extra fold.
+            Assert.That(GetTierTexts(chain), Is.EqualTo(new[] { "S\u00f8ren A Kierkegard", "Soren Kierkegard", "Soren A Kierkegard" }));
+        }
+
+        [TestCase("J. K. Rowling", "J K Rowling")]
+        [TestCase("Stephen King", "Stephen King")]
+        [TestCase("Ursula K. Le Guin", "Ursula Le Guin")]
+        public void should_remove_middle_initials_only_after_a_real_first_name(string name, string expected)
+        {
+            Assert.That(MyAnonaMouseRequestGenerator.RemoveMiddleInitials(SearchCriteriaBase.GetQueryTitle(name).Replace("+", " ")), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void author_search_without_variants_should_stay_a_single_tier()
+        {
+            var chain = CreateGenerator().GetSearchRequests(new AuthorSearchCriteria
+            {
+                Author = new Author { Name = "Stephen King" }
+            });
+
+            Assert.That(chain.Tiers, Is.EqualTo(1));
+        }
+
+        private static List<string> GetTierTexts(NzbDrone.Core.Indexers.IndexerPageableRequestChain chain)
+        {
+            return Enumerable.Range(0, chain.Tiers)
+                .Select(tier => GetRequestPayloadObject(chain, tier)["tor"]?["text"]?.Value<string>())
+                .ToList();
+        }
+
         private static BookSearchCriteria CreateAudiobookCriteria(string allowedLanguages)
         {
             return new BookSearchCriteria
