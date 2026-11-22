@@ -15,6 +15,8 @@ using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.Talearr.Catalog;
+using NzbDrone.Core.Talearr.Metadata.Source;
 using NzbDrone.Core.Talearr.Wishlists;
 
 namespace NzbDrone.Core.Books.Commands
@@ -30,6 +32,12 @@ namespace NzbDrone.Core.Books.Commands
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
         private readonly ITalearrOwnedBooks _ownedBooks;
+        private readonly ITalearrSourcePayloads _talearrSource;
+
+        // Talearr: a request that names its book by another provider's id (Goodreads) and still
+        // has no match in the author's Hardcover catalog after this many attempts (about two
+        // hours) stops retrying and is shown as failed.
+        internal const int ForeignWorkAttemptLimit = 24;
 
         public ProcessPendingImportsCommandHandler(
             IPendingAuthorImportService pendingImportService,
@@ -40,9 +48,11 @@ namespace NzbDrone.Core.Books.Commands
             IManageCommandQueue commandQueueManager,
             IEventAggregator eventAggregator,
             Logger logger,
-            ITalearrOwnedBooks ownedBooks = null)
+            ITalearrOwnedBooks ownedBooks = null,
+            ITalearrSourcePayloads talearrSource = null)
         {
             _ownedBooks = ownedBooks;
+            _talearrSource = talearrSource;
             _pendingImportService = pendingImportService;
             _authorLibraryService = authorLibraryService;
             _authorService = authorService;
@@ -267,6 +277,15 @@ namespace NzbDrone.Core.Books.Commands
                         .Where(target => target.Book == null)
                         .Select(target => $"{target.MediaType} work {target.ProviderId}")
                         .ToList();
+                    if (missingTargets.Any() && IsUnmatchedForeignRequest(item, requestedWorks))
+                    {
+                        var terminal = $"Requested {string.Join(", ", missingTargets)} could not be matched to a book in the author's Hardcover catalog after {item.AttemptCount} attempts. Request the book again from its Hardcover entry.";
+                        _logger.Warn("Pending book request for author {0} stopped: {1}", item.ProviderId, terminal);
+                        _pendingImportService.UpdateStatus(item, PendingImportStatus.Failed, terminal);
+                        _eventAggregator.PublishEvent(new PendingAuthorImportFailedEvent(item));
+                        return item;
+                    }
+
                     if (missingTargets.Any())
                     {
                         var reason = $"Requested {string.Join(", ", missingTargets)} is not yet present in the authoritative author catalog.";
@@ -583,8 +602,47 @@ namespace NzbDrone.Core.Books.Commands
                     throw new InvalidOperationException($"Requested work '{target.ProviderId}' resolves to multiple local {target.MediaType} books.");
                 }
 
-                target.Book = matches.SingleOrDefault();
+                target.Book = matches.SingleOrDefault() ?? FindForeignWorkByTitle(target, author);
             }
+        }
+
+        // Talearr: with the Hardcover source, a Goodreads id usually has no row of its own; the
+        // author's book of the same title (from the metadata server's work info) is the requested one.
+        private Book FindForeignWorkByTitle(RequestedWork target, Author author)
+        {
+            if (_talearrSource?.IsActive != true || !TalearrForeignWorkMatch.IsForeignWorkId(target.ProviderId))
+            {
+                return null;
+            }
+
+            if (target.Title == null)
+            {
+                try
+                {
+                    target.Title = _bookInfo.GetWorkInfo(target.ProviderId, target.MediaType, null)?.Item2?.Title ?? string.Empty;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Could not read the title of requested work {0}", target.ProviderId);
+                    return null;
+                }
+            }
+
+            var book = TalearrForeignWorkMatch.PickSameTitle(_bookService.GetBooksByAuthor(author.Id), target.Title, target.MediaType);
+            if (book != null)
+            {
+                _logger.Info("Requested {0} work {1} ('{2}') is the library's book {3} for author '{4}'",
+                    target.MediaType, target.ProviderId, target.Title, book.Id, author.Name);
+            }
+
+            return book;
+        }
+
+        private bool IsUnmatchedForeignRequest(PendingAuthorImport item, List<RequestedWork> requestedWorks)
+        {
+            return _talearrSource?.IsActive == true &&
+                   item.AttemptCount >= ForeignWorkAttemptLimit &&
+                   requestedWorks.Where(target => target.Book == null).All(target => TalearrForeignWorkMatch.IsForeignWorkId(target.ProviderId));
         }
 
         private static void MarkSucceeded(PendingAuthorImport item)
@@ -603,6 +661,7 @@ namespace NzbDrone.Core.Books.Commands
             public BookMediaType MediaType { get; init; }
             public bool Search { get; init; }
             public Book Book { get; set; }
+            public string Title { get; set; }
         }
 
         private List<string> DeserializeProviderIds(string json, string fieldName)

@@ -496,7 +496,7 @@ namespace NzbDrone.Core.Books
                 throw new InvalidOperationException($"Unable to import author {authorProviderId} for requested work {workProviderId}.");
             }
 
-            var localBook = ResolveLocalRequestedBook(author.Id, workProviderId, mediaType);
+            var localBook = ResolveLocalRequestedBook(author.Id, workProviderId, mediaType, requestedBook.Title);
             if (localBook == null)
             {
                 // AddAuthorAsync queues this shape when the authoritative author blob does not yet
@@ -623,7 +623,7 @@ namespace NzbDrone.Core.Books
             }, mediaType);
         }
 
-        private Book ResolveLocalRequestedBook(int authorId, string workProviderId, BookMediaType mediaType)
+        private Book ResolveLocalRequestedBook(int authorId, string workProviderId, BookMediaType mediaType, string requestedTitle = null)
         {
             var separator = workProviderId.IndexOf(':');
             if (separator <= 0)
@@ -660,6 +660,12 @@ namespace NzbDrone.Core.Books
                 }
 
                 throw new InvalidOperationException($"Requested work {workProviderId} resolves to multiple local {mediaType} books.");
+            }
+
+            // Talearr: a Goodreads id in a Hardcover catalog is found by the work's title.
+            if (matches.Count == 0 && _talearrSource?.IsActive == true && TalearrForeignWorkMatch.IsForeignWorkId(workProviderId))
+            {
+                return TalearrForeignWorkMatch.PickSameTitle(_bookService.GetBooksByAuthor(authorId), requestedTitle, mediaType);
             }
 
             return matches.SingleOrDefault();

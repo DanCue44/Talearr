@@ -17,6 +17,7 @@ using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.Talearr.Metadata.Source;
 
 namespace Chaptarr.Core.Test.Books
 {
@@ -201,6 +202,7 @@ namespace Chaptarr.Core.Test.Books
         {
             public Exception WorkException { get; set; }
             public List<string> RequestedWorkIds { get; } = new();
+            public string WorkTitle { get; set; }
 
             protected override object Invoke(MethodInfo targetMethod, object[] args)
             {
@@ -212,7 +214,9 @@ namespace Chaptarr.Core.Test.Books
                         throw WorkException;
                     }
 
-                    return null;
+                    return WorkTitle == null
+                        ? null
+                        : Tuple.Create("gr:8589", new Book { Title = WorkTitle, GoodreadsWorkId = (string)args[0] }, new List<Author>());
                 }
 
                 throw new NotImplementedException($"Test proxy does not implement IProvideBookInfo.{targetMethod?.Name}");
@@ -282,7 +286,8 @@ namespace Chaptarr.Core.Test.Books
             AuthorTerminalException terminal = null,
             Author author = null,
             IBookService bookService = null,
-            IProvideBookInfo bookInfo = null)
+            IProvideBookInfo bookInfo = null,
+            ITalearrSourcePayloads talearrSource = null)
         {
             author ??= new Author { Id = 42, Name = "Existing Author" };
 
@@ -308,7 +313,125 @@ namespace Chaptarr.Core.Test.Books
                 bookInfo,
                 commandQueue,
                 eventAggregator,
-                LogManager.GetCurrentClassLogger());
+                LogManager.GetCurrentClassLogger(),
+                talearrSource: talearrSource);
+        }
+
+        private class TalearrSourceProxy : DispatchProxy
+        {
+            protected override object Invoke(MethodInfo targetMethod, object[] args)
+            {
+                if (targetMethod?.Name == "get_" + nameof(ITalearrSourcePayloads.IsActive))
+                {
+                    return true;
+                }
+
+                throw new NotImplementedException($"Test proxy does not implement ITalearrSourcePayloads.{targetMethod?.Name}");
+            }
+        }
+
+        // Talearr: One Second After was requested by Allseerr as audiobook gr:4987669 (a Goodreads
+        // id from the lookup) while its author was being added for the ebook. The library holds
+        // the book under its Hardcover id hc:49431 only, so the id never matched and the request
+        // retried forever.
+        private static (PendingAuthorImport Pending, Author Author, Book Audiobook, IBookService Books) OneSecondAfter(bool audiobookRowExists)
+        {
+            var pending = Pending(8589);
+            pending.ProviderId = "gr:8589";
+            pending.AuthorName = "William R. Forstchen";
+            pending.AudiobookStatus = PendingImportStatus.Pending;
+            pending.EbookStatus = PendingImportStatus.NotRequested;
+            pending.AudiobookMonitored = true;
+            pending.AudiobookBooksToMonitor = @"[""gr:4987669""]";
+
+            var author = new Author { Id = 29, Name = "William R. Forstchen", HardcoverAuthorId = "hc:219059", AudiobookMonitored = true };
+            Book Row(int id, BookMediaType mediaType, string title) => new Book
+            {
+                Id = id,
+                AuthorId = author.Id,
+                Author = author,
+                Title = title,
+                MediaType = mediaType,
+                HardcoverBookId = "hc:49431"
+            };
+
+            var audiobook = Row(2, BookMediaType.Audiobook, "One Second After");
+            var books = DispatchProxy.Create<IBookService, BookServiceProxy>();
+            ((BookServiceProxy)books).Books = new List<Book> { Row(1, BookMediaType.Ebook, "One Second After"), Row(3, BookMediaType.Audiobook, "One Year After") };
+            if (audiobookRowExists)
+            {
+                ((BookServiceProxy)books).Books.Add(audiobook);
+            }
+
+            return (pending, author, audiobook, books);
+        }
+
+        [Test]
+        public void a_goodreads_work_request_resolves_to_the_hardcover_book_of_the_same_title()
+        {
+            var (pending, author, audiobook, books) = OneSecondAfter(audiobookRowExists: true);
+            var pendingImportService = new StubPendingAuthorImportService();
+            pendingImportService.DueResponses.Enqueue(new List<PendingAuthorImport> { pending });
+            var bookInfo = DispatchProxy.Create<IProvideBookInfo, BookInfoProxy>();
+            ((BookInfoProxy)bookInfo).WorkTitle = "One Second After";
+            var eventAggregator = new RecordingEventAggregator();
+
+            var handler = BuildHandler(pendingImportService, new RecordingCommandQueue(), eventAggregator,
+                author: author, bookService: books, bookInfo: bookInfo,
+                talearrSource: DispatchProxy.Create<ITalearrSourcePayloads, TalearrSourceProxy>());
+
+            handler.Execute(new ProcessPendingImportsCommand());
+
+            Assert.That(pending.OverallStatus, Is.EqualTo(PendingImportStatus.Succeeded), pending.LastError);
+            Assert.That(pendingImportService.RetryReasons, Is.Empty);
+            Assert.That(pendingImportService.DeletedIds, Does.Contain(pending.Id));
+            Assert.That(audiobook.IsMonitoredWithAuthor(), Is.True);
+            Assert.That(eventAggregator.Events.OfType<PendingAuthorImportSucceededEvent>().Count(), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void a_goodreads_work_request_without_the_hardcover_source_keeps_waiting_for_its_id()
+        {
+            var (pending, author, _, books) = OneSecondAfter(audiobookRowExists: true);
+            var pendingImportService = new StubPendingAuthorImportService();
+            pendingImportService.DueResponses.Enqueue(new List<PendingAuthorImport> { pending });
+            var bookInfo = DispatchProxy.Create<IProvideBookInfo, BookInfoProxy>();
+            ((BookInfoProxy)bookInfo).WorkTitle = "One Second After";
+
+            BuildHandler(pendingImportService, new RecordingCommandQueue(), new RecordingEventAggregator(),
+                author: author, bookService: books, bookInfo: bookInfo).Execute(new ProcessPendingImportsCommand());
+
+            Assert.That(pending.OverallStatus, Is.EqualTo(PendingImportStatus.Retrying));
+            Assert.That(pending.LastError, Does.Contain("not yet present"));
+        }
+
+        [TestCase(0, PendingImportStatus.Retrying)]
+        [TestCase(ProcessPendingImportsCommandHandler.ForeignWorkAttemptLimit, PendingImportStatus.Failed)]
+        public void an_unmatched_goodreads_work_request_stops_after_the_attempt_limit(int attempts, PendingImportStatus expected)
+        {
+            var (pending, author, _, books) = OneSecondAfter(audiobookRowExists: false);
+            pending.AttemptCount = attempts;
+            var pendingImportService = new StubPendingAuthorImportService();
+            pendingImportService.DueResponses.Enqueue(new List<PendingAuthorImport> { pending });
+            var bookInfo = DispatchProxy.Create<IProvideBookInfo, BookInfoProxy>();
+            ((BookInfoProxy)bookInfo).WorkTitle = "One Second After";
+            var eventAggregator = new RecordingEventAggregator();
+
+            BuildHandler(pendingImportService, new RecordingCommandQueue(), eventAggregator,
+                author: author, bookService: books, bookInfo: bookInfo,
+                talearrSource: DispatchProxy.Create<ITalearrSourcePayloads, TalearrSourceProxy>()).Execute(new ProcessPendingImportsCommand());
+
+            Assert.That(pending.OverallStatus, Is.EqualTo(expected));
+            Assert.That(pendingImportService.DeletedIds, Is.Empty);
+            if (expected == PendingImportStatus.Failed)
+            {
+                Assert.That(pending.LastError, Does.Contain("Hardcover catalog"));
+                Assert.That(eventAggregator.Events.OfType<PendingAuthorImportFailedEvent>().Count(), Is.EqualTo(1));
+            }
+            else
+            {
+                Assert.That(pendingImportService.RetryReasons, Has.Count.EqualTo(1));
+            }
         }
 
         [Test]

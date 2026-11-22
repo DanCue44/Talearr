@@ -252,9 +252,21 @@ namespace NzbDrone.Core.Books.Services
         {
             var hardcoverId = existingAuthor?.HardcoverAuthorId?.Trim();
             if ((_authorInfo as BookInfoProxy)?.TalearrSourceActive != true ||
-                !TalearrSourcePayloads.TryParseId(hardcoverId, out _) ||
-                TalearrSourcePayloads.TryParseId(providerId, out _))
+                !TalearrSourcePayloads.TryParseId(hardcoverId, out _))
             {
+                return fetched;
+            }
+
+            // Found by its Hardcover id: the fetched data is already Hardcover's catalog, but the
+            // request can still name its book by a Goodreads id (Allseerr adds by the library
+            // author with the lookup's Goodreads book id).
+            if (TalearrSourcePayloads.TryParseId(providerId, out _))
+            {
+                if (fetched != null)
+                {
+                    BridgeRequestedWorks(fetched, existingAuthor, null, null, config);
+                }
+
                 return fetched;
             }
 
@@ -274,27 +286,86 @@ namespace NzbDrone.Core.Books.Services
                 return fetched;
             }
 
-            author.Books ??= new List<Book>();
-            var requested = GetRequestedBookProviderIdsByMediaType(config);
-            foreach (var book in (fetched?.Books ?? new List<Book>()).Where(b => IsRequestedBook(requested, b)))
-            {
-                var same = author.Books
-                    .Where(b => b != null && b.MediaType == book.MediaType && TalearrTitleNormalizer.IsSameWorkTitle(b.Title, book.Title))
-                    .ToList();
-
-                if (same.Count == 1)
-                {
-                    same[0].RemoteProviderIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                    same[0].RemoteProviderIds.UnionWith(BookIdentity.GetStableWorkProviderIdentityTokens(book));
-                }
-                else if (same.Count == 0)
-                {
-                    author.Books.Add(book);
-                }
-            }
+            BridgeRequestedWorks(author, existingAuthor, fetched, providerId, config);
 
             _logger.Debug("Author '{0}' found by {1}; reconciling from Hardcover ({2}) like its refresh", existingAuthor.Name, providerId, hardcoverId);
             return author;
+        }
+
+        // Talearr: each requested work Hardcover's catalog does not list by id is matched to
+        // Hardcover's book of the same title, which then carries the requested id (stored as a
+        // provider alias, so the request finds the book by that id). The title comes from the
+        // server's copy of the book, the request, or the metadata server's work info. A requested
+        // id is often a Goodreads edition id (One Second After, gr:4987669), so the id itself is
+        // carried, not only the server's work id. When Hardcover has no such title, the server's
+        // book is added as before.
+        private void BridgeRequestedWorks(Author hardcoverAuthor, Author existingAuthor, Author serverAuthor, string serverAuthorProviderId, MonitoringConfig config)
+        {
+            hardcoverAuthor.Books ??= new List<Book>();
+            List<Book> libraryBooks = null;
+
+            foreach (var (mediaType, providerIds) in GetRequestedBookProviderIdsByMediaType(config))
+            {
+                foreach (var providerId in providerIds)
+                {
+                    var foreign = TalearrForeignWorkMatch.IsForeignWorkId(providerId);
+                    var serverBook = (serverAuthor?.Books ?? new List<Book>())
+                        .FirstOrDefault(b => b != null && b.MediaType == mediaType && BookMatchesProviderId(b, providerId));
+                    if ((!foreign && serverBook == null) ||
+                        hardcoverAuthor.Books.Any(b => b != null && b.MediaType == mediaType && BookMatchesProviderId(b, providerId)))
+                    {
+                        continue;
+                    }
+
+                    var title = serverBook?.Title ?? RequestedWorkTitle(providerId, mediaType, serverAuthorProviderId, config);
+                    if (string.IsNullOrWhiteSpace(title))
+                    {
+                        continue;
+                    }
+
+                    libraryBooks ??= existingAuthor?.Id > 0
+                        ? _bookService.GetBooksByAuthor(existingAuthor.Id) ?? new List<Book>()
+                        : new List<Book>();
+                    var bridged = TalearrForeignWorkMatch.Bridge(hardcoverAuthor.Books, serverBook, foreign ? providerId : null, title, mediaType, libraryBooks);
+                    if (bridged != null && !ReferenceEquals(bridged, serverBook))
+                    {
+                        _logger.Info("Requested {0} work {1} ('{2}') is Hardcover's {3} for author '{4}'",
+                            mediaType, providerId, title, bridged.HardcoverBookId, existingAuthor?.Name);
+                    }
+                    else if (bridged == null)
+                    {
+                        _logger.Debug("Requested {0} work {1} ('{2}') has no single matching book in Hardcover's catalog for author '{3}'",
+                            mediaType, providerId, title, existingAuthor?.Name);
+                    }
+                }
+            }
+        }
+
+        // Talearr: the title of a requested work: the request's own title, else the metadata
+        // server's work info for that id.
+        private string RequestedWorkTitle(string providerId, BookMediaType mediaType, string authorHintProviderId, MonitoringConfig config)
+        {
+            if (config?.MetadataFallbackWorkTitles != null &&
+                config.MetadataFallbackWorkTitles.TryGetValue(providerId.Trim(), out var requestedTitle) &&
+                !string.IsNullOrWhiteSpace(requestedTitle))
+            {
+                return requestedTitle;
+            }
+
+            if (_authorInfo is not IProvideBookInfo bookInfo)
+            {
+                return null;
+            }
+
+            try
+            {
+                return bookInfo.GetWorkInfo(providerId.Trim(), mediaType, authorHintProviderId)?.Item2?.Title;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Could not read the title of requested work {0}", providerId);
+                return null;
+            }
         }
 
         // Talearr: fetch from the metadata server; when that fails because the server is
@@ -635,7 +706,7 @@ namespace NzbDrone.Core.Books.Services
                 return author;
             }
 
-            var missing = targets.Where(target => !RequestedWorkExists(author.Id, target.ProviderId, target.MediaType)).ToList();
+            var missing = targets.Where(target => !RequestedWorkExists(author.Id, target.ProviderId, target.MediaType, authorProviderId, config)).ToList();
             if (!missing.Any())
             {
                 return author;
@@ -665,7 +736,7 @@ namespace NzbDrone.Core.Books.Services
             };
         }
 
-        private bool RequestedWorkExists(int authorId, string workProviderId, BookMediaType mediaType)
+        private bool RequestedWorkExists(int authorId, string workProviderId, BookMediaType mediaType, string authorProviderId = null, MonitoringConfig config = null)
         {
             if (!ProviderIdHelper.TryNormalize(workProviderId, defaultPrefix: null, out var normalized))
             {
@@ -685,11 +756,23 @@ namespace NzbDrone.Core.Books.Services
                 return TalearrAudibleBookRequests.FindBook(_bookService.GetBooksByAuthor(authorId), talearrAudibleAsin, mediaType, _editionService.GetEditionsByBook) != null;
             }
 
-            return _bookService.FindAllByWorkProviderId(
+            if (_bookService.FindAllByWorkProviderId(
                     normalized.Substring(0, separator),
                     ProviderIdHelper.StripPrefix(normalized),
                     mediaType)
-                .Any(book => book.AuthorId == authorId);
+                .Any(book => book.AuthorId == authorId))
+            {
+                return true;
+            }
+
+            // Talearr: a Goodreads id in a Hardcover catalog is found by the work's title.
+            if ((_authorInfo as BookInfoProxy)?.TalearrSourceActive != true || !TalearrForeignWorkMatch.IsForeignWorkId(normalized))
+            {
+                return false;
+            }
+
+            var title = RequestedWorkTitle(normalized, mediaType, TalearrSourcePayloads.TryParseId(authorProviderId, out _) ? null : authorProviderId, config);
+            return TalearrForeignWorkMatch.PickSameTitle(_bookService.GetBooksByAuthor(authorId), title, mediaType) != null;
         }
 
         public async Task<UserSelectedEditionMaterialization> MaterializeUserSelectedEditionAsync(
