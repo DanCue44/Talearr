@@ -2,6 +2,11 @@
 
 Notable changes to Talearr are listed here, newest first. Talearr's version number is its own and is separate from the Chaptarr version it is based on.
 
+## 0.18.70 - 2026-11-22
+
+### Fixed
+- A download whose author name has a one-letter slip (an ebook of One Second After credited to "William R. Fortschen") is no longer rejected as another author's book. Only one word of the name may differ, by one letter or two swapped neighbours, in a word of seven letters or more.
+
 ## 0.18.69 - 2026-11-22
 
 ### Added
