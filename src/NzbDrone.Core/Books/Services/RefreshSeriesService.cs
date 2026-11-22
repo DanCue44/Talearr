@@ -8,6 +8,7 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Talearr.BookEdits;
+using NzbDrone.Core.Talearr.PreferredSeries;
 
 namespace NzbDrone.Core.Books
 {
@@ -24,13 +25,15 @@ namespace NzbDrone.Core.Books
         private readonly IRefreshSeriesBookLinkService _refreshLinkService;
         private readonly Logger _logger;
         private readonly ITalearrBookEditService _bookEdits;
+        private readonly ITalearrPreferredSeriesService _preferredSeries;
 
         public RefreshSeriesService(IBookService bookService,
                                     ISeriesService seriesService,
                                     ISeriesBookLinkService linkService,
                                     IRefreshSeriesBookLinkService refreshLinkService,
                                     Logger logger,
-                                    ITalearrBookEditService bookEdits = null)
+                                    ITalearrBookEditService bookEdits = null,
+                                    ITalearrPreferredSeriesService preferredSeries = null)
         : base(logger)
         {
             _bookService = bookService;
@@ -39,6 +42,7 @@ namespace NzbDrone.Core.Books
             _refreshLinkService = refreshLinkService;
             _logger = logger;
             _bookEdits = bookEdits;
+            _preferredSeries = preferredSeries;
         }
 
         private static bool HasMatchingGoodreadsSeriesId(Series local, Series remote)
@@ -695,6 +699,9 @@ namespace NzbDrone.Core.Books
 
             // Talearr: put edited series details back on anything the refresh still changed.
             _bookEdits?.ReapplyAuthor(authorId);
+
+            // Talearr: and the series each book uses as its main one (Preferred series).
+            _preferredSeries?.ReapplyAuthor(authorId);
 
             return updated;
         }

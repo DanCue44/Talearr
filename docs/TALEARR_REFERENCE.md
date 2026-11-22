@@ -146,8 +146,12 @@ See [TALEARR_SERIES.md](TALEARR_SERIES.md).
   leaves additional recordings alone.
 - **API**: `GET|PUT /api/v1/talearr/series/{id}`, `GET /api/v1/talearr/series`,
   `POST .../apply`, `POST .../authors`.
+- **Preferred series.** A book in more than one series can pick the one used for the series
+  naming tokens and sorting (Edit book > Preferred series), kept through refreshes.
+  `GET|PUT /api/v1/talearr/preferredseries/{bookId}`.
 
-Storage: one `talearr.series.monitor.*` row per monitored series in the `Config` table.
+Storage: one `talearr.series.monitor.*` row per monitored series in the `Config` table; the
+preferred series in the `PreferredSeries` table of `talearr.db`.
 ## Wishlists
 
 See [TALEARR_WISHLISTS.md](TALEARR_WISHLISTS.md).

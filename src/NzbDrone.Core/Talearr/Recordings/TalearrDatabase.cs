@@ -327,6 +327,21 @@ CREATE TABLE IF NOT EXISTS AudibleAuthorCatalogs (
     FetchedAt   TEXT NOT NULL,
     PRIMARY KEY (AuthorKey, Marketplace)
 );
+",
+
+            // 13: the series a user picked as a work's main one when it is in more than one
+            // (Talearr/PreferredSeries). Keyed like BookDetailEdits; the series is kept by title,
+            // so the audiobook and ebook rows share it. Provider keeps each row's own main series
+            // so clearing the choice puts it back. Losing it means the provider's first series is
+            // the main one again after the next refresh.
+            @"
+CREATE TABLE IF NOT EXISTS PreferredSeries (
+    WorkKey     TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+    SeriesTitle TEXT NOT NULL,
+    Provider    TEXT,
+    BookIdHint  INTEGER,
+    UpdatedAt   TEXT NOT NULL
+);
 "
         };
 

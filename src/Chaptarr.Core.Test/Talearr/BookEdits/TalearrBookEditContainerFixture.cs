@@ -17,9 +17,11 @@ namespace Chaptarr.Core.Test.Talearr.BookEdits
     [TestFixture]
     public class TalearrBookEditContainerFixture
     {
-        [TestCase(typeof(RefreshBookService))]
-        [TestCase(typeof(RefreshSeriesService))]
-        public void should_fill_the_book_edit_dependency(Type serviceType)
+        [TestCase(typeof(RefreshBookService), "_bookEdits")]
+        [TestCase(typeof(RefreshSeriesService), "_bookEdits")]
+        [TestCase(typeof(RefreshBookService), "_preferredSeries")]
+        [TestCase(typeof(RefreshSeriesService), "_preferredSeries")]
+        public void should_fill_the_book_edit_dependency(Type serviceType, string field)
         {
             var container = new Container(rules => rules.WithNzbDroneRules());
             var constructor = serviceType.GetConstructors().OrderByDescending(c => c.GetParameters().Length).First();
@@ -44,7 +46,7 @@ namespace Chaptarr.Core.Test.Talearr.BookEdits
             container.Register(serviceType);
 
             var service = container.Resolve(serviceType);
-            var value = serviceType.GetField("_bookEdits", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(service);
+            var value = serviceType.GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(service);
 
             Assert.That(value, Is.Not.Null);
         }

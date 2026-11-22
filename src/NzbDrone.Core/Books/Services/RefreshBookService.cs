@@ -21,6 +21,7 @@ using NzbDrone.Core.Books.Services;
 using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Talearr.BookEdits;
+using NzbDrone.Core.Talearr.PreferredSeries;
 
 namespace NzbDrone.Core.Books
 {
@@ -51,6 +52,7 @@ namespace NzbDrone.Core.Books
         private readonly IMapCoversToLocal _mediaCoverService;
         private readonly Logger _logger;
         private readonly ITalearrBookEditService _bookEdits;
+        private readonly ITalearrPreferredSeriesService _preferredSeries;
         private EditionRefreshMatchingIndex _editionRefreshMatchingIndex;
 
         // Cache for book metadata during refresh
@@ -71,7 +73,8 @@ namespace NzbDrone.Core.Books
                                   IEditionMetadataProfileFilter editionMetadataProfileFilter,
                                   IMapCoversToLocal mediaCoverService,
                                   Logger logger,
-                                  ITalearrBookEditService bookEdits = null)
+                                  ITalearrBookEditService bookEdits = null,
+                                  ITalearrPreferredSeriesService preferredSeries = null)
         : base(logger)
         {
             _bookService = bookService;
@@ -90,6 +93,7 @@ namespace NzbDrone.Core.Books
             _mediaCoverService = mediaCoverService;
             _logger = logger;
             _bookEdits = bookEdits;
+            _preferredSeries = preferredSeries;
         }
 
         private string GetPrimaryProviderKey(Book b)
@@ -542,6 +546,9 @@ namespace NzbDrone.Core.Books
 
             // Talearr: a title or series the user edited wins over the provider's (Edit book details).
             _bookEdits?.ApplyToRemoteBook(local, remoteForUpdate);
+
+            // Talearr: so does the series the user picked as the main one (Preferred series).
+            _preferredSeries?.ApplyToRemoteBook(local, remoteForUpdate);
 
             // If local release date is null and remote doesn't have one either,
             // future refreshes can fill it if the configured metadata server adds it later.
@@ -1294,6 +1301,7 @@ namespace NzbDrone.Core.Books
 
             // Talearr: put edited book details back on anything a refresh path still overwrote.
             _bookEdits?.Reapply(books);
+            _preferredSeries?.Reapply(books);
 
             return updated;
         }
@@ -1304,6 +1312,7 @@ namespace NzbDrone.Core.Books
 
             // Talearr: as above.
             _bookEdits?.Reapply(new List<Book> { book });
+            _preferredSeries?.Reapply(new List<Book> { book });
 
             return updated;
         }

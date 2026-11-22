@@ -43,8 +43,11 @@ class EditBookModalContent extends Component {
       error,
       isSaving,
       talearrTags,
+      talearrSeriesOptions,
+      talearrPreferredSeries,
       onInputChange,
       onTalearrTagsChange,
+      onTalearrPreferredSeriesChange,
       onModalClose,
       ...otherProps
     } = this.props;
@@ -56,6 +59,15 @@ class EditBookModalContent extends Component {
     } = item;
 
     const hasFile = statistics ? statistics.bookFileCount > 0 : false;
+
+    // Talearr: a book in more than one series can pick the one used for naming and ordering.
+    const preferredSeriesValues = [
+      { key: '', value: 'As the metadata lists it' },
+      ...talearrSeriesOptions.map((option) => ({
+        key: option.title,
+        value: option.position ? `${option.title} #${option.position}` : option.title
+      }))
+    ];
     const errorMessage = getErrorMessage(error, 'Unable to load editions');
 
     return (
@@ -109,6 +121,24 @@ class EditBookModalContent extends Component {
                 onChange={onTalearrTagsChange}
               />
             </FormGroup>
+
+            {
+              talearrSeriesOptions.length > 1 &&
+                <FormGroup>
+                  <FormLabel>
+                    {'Preferred series'}
+                  </FormLabel>
+
+                  <FormInputGroup
+                    type={inputTypes.SELECT}
+                    name="talearrPreferredSeries"
+                    values={preferredSeriesValues}
+                    value={talearrPreferredSeries}
+                    helpText="The series used for the series naming tokens ({Book Series}, {Book SeriesPosition}, {Series Folder}) and for sorting by series. Kept through metadata refreshes."
+                    onChange={onTalearrPreferredSeriesChange}
+                  />
+                </FormGroup>
+            }
 
             {
               isFetching &&
@@ -171,8 +201,11 @@ EditBookModalContent.propTypes = {
   isPopulated: PropTypes.bool.isRequired,
   isSaving: PropTypes.bool.isRequired,
   talearrTags: PropTypes.arrayOf(PropTypes.number).isRequired,
+  talearrSeriesOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
+  talearrPreferredSeries: PropTypes.string.isRequired,
   onInputChange: PropTypes.func.isRequired,
   onTalearrTagsChange: PropTypes.func.isRequired,
+  onTalearrPreferredSeriesChange: PropTypes.func.isRequired,
   onSavePress: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired
 };
