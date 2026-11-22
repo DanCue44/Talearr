@@ -13,6 +13,7 @@ import { icons, kinds } from 'Helpers/Props';
 import getErrorMessage from 'Utilities/Object/getErrorMessage';
 import translate from 'Utilities/String/translate';
 import AddNewAuthorSearchResultConnector from './Author/AddNewAuthorSearchResultConnector';
+import PendingAuthorImports from './Author/PendingAuthorImports';
 import AddNewBookSearchResultConnector from './Book/AddNewBookSearchResultConnector';
 import AddNewSeriesSearchResult from './Series/AddNewSeriesSearchResult';
 import ComicsAdd from 'Comics/ComicsAdd';
@@ -241,6 +242,7 @@ class AddNewItem extends Component {
       <PageContent title={translate('AddNewItem')}>
         <PageContentBody>
           {modeButtons}
+          <PendingAuthorImports />
           <div className={styles.searchContainer}>
             <div className={styles.searchIconContainer}>
               <Icon
