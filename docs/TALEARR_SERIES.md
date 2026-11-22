@@ -88,3 +88,21 @@ so nothing breaks. Books the rules monitored stay monitored (they are ordinary m
 and author format switches turned on from the series page stay on. What stops is the
 automation: new books in a series are no longer monitored or searched on their own. Rolling
 forward again picks the rules up where they were.
+
+## Preferred series
+
+A book in more than one series (Guards! Guards! is Discworld #8 and City Watch #1) has one main
+series, which the naming tokens (`{Book Series}`, `{Book SeriesPosition}`, `{Book SeriesTitle}`,
+`{Series Folder}`, `{Book TitleWithSeries}`) and sorting by series use. By default it is the
+metadata's first series. **Edit book > Preferred series** (shown only for books in two or more
+series) picks another one; "As the metadata lists it" goes back to the default.
+
+- The choice covers the audiobook, the ebook and every recording of the work and is kept through
+  metadata refreshes. The series list itself still follows the metadata (or Edit book details).
+- It is written onto the book's own series columns from one of its existing series links, so
+  stock Chaptarr reads a valid value. Rename the author's files to apply it to existing names.
+- Stored in the `PreferredSeries` table of `talearr.db`, with each row's own main series so
+  clearing the choice puts it back at once. If the book leaves the chosen series, the metadata's
+  main series is used.
+- **API**: `GET|PUT /api/v1/talearr/preferredseries/{bookId}` with `{"seriesTitle": "..."}`
+  (null clears it). `400` when the book is not in that series.

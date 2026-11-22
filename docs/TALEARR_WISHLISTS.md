@@ -22,6 +22,9 @@ Wishlists fill the gaps:
 | **Hardcover lists** | Any of your other Hardcover lists by URL (`https://hardcover.app/@you/lists/name`), read with the Hardcover API token from Settings > Metadata. |
 | **Goodreads export** | The full "My Books" CSV export (My Books > Import and export), for libraries too big for the shelf RSS. Rows on the `to-read` exclusive shelf are taken. |
 | **Any CSV** | A file with a `title` column and optional `author`/`authors`, `isbn`/`isbn13`, `asin` and `status` columns; comma, semicolon or tab separated. |
+| **Author names** | Bulk author add: paste author names, one per line (or load a text file, or point at one on the server). See [Author lists](#author-lists). |
+| **List from a URL** | A plain text or simple JSON list at an http(s) address, read on every sync: author names, or books by ISBN or ASIN. See [Author lists](#author-lists). |
+| **Owned Audible library** | The books you already own on Audible. Export the library with [audible-cli](https://github.com/mkb79/audible-cli) (`audible library export --format csv`) or use a plain list of ASINs, one per line, and upload it or point at it on the server. Talearr never signs in to Audible. See [Owned Audible library](#owned-audible-library). |
 
 ## What a wishlist does
 
@@ -50,11 +53,43 @@ with **Sync automatically** on, the Sync Wishlists task does it every 12 hours. 
 is synced as it was uploaded; a server path is read again each time, so a newer export dropped in
 place is picked up.
 
+## Owned Audible library
+
+Source **Owned Audible library** works like a wishlist (matched by ASIN, then title and author;
+preview first; each row once), with every row taken and **Add without monitoring** (on):
+
+- a book that is not in the library is added through the same author import, but stays
+  unmonitored, is never searched and is kept as a manual addition, so a refresh of an "Only my
+  books" author does not remove it;
+- a book already in the library is left exactly as it is.
+
+With **Add without monitoring** off it behaves like any other wishlist. The books waiting for
+the author import are listed in the wishlist row (`ownedPending`) until they reach the library.
+
+## Author lists
+
+Sources **Author names** and **List from a URL** add whole authors, as Add New Author does:
+
+- Each name is looked up with the metadata's author search (`Last, First` is read as
+  `First Last`). Only a result with the same name counts (case, accents, punctuation and the
+  spacing of initials are ignored), so a list never adds a different author. Names that match no
+  author are shown as "Not found" in the preview and the sync result and listed in a warning in
+  the log; they are looked up again after a week.
+- An author already in the library (by name or provider id) is left as it is; one on the import
+  list exclusions is skipped.
+- A new author is queued through upstream's pending author import with its whole catalog, in the
+  list's formats, with **Monitor**: New books only (default), All books or None. **Search when
+  added** applies only to All books.
+- A URL list line that is an ISBN (`978...`, `ISBN 0-...`) or an Audible ASIN (`B0...`) is a book
+  and is handled like a wishlist row. JSON can be an array of strings, an array of objects
+  (`name` or `author` for an author; `isbn`, `isbn13`, `asin` or `title` for a book), or an object
+  with such arrays under `authors`, `books` or `items`. At most 2,000 rows and 2 MB are read.
+
 ## Storage
 
 - Each wishlist is one row in the existing `Config` table, key `talearr.wishlist.<id>`, holding
   JSON: the source, formats, options, last sync and result, and which rows it has acted on.
-- An uploaded CSV is kept as `<config folder>/talearr-wishlists/<id>.csv`.
+- An uploaded CSV (or pasted author names) is kept as `<config folder>/talearr-wishlists/<id>.csv`.
 - The Sync Wishlists task is a `ScheduledTasks` row like Talearr's other tasks.
 
 No schema change, no migrations, `config.xml` untouched, and no new import list provider:
@@ -68,7 +103,7 @@ All additive under `/api/v1/talearr/wishlists`.
 | Route | What it does |
 |---|---|
 | `GET /api/v1/talearr/wishlists` | The wishlists. |
-| `POST /api/v1/talearr/wishlists` | `{"name", "kind": "file" \| "hardcoverList", "csv" or "path" or "url", "audiobook", "ebook", "searchOnAdd", "toReadOnly", "enabled"}`. `400` with a message when the file or URL cannot be used. |
+| `POST /api/v1/talearr/wishlists` | `{"name", "kind": "file" \| "hardcoverList" \| "audibleLibrary" \| "authorList" \| "urlList", "csv" or "text" or "path" or "url", "audiobook", "ebook", "searchOnAdd", "toReadOnly", "enabled", "addUnmonitored", "authorMonitor": "future" \| "all" \| "none"}`. `400` with a message when the file or URL cannot be used. |
 | `PUT /api/v1/talearr/wishlists/{id}` | Changes a wishlist (fields left out stay). |
 | `DELETE /api/v1/talearr/wishlists/{id}` | Removes it. Books it added stay. |
 | `POST /api/v1/talearr/wishlists/preview` | Dry run for an unsaved file or list (same body as `POST`). |

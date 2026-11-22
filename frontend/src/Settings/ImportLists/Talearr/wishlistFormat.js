@@ -17,7 +17,10 @@ export const formatNames = {
   storygraph: 'StoryGraph export',
   audible: 'Audible wishlist',
   csv: 'CSV list',
-  hardcover: 'Hardcover list'
+  hardcover: 'Hardcover list',
+  asinList: 'ASIN list',
+  authors: 'Author names',
+  urlList: 'URL list'
 };
 
 export function describeFormats(wishlist) {
@@ -29,8 +32,12 @@ export function describeFormats(wishlist) {
 }
 
 export function describeSource(wishlist) {
-  if (wishlist.kind === 'hardcoverList') {
+  if (wishlist.kind === 'hardcoverList' || wishlist.kind === 'urlList') {
     return wishlist.url;
+  }
+
+  if (wishlist.kind === 'authorList' && wishlist.uploaded) {
+    return 'Pasted names';
   }
 
   return wishlist.uploaded ? 'Uploaded file' : wishlist.path;

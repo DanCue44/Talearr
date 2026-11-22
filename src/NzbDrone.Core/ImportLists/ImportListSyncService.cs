@@ -22,6 +22,7 @@ using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.EditionLocks;
 
 namespace NzbDrone.Core.ImportLists
 {
@@ -48,6 +49,7 @@ namespace NzbDrone.Core.ImportLists
         private readonly IEventAggregator _eventAggregator;
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly Logger _logger;
+        private readonly ITalearrEditionLockService _editionLocks;
 
         public ImportListSyncService(IImportListFactory importListFactory,
                                      IImportListExclusionService importListExclusionService,
@@ -66,8 +68,10 @@ namespace NzbDrone.Core.ImportLists
                                      IEventAggregator eventAggregator,
                                      IManageCommandQueue commandQueueManager,
                                      Logger logger,
-                                     IImportListBookIdentityCacheRepository bookIdentityCacheRepository)
+                                     IImportListBookIdentityCacheRepository bookIdentityCacheRepository,
+                                     ITalearrEditionLockService editionLocks = null)
         {
+            _editionLocks = editionLocks;
             _importListFactory = importListFactory;
             _importListExclusionService = importListExclusionService;
             _listFetcherAndParser = listFetcherAndParser;
@@ -2305,7 +2309,12 @@ namespace NzbDrone.Core.ImportLists
                                     var targetEdition = targetBook.Editions?.FirstOrDefault(e =>
                                         MatchesProviderId(e.HardcoverEditionId, editionProviderId, editionRawId));
 
-                                    if (targetEdition != null)
+                                    // Talearr: a locked edition (Edit book > Lock edition) is kept.
+                                    if (targetEdition != null && _editionLocks?.IsLocked(targetBook.Id) == true)
+                                    {
+                                        _logger.Debug("Hardcover Library: '{0}' keeps its locked edition", targetBook.Title);
+                                    }
+                                    else if (targetEdition != null)
                                     {
                                         _editionService.SetMonitored(targetEdition);
 

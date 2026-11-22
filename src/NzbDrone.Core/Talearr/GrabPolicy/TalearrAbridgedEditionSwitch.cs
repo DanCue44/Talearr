@@ -6,6 +6,7 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.EditionLocks;
 using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.Talearr.GrabPolicy
@@ -45,6 +46,7 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
         private readonly ITalearrBookGrabPolicyService _bookGrabPolicyService;
         private readonly IHistoryRepository _historyRepository;
         private readonly Logger _logger;
+        private readonly ITalearrEditionLockService _editionLocks;
 
         public TalearrAbridgedEditionSwitch(IBookService bookService,
                                             IEditionService editionService,
@@ -54,8 +56,10 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
                                             ITalearrGrabPolicyService grabPolicyService,
                                             ITalearrBookGrabPolicyService bookGrabPolicyService,
                                             IHistoryRepository historyRepository,
-                                            Logger logger)
+                                            Logger logger,
+                                            ITalearrEditionLockService editionLocks = null)
         {
+            _editionLocks = editionLocks;
             _bookService = bookService;
             _editionService = editionService;
             _mediaFileService = mediaFileService;
@@ -135,6 +139,12 @@ namespace NzbDrone.Core.Talearr.GrabPolicy
 
             if (!book.IsMonitoredWithAuthor())
             {
+                return;
+            }
+
+            if (_editionLocks?.IsLocked(book.Id) == true)
+            {
+                _logger.Debug("Talearr: '{0}' has a locked edition; it is kept even though the abridged policy is {1}", book.Title, TalearrAbridgedRules.Describe(target.Policy));
                 return;
             }
 

@@ -33,6 +33,7 @@ using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.EditionLocks;
 using NzbDrone.Core.Validation;
 using NzbDrone.Core.Validation.Paths;
 using NzbDrone.Http.REST.Attributes;
@@ -63,6 +64,7 @@ namespace Chaptarr.Api.V1.Books
 	        private readonly IMediaFileService _mediaFileService;
 	        private readonly IEventAggregator _eventAggregator;
             private readonly IProviderAliasService _providerAliasService;
+            private readonly ITalearrEditionLockService _editionLocks;
 	        private readonly Logger _logger;
 	        private readonly object _importStateLock = new object();
 	        private readonly HashSet<int> _activeImportCommands = new HashSet<int>();
@@ -89,7 +91,8 @@ namespace Chaptarr.Api.V1.Books
                           QualityProfileExistsValidator qualityProfileExistsValidator,
                           MetadataProfileExistsValidator metadataProfileExistsValidator,
                           Logger logger,
-                          IProviderAliasService providerAliasService = null)
+                          IProviderAliasService providerAliasService = null,
+                          ITalearrEditionLockService editionLocks = null)
 
         : base(bookService, seriesBookLinkService, authorStatisticsService, coverMapper, upgradableSpecification, signalRBroadcaster)
 	        {
@@ -105,6 +108,7 @@ namespace Chaptarr.Api.V1.Books
             _eventAggregator = eventAggregator;
             _logger = logger;
             _providerAliasService = providerAliasService;
+            _editionLocks = editionLocks;
             _bookEditBroadcastDebouncer = new Debouncer(FlushPendingBookEdits, TimeSpan.FromMilliseconds(500), executeRestartsTimer: true);
 
             PostValidator.RuleFor(s => s.Author).Must(author =>
@@ -2062,6 +2066,12 @@ namespace Chaptarr.Api.V1.Books
             if (beforeMonitoredEditionId != afterMonitoredEditionId)
             {
                 EnsureBookCover(model.Id, "editionSwitch");
+
+                // Talearr: a locked edition (Edit book > Lock edition) follows the user's pick.
+                if (afterMonitoredEditionId.HasValue)
+                {
+                    _editionLocks?.FollowManualSelection(model.Id, afterMonitoredEditionId.Value);
+                }
             }
 
             BroadcastResourceChange(ModelAction.Updated, model.Id);

@@ -337,6 +337,33 @@ CREATE TABLE IF NOT EXISTS ImportListExclusionDates (
     ExclusionKey TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
     AddedAt      TEXT NOT NULL
 );
+",
+
+            // 14: the series a user picked as a work's main one when it is in more than one
+            // (Talearr/PreferredSeries). Keyed like BookDetailEdits; the series is kept by title,
+            // so the audiobook and ebook rows share it. Provider keeps each row's own main series
+            // so clearing the choice puts it back. Losing it means the provider's first series is
+            // the main one again after the next refresh.
+            @"
+CREATE TABLE IF NOT EXISTS PreferredSeries (
+    WorkKey     TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+    SeriesTitle TEXT NOT NULL,
+    Provider    TEXT,
+    BookIdHint  INTEGER,
+    UpdatedAt   TEXT NOT NULL
+);
+",
+
+            // 15: books whose edition the user locked (Talearr/EditionLocks). Keyed by book row id
+            // with the edition's provider key, so a refresh that recreates the edition row still
+            // finds it. Losing it unlocks the books; their edition stays as it was.
+            @"
+CREATE TABLE IF NOT EXISTS EditionLocks (
+    BookId        INTEGER NOT NULL PRIMARY KEY,
+    EditionKey    TEXT,
+    EditionIdHint INTEGER,
+    LockedAt      TEXT NOT NULL
+);
 "
         };
 

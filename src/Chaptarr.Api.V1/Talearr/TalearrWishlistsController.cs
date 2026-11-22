@@ -20,6 +20,9 @@ namespace Chaptarr.Api.V1.Talearr
         public bool SearchOnAdd { get; set; }
         public bool ToReadOnly { get; set; }
         public bool Enabled { get; set; }
+        public bool AddUnmonitored { get; set; }
+        public string AuthorMonitor { get; set; }
+        public int OwnedPendingCount { get; set; }
         public string Format { get; set; }
         public DateTime AddedAt { get; set; }
         public DateTime? LastSyncAt { get; set; }
@@ -55,7 +58,10 @@ namespace Chaptarr.Api.V1.Talearr
 
         // {"name": "StoryGraph to-read", "kind": "file", "csv": "...", "audiobook": true, "ebook": false,
         //  "searchOnAdd": true, "toReadOnly": true} or {"kind": "hardcoverList", "url": "https://hardcover.app/@me/lists/x"}
-        // or {"kind": "file", "path": "/config/wishlists/goodreads.csv"}.
+        // or {"kind": "file", "path": "/config/wishlists/goodreads.csv"}
+        // or {"kind": "audibleLibrary", "csv": "...", "addUnmonitored": true} (owned Audible library)
+        // or {"kind": "authorList", "text": "Andy Weir\nN. K. Jemisin", "authorMonitor": "future"}
+        // or {"kind": "urlList", "url": "https://example.com/authors.txt", "authorMonitor": "none"}.
         [HttpPost]
         public ActionResult<TalearrWishlistResource> CreateWishlist([FromBody] TalearrWishlistRequest request)
         {
@@ -135,6 +141,9 @@ namespace Chaptarr.Api.V1.Talearr
                 SearchOnAdd = wishlist.SearchOnAdd,
                 ToReadOnly = wishlist.ToReadOnly,
                 Enabled = wishlist.Enabled,
+                AddUnmonitored = wishlist.AddUnmonitored,
+                AuthorMonitor = wishlist.AuthorMonitor,
+                OwnedPendingCount = wishlist.OwnedPending?.Count ?? 0,
                 Format = wishlist.Format,
                 AddedAt = wishlist.AddedAt,
                 LastSyncAt = wishlist.LastSyncAt,

@@ -3,12 +3,13 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { saveBook, setBookValue } from 'Store/Actions/bookActions';
+import { fetchBooks, saveBook, setBookValue } from 'Store/Actions/bookActions';
 import { saveEditions } from 'Store/Actions/editionActions';
 import { saveTalearrBookTags } from 'Store/Actions/talearrBookTagActions';
 import createAuthorSelector from 'Store/Selectors/createAuthorSelector';
 import createBookSelector from 'Store/Selectors/createBookSelector';
 import selectSettings from 'Store/Selectors/selectSettings';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
 import EditBookModalContent from './EditBookModalContent';
 
 function createMapStateToProps() {
@@ -40,6 +41,7 @@ function createMapStateToProps() {
       const settings = selectSettings(bookSettings, pendingChanges, saveError);
 
       return {
+        authorId: book.authorId,
         title: book.title,
         authorName: author.authorName,
         bookType: book.bookType,
@@ -61,7 +63,8 @@ const mapDispatchToProps = {
   dispatchSetBookValue: setBookValue,
   dispatchSaveBook: saveBook,
   dispatchSaveEditions: saveEditions,
-  dispatchSaveTalearrBookTags: saveTalearrBookTags
+  dispatchSaveTalearrBookTags: saveTalearrBookTags,
+  dispatchFetchBooks: fetchBooks
 };
 
 class EditBookModalContentConnector extends Component {
@@ -73,19 +76,121 @@ class EditBookModalContentConnector extends Component {
     super(props, context);
 
     // Talearr: book tags are saved on their own route; null means unchanged.
+    // Talearr: the preferred series is saved on its own route too; undefined means unchanged.
     this.state = {
-      talearrTags: null
+      talearrTags: null,
+      talearrSeries: null,
+      talearrPreferredSeries: undefined,
+      talearrEditionLock: null,
+      talearrLocked: undefined
     };
+
+    this._abortSeriesRequest = null;
+    this._abortLockRequest = null;
+  }
+
+  componentDidMount() {
+    this.fetchTalearrSeries();
+    this.fetchTalearrEditionLock();
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevProps.isSaving && !this.props.isSaving && !this.props.saveError) {
+      // Talearr: the lock is saved after the book, so it takes the edition just picked.
+      this.saveTalearrEditionLock();
       this.props.onModalClose();
     }
   }
 
+  componentWillUnmount() {
+    if (this._abortSeriesRequest) {
+      this._abortSeriesRequest();
+      this._abortSeriesRequest = null;
+    }
+
+    if (this._abortLockRequest) {
+      this._abortLockRequest();
+      this._abortLockRequest = null;
+    }
+  }
+
+  //
+  // Data
+
+  fetchTalearrSeries = () => {
+    const { request, abortRequest } = createAjaxRequest({
+      url: `/talearr/preferredseries/${this.props.bookId}`
+    });
+
+    this._abortSeriesRequest = abortRequest;
+
+    request.done((data) => {
+      this.setState({ talearrSeries: data });
+    });
+  };
+
+  fetchTalearrEditionLock = () => {
+    const { request, abortRequest } = createAjaxRequest({
+      url: `/talearr/editionlock/${this.props.bookId}`
+    });
+
+    this._abortLockRequest = abortRequest;
+
+    request.done((data) => {
+      this.setState({ talearrEditionLock: data });
+    });
+  };
+
+  saveTalearrEditionLock = () => {
+    const { talearrLocked, talearrEditionLock } = this.state;
+    const saved = !!(talearrEditionLock && talearrEditionLock.locked);
+
+    if (talearrLocked === undefined || talearrLocked === saved) {
+      return;
+    }
+
+    const { request } = createAjaxRequest({
+      url: `/talearr/editionlock/${this.props.bookId}`,
+      method: 'PUT',
+      dataType: 'json',
+      data: JSON.stringify({ locked: talearrLocked })
+    });
+
+    request.done(() => {
+      this.props.dispatchFetchBooks({ authorId: this.props.authorId });
+    });
+  };
+
+  saveTalearrPreferredSeries = () => {
+    const { talearrPreferredSeries, talearrSeries } = this.state;
+    const saved = (talearrSeries && talearrSeries.preferredSeries) || '';
+
+    if (talearrPreferredSeries === undefined || talearrPreferredSeries === saved) {
+      return;
+    }
+
+    const { request } = createAjaxRequest({
+      url: `/talearr/preferredseries/${this.props.bookId}`,
+      method: 'PUT',
+      dataType: 'json',
+      data: JSON.stringify({ seriesTitle: talearrPreferredSeries || null })
+    });
+
+    request.done(() => {
+      this.props.dispatchFetchBooks({ authorId: this.props.authorId });
+    });
+  };
+
   //
   // Listeners
+
+  onTalearrPreferredSeriesChange = ({ value }) => {
+    this.setState({ talearrPreferredSeries: value });
+  };
+
+  onTalearrLockedChange = ({ value }) => {
+    this.setState({ talearrLocked: value });
+  };
 
   onInputChange = ({ name, value }) => {
     this.props.dispatchSetBookValue({ name, value });
@@ -105,6 +210,8 @@ class EditBookModalContentConnector extends Component {
       });
     }
 
+    this.saveTalearrPreferredSeries();
+
     this.props.dispatchSaveBook({
       id: this.props.bookId
     });
@@ -117,10 +224,26 @@ class EditBookModalContentConnector extends Component {
   // Render
 
   render() {
+    const {
+      talearrSeries,
+      talearrPreferredSeries,
+      talearrEditionLock,
+      talearrLocked
+    } = this.state;
+
+    const savedLocked = !!(talearrEditionLock && talearrEditionLock.locked);
+
+    const savedPreferredSeries = (talearrSeries && talearrSeries.preferredSeries) || '';
+
     return (
       <EditBookModalContent
         {...this.props}
         talearrTags={this.state.talearrTags || this.props.savedTalearrTags}
+        talearrSeriesOptions={talearrSeries ? talearrSeries.options : []}
+        talearrPreferredSeries={talearrPreferredSeries === undefined ? savedPreferredSeries : talearrPreferredSeries}
+        onTalearrPreferredSeriesChange={this.onTalearrPreferredSeriesChange}
+        talearrLocked={talearrLocked === undefined ? savedLocked : talearrLocked}
+        onTalearrLockedChange={this.onTalearrLockedChange}
         onInputChange={this.onInputChange}
         onTalearrTagsChange={this.onTalearrTagsChange}
         onSavePress={this.onSavePress}
@@ -131,6 +254,8 @@ class EditBookModalContentConnector extends Component {
 
 EditBookModalContentConnector.propTypes = {
   bookId: PropTypes.number,
+  authorId: PropTypes.number,
+  dispatchFetchBooks: PropTypes.func.isRequired,
   isSaving: PropTypes.bool.isRequired,
   saveError: PropTypes.object,
   dispatchSetBookValue: PropTypes.func.isRequired,

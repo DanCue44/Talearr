@@ -13,6 +13,36 @@ namespace NzbDrone.Core.Talearr.Wishlists
         // A Hardcover list by its URL (https://hardcover.app/@user/lists/slug), read with the
         // Hardcover API token from Settings > Metadata.
         public const string HardcoverList = "hardcoverList";
+
+        // The user's owned Audible library: an audible-cli "audible library export" CSV or a plain
+        // list of ASINs (uploaded or a server path). With AddUnmonitored (on), the books are added
+        // for the record but not monitored or searched, since they are already owned.
+        public const string AudibleLibrary = "audibleLibrary";
+
+        // Author names, one per line: pasted (kept as an uploaded file) or a text file on the
+        // server. Each name is looked up and the author is added following its books.
+        public const string AuthorList = "authorList";
+
+        // A plain text or simple JSON list at a URL, fetched on every sync: author names, or
+        // books by ISBN or ASIN.
+        public const string UrlList = "urlList";
+
+        public static bool IsFileBacked(string kind) => kind == File || kind == AudibleLibrary || kind == AuthorList;
+
+        public static bool HasAuthors(string kind) => kind == AuthorList || kind == UrlList;
+    }
+
+    // How an author from an author list is monitored once added.
+    public static class TalearrWishlistAuthorMonitor
+    {
+        public const string All = "all";
+        public const string Future = "future";
+        public const string None = "none";
+
+        public static string Normalize(string value)
+        {
+            return value == All || value == None ? value : Future;
+        }
     }
 
     public static class TalearrWishlistStates
@@ -52,6 +82,16 @@ namespace NzbDrone.Core.Talearr.Wishlists
         // Synced every 12 hours (System > Tasks > Sync Wishlists) when on.
         public bool Enabled { get; set; } = true;
 
+        // Author rows (AuthorList, UrlList): all, future (new releases only) or none.
+        public string AuthorMonitor { get; set; } = TalearrWishlistAuthorMonitor.Future;
+
+        // AudibleLibrary: add the books without monitoring or searching them (already owned).
+        public bool AddUnmonitored { get; set; } = true;
+
+        // AudibleLibrary with AddUnmonitored: books queued for adding that are not in the library
+        // yet, by provider id. The author import leaves these unmonitored (TalearrOwnedBooks).
+        public List<string> OwnedPending { get; set; } = new List<string>();
+
         public string Format { get; set; }
         public DateTime AddedAt { get; set; }
         public DateTime? LastSyncAt { get; set; }
@@ -76,6 +116,9 @@ namespace NzbDrone.Core.Talearr.Wishlists
         // Known provider ids (Hardcover lists carry them), so no search is needed.
         public string BookProviderId { get; set; }
         public string AuthorProviderId { get; set; }
+
+        // An author to add (author lists), not a book. Author holds the name.
+        public bool IsAuthor { get; set; }
     }
 
     public sealed class TalearrWishlistItem

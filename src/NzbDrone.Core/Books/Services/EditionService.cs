@@ -10,6 +10,7 @@ using NzbDrone.Core.Books.Extensions;
 // using NzbDrone.Core.MediaFiles.BookImport.Identification; // Disabled - old identification system
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
+using NzbDrone.Core.Talearr.EditionLocks;
 
 namespace NzbDrone.Core.Books
 {
@@ -45,15 +46,18 @@ namespace NzbDrone.Core.Books
         private readonly IEditionRepository _editionRepository;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
+        private readonly ITalearrEditionLockService _editionLocks;
         // private readonly IDeterministicMatcher _deterministicMatcher; // Disabled - old identification system
 
         public EditionService(IEditionRepository editionRepository,
                               IEventAggregator eventAggregator,
-                              Logger logger)
+                              Logger logger,
+                              ITalearrEditionLockService editionLocks = null)
         {
             _editionRepository = editionRepository;
             _eventAggregator = eventAggregator;
             _logger = logger;
+            _editionLocks = editionLocks;
             // _deterministicMatcher = new DeterministicMatchingService(_logger); // Disabled - old identification system
         }
 
@@ -476,7 +480,20 @@ namespace NzbDrone.Core.Books
 
         public List<Edition> SetMonitored(Edition edition, bool isManualSelection = false)
         {
-            return _editionRepository.SetMonitored(edition, isManualSelection);
+            // Talearr: a locked edition (Edit book > Lock edition) is not switched automatically;
+            // a user's own pick moves the lock with it.
+            if (!isManualSelection && edition != null && _editionLocks?.AllowsAutomaticSwitch(edition) == false)
+            {
+                return _editionRepository.FindByBook(new[] { edition.BookId });
+            }
+
+            var result = _editionRepository.SetMonitored(edition, isManualSelection);
+            if (isManualSelection && edition != null)
+            {
+                _editionLocks?.FollowManualSelection(edition.BookId, edition.Id);
+            }
+
+            return result;
         }
 
         public void Handle(BookDeletedEvent message)
