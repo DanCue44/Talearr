@@ -2,6 +2,9 @@
 // Please do not change this file!
 interface CssExports {
   'actions': string;
+  'added': string;
+  'filter': string;
+  'filterCount': string;
   'foreignId': string;
   'name': string;
 }

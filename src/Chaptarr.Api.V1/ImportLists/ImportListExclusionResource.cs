@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Chaptarr.Api.V1.MediaTypes;
@@ -12,6 +13,9 @@ namespace Chaptarr.Api.V1.ImportLists
         public string ForeignId { get; set; }
         public string AuthorName { get; set; }
         public string MediaType { get; set; }
+
+        // Talearr: when the exclusion was added (talearr.db); null for older exclusions.
+        public DateTime? Added { get; set; }
     }
 
     public static class ImportListExclusionResourceMapper

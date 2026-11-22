@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import FieldSet from 'Components/FieldSet';
+import TextInput from 'Components/Form/TextInput';
 import IconButton from 'Components/Link/IconButton';
 import SpinnerButton from 'Components/Link/SpinnerButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
@@ -34,6 +35,13 @@ const columns = [
     isSortable: false
   },
   {
+    name: 'added',
+    className: styles.added,
+    label: () => translate('Added'),
+    isVisible: true,
+    isSortable: false
+  },
+  {
     className: styles.actions,
     name: 'actions',
     label: '',
@@ -41,6 +49,20 @@ const columns = [
     isSortable: false
   }
 ];
+
+// Talearr: the search box matches the name or the provider id, case-insensitively.
+function filterItems(items, filterText) {
+  const text = (filterText || '').trim().toLowerCase();
+
+  if (!text) {
+    return items;
+  }
+
+  return items.filter((item) => {
+    return (item.authorName || '').toLowerCase().includes(text) ||
+      (item.foreignId || '').toLowerCase().includes(text);
+  });
+}
 
 class ImportListExclusions extends Component {
 
@@ -56,7 +78,8 @@ class ImportListExclusions extends Component {
       allSelected: false,
       allUnselected: true,
       lastToggled: null,
-      selectedState: {}
+      selectedState: {},
+      filterText: ''
     };
   }
 
@@ -73,8 +96,14 @@ class ImportListExclusions extends Component {
   //
   // Control
 
+  getVisibleItems = () => {
+    return filterItems(this.props.items, this.state.filterText);
+  };
+
+  // Rows hidden by the search box are never selected, so Delete Selected only removes rows
+  // the user can see.
   getVisibleSelectedState = () => {
-    return this.props.items.reduce((acc, item) => {
+    return this.getVisibleItems().reduce((acc, item) => {
       acc[item.id] = false;
 
       return acc;
@@ -107,6 +136,16 @@ class ImportListExclusions extends Component {
     this.setState({ isDeleteSelectedImportListExclusionsModalOpen: false });
   };
 
+  onFilterChange = ({ value }) => {
+    this.setState({
+      filterText: value,
+      allSelected: false,
+      allUnselected: true,
+      lastToggled: null,
+      selectedState: {}
+    });
+  };
+
   onSelectAllChange = ({ value }) => {
     this.setState(selectAll(this.getVisibleSelectedState(), value));
   };
@@ -116,7 +155,7 @@ class ImportListExclusions extends Component {
   // establish a range-selection anchor.
   onSelectedChange = ({ id, value, shiftKey }) => {
     this.setState((state) => {
-      const nextState = toggleSelected(state, this.props.items, id, value, shiftKey);
+      const nextState = toggleSelected(state, filterItems(this.props.items, state.filterText), id, value, shiftKey);
 
       if (typeof shiftKey !== 'boolean') {
         nextState.lastToggled = state.lastToggled;
@@ -140,8 +179,10 @@ class ImportListExclusions extends Component {
     const {
       allSelected,
       allUnselected,
-      selectedState
+      selectedState,
+      filterText
     } = this.state;
+    const visibleItems = filterItems(items, filterText);
     const selectedIds = getSelectedIds(selectedState);
     const selectedCount = selectedIds.length;
 
@@ -151,9 +192,25 @@ class ImportListExclusions extends Component {
           errorMessage={translate('UnableToLoadImportListExclusions')}
           {...otherProps}
         >
+          <div className={styles.filter}>
+            <TextInput
+              name="importListExclusionFilter"
+              value={filterText}
+              placeholder={translate('Search')}
+              onChange={this.onFilterChange}
+            />
+            {
+              filterText ?
+                <span className={styles.filterCount}>
+                  {`${visibleItems.length} of ${items.length}`}
+                </span> :
+                null
+            }
+          </div>
+
           <Table
             selectAll={true}
-            allSelected={items.length > 0 && allSelected}
+            allSelected={visibleItems.length > 0 && allSelected}
             allUnselected={allUnselected}
             columns={columns}
             canModifyColumns={false}
@@ -161,7 +218,7 @@ class ImportListExclusions extends Component {
           >
             <TableBody>
               {
-                items.map((item) => {
+                visibleItems.map((item) => {
                   return (
                     <ImportListExclusion
                       key={item.id}
@@ -176,7 +233,7 @@ class ImportListExclusions extends Component {
               }
 
               <TableRow>
-                <TableRowCell colSpan={3}>
+                <TableRowCell colSpan={4}>
                   <SpinnerButton
                     kind={kinds.DANGER}
                     isSpinning={isDeleting}

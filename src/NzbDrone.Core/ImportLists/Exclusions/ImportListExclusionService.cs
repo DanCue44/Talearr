@@ -5,6 +5,7 @@ using NLog;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Books.Events;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Talearr.ImportListExclusions;
 
 namespace NzbDrone.Core.ImportLists.Exclusions
 {
@@ -28,15 +29,21 @@ namespace NzbDrone.Core.ImportLists.Exclusions
         private readonly IImportListExclusionRepository _repo;
         private readonly Logger _logger;
 
-        public ImportListExclusionService(IImportListExclusionRepository repo, Logger logger)
+        // Talearr: added dates live in talearr.db (TalearrExclusionDateStore).
+        private readonly ITalearrExclusionDateStore _addedDates;
+
+        public ImportListExclusionService(IImportListExclusionRepository repo, Logger logger, ITalearrExclusionDateStore addedDates = null)
         {
             _repo = repo;
             _logger = logger;
+            _addedDates = addedDates;
         }
 
         public ImportListExclusion Add(ImportListExclusion importListExclusion)
         {
-            return _repo.Insert(importListExclusion);
+            var added = _repo.Insert(importListExclusion);
+            _addedDates?.RecordAdded(new[] { added });
+            return added;
         }
 
         public ImportListExclusion Update(ImportListExclusion importListExclusion)
@@ -119,6 +126,7 @@ namespace NzbDrone.Core.ImportLists.Exclusions
             if (additions.Any())
             {
                 _repo.InsertMany(additions);
+                _addedDates?.RecordAdded(additions);
             }
         }
 
@@ -204,6 +212,7 @@ namespace NzbDrone.Core.ImportLists.Exclusions
             if (exclusionsToInsert.Any())
             {
                 _repo.InsertMany(exclusionsToInsert);
+                _addedDates?.RecordAdded(exclusionsToInsert);
             }
         }
     }

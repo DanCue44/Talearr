@@ -7,6 +7,11 @@
   width: 160px;
 }
 
+.added {
+  width: 140px;
+  white-space: nowrap;
+}
+
 .actions {
   width: 45px;
   text-align: right;

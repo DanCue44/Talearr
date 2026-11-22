@@ -327,6 +327,16 @@ CREATE TABLE IF NOT EXISTS AudibleAuthorCatalogs (
     FetchedAt   TEXT NOT NULL,
     PRIMARY KEY (AuthorKey, Marketplace)
 );
+",
+
+            // 13: when each import list exclusion was added (Talearr/ImportListExclusions). Keyed by
+            // provider id and media scope ("hc:123|all"); the shared table has no date column.
+            // Losing it only blanks the dates.
+            @"
+CREATE TABLE IF NOT EXISTS ImportListExclusionDates (
+    ExclusionKey TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+    AddedAt      TEXT NOT NULL
+);
 "
         };
 

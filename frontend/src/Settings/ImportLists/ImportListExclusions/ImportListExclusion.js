@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
+import RelativeDateCellConnector from 'Components/Table/Cells/RelativeDateCellConnector';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import TableRow from 'Components/Table/TableRow';
@@ -59,6 +60,7 @@ class ImportListExclusion extends Component {
       id,
       authorName,
       foreignId,
+      added,
       isSelected,
       onSelectedChange
     } = this.props;
@@ -73,6 +75,11 @@ class ImportListExclusion extends Component {
 
         <TableRowCell className={styles.foreignId}>{foreignId}</TableRowCell>
         <TableRowCell className={styles.name}>{authorName}</TableRowCell>
+
+        <RelativeDateCellConnector
+          className={styles.added}
+          date={added}
+        />
 
         <TableRowCell className={styles.actions}>
           <Link
@@ -107,6 +114,7 @@ ImportListExclusion.propTypes = {
   id: PropTypes.number.isRequired,
   authorName: PropTypes.string.isRequired,
   foreignId: PropTypes.string.isRequired,
+  added: PropTypes.string,
   isSelected: PropTypes.bool.isRequired,
   onSelectedChange: PropTypes.func.isRequired,
   onConfirmDeleteImportListExclusion: PropTypes.func.isRequired

@@ -7,6 +7,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.ImportLists.Exclusions;
+using NzbDrone.Core.Talearr.ImportListExclusions;
 using NzbDrone.Http.REST.Attributes;
 
 namespace Chaptarr.Api.V1.ImportLists
@@ -15,12 +16,15 @@ namespace Chaptarr.Api.V1.ImportLists
     public class ImportListExclusionController : RestController<ImportListExclusionResource>
     {
         private readonly IImportListExclusionService _importListExclusionService;
+        private readonly ITalearrExclusionDateStore _addedDates;
 
         public ImportListExclusionController(IImportListExclusionService importListExclusionService,
                                          ImportListExclusionExistsValidator importListExclusionExistsValidator,
-                                         ImportListExclusionProviderIdValidator providerIdValidator)
+                                         ImportListExclusionProviderIdValidator providerIdValidator,
+                                         ITalearrExclusionDateStore addedDates = null)
         {
             _importListExclusionService = importListExclusionService;
+            _addedDates = addedDates;
 
             SharedValidator.RuleFor(c => c.ForeignId).NotEmpty().SetValidator(providerIdValidator);
             SharedValidator.RuleFor(c => c.AuthorName).NotEmpty();
@@ -61,13 +65,29 @@ namespace Chaptarr.Api.V1.ImportLists
 
         protected override ImportListExclusionResource GetResourceById(int id)
         {
-            return _importListExclusionService.Get(id).ToResource();
+            return WithAddedDates(new List<ImportListExclusion> { _importListExclusionService.Get(id) }).Single();
         }
 
         [HttpGet]
         public List<ImportListExclusionResource> GetImportListExclusions()
         {
-            return _importListExclusionService.All().ToResource();
+            return WithAddedDates(_importListExclusionService.All());
+        }
+
+        private List<ImportListExclusionResource> WithAddedDates(List<ImportListExclusion> exclusions)
+        {
+            var resources = exclusions.ToResource();
+            var dates = _addedDates?.GetAddedDates(exclusions) ?? new Dictionary<int, DateTime>();
+
+            foreach (var resource in resources)
+            {
+                if (dates.TryGetValue(resource.Id, out var added))
+                {
+                    resource.Added = added;
+                }
+            }
+
+            return resources;
         }
 
         [RestPostById]

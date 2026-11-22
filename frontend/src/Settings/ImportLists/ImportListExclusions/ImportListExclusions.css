@@ -6,6 +6,24 @@
   width: 160px;
 }
 
+.added {
+  width: 140px;
+  white-space: nowrap;
+}
+
+.filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  max-width: 400px;
+}
+
+.filterCount {
+  color: var(--helpTextColor);
+  white-space: nowrap;
+}
+
 .actions {
   width: 45px;
   text-align: right;
