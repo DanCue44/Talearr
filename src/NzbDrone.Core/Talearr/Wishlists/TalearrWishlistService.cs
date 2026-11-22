@@ -33,6 +33,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
         public bool? SearchOnAdd { get; set; }
         public bool? ToReadOnly { get; set; }
         public bool? Enabled { get; set; }
+        public bool? AddUnmonitored { get; set; }
     }
 
     public interface ITalearrWishlistService
@@ -197,6 +198,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
             lock (_syncLock)
             {
                 var result = new TalearrWishlistSyncResult { WishlistId = wishlist.Id };
+                ActContext context = null;
 
                 try
                 {
@@ -204,7 +206,9 @@ namespace NzbDrone.Core.Talearr.Wishlists
                     wishlist.Format = format;
                     result.Rows = rows.Count;
 
-                    var context = new ActContext(this, wishlist);
+                    ForgetOwnedInLibrary(wishlist);
+
+                    context = new ActContext(this, wishlist);
                     var lookups = 0;
 
                     foreach (var row in rows)
@@ -243,7 +247,6 @@ namespace NzbDrone.Core.Talearr.Wishlists
                         }
                     }
 
-                    context.Finish();
                     wishlist.LastError = null;
                 }
                 catch (Exception ex) when (ex is TalearrWishlistException || ex is IOException || ex is FormatException || ex is UnauthorizedAccessException)
@@ -255,6 +258,9 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 wishlist.LastSyncAt = DateTime.UtcNow;
                 wishlist.LastResult = wishlist.LastError == null ? result.Describe() : null;
                 _store.Save(wishlist);
+
+                // After saving: the author import reads the owned books the wishlist just queued.
+                context?.Finish();
 
                 return result;
             }
@@ -315,7 +321,37 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 csv = File.ReadAllText(wishlist.Path);
             }
 
-            return TalearrWishlistCsv.Parse(csv, wishlist.ToReadOnly);
+            // An owned library has no to-read shelf: every row counts.
+            return TalearrWishlistCsv.Parse(csv, wishlist.Kind != TalearrWishlistKinds.AudibleLibrary && wishlist.ToReadOnly);
+        }
+
+        // Owned books that reached the library no longer need the author import to leave them
+        // unmonitored.
+        private void ForgetOwnedInLibrary(TalearrWishlist wishlist)
+        {
+            if (wishlist.OwnedPending == null || wishlist.OwnedPending.Count == 0)
+            {
+                return;
+            }
+
+            wishlist.OwnedPending = wishlist.OwnedPending
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Where(id =>
+                {
+                    try
+                    {
+                        var prefix = id.Contains(':') ? id.Substring(0, id.IndexOf(':')) : "hc";
+                        return _bookService.FindByProviderId(prefix, id, BookMediaType.Audiobook) == null &&
+                               _bookService.FindByProviderId(prefix, id, BookMediaType.Ebook) == null;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Debug(ex, "Talearr: wishlist lookup of owned book {0} failed", id);
+                        return true;
+                    }
+                })
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private static bool IsHandled(TalearrWishlist wishlist, string key)
@@ -376,7 +412,8 @@ namespace NzbDrone.Core.Talearr.Wishlists
                     match = Pick(_bookSearch.SearchByIsbn(row.Isbn), row, trustIdentifier: true);
                 }
 
-                if (match == null)
+                // A row with only an ASIN (a plain ASIN list) has no title to search for.
+                if (match == null && !string.IsNullOrWhiteSpace(row.Title))
                 {
                     match = Pick(_bookSearch.SearchForNewBook(row.Title, row.Author, false), row, trustIdentifier: false);
                 }
@@ -455,8 +492,15 @@ namespace NzbDrone.Core.Talearr.Wishlists
         {
             if (!string.IsNullOrWhiteSpace(request.Kind))
             {
-                wishlist.Kind = request.Kind == TalearrWishlistKinds.HardcoverList ? TalearrWishlistKinds.HardcoverList : TalearrWishlistKinds.File;
+                wishlist.Kind = request.Kind switch
+                {
+                    TalearrWishlistKinds.HardcoverList => TalearrWishlistKinds.HardcoverList,
+                    TalearrWishlistKinds.AudibleLibrary => TalearrWishlistKinds.AudibleLibrary,
+                    _ => TalearrWishlistKinds.File
+                };
             }
+
+            wishlist.AddUnmonitored = request.AddUnmonitored ?? wishlist.AddUnmonitored;
 
             wishlist.Name = string.IsNullOrWhiteSpace(request.Name) ? wishlist.Name : request.Name.Trim();
             wishlist.Url = request.Url?.Trim() ?? wishlist.Url;
@@ -488,7 +532,12 @@ namespace NzbDrone.Core.Talearr.Wishlists
 
             if (string.IsNullOrWhiteSpace(wishlist.Name))
             {
-                wishlist.Name = wishlist.Kind == TalearrWishlistKinds.HardcoverList ? "Hardcover list" : "Wishlist";
+                wishlist.Name = wishlist.Kind switch
+                {
+                    TalearrWishlistKinds.HardcoverList => "Hardcover list",
+                    TalearrWishlistKinds.AudibleLibrary => "Audible library",
+                    _ => "Wishlist"
+                };
             }
         }
 
@@ -504,9 +553,11 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 throw new TalearrWishlistException("Not a Hardcover list URL. Use the list's address, like https://hardcover.app/@you/lists/my-list.");
             }
 
-            if (wishlist.Kind == TalearrWishlistKinds.File && string.IsNullOrWhiteSpace(wishlist.Path))
+            if (TalearrWishlistKinds.IsFileBacked(wishlist.Kind) && string.IsNullOrWhiteSpace(wishlist.Path))
             {
-                throw new TalearrWishlistException("Upload a CSV export or give the path of one on the server.");
+                throw new TalearrWishlistException(wishlist.Kind == TalearrWishlistKinds.AudibleLibrary
+                    ? "Upload your Audible library export (audible-cli CSV or a list of ASINs) or give the path of one on the server."
+                    : "Upload a CSV export or give the path of one on the server.");
             }
         }
 
@@ -532,6 +583,11 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 _wishlist = wishlist;
                 _exclusions = Safe(() => service._exclusionService.All()) ?? new List<ImportListExclusion>();
             }
+
+            // An owned library added for the record: nothing is monitored or searched.
+            private bool Owned => _wishlist.Kind == TalearrWishlistKinds.AudibleLibrary && _wishlist.AddUnmonitored;
+
+            private bool SearchOnAdd => _wishlist.SearchOnAdd && !Owned;
 
             private IEnumerable<BookMediaType> Wanted()
             {
@@ -561,10 +617,17 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 {
                     var row = FindLocal(item, mediaType);
                     Remember(item, mediaType, row);
-                    if (row == null || !row.IsMonitoredForMediaType(mediaType))
+                    if (Owned ? row == null : row == null || !row.IsMonitoredForMediaType(mediaType))
                     {
                         notWanted.Add(mediaType == BookMediaType.Audiobook ? "audiobook" : "ebook");
                     }
+                }
+
+                if (Owned)
+                {
+                    item.State = notWanted.Any() ? item.State : TalearrWishlistStates.InLibrary;
+                    item.Message = notWanted.Any() ? "Will add the " + string.Join(" and ", notWanted) + ", not monitored (owned)" : "Already in the library";
+                    return;
                 }
 
                 if (!notWanted.Any())
@@ -601,8 +664,9 @@ namespace NzbDrone.Core.Talearr.Wishlists
                     }
 
                     var format = mediaType == BookMediaType.Audiobook ? "audiobook" : "ebook";
-                    if (row.IsMonitoredForMediaType(mediaType))
+                    if (Owned || row.IsMonitoredForMediaType(mediaType))
                     {
+                        // An owned book already in the library keeps its monitoring as it is.
                         already++;
                         continue;
                     }
@@ -611,7 +675,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
                     EnsureAuthorFormat(row.AuthorId, mediaType);
                     monitored++;
 
-                    if (_wishlist.SearchOnAdd)
+                    if (SearchOnAdd)
                     {
                         _toSearch.Add(row.Id);
                     }
@@ -634,12 +698,25 @@ namespace NzbDrone.Core.Talearr.Wishlists
                         return;
                     }
 
+                    if (Owned)
+                    {
+                        // Before queueing, so the author import never sees it as a wanted book.
+                        _wishlist.OwnedPending ??= new List<string>();
+                        if (!_wishlist.OwnedPending.Contains(item.BookProviderId, StringComparer.OrdinalIgnoreCase))
+                        {
+                            _wishlist.OwnedPending.Add(item.BookProviderId);
+
+                            // Saved now: an author import already running could pick the request up.
+                            _service._store.Save(_wishlist);
+                        }
+                    }
+
                     var pendingId = _service._pendingAuthorImportService.EnqueueAsync(item.AuthorProviderId, config, config.RequestedBy).GetAwaiter().GetResult();
                     if (pendingId > 0)
                     {
                         _queued = true;
                         item.State = TalearrWishlistStates.Queued;
-                        item.Message = "Adding " + string.Join(" and ", missing.Select(m => m == BookMediaType.Audiobook ? "the audiobook" : "the ebook"));
+                        item.Message = "Adding " + string.Join(" and ", missing.Select(m => m == BookMediaType.Audiobook ? "the audiobook" : "the ebook")) + (Owned ? ", not monitored (owned)" : string.Empty);
                         return;
                     }
 
@@ -649,7 +726,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
                 }
 
                 item.State = monitored > 0 ? TalearrWishlistStates.Monitored : TalearrWishlistStates.InLibrary;
-                item.Message = monitored > 0 ? "Monitored" : "Already monitored";
+                item.Message = monitored > 0 ? "Monitored" : Owned ? "Already in the library" : "Already monitored";
             }
 
             public void Finish()
@@ -718,7 +795,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
                     QueueIfUnavailable = true,
                     RequestedBy = "Talearr wishlist: " + _wishlist.Name,
                     AuthorName = item.AuthorName,
-                    SearchForMissingBooks = _wishlist.SearchOnAdd,
+                    SearchForMissingBooks = SearchOnAdd,
                     AudiobookMonitorExistingMode = MonitorTypes.None,
                     EbookMonitorExistingMode = MonitorTypes.None,
 
@@ -747,7 +824,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
                         config.AudiobookMonitorNewItems = NewItemMonitorTypes.None;
                         config.AudiobookMonitorExistingMode = MonitorTypes.SpecificBook;
                         config.AudiobookBooksToMonitor = books;
-                        config.AudiobookBooksToSearch = _wishlist.SearchOnAdd ? books.ToList() : null;
+                        config.AudiobookBooksToSearch = SearchOnAdd ? books.ToList() : null;
                         config.AudiobookTags = tags;
                     }
                     else
@@ -760,7 +837,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
                         config.EbookMonitorNewItems = NewItemMonitorTypes.None;
                         config.EbookMonitorExistingMode = MonitorTypes.SpecificBook;
                         config.EbookBooksToMonitor = books;
-                        config.EbookBooksToSearch = _wishlist.SearchOnAdd ? books.ToList() : null;
+                        config.EbookBooksToSearch = SearchOnAdd ? books.ToList() : null;
                         config.EbookTags = tags;
                     }
                 }

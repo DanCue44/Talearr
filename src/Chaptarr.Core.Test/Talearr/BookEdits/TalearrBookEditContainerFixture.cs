@@ -23,6 +23,7 @@ namespace Chaptarr.Core.Test.Talearr.BookEdits
         [TestCase(typeof(RefreshSeriesService), "_preferredSeries")]
         [TestCase(typeof(RefreshBookService), "_editionLocks")]
         [TestCase(typeof(EditionService), "_editionLocks")]
+        [TestCase(typeof(NzbDrone.Core.Books.Commands.ProcessPendingImportsCommandHandler), "_ownedBooks")]
         public void should_fill_the_book_edit_dependency(Type serviceType, string field)
         {
             var container = new Container(rules => rules.WithNzbDroneRules());

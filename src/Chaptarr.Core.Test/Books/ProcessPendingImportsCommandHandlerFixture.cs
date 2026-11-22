@@ -105,6 +105,7 @@ namespace Chaptarr.Core.Test.Books
             public List<Book> Books { get; set; } = new();
             public bool IgnoreMonitoringUpdates { get; set; }
             public bool ReplaceRowsOnMonitoringUpdate { get; set; }
+            public List<Book> Updated { get; } = new();
 
             protected override object Invoke(MethodInfo targetMethod, object[] args)
             {
@@ -161,6 +162,11 @@ namespace Chaptarr.Core.Test.Books
                             }
                         }
 
+                        return null;
+                    case nameof(IBookService.GetBook):
+                        return Books.FirstOrDefault(book => book.Id == (int)args[0]);
+                    case nameof(IBookService.UpdateMany):
+                        Updated.AddRange((IEnumerable<Book>)args[0]);
                         return null;
                     default:
                         throw new NotImplementedException($"Test proxy does not implement IBookService.{targetMethod?.Name}");
@@ -863,6 +869,53 @@ namespace Chaptarr.Core.Test.Books
             Assert.That(pendingImportService.RetryReasons, Is.Empty);
             Assert.That(pendingImportService.DeletedIds, Is.Empty);
             Assert.That(events.Events.OfType<PendingAuthorImportFailedEvent>().Count(), Is.EqualTo(1));
+        }
+
+        private sealed class OwnedBooksStub : NzbDrone.Core.Talearr.Wishlists.ITalearrOwnedBooks
+        {
+            public bool IsOwnedOnly(string providerId, BookMediaType mediaType) => providerId == "gr:2002" && mediaType == BookMediaType.Audiobook;
+        }
+
+        [Test]
+        public void owned_library_books_are_added_unmonitored_and_kept_as_manual_additions()
+        {
+            var pendingImportService = new StubPendingAuthorImportService();
+            var pending = Pending(157);
+            pending.AudiobookStatus = PendingImportStatus.Pending;
+            pending.EbookStatus = PendingImportStatus.NotRequested;
+            pending.AudiobookBooksToMonitor = @"[""gr:2001"",""gr:2002""]";
+            pendingImportService.DueResponses.Enqueue(new List<PendingAuthorImport> { pending });
+
+            var author = new Author { Id = 42, Name = "Existing Author", AudiobookMonitored = true };
+            var wanted = new Book { Id = 201, AuthorId = author.Id, Author = author, MediaType = BookMediaType.Audiobook, GoodreadsWorkId = "gr:2001" };
+            var owned = new Book { Id = 202, AuthorId = author.Id, Author = author, MediaType = BookMediaType.Audiobook, GoodreadsWorkId = "gr:2002", AudiobookMonitored = true };
+            var bookService = DispatchProxy.Create<IBookService, BookServiceProxy>();
+            var bookServiceProxy = (BookServiceProxy)bookService;
+            bookServiceProxy.Books = new List<Book> { wanted, owned };
+
+            var authorService = DispatchProxy.Create<IAuthorService, AuthorServiceProxy>();
+            ((AuthorServiceProxy)authorService).CurrentAuthor = author;
+            var authorLibrary = DispatchProxy.Create<IAuthorLibraryService, AuthorLibraryProxy>();
+            ((AuthorLibraryProxy)authorLibrary).AddedAuthor = author;
+
+            var handler = new ProcessPendingImportsCommandHandler(
+                pendingImportService,
+                authorLibrary,
+                authorService,
+                bookService,
+                DispatchProxy.Create<IProvideBookInfo, BookInfoProxy>(),
+                new RecordingCommandQueue(),
+                new RecordingEventAggregator(),
+                LogManager.GetCurrentClassLogger(),
+                new OwnedBooksStub());
+
+            handler.Execute(new ProcessPendingImportsCommand());
+
+            Assert.That(wanted.AudiobookMonitored, Is.True);
+            Assert.That(owned.AudiobookMonitored, Is.False);
+            Assert.That(owned.AddOptions.AddType, Is.EqualTo(BookAddType.Manual));
+            Assert.That(bookServiceProxy.Updated, Is.EqualTo(new[] { owned }));
+            Assert.That(pending.OverallStatus, Is.Not.EqualTo(PendingImportStatus.Failed));
         }
 
         [Test]

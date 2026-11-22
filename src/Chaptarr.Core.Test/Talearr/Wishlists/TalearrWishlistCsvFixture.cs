@@ -24,6 +24,23 @@ namespace Chaptarr.Core.Test.Talearr.Wishlists
             "B002V0QK4C,Dune,,,Frank Herbert,\"Scott Brick, Orlagh Cassidy\",Dune,1,Science Fiction,1263,,,4.6,50,2026-10-02,2007-01-01,,\n";
 
         [Test]
+        public void a_plain_asin_list_is_read_with_or_without_a_header()
+        {
+            var (format, rows) = TalearrWishlistCsv.Parse("asin\nB08GB58KD5\n b002v0qk4c \n\nB08GB58KD5\n");
+
+            Assert.That(format, Is.EqualTo(TalearrWishlistFormats.AsinList));
+            Assert.That(rows.Select(r => r.Asin), Is.EqualTo(new[] { "B08GB58KD5", "B002V0QK4C" }));
+            Assert.That(rows[0].Key, Is.EqualTo("asin:b08gb58kd5"));
+            Assert.That(TalearrWishlistCsv.Parse("B08GB58KD5\nB002V0QK4C").Rows.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void a_list_with_a_line_that_is_not_an_asin_still_needs_a_title_column()
+        {
+            Assert.Throws<System.FormatException>(() => TalearrWishlistCsv.Parse("B08GB58KD5\nProject Hail Mary"));
+        }
+
+        [Test]
         public void goodreads_export_takes_the_to_read_shelf_and_unwraps_isbns()
         {
             var (format, rows) = TalearrWishlistCsv.Parse(Goodreads);

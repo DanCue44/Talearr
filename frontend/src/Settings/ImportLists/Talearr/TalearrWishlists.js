@@ -187,7 +187,7 @@ class TalearrWishlists extends Component {
                             {wishlist.name}
                             {wishlist.enabled ? null : <Label kind={kinds.DISABLED}>{'Manual'}</Label>}
                             <span className={styles.sub}>
-                              {[formatNames[wishlist.format], describeSource(wishlist)].filter(Boolean).join(': ')}
+                              {[wishlist.kind === 'audibleLibrary' ? 'Owned Audible library' : formatNames[wishlist.format], describeSource(wishlist)].filter(Boolean).join(': ')}
                             </span>
                           </div>
                         </TableRowCell>

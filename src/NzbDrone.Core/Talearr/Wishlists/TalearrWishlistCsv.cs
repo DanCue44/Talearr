@@ -14,6 +14,7 @@ namespace NzbDrone.Core.Talearr.Wishlists
         public const string Audible = "audible";
         public const string Generic = "csv";
         public const string Hardcover = "hardcover";
+        public const string AsinList = "asinList";
     }
 
     // Talearr: reads wishlist exports. The format is recognised from the header row:
@@ -45,6 +46,11 @@ namespace NzbDrone.Core.Talearr.Wishlists
 
             var format = DetectFormat(header);
             var title = Col("title", "book title", "name");
+            if (title < 0 && TryParseAsinList(table, out var asinRows))
+            {
+                return (TalearrWishlistFormats.AsinList, asinRows);
+            }
+
             if (title < 0)
             {
                 throw new FormatException("The file has no Title column. Export your list as CSV (Goodreads, StoryGraph, audible-cli) or add a title column.");
@@ -90,6 +96,33 @@ namespace NzbDrone.Core.Talearr.Wishlists
             }
 
             return (format, rows.GroupBy(r => r.Key, StringComparer.OrdinalIgnoreCase).Select(g => g.First()).ToList());
+        }
+
+        // A plain list of ASINs, one per line (an optional "asin" header first), as an Audible
+        // library tool may print it. Every line must be an ASIN, so a CSV without a title column
+        // still gets the usual error.
+        internal static bool TryParseAsinList(List<List<string>> table, out List<TalearrWishlistRow> rows)
+        {
+            rows = new List<TalearrWishlistRow>();
+            var start = table.Count > 0 && table[0].Count == 1 && NormalizeHeader(table[0][0]) == "asin" ? 1 : 0;
+
+            for (var i = start; i < table.Count; i++)
+            {
+                var cells = table[i].Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+                var asin = cells.Count == 1 ? NormalizeAsin(Clean(cells[0])) : null;
+                if (asin == null)
+                {
+                    rows.Clear();
+                    return false;
+                }
+
+                var row = new TalearrWishlistRow { Asin = asin };
+                row.Key = RowKey(row);
+                rows.Add(row);
+            }
+
+            rows = rows.GroupBy(r => r.Key, StringComparer.OrdinalIgnoreCase).Select(g => g.First()).ToList();
+            return rows.Count > 0;
         }
 
         public static string RowKey(TalearrWishlistRow row)

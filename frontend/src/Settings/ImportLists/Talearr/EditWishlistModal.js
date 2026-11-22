@@ -21,7 +21,13 @@ import styles from './TalearrWishlists.css';
 const sourceOptions = [
   { key: 'upload', value: 'Upload a CSV export' },
   { key: 'path', value: 'CSV file on the server' },
-  { key: 'hardcoverList', value: 'Hardcover list' }
+  { key: 'hardcoverList', value: 'Hardcover list' },
+  { key: 'audibleLibrary', value: 'Owned Audible library' }
+];
+
+const audibleLibraryStorage = [
+  { key: 'upload', value: 'Upload the export' },
+  { key: 'path', value: 'File on the server' }
 ];
 
 function initialForm(wishlist) {
@@ -37,13 +43,15 @@ function initialForm(wishlist) {
       ebook: false,
       searchOnAdd: true,
       toReadOnly: true,
-      enabled: true
+      enabled: true,
+      addUnmonitored: true,
+      storage: 'upload'
     };
   }
 
   let source = wishlist.uploaded ? 'upload' : 'path';
-  if (wishlist.kind === 'hardcoverList') {
-    source = 'hardcoverList';
+  if (wishlist.kind === 'hardcoverList' || wishlist.kind === 'audibleLibrary') {
+    source = wishlist.kind;
   }
 
   return {
@@ -57,17 +65,36 @@ function initialForm(wishlist) {
     ebook: wishlist.ebook,
     searchOnAdd: wishlist.searchOnAdd,
     toReadOnly: wishlist.toReadOnly,
-    enabled: wishlist.enabled
+    enabled: wishlist.enabled,
+    addUnmonitored: wishlist.addUnmonitored,
+    storage: wishlist.uploaded ? 'upload' : 'path'
   };
+}
+
+function usesUpload(form) {
+  return form.source === 'upload' || (form.source === 'audibleLibrary' && form.storage === 'upload');
+}
+
+function usesPath(form) {
+  return form.source === 'path' || (form.source === 'audibleLibrary' && form.storage === 'path');
+}
+
+function toKind(source) {
+  if (source === 'hardcoverList' || source === 'audibleLibrary') {
+    return source;
+  }
+
+  return 'file';
 }
 
 function toRequest(form) {
   return {
     name: form.name,
-    kind: form.source === 'hardcoverList' ? 'hardcoverList' : 'file',
-    path: form.source === 'path' ? form.path : null,
+    kind: toKind(form.source),
+    path: usesPath(form) ? form.path : null,
     url: form.source === 'hardcoverList' ? form.url : null,
-    csv: form.source === 'upload' ? form.csv : null,
+    csv: usesUpload(form) ? form.csv : null,
+    addUnmonitored: form.addUnmonitored,
     audiobook: form.audiobook,
     ebook: form.ebook,
     searchOnAdd: form.searchOnAdd,
@@ -125,7 +152,7 @@ class EditWishlistModal extends Component {
   onPreviewPress = () => {
     const { wishlist } = this.props;
     const { form } = this.state;
-    const unchangedSaved = wishlist && !form.csv && form.source !== 'path' && form.source !== 'hardcoverList';
+    const unchangedSaved = wishlist && !form.csv && usesUpload(form);
 
     this.setState({ isPreviewing: true, error: null });
 
@@ -177,7 +204,9 @@ class EditWishlistModal extends Component {
   render() {
     const { isOpen, wishlist, onModalClose } = this.props;
     const { form, isPreviewing, isSaving, preview, error } = this.state;
-    const needsFile = form.source === 'upload' && !form.csv && !(wishlist && wishlist.uploaded);
+    const needsFile = usesUpload(form) && !form.csv && !(wishlist && wishlist.uploaded);
+    const owned = form.source === 'audibleLibrary';
+    const ownedUnmonitored = owned && form.addUnmonitored;
 
     return (
       <Modal
@@ -205,9 +234,25 @@ class EditWishlistModal extends Component {
               </FormGroup>
 
               {
-                form.source === 'upload' ?
+                owned ?
                   <FormGroup size={sizes.MEDIUM}>
-                    <FormLabel>{'CSV file'}</FormLabel>
+                    <FormLabel>{'Export'}</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.SELECT}
+                      name="storage"
+                      values={audibleLibraryStorage}
+                      value={form.storage}
+                      helpText="Export your library with audible-cli (audible library export --format csv), or use a plain list of ASINs, one per line. Talearr never signs in to Audible."
+                      onChange={this.onInputChange}
+                    />
+                  </FormGroup> :
+                  null
+              }
+
+              {
+                usesUpload(form) ?
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>{owned ? 'File' : 'CSV file'}</FormLabel>
                     <div className={styles.fileInput}>
                       <input
                         type="file"
@@ -223,7 +268,7 @@ class EditWishlistModal extends Component {
               }
 
               {
-                form.source === 'path' ?
+                usesPath(form) ?
                   <FormGroup size={sizes.MEDIUM}>
                     <FormLabel>{'Path'}</FormLabel>
                     <FormInputGroup
@@ -268,7 +313,7 @@ class EditWishlistModal extends Component {
                   type={inputTypes.CHECK}
                   name="audiobook"
                   value={form.audiobook}
-                  helpText="Monitor the audiobook of each book on the list"
+                  helpText={ownedUnmonitored ? 'Add the audiobook of each book in the library' : 'Monitor the audiobook of each book on the list'}
                   onChange={this.onInputChange}
                 />
               </FormGroup>
@@ -279,31 +324,54 @@ class EditWishlistModal extends Component {
                   type={inputTypes.CHECK}
                   name="ebook"
                   value={form.ebook}
-                  helpText="Monitor the ebook of each book on the list"
+                  helpText={ownedUnmonitored ? 'Add the ebook of each book in the library' : 'Monitor the ebook of each book on the list'}
                   onChange={this.onInputChange}
                 />
               </FormGroup>
 
-              <FormGroup size={sizes.MEDIUM}>
-                <FormLabel>{'Search when added'}</FormLabel>
-                <FormInputGroup
-                  type={inputTypes.CHECK}
-                  name="searchOnAdd"
-                  value={form.searchOnAdd}
-                  onChange={this.onInputChange}
-                />
-              </FormGroup>
+              {
+                owned ?
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>{'Add without monitoring'}</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.CHECK}
+                      name="addUnmonitored"
+                      value={form.addUnmonitored}
+                      helpText="You already own these books: add them to the library unmonitored, so they are never searched. Books already in the library are left as they are."
+                      onChange={this.onInputChange}
+                    />
+                  </FormGroup> :
+                  null
+              }
 
-              <FormGroup size={sizes.MEDIUM}>
-                <FormLabel>{'Only to-read rows'}</FormLabel>
-                <FormInputGroup
-                  type={inputTypes.CHECK}
-                  name="toReadOnly"
-                  value={form.toReadOnly}
-                  helpText="For exports with a shelf or read status (Goodreads, StoryGraph): only the to-read rows"
-                  onChange={this.onInputChange}
-                />
-              </FormGroup>
+              {
+                ownedUnmonitored ?
+                  null :
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>{'Search when added'}</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.CHECK}
+                      name="searchOnAdd"
+                      value={form.searchOnAdd}
+                      onChange={this.onInputChange}
+                    />
+                  </FormGroup>
+              }
+
+              {
+                owned ?
+                  null :
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>{'Only to-read rows'}</FormLabel>
+                    <FormInputGroup
+                      type={inputTypes.CHECK}
+                      name="toReadOnly"
+                      value={form.toReadOnly}
+                      helpText="For exports with a shelf or read status (Goodreads, StoryGraph): only the to-read rows"
+                      onChange={this.onInputChange}
+                    />
+                  </FormGroup>
+              }
 
               <FormGroup size={sizes.MEDIUM}>
                 <FormLabel>{'Sync automatically'}</FormLabel>

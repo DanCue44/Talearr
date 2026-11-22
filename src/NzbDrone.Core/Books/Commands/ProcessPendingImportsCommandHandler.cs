@@ -15,6 +15,7 @@ using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.Talearr.Wishlists;
 
 namespace NzbDrone.Core.Books.Commands
 {
@@ -28,6 +29,7 @@ namespace NzbDrone.Core.Books.Commands
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
+        private readonly ITalearrOwnedBooks _ownedBooks;
 
         public ProcessPendingImportsCommandHandler(
             IPendingAuthorImportService pendingImportService,
@@ -37,8 +39,10 @@ namespace NzbDrone.Core.Books.Commands
             IProvideBookInfo bookInfo,
             IManageCommandQueue commandQueueManager,
             IEventAggregator eventAggregator,
-            Logger logger)
+            Logger logger,
+            ITalearrOwnedBooks ownedBooks = null)
         {
+            _ownedBooks = ownedBooks;
             _pendingImportService = pendingImportService;
             _authorLibraryService = authorLibraryService;
             _authorService = authorService;
@@ -390,6 +394,10 @@ namespace NzbDrone.Core.Books.Commands
 
         private Author ApplyRequestedMonitoring(PendingAuthorImport item, Author author, List<RequestedWork> requestedWorks)
         {
+            // Talearr: books from an owned Audible library list are added for the record: not
+            // monitored, never searched, and kept as manual additions so a refresh keeps them.
+            requestedWorks = KeepOwnedBooksUnmonitored(requestedWorks);
+
             var audiobookTargets = requestedWorks.Where(target => target.MediaType == BookMediaType.Audiobook).ToList();
             var ebookTargets = requestedWorks.Where(target => target.MediaType == BookMediaType.Ebook).ToList();
 
@@ -413,6 +421,40 @@ namespace NzbDrone.Core.Books.Commands
             ApplyRequestedBookMonitoring(BookMediaType.Ebook, item.HasEbook(), ebookTargets);
 
             return _authorService.GetAuthor(author.Id) ?? author;
+        }
+
+        private List<RequestedWork> KeepOwnedBooksUnmonitored(List<RequestedWork> requestedWorks)
+        {
+            if (_ownedBooks == null)
+            {
+                return requestedWorks;
+            }
+
+            var owned = requestedWorks
+                .Where(target => target.Book != null && _ownedBooks.IsOwnedOnly(target.ProviderId, target.MediaType))
+                .ToList();
+
+            if (!owned.Any())
+            {
+                return requestedWorks;
+            }
+
+            var books = new List<Book>();
+            foreach (var target in owned)
+            {
+                var book = _bookService.GetBook(target.Book.Id) ?? target.Book;
+                var format = target.MediaType == BookMediaType.Audiobook ? "audiobook" : "ebook";
+                book.SetMonitoredForMediaType(format, false);
+                book.AddOptions ??= new AddBookOptions();
+                book.AddOptions.AddType = BookAddType.Manual;
+                book.AddOptions.SearchForNewBook = false;
+                books.Add(book);
+            }
+
+            _bookService.UpdateMany(books);
+            _logger.Info("Added {0} owned book(s) from an Audible library list without monitoring them", books.Count);
+
+            return requestedWorks.Except(owned).ToList();
         }
 
         private static List<string> MergeProviderIds(params List<string>[] providerIdLists)

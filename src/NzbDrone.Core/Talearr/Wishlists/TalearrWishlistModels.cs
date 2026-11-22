@@ -13,6 +13,13 @@ namespace NzbDrone.Core.Talearr.Wishlists
         // A Hardcover list by its URL (https://hardcover.app/@user/lists/slug), read with the
         // Hardcover API token from Settings > Metadata.
         public const string HardcoverList = "hardcoverList";
+
+        // The user's owned Audible library: an audible-cli "audible library export" CSV or a plain
+        // list of ASINs (uploaded or a server path). With AddUnmonitored (on), the books are added
+        // for the record but not monitored or searched, since they are already owned.
+        public const string AudibleLibrary = "audibleLibrary";
+
+        public static bool IsFileBacked(string kind) => kind == File || kind == AudibleLibrary;
     }
 
     public static class TalearrWishlistStates
@@ -51,6 +58,13 @@ namespace NzbDrone.Core.Talearr.Wishlists
 
         // Synced every 12 hours (System > Tasks > Sync Wishlists) when on.
         public bool Enabled { get; set; } = true;
+
+        // AudibleLibrary: add the books without monitoring or searching them (already owned).
+        public bool AddUnmonitored { get; set; } = true;
+
+        // AudibleLibrary with AddUnmonitored: books queued for adding that are not in the library
+        // yet, by provider id. The author import leaves these unmonitored (TalearrOwnedBooks).
+        public List<string> OwnedPending { get; set; } = new List<string>();
 
         public string Format { get; set; }
         public DateTime AddedAt { get; set; }

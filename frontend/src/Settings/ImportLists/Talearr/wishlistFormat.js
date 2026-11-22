@@ -17,7 +17,8 @@ export const formatNames = {
   storygraph: 'StoryGraph export',
   audible: 'Audible wishlist',
   csv: 'CSV list',
-  hardcover: 'Hardcover list'
+  hardcover: 'Hardcover list',
+  asinList: 'ASIN list'
 };
 
 export function describeFormats(wishlist) {

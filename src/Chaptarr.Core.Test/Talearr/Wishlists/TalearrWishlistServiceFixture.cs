@@ -75,6 +75,13 @@ namespace Chaptarr.Core.Test.Talearr.Wishlists
             return new Book { Title = title, GoodreadsWorkId = workId, Author = new Author { Name = author, GoodreadsAuthorId = authorId } };
         }
 
+        private IConfigRepository RepositoryView()
+        {
+            var (repository, repoFake) = Fake<IConfigRepository>.Create();
+            repoFake.On(nameof(IConfigRepository.All), _ => _config.Select(kv => new Config { Key = kv.Key, Value = kv.Value }).ToList());
+            return repository;
+        }
+
         private TalearrWishlistService Service()
         {
             var (repository, repoFake) = Fake<IConfigRepository>.Create();
@@ -319,6 +326,81 @@ namespace Chaptarr.Core.Test.Talearr.Wishlists
 
             Assert.That(result.Rows, Is.EqualTo(0));
             Assert.That(_service.Get(wishlist.Id).LastError, Does.Contain("does not exist"));
+        }
+
+        private const string AudibleLibrary =
+            "asin,title,subtitle,authors,narrators,series_title,series_sequence,runtime_length_min,is_finished,percent_complete,purchase_date\n" +
+            "B08GB58KD5,Project Hail Mary,,Andy Weir,Ray Porter,,,970,False,0,2026-01-01\n" +
+            "B0000ORWEL,1984,,George Orwell,Simon Prebble,,,670,True,100,2025-01-01\n";
+
+        private TalearrWishlist UploadLibrary(bool addUnmonitored = true)
+        {
+            _search = q => q switch
+            {
+                "B08GB58KD5" => new List<Book> { Found("Project Hail Mary", "Andy Weir", "gr:54493401", "gr:6540057") },
+                "B0000ORWEL" => new List<Book> { Found("1984", "George Orwell", "gr:153313", "gr:3706") },
+                _ => new List<Book>()
+            };
+
+            return _service.Create(new TalearrWishlistRequest { Kind = TalearrWishlistKinds.AudibleLibrary, Csv = AudibleLibrary, AddUnmonitored = addUnmonitored });
+        }
+
+        [Test]
+        public void an_owned_audible_library_adds_missing_books_without_monitoring_or_searching_them()
+        {
+            var wishlist = UploadLibrary();
+            Assert.That(wishlist.Name, Is.EqualTo("Audible library"));
+
+            var result = _service.Sync(wishlist.Id);
+
+            var (providerId, config) = _enqueued.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(providerId, Is.EqualTo("gr:6540057"));
+                Assert.That(config.AudiobookBooksToMonitor, Is.EqualTo(new[] { "gr:54493401" }), "requested, so the author import adds it");
+                Assert.That(config.AudiobookBooksToSearch, Is.Null);
+                Assert.That(config.SearchForMissingBooks, Is.False);
+                Assert.That(_books[5002].AudiobookMonitored, Is.False, "an owned book already in the library keeps its monitoring");
+                Assert.That(_pushed.OfType<BookSearchCommand>(), Is.Empty);
+                Assert.That(result.Queued, Is.EqualTo(1));
+                Assert.That(result.AlreadyThere, Is.EqualTo(1));
+                Assert.That(_service.Get(wishlist.Id).OwnedPending, Is.EqualTo(new[] { "gr:54493401" }));
+            });
+
+            // The author import asks which requested books are owned only.
+            var owned = new TalearrOwnedBooks(new TalearrWishlistStore(RepositoryView(), LogManager.GetCurrentClassLogger()), LogManager.GetCurrentClassLogger());
+            Assert.That(owned.IsOwnedOnly("gr:54493401", BookMediaType.Audiobook), Is.True);
+            Assert.That(owned.IsOwnedOnly("gr:54493401", BookMediaType.Ebook), Is.False);
+            Assert.That(owned.IsOwnedOnly("gr:153313", BookMediaType.Audiobook), Is.False);
+
+            // Once the book is in the library, the list forgets it.
+            _books[6001] = new Book { Id = 6001, AuthorId = 12, Title = "Project Hail Mary", MediaType = BookMediaType.Audiobook, GoodreadsWorkId = "gr:54493401" };
+            _service.Sync(wishlist.Id);
+            Assert.That(_service.Get(wishlist.Id).OwnedPending, Is.Empty);
+        }
+
+        [Test]
+        public void an_audible_library_with_add_unmonitored_off_works_like_a_wishlist()
+        {
+            var wishlist = UploadLibrary(addUnmonitored: false);
+            _service.Sync(wishlist.Id);
+
+            Assert.That(_books[5002].AudiobookMonitored, Is.True);
+            Assert.That(_enqueued.Single().Config.AudiobookBooksToSearch, Is.EqualTo(new[] { "gr:54493401" }));
+            Assert.That(_service.Get(wishlist.Id).OwnedPending, Is.Empty);
+        }
+
+        [Test]
+        public void a_plain_asin_list_is_matched_by_asin_only()
+        {
+            _search = q => q == "B08GB58KD5" ? new List<Book> { Found("Project Hail Mary", "Andy Weir", "gr:54493401", "gr:6540057") } : new List<Book>();
+            var wishlist = _service.Create(new TalearrWishlistRequest { Kind = TalearrWishlistKinds.AudibleLibrary, Csv = "B08GB58KD5\nB000000000\n" });
+
+            var result = _service.Sync(wishlist.Id);
+
+            Assert.That(result.Queued, Is.EqualTo(1));
+            Assert.That(result.NoMatch, Is.EqualTo(1));
+            Assert.That(_searches, Is.EqualTo(new[] { "B08GB58KD5", "B000000000" }), "no title search for a row without a title");
         }
 
         [Test]
