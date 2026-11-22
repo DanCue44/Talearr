@@ -33,7 +33,8 @@ function editable(settings) {
   return {
     schedule: settings.schedule,
     booksPerRun: settings.booksPerRun,
-    staggerSeconds: settings.staggerSeconds
+    staggerSeconds: settings.staggerSeconds,
+    searchOnReleaseDay: !!settings.searchOnReleaseDay
   };
 }
 
@@ -127,7 +128,7 @@ class TalearrMissingSearch extends Component {
     return (
       <FieldSet legend={legend}>
         <div className={styles.help}>
-          {'Books are searched when they are added; after that only RSS finds new uploads, so a book requested before an indexer was added may never be found. This searches monitored missing books again on a schedule, the ones searched longest ago first. It is an automatic search: delay profiles and every grab protection apply (Wanted > Search All Missing is a manual search and skips delay profiles). The task is listed in System > Tasks.'}
+          {'Books are searched when they are added; after that only RSS finds new uploads, so a book requested before an indexer was added may never be found. This searches monitored missing books again on a schedule: books not searched since their release first (newest release first), then the ones searched longest ago. It is an automatic search: delay profiles and every grab protection apply (Wanted > Search All Missing is a manual search and skips delay profiles). The task is listed in System > Tasks.'}
         </div>
 
         <Form>
@@ -144,6 +145,17 @@ class TalearrMissingSearch extends Component {
           </FormGroup>
 
           <FormGroup size={sizes.MEDIUM}>
+            <FormLabel>{'Search on release day'}</FormLabel>
+            <FormInputGroup
+              type={inputTypes.CHECK}
+              name="searchOnReleaseDay"
+              value={form.searchOnReleaseDay}
+              helpText="Search a monitored missing book once on or after its release day (checked hourly, releases from the last 7 days). Works even when the schedule above is off. Off by default"
+              onChange={this.onInputChange}
+            />
+          </FormGroup>
+
+          <FormGroup size={sizes.MEDIUM}>
             <FormLabel>{'Books per run'}</FormLabel>
             <FormInputGroup
               type={inputTypes.NUMBER}
@@ -151,7 +163,7 @@ class TalearrMissingSearch extends Component {
               value={form.booksPerRun}
               min={1}
               max={200}
-              isDisabled={isOff}
+              isDisabled={isOff && !form.searchOnReleaseDay}
               helpText="How many missing books each run searches"
               onChange={this.onInputChange}
             />
@@ -166,7 +178,7 @@ class TalearrMissingSearch extends Component {
               min={0}
               max={600}
               unit="seconds"
-              isDisabled={isOff}
+              isDisabled={isOff && !form.searchOnReleaseDay}
               helpText="Pause between two book searches so indexers are not hammered"
               onChange={this.onInputChange}
             />

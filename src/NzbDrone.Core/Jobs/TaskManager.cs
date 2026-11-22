@@ -293,6 +293,15 @@ namespace NzbDrone.Core.Jobs
                         Interval = GetTalearrMissingSearchInterval(),
                         TypeName = typeof(ScheduledMissingBookSearchCommand).FullName,
                         Priority = CommandPriority.Low
+                    },
+
+                    // Talearr: release-day search (Settings > Indexers). Hourly while on, off
+                    // (interval 0) by default. Stock Chaptarr drops this row on its next start.
+                    new ScheduledTask
+                    {
+                        Interval = TalearrMissingSearchSettingsService.Resolve(_talearrMissingSearch).ReleaseDayIntervalMinutesOrOff,
+                        TypeName = typeof(ReleaseDayBookSearchCommand).FullName,
+                        Priority = CommandPriority.Low
                     }
                 };
 
@@ -356,6 +365,8 @@ namespace NzbDrone.Core.Jobs
         // first run is one interval away instead of immediately.
         public void Handle(TalearrMissingSearchSettingsSavedEvent message)
         {
+            ApplyInterval(typeof(ReleaseDayBookSearchCommand), message?.Settings?.ReleaseDayIntervalMinutesOrOff ?? 0);
+
             var task = GetScheduledTask(typeof(ScheduledMissingBookSearchCommand));
             if (task == null)
             {

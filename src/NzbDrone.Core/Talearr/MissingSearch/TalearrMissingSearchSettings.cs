@@ -22,9 +22,18 @@ namespace NzbDrone.Core.Talearr.MissingSearch
         public const int DefaultStaggerSeconds = 30;
         public const int MaxStaggerSeconds = 600;
 
+        // Release-day search: how often the check runs while it is on, and how far back a
+        // release still counts (so a few days of downtime do not lose the release-day search).
+        public const int ReleaseDayIntervalMinutes = 60;
+        public const int ReleaseDayWindowDays = 7;
+
         public MissingSearchSchedule Schedule { get; set; } = MissingSearchSchedule.Off;
         public int BooksPerRun { get; set; } = DefaultBooksPerRun;
         public int StaggerSeconds { get; set; } = DefaultStaggerSeconds;
+
+        // Talearr: search a monitored missing book once on or after its release day. Off by
+        // default: Readarr and Chaptarr never search on release day, only RSS does.
+        public bool SearchOnReleaseDay { get; set; }
 
         public static TalearrMissingSearchSettings Default => new TalearrMissingSearchSettings();
 
@@ -49,13 +58,17 @@ namespace NzbDrone.Core.Talearr.MissingSearch
             }
         }
 
+        // Release-day task interval in minutes; 0 disables the task.
+        public int ReleaseDayIntervalMinutesOrOff => SearchOnReleaseDay ? ReleaseDayIntervalMinutes : 0;
+
         public TalearrMissingSearchSettings Clone()
         {
             return new TalearrMissingSearchSettings
             {
                 Schedule = Schedule,
                 BooksPerRun = BooksPerRun,
-                StaggerSeconds = StaggerSeconds
+                StaggerSeconds = StaggerSeconds,
+                SearchOnReleaseDay = SearchOnReleaseDay
             };
         }
     }
@@ -65,6 +78,14 @@ namespace NzbDrone.Core.Talearr.MissingSearch
     {
         public override bool SendUpdatesToClient => true;
         public override string CompletionMessage => "Scheduled missing book search completed";
+    }
+
+    // Shown in System > Tasks as "Release Day Book Search". Runs hourly only while
+    // SearchOnReleaseDay is on.
+    public class ReleaseDayBookSearchCommand : Command
+    {
+        public override bool SendUpdatesToClient => true;
+        public override string CompletionMessage => "Release day book search completed";
     }
 
     public class TalearrMissingSearchSettingsSavedEvent : IEvent

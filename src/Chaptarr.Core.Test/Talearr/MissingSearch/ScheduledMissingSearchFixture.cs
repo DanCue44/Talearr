@@ -167,6 +167,89 @@ namespace Chaptarr.Core.Test.Talearr.MissingSearch
         }
 
         [Test]
+        public void should_search_books_not_searched_since_release_first_newest_release_first()
+        {
+            var now = DateTime.UtcNow;
+
+            // 10 and 12 were searched before their release (pre-order search on add), 20 was never searched.
+            _books.Single(b => b.Id == 10).ReleaseDate = now.AddDays(-30);
+            _books.Single(b => b.Id == 10).LastSearchTime = now.AddDays(-60);
+            _books.Single(b => b.Id == 12).ReleaseDate = now.AddDays(-2);
+            _books.Single(b => b.Id == 12).LastSearchTime = now.AddDays(-40);
+            _books.Single(b => b.Id == 20).ReleaseDate = now.AddDays(-1);
+            _books.Single(b => b.Id == 20).LastSearchTime = null;
+
+            _settings.Save(new TalearrMissingSearchSettings { Schedule = MissingSearchSchedule.Weekly, BooksPerRun = 10 });
+
+            _subject.RunAsync(CommandTrigger.Scheduled).GetAwaiter().GetResult();
+
+            Assert.That(_search.Books.Select(b => b.Id), Is.EqualTo(new[] { 20, 12, 10, 1, 2, 3, 4, 5, 30, 29 }));
+        }
+
+        [Test]
+        public void release_day_search_should_be_off_by_default()
+        {
+            _books[0].ReleaseDate = DateTime.UtcNow.AddHours(-1);
+
+            Assert.That(_settings.Get().SearchOnReleaseDay, Is.False);
+            Assert.That(_settings.Get().ReleaseDayIntervalMinutesOrOff, Is.EqualTo(0));
+
+            _subject.RunReleaseDayAsync(CommandTrigger.Scheduled, DateTime.UtcNow).GetAwaiter().GetResult();
+
+            Assert.That(_search.Books, Is.Empty);
+        }
+
+        [Test]
+        public void release_day_search_should_search_new_releases_once_newest_first()
+        {
+            var now = DateTime.UtcNow;
+
+            // 7: released today, searched before release (on add) -> search.
+            _books.Single(b => b.Id == 7).ReleaseDate = now.Date;
+            _books.Single(b => b.Id == 7).LastSearchTime = now.AddDays(-7);
+
+            // 8: released 3 days ago, never searched -> search.
+            _books.Single(b => b.Id == 8).ReleaseDate = now.AddDays(-3);
+            _books.Single(b => b.Id == 8).LastSearchTime = null;
+
+            // 9: released yesterday, already searched since -> skip.
+            _books.Single(b => b.Id == 9).ReleaseDate = now.AddDays(-1);
+            _books.Single(b => b.Id == 9).LastSearchTime = now.AddHours(-2);
+
+            // 11: released 30 days ago, never searched since -> outside the window, the scheduled search covers it.
+            _books.Single(b => b.Id == 11).ReleaseDate = now.AddDays(-30);
+            _books.Single(b => b.Id == 11).LastSearchTime = now.AddDays(-40);
+
+            _settings.Save(new TalearrMissingSearchSettings { SearchOnReleaseDay = true, StaggerSeconds = 0 });
+
+            _subject.RunReleaseDayAsync(CommandTrigger.Scheduled, now).GetAwaiter().GetResult();
+
+            Assert.That(_search.Books.Select(b => b.Id), Is.EqualTo(new[] { 7, 8 }));
+            Assert.That(_search.UserInvoked, Is.All.False);
+
+            // The search records LastSearchTime, so the next hourly run does not search them again.
+            foreach (var book in _search.Books)
+            {
+                book.LastSearchTime = now.AddMinutes(1);
+            }
+
+            _search.Books.Clear();
+            _subject.RunReleaseDayAsync(CommandTrigger.Scheduled, now.AddHours(1)).GetAwaiter().GetResult();
+
+            Assert.That(_search.Books, Is.Empty);
+        }
+
+        [Test]
+        public void release_day_setting_should_be_stored_as_a_talearr_config_row()
+        {
+            var saved = _settings.Save(new TalearrMissingSearchSettings { SearchOnReleaseDay = true });
+
+            Assert.That(saved.SearchOnReleaseDay, Is.True);
+            Assert.That(saved.ReleaseDayIntervalMinutesOrOff, Is.EqualTo(TalearrMissingSearchSettings.ReleaseDayIntervalMinutes));
+            Assert.That(_config[TalearrMissingSearchSettingsService.ReleaseDayKey], Is.EqualTo("true"));
+        }
+
+        [Test]
         public void should_clamp_values_and_store_them_as_talearr_config_rows()
         {
             var saved = _settings.Save(new TalearrMissingSearchSettings { Schedule = MissingSearchSchedule.Daily, BooksPerRun = 5000, StaggerSeconds = -1 });
@@ -220,6 +303,14 @@ namespace Chaptarr.Core.Test.Talearr.MissingSearch
 
             Assert.That(registered.Interval, Is.EqualTo(saved.IntervalMinutes));
             Assert.That(manager.GetNextExecution(typeof(ScheduledMissingBookSearchCommand)), Is.GreaterThanOrEqualTo(before.AddDays(7)));
+
+            var releaseDay = manager.GetAll().Single(t => t.TypeName == typeof(ReleaseDayBookSearchCommand).FullName);
+            Assert.That(releaseDay.Interval, Is.EqualTo(0));
+
+            _settings.Save(new TalearrMissingSearchSettings { Schedule = MissingSearchSchedule.Weekly, SearchOnReleaseDay = true });
+            manager.Handle(_events.OfType<TalearrMissingSearchSettingsSavedEvent>().Last());
+
+            Assert.That(releaseDay.Interval, Is.EqualTo(TalearrMissingSearchSettings.ReleaseDayIntervalMinutes));
         }
 
         private sealed class RecordingSearch : ISearchForReleases

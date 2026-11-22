@@ -17,6 +17,7 @@ namespace NzbDrone.Core.Talearr.MissingSearch
         public const string ScheduleKey = "talearr.missingsearch.schedule";
         public const string BooksPerRunKey = "talearr.missingsearch.booksperrun";
         public const string StaggerSecondsKey = "talearr.missingsearch.staggerseconds";
+        public const string ReleaseDayKey = "talearr.missingsearch.releaseday";
 
         private readonly IConfigRepository _repository;
         private readonly IEventAggregator _eventAggregator;
@@ -65,15 +66,17 @@ namespace NzbDrone.Core.Talearr.MissingSearch
                 _repository.Upsert(ScheduleKey, settings.Schedule.ToString().ToLowerInvariant());
                 _repository.Upsert(BooksPerRunKey, settings.EffectiveBooksPerRun.ToString());
                 _repository.Upsert(StaggerSecondsKey, settings.EffectiveStaggerSeconds.ToString());
+                _repository.Upsert(ReleaseDayKey, settings.SearchOnReleaseDay ? "true" : "false");
 
                 _cached = Load();
                 saved = _cached.Clone();
             }
 
-            _logger.Info("Talearr scheduled missing search saved: schedule={0}, booksPerRun={1}, staggerSeconds={2}",
+            _logger.Info("Talearr scheduled missing search saved: schedule={0}, booksPerRun={1}, staggerSeconds={2}, releaseDay={3}",
                 saved.Schedule,
                 saved.EffectiveBooksPerRun,
-                saved.EffectiveStaggerSeconds);
+                saved.EffectiveStaggerSeconds,
+                saved.SearchOnReleaseDay);
 
             _eventAggregator?.PublishEvent(new TalearrMissingSearchSettingsSavedEvent(saved.Clone(), wasOff));
             return saved;
@@ -97,6 +100,11 @@ namespace NzbDrone.Core.Talearr.MissingSearch
             if (int.TryParse(Read(StaggerSecondsKey), out var stagger))
             {
                 settings.StaggerSeconds = stagger;
+            }
+
+            if (bool.TryParse(Read(ReleaseDayKey), out var releaseDay))
+            {
+                settings.SearchOnReleaseDay = releaseDay;
             }
 
             return settings;

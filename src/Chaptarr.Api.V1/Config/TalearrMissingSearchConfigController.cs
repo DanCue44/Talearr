@@ -18,6 +18,9 @@ namespace Chaptarr.Api.V1.Config
         public int BooksPerRun { get; set; }
         public int StaggerSeconds { get; set; }
 
+        // Search a monitored missing book once on or after its release day. Off by default.
+        public bool SearchOnReleaseDay { get; set; }
+
         // Read only: when the scheduled task runs next, null while the schedule is off.
         public DateTime? NextRun { get; set; }
     }
@@ -62,7 +65,8 @@ namespace Chaptarr.Api.V1.Config
             {
                 Schedule = schedule,
                 BooksPerRun = resource.BooksPerRun,
-                StaggerSeconds = resource.StaggerSeconds
+                StaggerSeconds = resource.StaggerSeconds,
+                SearchOnReleaseDay = resource.SearchOnReleaseDay
             });
 
             return Accepted(ToResource(saved));
@@ -94,6 +98,7 @@ namespace Chaptarr.Api.V1.Config
                 Schedule = settings.Schedule.ToString().ToLowerInvariant(),
                 BooksPerRun = settings.EffectiveBooksPerRun,
                 StaggerSeconds = settings.EffectiveStaggerSeconds,
+                SearchOnReleaseDay = settings.SearchOnReleaseDay,
                 NextRun = nextRun
             };
         }
