@@ -342,6 +342,18 @@ CREATE TABLE IF NOT EXISTS PreferredSeries (
     BookIdHint  INTEGER,
     UpdatedAt   TEXT NOT NULL
 );
+",
+
+            // 14: books whose edition the user locked (Talearr/EditionLocks). Keyed by book row id
+            // with the edition's provider key, so a refresh that recreates the edition row still
+            // finds it. Losing it unlocks the books; their edition stays as it was.
+            @"
+CREATE TABLE IF NOT EXISTS EditionLocks (
+    BookId        INTEGER NOT NULL PRIMARY KEY,
+    EditionKey    TEXT,
+    EditionIdHint INTEGER,
+    LockedAt      TEXT NOT NULL
+);
 "
         };
 

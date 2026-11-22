@@ -80,18 +80,24 @@ class EditBookModalContentConnector extends Component {
     this.state = {
       talearrTags: null,
       talearrSeries: null,
-      talearrPreferredSeries: undefined
+      talearrPreferredSeries: undefined,
+      talearrEditionLock: null,
+      talearrLocked: undefined
     };
 
     this._abortSeriesRequest = null;
+    this._abortLockRequest = null;
   }
 
   componentDidMount() {
     this.fetchTalearrSeries();
+    this.fetchTalearrEditionLock();
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevProps.isSaving && !this.props.isSaving && !this.props.saveError) {
+      // Talearr: the lock is saved after the book, so it takes the edition just picked.
+      this.saveTalearrEditionLock();
       this.props.onModalClose();
     }
   }
@@ -100,6 +106,11 @@ class EditBookModalContentConnector extends Component {
     if (this._abortSeriesRequest) {
       this._abortSeriesRequest();
       this._abortSeriesRequest = null;
+    }
+
+    if (this._abortLockRequest) {
+      this._abortLockRequest();
+      this._abortLockRequest = null;
     }
   }
 
@@ -115,6 +126,38 @@ class EditBookModalContentConnector extends Component {
 
     request.done((data) => {
       this.setState({ talearrSeries: data });
+    });
+  };
+
+  fetchTalearrEditionLock = () => {
+    const { request, abortRequest } = createAjaxRequest({
+      url: `/talearr/editionlock/${this.props.bookId}`
+    });
+
+    this._abortLockRequest = abortRequest;
+
+    request.done((data) => {
+      this.setState({ talearrEditionLock: data });
+    });
+  };
+
+  saveTalearrEditionLock = () => {
+    const { talearrLocked, talearrEditionLock } = this.state;
+    const saved = !!(talearrEditionLock && talearrEditionLock.locked);
+
+    if (talearrLocked === undefined || talearrLocked === saved) {
+      return;
+    }
+
+    const { request } = createAjaxRequest({
+      url: `/talearr/editionlock/${this.props.bookId}`,
+      method: 'PUT',
+      dataType: 'json',
+      data: JSON.stringify({ locked: talearrLocked })
+    });
+
+    request.done(() => {
+      this.props.dispatchFetchBooks({ authorId: this.props.authorId });
     });
   };
 
@@ -143,6 +186,10 @@ class EditBookModalContentConnector extends Component {
 
   onTalearrPreferredSeriesChange = ({ value }) => {
     this.setState({ talearrPreferredSeries: value });
+  };
+
+  onTalearrLockedChange = ({ value }) => {
+    this.setState({ talearrLocked: value });
   };
 
   onInputChange = ({ name, value }) => {
@@ -179,8 +226,12 @@ class EditBookModalContentConnector extends Component {
   render() {
     const {
       talearrSeries,
-      talearrPreferredSeries
+      talearrPreferredSeries,
+      talearrEditionLock,
+      talearrLocked
     } = this.state;
+
+    const savedLocked = !!(talearrEditionLock && talearrEditionLock.locked);
 
     const savedPreferredSeries = (talearrSeries && talearrSeries.preferredSeries) || '';
 
@@ -191,6 +242,8 @@ class EditBookModalContentConnector extends Component {
         talearrSeriesOptions={talearrSeries ? talearrSeries.options : []}
         talearrPreferredSeries={talearrPreferredSeries === undefined ? savedPreferredSeries : talearrPreferredSeries}
         onTalearrPreferredSeriesChange={this.onTalearrPreferredSeriesChange}
+        talearrLocked={talearrLocked === undefined ? savedLocked : talearrLocked}
+        onTalearrLockedChange={this.onTalearrLockedChange}
         onInputChange={this.onInputChange}
         onTalearrTagsChange={this.onTalearrTagsChange}
         onSavePress={this.onSavePress}

@@ -45,9 +45,11 @@ class EditBookModalContent extends Component {
       talearrTags,
       talearrSeriesOptions,
       talearrPreferredSeries,
+      talearrLocked,
       onInputChange,
       onTalearrTagsChange,
       onTalearrPreferredSeriesChange,
+      onTalearrLockedChange,
       onModalClose,
       ...otherProps
     } = this.props;
@@ -104,7 +106,23 @@ class EditBookModalContent extends Component {
                 name="anyEditionOk"
                 helpText={translate('AnyEditionOkHelpText')}
                 {...anyEditionOk}
+                value={talearrLocked ? false : anyEditionOk.value}
+                isDisabled={talearrLocked}
                 onChange={onInputChange}
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <FormLabel>
+                {'Lock edition'}
+              </FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.CHECK}
+                name="talearrLocked"
+                helpText="Keep the edition picked below. Metadata refreshes, import lists and the abridged policy never switch it, and Automatically Switch Edition stays off. Only a file imported for another edition moves the lock, so the book is not searched again."
+                value={talearrLocked}
+                onChange={onTalearrLockedChange}
               />
             </FormGroup>
 
@@ -161,7 +179,7 @@ class EditBookModalContent extends Component {
                     type={inputTypes.BOOK_EDITION_SELECT}
                     name="editions"
                     helpText={translate('EditionsHelpText')}
-                    isDisabled={anyEditionOk.value && hasFile}
+                    isDisabled={anyEditionOk.value && hasFile && !talearrLocked}
                     bookEditions={editions}
                     onChange={onInputChange}
                   />
@@ -203,9 +221,11 @@ EditBookModalContent.propTypes = {
   talearrTags: PropTypes.arrayOf(PropTypes.number).isRequired,
   talearrSeriesOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
   talearrPreferredSeries: PropTypes.string.isRequired,
+  talearrLocked: PropTypes.bool.isRequired,
   onInputChange: PropTypes.func.isRequired,
   onTalearrTagsChange: PropTypes.func.isRequired,
   onTalearrPreferredSeriesChange: PropTypes.func.isRequired,
+  onTalearrLockedChange: PropTypes.func.isRequired,
   onSavePress: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired
 };

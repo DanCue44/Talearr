@@ -214,6 +214,26 @@ works; nothing is hidden or removed. See [TALEARR_AUTHOR_PAGE.md](TALEARR_AUTHOR
 Storage: book tag links in the `BookTags` table of `talearr.db` (lost only if that file is
 recreated), one `talearr.metadataprofile.<id>` row per profile in the `Config` table.
 
+## Edition lock
+
+**Edit book > Lock edition** (off by default) keeps the edition picked in the same dialog. It
+builds on Chaptarr's **Automatically Switch Edition**, which locking turns off (so imports only
+match that edition), and also keeps the edition through the paths that still switch it:
+metadata refresh repairs, automatic picks during imports and disk scans, the Hardcover Library
+import list and the abridged grab policy. Picking another edition yourself moves the lock with
+it. One exception: when a file really lands on another edition and the locked one has none, the
+lock moves to the file's edition, so the book is not searched again.
+
+Renaming already names each file after the edition it is linked to, never another monitored
+edition, so nothing changes there.
+
+- **API**: `GET|PUT /api/v1/talearr/editionlock/{bookId}` with `{"locked": true}`. `400` when
+  the book has no single monitored edition to lock.
+
+Storage: the `EditionLocks` table of `talearr.db` (book row id and the edition's provider key).
+chaptarr.db only sees Automatically Switch Edition off and the monitored edition, so a rollback
+keeps the edition and only stops the extra protection.
+
 ## Migrating from Readarr, Bookshelf or LazyLibrarian
 
 See [TALEARR_MIGRATION.md](TALEARR_MIGRATION.md).
