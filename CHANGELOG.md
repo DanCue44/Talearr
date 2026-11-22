@@ -2,6 +2,23 @@
 
 Notable changes to Talearr are listed here, newest first. Talearr's version number is its own and is separate from the Chaptarr version it is based on.
 
+## 0.18.69 - 2026-11-22
+
+### Added
+- Search on release day (Settings > Indexers, off by default): a monitored book is searched once when it comes out, and the scheduled missing search tries new releases first.
+- Preferred Series in the Edit book dialog: for a book in more than one series, pick the one used for the series naming tokens and for sorting. Kept through refreshes.
+- Lock Edition in the Edit book dialog: metadata refreshes, import lists and automatic switching never change the edition you picked.
+- New wishlist sources: an owned Audible library export (added without searching), a pasted or uploaded list of author names, and a list of author names, ISBNs or ASINs read from a URL.
+- A {Book Language} naming token.
+- Import list exclusions can be searched and show when each one was added.
+- The Add New page lists author adds and refreshes that are waiting or running, with a cancel button for waiting ones.
+
+### Changed
+- MAM searches that find nothing also try the title without apostrophes ("Enders Game") and the author name without middle initials or accents.
+
+### Fixed
+- The comics search no longer lists novel series that share a name with the search, such as the John Matherson books (One Second After) shown as a comic.
+
 ## 0.18.68 - 2026-11-20
 
 ### Fixed
