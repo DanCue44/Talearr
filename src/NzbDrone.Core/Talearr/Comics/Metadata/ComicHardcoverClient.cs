@@ -29,6 +29,11 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
         public int BooksCount { get; set; }
         public int PrimaryBooksCount { get; set; }
         public string CoverUrl { get; set; }
+
+        // From the first volumes' Hardcover genres: true when one is tagged as comics, graphic
+        // novel or manga, false when they carry genres but none of those (a novel series), null
+        // when untagged or not looked up.
+        public bool? IsComic { get; set; }
         public List<HardcoverComicVolume> Volumes { get; set; } = new List<HardcoverComicVolume>();
     }
 
@@ -73,10 +78,13 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
                 series(where: { id: { _in: $ids } }) {
                     id
                     book_series(order_by: { position: asc }, limit: 10) {
-                        book { image { url width } }
+                        book { image { url width } cached_tags }
                     }
                 }
             }";
+
+        // Hardcover genres that mark a book as a comic, graphic novel or manga.
+        private static readonly string[] ComicGenres = { "comic", "graphic novel", "manga", "manhwa", "manhua", "webtoon" };
 
         private const string SeriesQuery = @"
             query TalearrComicSeries($id: Int!) {
@@ -132,10 +140,13 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
 
             try
             {
-                var covers = ParseCovers(Execute(CoversQuery, new { ids = missing })?["series"]);
+                var data = Execute(CoversQuery, new { ids = missing })?["series"];
+                var covers = ParseCovers(data);
+                var comic = ParseIsComic(data);
                 foreach (var entry in series.Where(s => s != null && string.IsNullOrWhiteSpace(s.CoverUrl)))
                 {
                     entry.CoverUrl = covers.TryGetValue(entry.Id, out var url) ? url : null;
+                    entry.IsComic = comic.TryGetValue(entry.Id, out var isComic) ? isComic : null;
                 }
             }
             catch (ComicHardcoverException)
@@ -190,6 +201,36 @@ namespace NzbDrone.Core.Talearr.Comics.Metadata
         }
 
         /// <summary>Series id to the first cover among its first volumes.</summary>
+        // Per series: whether its first volumes' genres say comic (see IsComic). Series without
+        // any genre are left out, so they stay unknown.
+        internal static Dictionary<int, bool> ParseIsComic(JToken series)
+        {
+            var result = new Dictionary<int, bool>();
+            foreach (var entry in series as JArray ?? new JArray())
+            {
+                if (entry?.Type != JTokenType.Object || entry["id"] == null)
+                {
+                    continue;
+                }
+
+                var genres = (entry["book_series"] as JArray ?? new JArray())
+                    .Select(b => ((b as JObject)?["book"] as JObject)?["cached_tags"] as JObject)
+                    .Select(t => t?["Genre"] as JArray)
+                    .Where(g => g != null)
+                    .SelectMany(g => g)
+                    .Select(t => t?.Type == JTokenType.Object ? t.Value<string>("tag") : t?.Value<string>())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .ToList();
+
+                if (genres.Count > 0)
+                {
+                    result[entry.Value<int>("id")] = genres.Any(g => ComicGenres.Any(c => g.IndexOf(c, StringComparison.OrdinalIgnoreCase) >= 0));
+                }
+            }
+
+            return result;
+        }
+
         internal static Dictionary<int, string> ParseCovers(JToken series)
         {
             var covers = new Dictionary<int, string>();

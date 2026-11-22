@@ -221,7 +221,9 @@ namespace NzbDrone.Core.Talearr.Comics
             }
 
             var mangaDexLookups = 0;
-            foreach (var series in hardcover.Where(h => !usedHardcover.Contains(h.Id) && h.BooksCount > 0))
+            // A Hardcover series whose books carry genres but none of them comics is a novel series
+            // with a matching name ("John Matherson" for One Second After): left out.
+            foreach (var series in hardcover.Where(h => !usedHardcover.Contains(h.Id) && h.BooksCount > 0 && h.IsComic != false))
             {
                 // No AniList facts: MangaDex can still say how the series is rated (first few only).
                 var rating = ComicAgeRatings.Unknown;

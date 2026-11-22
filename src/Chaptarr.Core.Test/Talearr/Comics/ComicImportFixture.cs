@@ -234,6 +234,25 @@ namespace Chaptarr.Core.Test.Talearr.Comics
         }
 
         [Test]
+        public void should_tell_novel_series_from_comics_by_genre()
+        {
+            // As Hardcover listed them on 2026-11-22: John Matherson (One Second After) came up in a
+            // comics search for "one second after".
+            var series = JToken.Parse(@"[
+                { ""id"": 96977, ""book_series"": [ { ""book"": { ""cached_tags"": { ""Genre"": [ { ""tag"": ""Science Fiction"" }, { ""tag"": ""Dystopian"" } ] } } } ] },
+                { ""id"": 5476, ""book_series"": [ { ""book"": { ""cached_tags"": { ""Genre"": [ { ""tag"": ""Fantasy"" }, { ""tag"": ""Comics & Graphic Novels"" } ] } } } ] },
+                { ""id"": 4624, ""book_series"": [ { ""book"": { ""cached_tags"": { ""Genre"": [ { ""tag"": ""Manga"" } ] } } } ] },
+                { ""id"": 203476, ""book_series"": [ { ""book"": { ""cached_tags"": {} } }, { ""book"": null } ] } ]");
+
+            var comic = ComicHardcoverClient.ParseIsComic(series);
+
+            Assert.That(comic[96977], Is.False);
+            Assert.That(comic[5476], Is.True);
+            Assert.That(comic[4624], Is.True);
+            Assert.That(comic.ContainsKey(203476), Is.False);
+        }
+
+        [Test]
         public void should_read_anilist_media()
         {
             var media = JToken.Parse(@"{ ""id"": 100664, ""title"": { ""romaji"": ""Tongari Boushi no Atelier"", ""english"": ""Witch Hat Atelier"", ""native"": ""とんがり帽子のアトリエ"" },
