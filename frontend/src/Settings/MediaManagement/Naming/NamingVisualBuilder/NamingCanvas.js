@@ -107,6 +107,7 @@ function getTokenLabel(node) {
     ReleaseYear: 'Published Year',
     ISBN: 'ISBN',
     ASIN: 'ASIN',
+    BookLanguage: 'Language',
     PartNumber: 'Part Number',
     BookSeriesTitle: 'Series title - book position',
     BookSeries: 'Series name',
@@ -153,7 +154,7 @@ function getNodeColor(node) {
   }
 
   const authorTokens = ['AuthorName', 'AuthorSortName', 'AuthorCleanName', 'AuthorNameFirstCharacter', 'AuthorNameThe', 'AuthorDisambiguation'];
-  const bookTokens = ['BookTitle', 'BookTitleNoSub', 'BookSubtitle', 'BookCleanTitle', 'ReleaseYear', 'PartNumber', 'ISBN', 'ASIN'];
+  const bookTokens = ['BookTitle', 'BookTitleNoSub', 'BookSubtitle', 'BookCleanTitle', 'ReleaseYear', 'PartNumber', 'ISBN', 'ASIN', 'BookLanguage'];
   const seriesTokens = ['BookSeries', 'BookSeriesPosition', 'BookSeriesTitle'];
   const narratorTokens = ['NarratorName', 'NarratorNameMultiple'];
 

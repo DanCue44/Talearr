@@ -64,6 +64,14 @@ namespace NzbDrone.Core.Books.Calibre
             return JsonSerializer.Deserialize<Dictionary<string, string>>(data);
         }
 
+        // Talearr: English name for a stored language ("eng", "en", "English" -> "English"), null
+        // when it is not a known language.
+        public static string GetLanguageName(this string raw)
+        {
+            var code = raw.CanonicalizeLanguage();
+            return code != null && ByThree.TryGetValue(code, out var name) ? name : null;
+        }
+
         // Translated from https://github.com/kovidgoyal/calibre/blob/ba06b7452228cfde9114e4735fb8d5785fba4955/src/calibre/utils/localization.py#L430
         public static string CanonicalizeLanguage(this string raw)
         {

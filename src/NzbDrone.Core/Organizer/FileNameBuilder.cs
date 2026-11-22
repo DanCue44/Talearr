@@ -525,6 +525,9 @@ namespace NzbDrone.Core.Organizer
                 tokenHandlers["{Book Disambiguation}"] = m => edition.Disambiguation;
             }
 
+            // Talearr: {Book Language}, empty when unknown (FileNameBuilder.Talearr.cs).
+            tokenHandlers["{Book Language}"] = m => TalearrBookLanguage(edition);
+
             if (edition.ReleaseDate.HasValue)
             {
                 tokenHandlers["{Release Year}"] = m => edition.ReleaseDate.Value.Year.ToString();

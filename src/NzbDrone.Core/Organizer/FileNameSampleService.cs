@@ -60,6 +60,7 @@ namespace NzbDrone.Core.Organizer
             {
                 Title = "The Edition Title",
                 Book = _standardBook,
+                Language = "eng",
                 NarratorNames = new List<string> { "Alice Reader", "Bob Voice" }
             };
 

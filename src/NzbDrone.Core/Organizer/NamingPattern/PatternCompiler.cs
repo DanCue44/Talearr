@@ -36,6 +36,7 @@ namespace NzbDrone.Core.Organizer.NamingPattern
             { "BookSubtitleThe", "{Book SubtitleThe}" },
             { "BookCleanSubtitle", "{Book CleanSubtitle}" },
             { "BookDisambiguation", "{Book Disambiguation}" },
+            { "BookLanguage", "{Book Language}" },
             { "BookSeries", "{Book Series}" },
             { "BookSeriesPosition", "{Book SeriesPosition}" },
             { "BookSeriesTitle", "{Book SeriesTitle}" },

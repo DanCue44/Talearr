@@ -78,6 +78,31 @@ namespace Chaptarr.Core.Test.Organizer
             return (book, edition);
         }
 
+        // Talearr: {Book Language} (Chaptarr #343).
+        [TestCase("eng", "Bad Blood [English]")]
+        [TestCase("de", "Bad Blood [German]")]
+        [TestCase("Pig Latin", "Bad Blood [Pig Latin]")]
+        public void should_render_the_edition_language_as_a_name(string language, string expected)
+        {
+            var (book, edition) = BadBlood(BookMediaType.Ebook);
+            edition.Language = language;
+
+            Assert.That(Build(book, edition, "{Book Title}{ [Book Language]}"), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void should_fall_back_to_the_book_language_then_empty()
+        {
+            var (book, edition) = BadBlood(BookMediaType.Ebook);
+            book.LanguageCode = "spa";
+
+            Assert.That(Build(book, edition, "{Book Title}{ [Book Language]}"), Is.EqualTo("Bad Blood [Spanish]"));
+
+            book.LanguageCode = null;
+
+            Assert.That(Build(book, edition, "{Book Title}{ [Book Language]}"), Is.EqualTo("Bad Blood"));
+        }
+
         [Test]
         public void should_render_isbn13_without_hyphens()
         {

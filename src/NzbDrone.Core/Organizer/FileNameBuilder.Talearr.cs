@@ -13,6 +13,23 @@ namespace NzbDrone.Core.Organizer
     // Talearr-only half of FileNameBuilder (kept apart so upstream merges stay small).
     public partial class FileNameBuilder
     {
+        // {Book Language} (Chaptarr #343): the edition's language, else the book's, as an English
+        // name ("English", "German"). A value Talearr cannot name is used as stored; empty when unknown.
+        internal static string TalearrBookLanguage(Edition edition)
+        {
+            foreach (var raw in new[] { edition?.Language, edition?.Book?.LanguageName, edition?.Book?.LanguageCode })
+            {
+                if (raw.IsNullOrWhiteSpace())
+                {
+                    continue;
+                }
+
+                return NzbDrone.Core.Books.Calibre.Extensions.GetLanguageName(raw) ?? raw.Trim();
+            }
+
+            return string.Empty;
+        }
+
         // Copy-folder disambiguation (docs/TALEARR_RECORDINGS_DESIGN.md, "Folder collisions between
         // copies"). Only an additional recording's book folder can change; the primary row, ebooks,
         // flat layouts and books with a single recording come back untouched.
