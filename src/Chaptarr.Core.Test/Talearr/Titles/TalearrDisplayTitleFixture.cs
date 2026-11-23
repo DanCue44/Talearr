@@ -12,6 +12,7 @@ using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Talearr.Recordings;
 using NzbDrone.Core.Talearr.Titles;
@@ -81,6 +82,7 @@ namespace Chaptarr.Core.Test.Talearr.Titles
         [TearDown]
         public void TearDown()
         {
+            TalearrSearchTitles.Register(null);
             _folder.Dispose();
         }
 
@@ -201,6 +203,24 @@ namespace Chaptarr.Core.Test.Talearr.Titles
         {
             Assert.That(_service.Set(99, "x").Status, Is.EqualTo(TalearrTitleOverrideStatus.NotFound));
             Assert.That(_service.Get(99), Is.Null);
+        }
+
+        [Test]
+        public void should_offer_the_display_title_to_searches_once_started()
+        {
+            Assert.That(_service.AlternateTitle(_book1), Is.Null);
+
+            CleanupOn();
+            Assert.That(TalearrSearchTitles.ForSearch(_book1, _book1.Title), Is.Null);
+
+            _service.Handle(new ApplicationStartedEvent());
+
+            Assert.That(_service.AlternateTitle(_book1), Is.EqualTo("Cataclysm"));
+            Assert.That(TalearrSearchTitles.ForSearch(_book1, _book1.Title), Is.EqualTo("Cataclysm"));
+            Assert.That(TalearrSearchTitles.ForSearch(_book3, _book3.Title), Is.Null);
+
+            _service.Set(_book3.Id, "Darkling Siege Remastered");
+            Assert.That(TalearrSearchTitles.ForSearch(_book3, _book3.Title), Is.EqualTo("Darkling Siege Remastered"));
         }
 
         [Test]

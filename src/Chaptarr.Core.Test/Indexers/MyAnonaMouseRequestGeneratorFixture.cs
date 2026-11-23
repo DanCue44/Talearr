@@ -57,6 +57,24 @@ namespace Chaptarr.Core.Test.Indexers
         }
 
         [Test]
+        public void should_never_search_a_display_title_without_the_author()
+        {
+            var generator = CreateGenerator();
+            var searchCriteria = new BookSearchCriteria
+            {
+                Author = new Author { Name = "Tao Wong" },
+                BookTitle = "Cataclysm, Book 1",
+                InteractiveSearch = true,
+                RequireAuthor = true
+            };
+
+            var chain = generator.GetSearchRequests(searchCriteria);
+
+            Assert.That(chain.Tiers, Is.EqualTo(1));
+            Assert.That(GetRequestPayload(chain, 0), Does.Contain("\"text\":\"Cataclysm Book 1 Tao Wong\""));
+        }
+
+        [Test]
         public void should_add_book_number_fallback_as_last_tier_for_interactive_search()
         {
             var generator = CreateGenerator();
