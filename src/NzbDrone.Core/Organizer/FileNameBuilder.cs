@@ -16,6 +16,7 @@ using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Talearr.Audiobook;
 using NzbDrone.Core.Talearr.Naming;
 using NzbDrone.Core.Talearr.Recordings;
+using NzbDrone.Core.Talearr.Titles;
 
 namespace NzbDrone.Core.Organizer
 {
@@ -32,6 +33,7 @@ namespace NzbDrone.Core.Organizer
     {
         private readonly ITalearrAbridgedResolver _abridgedResolver; // Talearr
         private readonly Lazy<ITalearrRecordingFolders> _recordingFolders; // Talearr
+        private readonly Lazy<ITalearrDisplayTitleService> _displayTitles; // Talearr
         private readonly INamingConfigService _namingConfigService;
         private readonly IQualityDefinitionService _qualityDefinitionService;
         private readonly ICustomFormatCalculationService _formatCalculator;
@@ -67,8 +69,12 @@ namespace NzbDrone.Core.Organizer
                                ICustomFormatCalculationService formatCalculator,
                                Logger logger,
                                ITalearrAbridgedResolver abridgedResolver = null,
-                               Lazy<ITalearrRecordingFolders> recordingFolders = null)
+                               Lazy<ITalearrRecordingFolders> recordingFolders = null,
+                               Lazy<ITalearrDisplayTitleService> displayTitles = null)
         {
+            // Talearr: {Book Title} uses the title set in Edit book or Clean Series From Titles.
+            _displayTitles = displayTitles;
+
             // Talearr: {Abridged} and {Abridgement} use the recordings abridged resolution.
             _abridgedResolver = abridgedResolver;
 
@@ -428,11 +434,28 @@ namespace NzbDrone.Core.Organizer
             return segmentCount > 0;
         }
 
+        // Talearr: the title set in Edit book, else the metadata title (cleaned of the series when
+        // Clean Series From Titles is on), without format noise.
+        private string NamingTitle(Edition edition)
+        {
+            string title = null;
+            try
+            {
+                title = _displayTitles?.Value?.ForNaming(edition);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Talearr: display title unavailable, naming with the metadata title");
+            }
+
+            return title ?? TalearrBookTitle.ForNaming(edition) ?? edition.Title;
+        }
+
         private void AddBookTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Edition edition)
         {
             // Talearr: names use the book's own title ("1984"), not the edition's store listing
             // ("Nineteen Eighty-Four (MP3 Book)"), without format noise (TalearrBookTitle).
-            var bookTitle = TalearrBookTitle.ForNaming(edition) ?? edition.Title;
+            var bookTitle = NamingTitle(edition);
 
             tokenHandlers["{Book Title}"] = m => bookTitle;
             tokenHandlers["{Book CleanTitle}"] = m => CleanTitle(bookTitle);
@@ -790,7 +813,7 @@ namespace NzbDrone.Core.Organizer
                 var graphicAudioSuffix = " - GraphicAudio";
 
                 // Talearr: the same book title as AddBookTokens.
-                var bookTitle = TalearrBookTitle.ForNaming(edition) ?? edition.Title;
+                var bookTitle = NamingTitle(edition);
 
                 // Override the standard book title tokens to include GraphicAudio suffix
                 tokenHandlers["{Book Title}"] = m => bookTitle + graphicAudioSuffix;

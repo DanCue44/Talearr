@@ -7,6 +7,7 @@ using NzbDrone.Core.AuthorStats;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.MediaCover;
+using NzbDrone.Core.Talearr.Titles;
 using NzbDrone.SignalR;
 
 namespace Chaptarr.Api.V1.Books
@@ -18,15 +19,18 @@ namespace Chaptarr.Api.V1.Books
         protected readonly IAuthorStatisticsService _authorStatisticsService;
         protected readonly IUpgradableSpecification _qualityUpgradableSpecification;
         protected readonly IMapCoversToLocal _coverMapper;
+        protected readonly ITalearrDisplayTitleService _displayTitles;
 
         protected BookControllerWithSignalR(IBookService bookService,
                                         ISeriesBookLinkService seriesBookLinkService,
                                         IAuthorStatisticsService authorStatisticsService,
                                         IMapCoversToLocal coverMapper,
                                         IUpgradableSpecification qualityUpgradableSpecification,
-                                        IBroadcastSignalRMessage signalRBroadcaster)
+                                        IBroadcastSignalRMessage signalRBroadcaster,
+                                        ITalearrDisplayTitleService displayTitles = null)
             : base(signalRBroadcaster)
         {
+            _displayTitles = displayTitles;
             _bookService = bookService;
             _seriesBookLinkService = seriesBookLinkService;
             _authorStatisticsService = authorStatisticsService;
@@ -63,6 +67,7 @@ namespace Chaptarr.Api.V1.Books
                 FacadeContext = HttpContext?.GetReadarrFacadeContext()
             });
 
+            ApplyDisplayTitle(book, resource);
             MapCoversToLocal(resource);
 
             return resource;
@@ -120,6 +125,11 @@ namespace Chaptarr.Api.V1.Books
                 });
             }).ToList();
             BookResourceMapper.WarnFacadeIdentityGaps(result, facadeContext, "book response");
+
+            for (var i = 0; i < books.Count; i++)
+            {
+                ApplyDisplayTitle(books[i], result[i]);
+            }
 
             MapCoversToLocal(result.ToArray());
 
@@ -195,6 +205,27 @@ namespace Chaptarr.Api.V1.Books
                     resource.HasFiles = resource.Statistics.BookFileCount > 0;
                 }
             }
+        }
+
+        // Talearr: the title set in Edit book, or the metadata title without the series when Clean
+        // Series From Titles is on. Only the response changes; the Books row keeps the metadata
+        // title. Readarr-compatible routes (a facade path) keep the metadata title for the apps
+        // that match on it.
+        protected void ApplyDisplayTitle(Book book, BookResource resource)
+        {
+            if (_displayTitles == null || book == null || resource == null || HttpContext?.GetReadarrFacadeContext() != null)
+            {
+                return;
+            }
+
+            var title = _displayTitles.Resolve(book, resource.Title);
+            if (string.IsNullOrWhiteSpace(title) || title == resource.Title)
+            {
+                return;
+            }
+
+            resource.Title = title;
+            resource.AuthorTitle = $"{book.Author?.SortNameLastFirst} {title}";
         }
 
         private void MapCoversToLocal(params BookResource[] books)

@@ -16,6 +16,7 @@ using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Talearr.Metadata;
 using NzbDrone.Core.Talearr.Naming;
+using NzbDrone.Core.Talearr.Titles;
 
 namespace NzbDrone.Core.Talearr.Audiobook.M4b
 {
@@ -44,6 +45,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
         private readonly ITalearrM4bConverter _converter;
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly IEventAggregator _eventAggregator;
+        private readonly ITalearrDisplayTitleService _displayTitles;
         private readonly Logger _logger;
 
         public TalearrM4bService(IBookService bookService,
@@ -56,9 +58,11 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
                                  ITalearrM4bConverter converter,
                                  IManageCommandQueue commandQueueManager,
                                  Logger logger,
-                                 IEventAggregator eventAggregator = null)
+                                 IEventAggregator eventAggregator = null,
+                                 ITalearrDisplayTitleService displayTitles = null)
         {
             _eventAggregator = eventAggregator;
+            _displayTitles = displayTitles;
             _bookService = bookService;
             _authorService = authorService;
             _editionService = editionService;
@@ -271,7 +275,7 @@ namespace NzbDrone.Core.Talearr.Audiobook.M4b
         internal M4bConversionJob BuildJob(Book book, Author author, Edition edition, M4bLibraryPlan plan)
         {
             // The file is named like the book folder: the book's own title without format noise.
-            var title = TalearrBookTitle.ForNaming(book, edition);
+            var title = _displayTitles?.ForNaming(book, edition) ?? TalearrBookTitle.ForNaming(book, edition);
 
             var fileName = FileNameBuilder.CleanFileName(title);
             if (string.IsNullOrWhiteSpace(fileName))

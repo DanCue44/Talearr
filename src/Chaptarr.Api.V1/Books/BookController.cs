@@ -34,6 +34,7 @@ using NzbDrone.Core.Profiles.Metadata;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Talearr.EditionLocks;
+using NzbDrone.Core.Talearr.Titles;
 using NzbDrone.Core.Validation;
 using NzbDrone.Core.Validation.Paths;
 using NzbDrone.Http.REST.Attributes;
@@ -92,9 +93,10 @@ namespace Chaptarr.Api.V1.Books
                           MetadataProfileExistsValidator metadataProfileExistsValidator,
                           Logger logger,
                           IProviderAliasService providerAliasService = null,
-                          ITalearrEditionLockService editionLocks = null)
+                          ITalearrEditionLockService editionLocks = null,
+                          ITalearrDisplayTitleService displayTitles = null)
 
-        : base(bookService, seriesBookLinkService, authorStatisticsService, coverMapper, upgradableSpecification, signalRBroadcaster)
+        : base(bookService, seriesBookLinkService, authorStatisticsService, coverMapper, upgradableSpecification, signalRBroadcaster, displayTitles)
 	        {
 	            _authorService = authorService;
 	            _editionService = editionService;
@@ -2264,6 +2266,7 @@ namespace Chaptarr.Api.V1.Books
             foreach (var book in message.Book.GetBooksMatchingReleaseMediaType())
             {
                 var resource = book.ToResource();
+                ApplyDisplayTitle(book, resource);
                 resource.Grabbed = true;
 
                 BroadcastResourceChange(ModelAction.Updated, resource);

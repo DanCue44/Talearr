@@ -10,6 +10,7 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Talearr.Tags;
+using NzbDrone.Core.Talearr.Titles;
 using NzbDrone.SignalR;
 
 namespace Chaptarr.Api.V1.Wanted
@@ -27,8 +28,9 @@ namespace Chaptarr.Api.V1.Wanted
                             IMapCoversToLocal coverMapper,
                             IUpgradableSpecification upgradableSpecification,
                             IBroadcastSignalRMessage signalRBroadcaster,
-                            ITalearrBookFilterService talearrBookFilter = null)
-        : base(bookService, seriesBookLinkService, authorStatisticsService, coverMapper, upgradableSpecification, signalRBroadcaster)
+                            ITalearrBookFilterService talearrBookFilter = null,
+                            ITalearrDisplayTitleService displayTitles = null)
+        : base(bookService, seriesBookLinkService, authorStatisticsService, coverMapper, upgradableSpecification, signalRBroadcaster, displayTitles)
         {
             _bookCutoffService = bookCutoffService;
             _talearrBookFilter = talearrBookFilter;

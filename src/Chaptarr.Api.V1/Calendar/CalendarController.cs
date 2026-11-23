@@ -9,6 +9,7 @@ using NzbDrone.Core.AuthorStats;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.MediaCover;
+using NzbDrone.Core.Talearr.Titles;
 using NzbDrone.SignalR;
 
 namespace Chaptarr.Api.V1.Calendar
@@ -21,8 +22,9 @@ namespace Chaptarr.Api.V1.Calendar
                               IAuthorStatisticsService authorStatisticsService,
                               IMapCoversToLocal coverMapper,
                               IUpgradableSpecification upgradableSpecification,
-                              IBroadcastSignalRMessage signalRBroadcaster)
-        : base(bookService, seriesBookLinkService, authorStatisticsService, coverMapper, upgradableSpecification, signalRBroadcaster)
+                              IBroadcastSignalRMessage signalRBroadcaster,
+                              ITalearrDisplayTitleService displayTitles = null)
+        : base(bookService, seriesBookLinkService, authorStatisticsService, coverMapper, upgradableSpecification, signalRBroadcaster, displayTitles)
         {
         }
 

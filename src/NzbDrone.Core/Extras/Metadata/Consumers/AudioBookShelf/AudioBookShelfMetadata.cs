@@ -10,6 +10,7 @@ using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Talearr.Metadata;
+using NzbDrone.Core.Talearr.Titles;
 using MediaCoverModel = NzbDrone.Core.MediaCover.MediaCover;
 
 namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
@@ -27,11 +28,15 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
         private readonly IRootFolderService _rootFolderService;
         private readonly IBookService _bookService;
         private readonly IEditionService _editionService;
+        private readonly ITalearrDisplayTitleService _displayTitles;
 
         public AudioBookShelfMetadata(IRootFolderService rootFolderService,
                                       IBookService bookService,
-                                      IEditionService editionService)
+                                      IEditionService editionService,
+                                      ITalearrDisplayTitleService displayTitles = null)
         {
+            // Talearr: metadata.json carries the same title as the book folder.
+            _displayTitles = displayTitles;
             _rootFolderService = rootFolderService;
             _bookService = bookService;
             _editionService = editionService;
@@ -137,7 +142,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
 
             return new List<ImageFileResult>
             {
-                new TalearrSidecarImage(relativePath, candidates, TalearrSidecarText.Title(book, edition), overwriteExisting: true)
+                new TalearrSidecarImage(relativePath, candidates, SidecarTitle(book, edition), overwriteExisting: true)
             };
         }
 
@@ -216,6 +221,13 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
             return (edition, book);
         }
 
+        // Talearr: the title set in Edit book or cleaned by Clean Series From Titles, like the folder.
+        private string SidecarTitle(Book book, Edition edition)
+        {
+            var title = _displayTitles?.ForNaming(book, edition);
+            return title != null ? TalearrSidecarText.Clean(title) : TalearrSidecarText.Title(book, edition);
+        }
+
         private Dictionary<string, object> BuildMetadata(Author author, Book book, Edition edition, BookFile bookFile)
         {
             var metadata = new Dictionary<string, object>();
@@ -223,7 +235,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.AudioBookShelf
 
             // Talearr: the book's title without format noise (like the folder), a subtitle only when it
             // is a real one, names with their whitespace collapsed.
-            var title = TalearrSidecarText.Title(book, edition);
+            var title = SidecarTitle(book, edition);
             AddString(metadata, "title", title);
             AddString(metadata, "subtitle", TalearrSidecarText.Subtitle(book, edition, title));
             AddStringArray(metadata, "authors", new[] { author?.Name, book.Author?.Name });
