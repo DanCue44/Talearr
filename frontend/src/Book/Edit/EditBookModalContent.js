@@ -75,10 +75,10 @@ class EditBookModalContent extends Component {
     ];
     const errorMessage = getErrorMessage(error, 'Unable to load editions');
 
-    // Talearr: an optional title for this book's pages and file names. Searches keep the metadata title.
+    // Talearr: an optional display title for this book's pages and file names. Searches try the metadata title first, then this one.
     const metadataTitle = talearrTitleDetails ? talearrTitleDetails.metadataTitle : '';
     const automaticTitle = talearrTitleDetails && talearrTitleDetails.cleanSeriesFromTitles ? talearrTitleDetails.automaticTitle : '';
-    const titleHelpText = `Shown in Talearr and used for file and folder names, for the audiobook and the ebook. Searches still use the metadata title${metadataTitle ? ` (${metadataTitle})` : ''}. Leave empty to use ${automaticTitle && automaticTitle !== metadataTitle ? `the title without the series (${automaticTitle})` : 'the metadata title'}. Use Rename Files to rename files already on disk.`;
+    const titleHelpText = `Changes only what Talearr shows and the file and folder names, for the audiobook and the ebook. Searches try the metadata title${metadataTitle ? ` (${metadataTitle})` : ''} first, then this one. To change the title everywhere, use Edit Details on the book page. Leave empty to use ${automaticTitle && automaticTitle !== metadataTitle ? `the title without the series (${automaticTitle})` : 'the metadata title'}. Use Rename Files to rename files already on disk.`;
 
     return (
       <ModalContent onModalClose={onModalClose}>
@@ -92,7 +92,7 @@ class EditBookModalContent extends Component {
           >
             <FormGroup>
               <FormLabel>
-                {'Title'}
+                {'Display Title'}
               </FormLabel>
 
               <FormInputGroup

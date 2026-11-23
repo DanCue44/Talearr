@@ -45,7 +45,7 @@ function TalearrTitles(props) {
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="cleanSeriesFromTitles"
-                helpText="Show and name books without the series in the title, like Audible and Audiobookshelf: 'Viridian Gate Online: The Lich Priest: The Viridian Gate Archives, Book 5' becomes 'The Lich Priest'. Removes a series name and number at the end, and a 'Name: ' start that matches the series or that other books of the series share. Searches still use the full metadata title. Use Rename Files to rename books already on disk. A title set in Edit Book always wins."
+                helpText="Show and name books without the series in the title, like Audible and Audiobookshelf: 'Viridian Gate Online: The Lich Priest: The Viridian Gate Archives, Book 5' becomes 'The Lich Priest'. Removes a series name and number at the end, and a 'Name: ' start that matches the series or that other books of the series share. Searches try the full metadata title first, then the clean one, and releases named either way match. Use Rename Files to rename books already on disk. A Display Title set in Edit Book always wins."
                 onChange={onInputChange}
                 {...cleanSeriesFromTitles}
               />
