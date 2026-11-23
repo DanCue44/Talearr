@@ -11,6 +11,11 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
         public string BookIsbn { get; set; }
         public string Disambiguation { get; set; }
 
+        // Talearr: set on the extra query for a book's display title (TalearrSearchTitles).
+        // Request generators then skip their title-only requests, so the display title is always
+        // searched together with the author.
+        public bool RequireAuthor { get; set; }
+
         // Title-only query: most indexers accept author/title separately or combine them themselves.
         // Search the main title section; the matcher still validates against the monitored edition title.
         // Including the author here can double-apply author terms (hurting recall) and breaks book-search endpoints

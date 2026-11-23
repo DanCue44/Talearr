@@ -13,6 +13,7 @@ using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Talearr.GrabPolicy;
+using NzbDrone.Core.Talearr.Titles;
 
 namespace NzbDrone.Core.IndexerSearch
 {
@@ -160,7 +161,19 @@ namespace NzbDrone.Core.IndexerSearch
                 searchSpec.BookYear = book.ReleaseDate.Value.Year;
             }
 
-            var decisions = DeDupeDecisions(await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec));
+            var decisions = await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
+
+            // Talearr: then the display title (Edit book Display Title, or Clean Series From Titles)
+            // when it searches differently. Interactive search always runs both; an automatic search
+            // only when the metadata title found nothing it could grab, to spare the indexers.
+            var displayTitleSpec = GetDisplayTitleSearch(searchSpec, book, interactiveSearch, decisions);
+            if (displayTitleSpec != null)
+            {
+                _logger.Debug("[RELEASE_SEARCH_SERVICE] Also searching for the display title '{0}'", displayTitleSpec.BookTitle);
+                decisions.AddRange(await Dispatch(indexer => indexer.Fetch(displayTitleSpec), displayTitleSpec));
+            }
+
+            decisions = DeDupeDecisions(decisions);
 
             if (!interactiveSearch)
             {
@@ -168,6 +181,38 @@ namespace NzbDrone.Core.IndexerSearch
             }
 
             return decisions;
+        }
+
+        // Talearr: the extra query for a book's display title, or null when there is none, it would
+        // search the same as the metadata title, or an automatic search already found a release.
+        // The query always carries the author (RequireAuthor).
+        internal static BookSearchCriteria GetDisplayTitleSearch(BookSearchCriteria searchSpec, Book book, bool interactiveSearch, IReadOnlyCollection<DownloadDecision> decisions)
+        {
+            var displayTitle = TalearrSearchTitles.ForSearch(book, searchSpec?.BookTitle);
+            if (displayTitle == null)
+            {
+                return null;
+            }
+
+            if (!interactiveSearch && (decisions ?? Array.Empty<DownloadDecision>()).Any(d => d.Approved || d.TemporarilyRejected))
+            {
+                return null;
+            }
+
+            return new BookSearchCriteria
+            {
+                Books = searchSpec.Books,
+                Author = searchSpec.Author,
+                AuthorCatalog = searchSpec.AuthorCatalog,
+                MonitoredBooksOnly = searchSpec.MonitoredBooksOnly,
+                UserInvokedSearch = searchSpec.UserInvokedSearch,
+                InteractiveSearch = searchSpec.InteractiveSearch,
+                BookTitle = displayTitle,
+                BookYear = searchSpec.BookYear,
+                BookIsbn = searchSpec.BookIsbn,
+                Disambiguation = searchSpec.Disambiguation,
+                RequireAuthor = true
+            };
         }
 
         // Talearr: an automatic search that found releases but approved none used to leave only

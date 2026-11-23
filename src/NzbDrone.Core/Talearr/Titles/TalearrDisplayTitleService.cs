@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Core.Books;
+using NzbDrone.Core.Lifecycle;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Talearr.GrabPolicy;
 using NzbDrone.Core.Talearr.Naming;
 
@@ -50,6 +52,10 @@ namespace NzbDrone.Core.Talearr.Titles
         string ForNaming(Book book, Edition edition);
         string ForNaming(Edition edition);
 
+        // The display title when it differs from the metadata title (an Edit book title, or the
+        // cleaned title), else null. Searches and release matching use it as a second title.
+        string AlternateTitle(Book book);
+
         TalearrTitleOverrideDetails Get(int bookId);
 
         // Null or blank clears the user's title.
@@ -58,13 +64,14 @@ namespace NzbDrone.Core.Talearr.Titles
 
     // Talearr: the title Talearr shows (book routes) and names files and folders with
     // ({Book Title} and its variants, metadata.json, M4B files). The Books row keeps the metadata
-    // title, so searches, release matching, imports and metadata refresh are unchanged.
+    // title, so imports and metadata refresh are unchanged; searches try the metadata title
+    // first, then the display title, and releases named either way match (TalearrSearchTitles).
     //
     // A title set in Edit book (TitleOverrides in talearr.db, per work) wins. Otherwise, when
     // Settings > Metadata > Clean Series From Titles is on, TalearrSeriesTitleCleaner removes
     // the series from the title, using the author's other books in the same series to spot a
     // shared prefix ("Viridian Gate Online: ").
-    public class TalearrDisplayTitleService : ITalearrDisplayTitleService
+    public class TalearrDisplayTitleService : ITalearrDisplayTitleService, IHandle<ApplicationStartedEvent>
     {
         public const int MaxTitleLength = 500;
 
@@ -114,6 +121,26 @@ namespace NzbDrone.Core.Talearr.Titles
                 _logger.Debug(ex, "Talearr: could not work out the display title of book {0}", book.Id);
                 return baseTitle;
             }
+        }
+
+        public string AlternateTitle(Book book)
+        {
+            if (book == null || string.IsNullOrWhiteSpace(book.Title))
+            {
+                return null;
+            }
+
+            var baseTitle = TalearrBookTitle.Strip(book.Title);
+            var resolved = Resolve(book, baseTitle);
+
+            return string.IsNullOrWhiteSpace(resolved) || string.Equals(resolved.Trim(), baseTitle?.Trim(), StringComparison.OrdinalIgnoreCase)
+                ? null
+                : resolved.Trim();
+        }
+
+        public void Handle(ApplicationStartedEvent message)
+        {
+            TalearrSearchTitles.Register(AlternateTitle);
         }
 
         public string ForNaming(Book book, Edition edition)

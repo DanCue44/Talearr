@@ -368,7 +368,7 @@ CREATE TABLE IF NOT EXISTS EditionLocks (
 
             // 16: the title a user set for a work in Edit book (Talearr/Titles). Keyed like
             // BookDetailEdits, so the audiobook and ebook rows share it. Only what Talearr shows
-            // and names files with; the Books row keeps the metadata title for searches.
+            // and names files with; the Books row keeps the metadata title, which searches try first.
             // Losing it shows the metadata title again.
             @"
 CREATE TABLE IF NOT EXISTS TitleOverrides (

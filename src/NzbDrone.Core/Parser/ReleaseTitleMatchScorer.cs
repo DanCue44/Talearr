@@ -10,6 +10,7 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.Books.Calibre;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.BookImport.Services;
+using NzbDrone.Core.Talearr.Titles;
 using NzbDrone.Core.Utilities;
 
 namespace NzbDrone.Core.Parser
@@ -903,6 +904,10 @@ namespace NzbDrone.Core.Parser
 
             AddTitleVariants(context.PrimaryVariants, primaryTitle);
             context.PrimaryTitle = primaryTitle;
+
+            // Talearr: a release named after the book's display title (Edit book Display Title, or
+            // Clean Series From Titles) matches too.
+            AddTitleVariants(context.PrimaryVariants, TalearrSearchTitles.ForMatching(book));
 
             foreach (var variant in context.PrimaryVariants)
             {

@@ -282,7 +282,9 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             AddSearchTerm(decodedQuery, "MAM_SEARCH_TERM: '{0}' (decoded from: '{1}')");
             AddVariant(joinedQuery, "MAM_SEARCH_FALLBACK_TERM: '{0}' (apostrophe removed)");
 
-            if (!string.IsNullOrWhiteSpace(decodedTitle) &&
+            // Talearr: a display title query (RequireAuthor) is never sent without the author.
+            if (!searchCriteria.RequireAuthor &&
+                !string.IsNullOrWhiteSpace(decodedTitle) &&
                 !string.Equals(decodedTitle.Trim(), decodedQuery, StringComparison.OrdinalIgnoreCase))
             {
                 AddSearchTerm(decodedTitle, "MAM_SEARCH_FALLBACK_TERM: '{0}' (title-only fallback)", isFallback: true);
@@ -290,7 +292,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             }
 
             // Interactive search: add a fallback query for verbose titles like "... , Book 3" that can hurt recall.
-            if (searchCriteria.InteractiveSearch && !string.IsNullOrWhiteSpace(decodedTitle))
+            if (searchCriteria.InteractiveSearch && !searchCriteria.RequireAuthor && !string.IsNullOrWhiteSpace(decodedTitle))
             {
                 var fallbackTitle = BookNumberSuffixRegex.Replace(decodedTitle, string.Empty).Trim();
                 if (!string.IsNullOrWhiteSpace(fallbackTitle) &&

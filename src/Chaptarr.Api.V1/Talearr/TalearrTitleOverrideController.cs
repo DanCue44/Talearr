@@ -10,9 +10,9 @@ namespace Chaptarr.Api.V1.Talearr
         public string Title { get; set; }
     }
 
-    // Talearr: Edit book > Title, under /api/v1/talearr/titleoverride. The title is shown on the
-    // book routes and used for file and folder names; the Books row keeps the metadata title,
-    // which searches use. Kept per work in talearr.db.
+    // Talearr: Edit book > Display Title, under /api/v1/talearr/titleoverride. The title is shown
+    // on the book routes and used for file and folder names; the Books row keeps the metadata
+    // title, which searches try first. Kept per work in talearr.db.
     [V1ApiController("talearr/titleoverride")]
     public class TalearrTitleOverrideController : Controller
     {
