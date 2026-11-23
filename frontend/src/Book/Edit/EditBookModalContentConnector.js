@@ -82,16 +82,20 @@ class EditBookModalContentConnector extends Component {
       talearrSeries: null,
       talearrPreferredSeries: undefined,
       talearrEditionLock: null,
-      talearrLocked: undefined
+      talearrLocked: undefined,
+      talearrTitleDetails: null,
+      talearrTitle: undefined
     };
 
     this._abortSeriesRequest = null;
     this._abortLockRequest = null;
+    this._abortTitleRequest = null;
   }
 
   componentDidMount() {
     this.fetchTalearrSeries();
     this.fetchTalearrEditionLock();
+    this.fetchTalearrTitle();
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -111,6 +115,11 @@ class EditBookModalContentConnector extends Component {
     if (this._abortLockRequest) {
       this._abortLockRequest();
       this._abortLockRequest = null;
+    }
+
+    if (this._abortTitleRequest) {
+      this._abortTitleRequest();
+      this._abortTitleRequest = null;
     }
   }
 
@@ -138,6 +147,39 @@ class EditBookModalContentConnector extends Component {
 
     request.done((data) => {
       this.setState({ talearrEditionLock: data });
+    });
+  };
+
+  // Talearr: the title set here is saved on its own route; undefined means unchanged.
+  fetchTalearrTitle = () => {
+    const { request, abortRequest } = createAjaxRequest({
+      url: `/talearr/titleoverride/${this.props.bookId}`
+    });
+
+    this._abortTitleRequest = abortRequest;
+
+    request.done((data) => {
+      this.setState({ talearrTitleDetails: data });
+    });
+  };
+
+  saveTalearrTitle = () => {
+    const { talearrTitle, talearrTitleDetails } = this.state;
+    const saved = (talearrTitleDetails && talearrTitleDetails.title) || '';
+
+    if (talearrTitle === undefined || talearrTitle.trim() === saved) {
+      return;
+    }
+
+    const { request } = createAjaxRequest({
+      url: `/talearr/titleoverride/${this.props.bookId}`,
+      method: 'PUT',
+      dataType: 'json',
+      data: JSON.stringify({ title: talearrTitle.trim() || null })
+    });
+
+    request.done(() => {
+      this.props.dispatchFetchBooks({ authorId: this.props.authorId });
     });
   };
 
@@ -192,6 +234,10 @@ class EditBookModalContentConnector extends Component {
     this.setState({ talearrLocked: value });
   };
 
+  onTalearrTitleChange = ({ value }) => {
+    this.setState({ talearrTitle: value });
+  };
+
   onInputChange = ({ name, value }) => {
     this.props.dispatchSetBookValue({ name, value });
   };
@@ -211,6 +257,7 @@ class EditBookModalContentConnector extends Component {
     }
 
     this.saveTalearrPreferredSeries();
+    this.saveTalearrTitle();
 
     this.props.dispatchSaveBook({
       id: this.props.bookId
@@ -228,8 +275,12 @@ class EditBookModalContentConnector extends Component {
       talearrSeries,
       talearrPreferredSeries,
       talearrEditionLock,
-      talearrLocked
+      talearrLocked,
+      talearrTitleDetails,
+      talearrTitle
     } = this.state;
+
+    const savedTitle = (talearrTitleDetails && talearrTitleDetails.title) || '';
 
     const savedLocked = !!(talearrEditionLock && talearrEditionLock.locked);
 
@@ -244,6 +295,9 @@ class EditBookModalContentConnector extends Component {
         onTalearrPreferredSeriesChange={this.onTalearrPreferredSeriesChange}
         talearrLocked={talearrLocked === undefined ? savedLocked : talearrLocked}
         onTalearrLockedChange={this.onTalearrLockedChange}
+        talearrTitle={talearrTitle === undefined ? savedTitle : talearrTitle}
+        talearrTitleDetails={talearrTitleDetails}
+        onTalearrTitleChange={this.onTalearrTitleChange}
         onInputChange={this.onInputChange}
         onTalearrTagsChange={this.onTalearrTagsChange}
         onSavePress={this.onSavePress}

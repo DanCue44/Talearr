@@ -46,10 +46,13 @@ class EditBookModalContent extends Component {
       talearrSeriesOptions,
       talearrPreferredSeries,
       talearrLocked,
+      talearrTitle,
+      talearrTitleDetails,
       onInputChange,
       onTalearrTagsChange,
       onTalearrPreferredSeriesChange,
       onTalearrLockedChange,
+      onTalearrTitleChange,
       onModalClose,
       ...otherProps
     } = this.props;
@@ -72,6 +75,11 @@ class EditBookModalContent extends Component {
     ];
     const errorMessage = getErrorMessage(error, 'Unable to load editions');
 
+    // Talearr: an optional title for this book's pages and file names. Searches keep the metadata title.
+    const metadataTitle = talearrTitleDetails ? talearrTitleDetails.metadataTitle : '';
+    const automaticTitle = talearrTitleDetails && talearrTitleDetails.cleanSeriesFromTitles ? talearrTitleDetails.automaticTitle : '';
+    const titleHelpText = `Shown in Talearr and used for file and folder names, for the audiobook and the ebook. Searches still use the metadata title${metadataTitle ? ` (${metadataTitle})` : ''}. Leave empty to use ${automaticTitle && automaticTitle !== metadataTitle ? `the title without the series (${automaticTitle})` : 'the metadata title'}. Use Rename Files to rename files already on disk.`;
+
     return (
       <ModalContent onModalClose={onModalClose}>
         <ModalHeader>
@@ -82,6 +90,22 @@ class EditBookModalContent extends Component {
           <Form
             {...otherProps}
           >
+            <FormGroup>
+              <FormLabel>
+                {'Title'}
+              </FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.TEXT}
+                name="talearrTitle"
+                value={talearrTitle}
+                placeholder={automaticTitle || metadataTitle || ''}
+                helpText={titleHelpText}
+                isDisabled={!talearrTitleDetails}
+                onChange={onTalearrTitleChange}
+              />
+            </FormGroup>
+
             <FormGroup>
               <FormLabel>
                 {translate('Monitored')}
@@ -222,10 +246,13 @@ EditBookModalContent.propTypes = {
   talearrSeriesOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
   talearrPreferredSeries: PropTypes.string.isRequired,
   talearrLocked: PropTypes.bool.isRequired,
+  talearrTitle: PropTypes.string.isRequired,
+  talearrTitleDetails: PropTypes.object,
   onInputChange: PropTypes.func.isRequired,
   onTalearrTagsChange: PropTypes.func.isRequired,
   onTalearrPreferredSeriesChange: PropTypes.func.isRequired,
   onTalearrLockedChange: PropTypes.func.isRequired,
+  onTalearrTitleChange: PropTypes.func.isRequired,
   onSavePress: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired
 };

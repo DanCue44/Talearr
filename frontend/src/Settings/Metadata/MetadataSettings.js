@@ -8,6 +8,7 @@ import MetadataProviderConnector from './MetadataProvider/MetadataProviderConnec
 import TalearrCalibreConnector from './TalearrCalibreConnector';
 import TalearrMetadataFallbackConnector from './TalearrMetadataFallbackConnector';
 import TalearrRecordingsConnector from './TalearrRecordingsConnector';
+import TalearrTitlesConnector from './TalearrTitlesConnector';
 
 class MetadataSettings extends Component {
 
@@ -28,6 +29,9 @@ class MetadataSettings extends Component {
     // Talearr: the Calibre library section saves with the same toolbar button.
     this._calibreSaveCallback = null;
 
+    // Talearr: the book titles section saves with the same toolbar button.
+    this._titlesSaveCallback = null;
+
     this.state = {
       isSaving: false,
       hasPendingChanges: false,
@@ -36,7 +40,9 @@ class MetadataSettings extends Component {
       fallbackIsSaving: false,
       fallbackHasPendingChanges: false,
       calibreIsSaving: false,
-      calibreHasPendingChanges: false
+      calibreHasPendingChanges: false,
+      titlesIsSaving: false,
+      titlesHasPendingChanges: false
     };
   }
 
@@ -84,6 +90,17 @@ class MetadataSettings extends Component {
     });
   };
 
+  onTitlesChildMounted = (saveCallback) => {
+    this._titlesSaveCallback = saveCallback;
+  };
+
+  onTitlesChildStateChange = ({ isSaving, hasPendingChanges }) => {
+    this.setState({
+      titlesIsSaving: isSaving,
+      titlesHasPendingChanges: hasPendingChanges
+    });
+  };
+
   onSavePress = () => {
     if (this._saveCallback) {
       this._saveCallback();
@@ -100,6 +117,10 @@ class MetadataSettings extends Component {
     if (this._calibreSaveCallback && this.state.calibreHasPendingChanges) {
       this._calibreSaveCallback();
     }
+
+    if (this._titlesSaveCallback && this.state.titlesHasPendingChanges) {
+      this._titlesSaveCallback();
+    }
   };
 
   //
@@ -113,14 +134,16 @@ class MetadataSettings extends Component {
       fallbackIsSaving,
       fallbackHasPendingChanges,
       calibreIsSaving,
-      calibreHasPendingChanges
+      calibreHasPendingChanges,
+      titlesIsSaving,
+      titlesHasPendingChanges
     } = this.state;
 
     return (
       <PageContent title={translate('MetadataSettings')}>
         <SettingsToolbarConnector
-          isSaving={isSaving || talearrIsSaving || fallbackIsSaving || calibreIsSaving}
-          hasPendingChanges={hasPendingChanges || talearrHasPendingChanges || fallbackHasPendingChanges || calibreHasPendingChanges}
+          isSaving={isSaving || talearrIsSaving || fallbackIsSaving || calibreIsSaving || titlesIsSaving}
+          hasPendingChanges={hasPendingChanges || talearrHasPendingChanges || fallbackHasPendingChanges || calibreHasPendingChanges || titlesHasPendingChanges}
           onSavePress={this.onSavePress}
         />
 
@@ -136,6 +159,10 @@ class MetadataSettings extends Component {
           <TalearrMetadataFallbackConnector
             onChildMounted={this.onFallbackChildMounted}
             onChildStateChange={this.onFallbackChildStateChange}
+          />
+          <TalearrTitlesConnector
+            onChildMounted={this.onTitlesChildMounted}
+            onChildStateChange={this.onTitlesChildStateChange}
           />
           <TalearrCalibreConnector
             onChildMounted={this.onCalibreChildMounted}
