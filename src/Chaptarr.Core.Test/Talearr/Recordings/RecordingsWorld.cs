@@ -99,6 +99,7 @@ namespace Chaptarr.Core.Test.Talearr.Recordings
             var (mediaFiles, fileFake) = InterfaceFake<IMediaFileService>.Create();
             fileFake.On(nameof(IMediaFileService.GetFilesByBook), args => FilesOf((int)args[0]));
             fileFake.On(nameof(IMediaFileService.GetFilesByBooks), args => ((IEnumerable<int>)args[0]).SelectMany(FilesOf).ToList());
+            fileFake.On(nameof(IMediaFileService.Update), _ => null);
             MediaFiles = mediaFiles;
 
             var (events, eventFake) = InterfaceFake<IEventAggregator>.Create();
