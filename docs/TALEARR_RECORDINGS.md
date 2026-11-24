@@ -51,7 +51,28 @@ primary recording is abridged and an unabridged edition is known, the section al
 
 **Remove this recording** (the bin icon) asks first and can delete the recording's files too.
 Only additional recordings can be removed; for the primary recording the dialog explains that
-it is the book itself and points at Delete. Talearr never removes a recording on its own.
+it is the book itself and points at Make Primary and Delete.
+
+**Make Primary** (the arrow icon on an additional recording) asks first, then swaps the two
+recordings: the book itself takes over that recording's edition and files, and the old primary
+recording becomes the additional one, which you can then remove. The book entry stays the same,
+so its history, Allseerr link, edition lock and per-book settings stay with it. Files are
+reassigned in the database only; nothing moves on disk.
+
+### Duplicate recordings
+
+The same recording listed twice (same edition, or the same Audible product) is merged on its
+own, after an author refresh, after an import and when the Recordings section loads:
+
+- the primary recording is missing its files and an additional row holds them: the files move
+  to the primary recording (in the database, not on disk), the row's history goes along, and
+  the empty row is removed,
+- an additional row without files that repeats another recording is removed,
+- two rows that both hold files are left alone (use Make Primary and Remove),
+- a row with a download in the queue is never removed.
+
+Imports no longer create such duplicates: a download that matched another edition of the
+recording the book is pinned to is imported to the book itself instead of a copy.
 
 ## Folders
 
@@ -186,6 +207,7 @@ For Allseerr, NoBookEnds and scripts (all additive; nothing upstream changes):
 | `GET /api/v1/talearr/recordings?bookId=` (or `providerId=hc:...`) | The recordings and candidate editions of a book. `bookId` may be any entry of the book, ebook included. Editions that were never looked up on Audible (a book added a moment ago) are looked up first, waiting at most 8 seconds, so abridged candidates show right after an add. `factsPending: true` means the answer may still change: the book's editions are not known yet (the add is still being refreshed) or the lookup goes on in the background; ask again in a few seconds. A lookup that Audible throttles or fails is not retried on this GET for 5 minutes. |
 | `POST /api/v1/talearr/recordings` | `{"bookId": 3401, "kind": "unabridged" \| "abridged" \| "narrator" \| "edition", "narrator": ..., "editionId": ..., "search": true, "requestedBy": "allseerr", "externalRef": "req-812"}`. `201` created, `200` already there, `404` nothing fits, `409` several fit (pick one with `kind: edition`), `400` bad input. |
 | `DELETE /api/v1/talearr/recordings/{bookId}?deleteFiles=false` | Removes an additional recording. The primary one is refused with `409`. |
+| `POST /api/v1/talearr/recordings/{bookId}/primary` | Makes an additional recording the primary one (`200` with `primaryBookId`). `409` when it already is primary or cannot be swapped, `404` unknown recording. `GET` answers carry `mergedBookIds`, the rows a duplicate merge removed just now. |
 | `POST /api/v1/talearr/recordings/refresh?bookId=` | Refetches Audible facts for the book's recordings (`202`). |
 | `GET\|PUT /api/v1/config/talearrrecordings` | The settings above. The upgrade fields are optional on `PUT`; leaving them out keeps the current values. |
 | `GET /api/v1/talearr/grabpolicy/book/{bookId}` | A book's abridged policy (values are always these camelCase strings, never numbers): `{"bookId": 3401, "abridgedPolicy": "abridgedOnly", "effectivePolicy": "abridgedOnly", "source": "book"}`. `abridgedPolicy` is the book's own value or `null`; `source` is `book` or `global`. `bookId` may be any entry of the book (the ebook entry answers for its audiobook). `404` for an unknown book, `0` included, always with a JSON body (`{"message": "Book 0 not found"}`); `400` a book with no audiobook. |

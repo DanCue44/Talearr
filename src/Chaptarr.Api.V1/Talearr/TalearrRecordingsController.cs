@@ -49,12 +49,15 @@ namespace Chaptarr.Api.V1.Talearr
         private readonly ITalearrRecordingGroupService _groupService;
         private readonly IBookService _bookService;
         private readonly IManageCommandQueue _commandQueueManager;
+        private readonly ITalearrRecordingMaintenance _maintenance;
 
         public TalearrRecordingsController(ITalearrRecordingsService recordingsService,
                                            ITalearrRecordingGroupService groupService,
                                            IBookService bookService,
-                                           IManageCommandQueue commandQueueManager)
+                                           IManageCommandQueue commandQueueManager,
+                                           ITalearrRecordingMaintenance maintenance = null)
         {
+            _maintenance = maintenance;
             _recordingsService = recordingsService;
             _groupService = groupService;
             _bookService = bookService;
@@ -73,6 +76,9 @@ namespace Chaptarr.Api.V1.Talearr
                 return NotFound(new TalearrRecordingProblem { Message = "Book not found" });
             }
 
+            // Talearr: exact duplicates of one recording are folded together before the view is built.
+            var merged = _maintenance?.MergeDuplicates(book) ?? new List<int>();
+
             // Talearr: a book added a moment ago gets its first Audible lookup here (at most a few
             // seconds), so Allseerr sees abridged candidates right after the add.
             var view = _recordingsService.GetRecordingsWithFacts(book, allLanguages, FirstLookupTimeout);
@@ -81,6 +87,7 @@ namespace Chaptarr.Api.V1.Talearr
                 return NotFound(new TalearrRecordingProblem { Message = "This work has no audiobook recordings" });
             }
 
+            view.MergedBookIds = merged;
             return view;
         }
 
@@ -127,6 +134,29 @@ namespace Chaptarr.Api.V1.Talearr
                 case RemoveRecordingStatus.Removed:
                     return Ok(new { removed = bookId, deleteFiles });
                 case RemoveRecordingStatus.Refused:
+                    return Conflict(new TalearrRecordingProblem { Message = outcome.Message });
+                default:
+                    return NotFound(new TalearrRecordingProblem { Message = outcome.Message });
+            }
+        }
+
+        // Manual "make this recording primary": the primary book row takes over this additional
+        // recording (its edition and files) and this row gets the old primary recording. 200 with
+        // the primary row's id, 409 refused (already primary, nothing to swap), 404 unknown row.
+        [HttpPost("{bookId:int}/primary")]
+        public IActionResult MakePrimary(int bookId)
+        {
+            if (_maintenance == null)
+            {
+                return NotFound(new TalearrRecordingProblem { Message = "Recordings maintenance is unavailable" });
+            }
+
+            var outcome = _maintenance.MakePrimary(bookId);
+            switch (outcome.Status)
+            {
+                case MakePrimaryStatus.Done:
+                    return Ok(new { promoted = bookId, primaryBookId = outcome.PrimaryBookId });
+                case MakePrimaryStatus.Refused:
                     return Conflict(new TalearrRecordingProblem { Message = outcome.Message });
                 default:
                     return NotFound(new TalearrRecordingProblem { Message = outcome.Message });

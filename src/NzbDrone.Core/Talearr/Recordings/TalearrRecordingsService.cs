@@ -84,6 +84,11 @@ namespace NzbDrone.Core.Talearr.Recordings
         // yet (a book added a moment ago), or its first Audible lookup did not finish in time and
         // goes on in the background. Ask again in a few seconds.
         public bool FactsPending { get; set; }
+
+        // Talearr: book rows removed just now because they duplicated another recording of the
+        // work (see TalearrRecordingMaintenance). A page showing one of them should move to the
+        // primary recording.
+        public List<int> MergedBookIds { get; set; } = new List<int>();
     }
 
     public sealed class AddRecordingRequest
@@ -538,7 +543,7 @@ namespace NzbDrone.Core.Talearr.Recordings
 
             if (group.Primary.Id == book.Id)
             {
-                return new RemoveRecordingOutcome { Status = RemoveRecordingStatus.Refused, Message = "The primary recording is the book itself; delete the book instead" };
+                return new RemoveRecordingOutcome { Status = RemoveRecordingStatus.Refused, Message = "The primary recording is the book itself; make another recording primary first, or delete the book instead" };
             }
 
             _bookService.DeleteBook(book.Id, deleteFiles);
