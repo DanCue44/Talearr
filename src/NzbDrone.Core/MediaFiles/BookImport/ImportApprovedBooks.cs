@@ -94,6 +94,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
             private readonly ICustomFormatCalculationService _customFormatCalculationService;
             private readonly ITalearrRecordingFolders _talearrRecordingFolders; // Talearr
             private readonly ITalearrUpgradeGuard _talearrUpgradeGuard; // Talearr
+            private readonly ITalearrAudibleFactsService _talearrFacts; // Talearr
             private readonly Logger _logger;
 
         public ImportApprovedBooks(
@@ -123,10 +124,12 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                 ICustomFormatCalculationService customFormatCalculationService = null,
                 IConversionJobService conversionJobService = null,
                 ITalearrRecordingFolders talearrRecordingFolders = null,
-                ITalearrUpgradeGuard talearrUpgradeGuard = null)
+                ITalearrUpgradeGuard talearrUpgradeGuard = null,
+                ITalearrAudibleFactsService talearrFacts = null)
             {
                 _talearrRecordingFolders = talearrRecordingFolders; // Talearr
                 _talearrUpgradeGuard = talearrUpgradeGuard; // Talearr
+                _talearrFacts = talearrFacts; // Talearr
             _mediaFileService = mediaFileService;
             _metadataTagService = metadataTagService;
             _mediaInfoExtractor = mediaInfoExtractor;
@@ -396,6 +399,22 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                 if (newBookInstance == null)
                 {
                     var allEditionsForBook = _editionService.GetEditionsByBook(book.Id);
+
+                    // Talearr: a matched edition that is the same recording as the pinned one (same
+                    // provider identity or the same Audible product) is the pinned recording; its
+                    // files go to the book itself instead of a copy row that duplicates it.
+                    foreach (var decision in bookDecisions)
+                    {
+                        var twin = TalearrSameRecording.ProtectedTwin(book, allEditionsForBook, decision?.Item?.Edition, _talearrFacts, _logger);
+                        if (twin != null)
+                        {
+                            _logger.Info("Talearr: '{0}' matched edition {1}, the same recording as the pinned edition {2}; importing to the book itself",
+                                book.Title, decision.Item.Edition.Id, twin.Id);
+                            twin.Book ??= book;
+                            decision.Item.Edition = twin;
+                        }
+                    }
+
                     var firstMismatch = bookDecisions.FirstOrDefault(decision =>
                         decision?.Item?.Edition?.Id > 0 &&
                         EditionPinPolicy.FindConflictingProtectedEdition(book, allEditionsForBook, decision.Item.Edition.Id) != null);

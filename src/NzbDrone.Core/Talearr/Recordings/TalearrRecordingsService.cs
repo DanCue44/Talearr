@@ -602,8 +602,9 @@ namespace NzbDrone.Core.Talearr.Recordings
         {
             return view.Recordings.FirstOrDefault(r =>
             {
+                // Talearr: another edition of the same Audible product is that recording too.
                 var monitored = context.MonitoredEdition(r.BookId);
-                return monitored != null && SameEditionKey(monitored, edition);
+                return monitored != null && (SameEditionKey(monitored, edition) || TalearrSameRecording.Same(monitored, edition, context.Facts));
             });
         }
 

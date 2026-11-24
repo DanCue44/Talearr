@@ -12,6 +12,7 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.Recordings;
 
 namespace NzbDrone.Core.MediaFiles.BookImport.Services
 {
@@ -30,6 +31,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Services
         private readonly IMainDatabase _mainDatabase;
         private readonly IDiskProvider _diskProvider;
         private readonly IRootFolderService _rootFolderService;
+        private readonly ITalearrAudibleFactsService _talearrFacts; // Talearr
         private readonly Logger _logger;
 
         // Cache per canonical book + unit so we don't create multiple clones for the same physical unit.
@@ -43,8 +45,10 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Services
             IMainDatabase mainDatabase,
             Logger logger,
             IDiskProvider diskProvider = null,
-            IRootFolderService rootFolderService = null)
+            IRootFolderService rootFolderService = null,
+            ITalearrAudibleFactsService talearrFacts = null)
         {
+            _talearrFacts = talearrFacts;
             _mediaFileService = mediaFileService;
             _bookService = bookService;
             _editionService = editionService;
@@ -83,6 +87,17 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Services
             unitKey = unitKey ?? string.Empty;
             var unitKeyHash = ComputeUnitKeyHash(unitKey);
             var canonicalEditions = _editionService.GetEditionsByBook(canonicalBook.Id) ?? new List<Edition>();
+
+            // Talearr: the same recording as the pinned edition is the pinned edition; route the unit
+            // to the book itself instead of cloning a copy row that duplicates it.
+            var pinnedTwin = TalearrSameRecording.ProtectedTwin(canonicalBook, canonicalEditions, canonicalEdition, _talearrFacts, _logger);
+            if (pinnedTwin != null)
+            {
+                _logger.Info("Talearr: '{0}' matched edition {1}, the same recording as the pinned edition {2}; importing to the book itself",
+                    canonicalBook.Title, canonicalEdition.Id, pinnedTwin.Id);
+                canonicalEdition = pinnedTwin;
+            }
+
             var conflictingProtectedEdition = EditionPinPolicy.FindConflictingProtectedEdition(
                 canonicalBook,
                 canonicalEditions,
