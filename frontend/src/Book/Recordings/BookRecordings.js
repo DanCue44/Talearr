@@ -12,6 +12,7 @@ import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import Menu from 'Components/Menu/Menu';
 import MenuContent from 'Components/Menu/MenuContent';
 import MenuItem from 'Components/Menu/MenuItem';
+import ConfirmModal from 'Components/Modal/ConfirmModal';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
@@ -90,7 +91,9 @@ class BookRecordings extends Component {
       addingKey: null,
       removing: null,
       isRemoving: false,
-      removeError: null
+      removeError: null,
+      promoting: null,
+      isPromoting: false
     };
   }
 
@@ -131,6 +134,17 @@ class BookRecordings extends Component {
 
     request.done((data) => {
       this.setState({ isFetching: false, error: null, view: data });
+
+      // Talearr: this page's row was a duplicate of another recording and was merged into it.
+      const merged = data.mergedBookIds || [];
+      const primary = (data.recordings || []).find((r) => r.role === 'primary');
+
+      if (merged.includes(this.props.bookId) && primary) {
+        this.props.dispatchFetchBooks({ authorId: this.props.authorId });
+        this.props.dispatchPush(`${window.Chaptarr.urlBase}/book/${primary.bookId}`);
+      } else if (merged.length) {
+        this.setState({ notice: { kind: kinds.INFO, text: 'The same recording was listed twice; Talearr merged the duplicate into one.' } });
+      }
     });
 
     request.fail((xhr) => {
@@ -301,6 +315,45 @@ class BookRecordings extends Component {
 
     request.fail((xhr) => {
       this.setState({ isRemoving: false, removeError: readError(xhr, 'Unable to remove the recording') });
+    });
+  };
+
+  onMakePrimaryOpen = (recording) => {
+    this.setState({ promoting: recording, notice: null });
+  };
+
+  onMakePrimaryClose = () => {
+    this.setState({ promoting: null });
+  };
+
+  onMakePrimaryConfirm = () => {
+    const { promoting } = this.state;
+
+    this.setState({ isPromoting: true });
+
+    const { request } = createAjaxRequest({
+      url: `/talearr/recordings/${promoting.bookId}/primary`,
+      method: 'POST',
+      dataType: 'json'
+    });
+
+    request.done(() => {
+      this.setState({
+        isPromoting: false,
+        promoting: null,
+        notice: { kind: kinds.SUCCESS, text: `${describeRecording(promoting)} is now the primary recording.` }
+      });
+
+      this.props.dispatchFetchBooks({ authorId: this.props.authorId });
+      this.libraryChanged();
+    });
+
+    request.fail((xhr) => {
+      this.setState({
+        isPromoting: false,
+        promoting: null,
+        notice: { kind: kinds.WARNING, text: readError(xhr, 'Unable to make this the primary recording') }
+      });
     });
   };
 
@@ -509,9 +562,18 @@ class BookRecordings extends Component {
         </TableRowCell>
 
         <TableRowCell className={styles.actions}>
+          {
+            recording.role !== 'primary' &&
+              <IconButton
+                name={icons.ARROW_UP}
+                title="Make Primary"
+                onPress={() => this.onMakePrimaryOpen(recording)}
+              />
+          }
+
           <IconButton
             name={icons.DELETE}
-            title={recording.role === 'primary' ? 'The primary recording is the book itself' : 'Remove this recording'}
+            title={recording.role === 'primary' ? 'The primary recording is the book itself; make another recording primary to remove this one' : 'Remove this recording'}
             onPress={() => this.onRemoveOpen(recording)}
           />
         </TableRowCell>
@@ -530,7 +592,9 @@ class BookRecordings extends Component {
       addingKey,
       removing,
       isRemoving,
-      removeError
+      removeError,
+      promoting,
+      isPromoting
     } = this.state;
 
     if (!view) {
@@ -601,6 +665,19 @@ class BookRecordings extends Component {
           error={removeError}
           onRemovePress={this.onRemovePress}
           onModalClose={this.onRemoveClose}
+        />
+
+        <ConfirmModal
+          isOpen={!!promoting}
+          kind={kinds.PRIMARY}
+          title="Make Primary"
+          message={promoting ?
+            `Make ${describeRecording(promoting)} the primary recording? The book takes over its edition and files, and the current primary recording becomes an additional recording that you can remove. Nothing is moved or deleted on disk.` :
+            ''}
+          confirmLabel="Make Primary"
+          isSpinning={isPromoting}
+          onConfirm={this.onMakePrimaryConfirm}
+          onCancel={this.onMakePrimaryClose}
         />
       </div>
     );
