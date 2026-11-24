@@ -2,6 +2,17 @@
 
 Notable changes to Talearr are listed here, newest first. Talearr's version number is its own and is separate from the Chaptarr version it is based on.
 
+## 0.18.71 - 2026-11-24
+
+### Added
+- Clean Series From Titles (Settings > Metadata, off by default): books are shown and named without the series in the title, so "Viridian Gate Online: The Lich Priest: The Viridian Gate Archives, Book 5" becomes "The Lich Priest". Searches try the full metadata title first, then the shorter one, and releases named either way are recognized. Run Rename Files after turning it on. (#3)
+- Display Title in the Edit book dialog: set your own title for a book, used for what Talearr shows and for file and folder names. Edit Details still changes the title everywhere. (#3)
+- Make Primary on each additional audiobook recording, so you can choose which recording is the primary one and remove the old one. (#3)
+
+### Fixed
+- A book no longer lists the same audiobook recording twice with the primary one Missing: imports go to the book itself, and existing duplicates are merged on their own. (#3)
+- Book requests that name a book by its Goodreads id (as Allseerr sends) now find the author's Hardcover book of the same title instead of waiting in the pending queue forever. A request that still cannot be matched stops after about two hours and shows why.
+
 ## 0.18.70 - 2026-11-22
 
 ### Fixed
