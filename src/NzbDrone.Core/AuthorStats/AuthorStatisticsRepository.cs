@@ -4,6 +4,7 @@ using System.Linq;
 using Dapper;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Talearr.AudiobookOnly;
 
 namespace NzbDrone.Core.AuthorStats
 {
@@ -24,32 +25,48 @@ namespace NzbDrone.Core.AuthorStats
                                                    @") AS ""FileStatistics"" ON ""FileStatistics"".""BookId"" = ""Books"".""Id""";
 
         private readonly IMainDatabase _database;
+        private readonly ITalearrAudiobookOnlySettingsService _audiobookOnly;
 
-        public AuthorStatisticsRepository(IMainDatabase database)
+        public AuthorStatisticsRepository(IMainDatabase database, ITalearrAudiobookOnlySettingsService audiobookOnly = null)
         {
             _database = database;
+            _audiobookOnly = audiobookOnly;
+        }
+
+        // Talearr: Audiobook Only leaves ebook rows and audiobook rows with no known audiobook
+        // edition out of every count, unless they have files (TalearrAudiobookOnly).
+        private SqlBuilder NewBuilder()
+        {
+            var builder = Builder(_database.DatabaseType);
+
+            if (TalearrAudiobookOnlySettingsService.Resolve(_audiobookOnly))
+            {
+                builder.Where(TalearrAudiobookOnly.VisibleSql(@"""Books"""));
+            }
+
+            return builder;
         }
 
         public List<BookStatistics> AuthorStatistics()
         {
-            return Query(Builder(_database.DatabaseType));
+            return Query(NewBuilder());
         }
 
         public List<BookStatistics> AuthorStatistics(int authorId)
         {
-            return Query(Builder(_database.DatabaseType).Where<Author>(author => author.Id == authorId));
+            return Query(NewBuilder().Where<Author>(author => author.Id == authorId));
         }
 
         public List<BookStatistics> AuthorStatistics(string mediaType)
         {
-            var builder = Builder(_database.DatabaseType);
+            var builder = NewBuilder();
             ApplyMediaTypeFilter(builder, mediaType);
             return Query(builder);
         }
 
         public List<BookStatistics> AuthorStatistics(int authorId, string mediaType)
         {
-            var builder = Builder(_database.DatabaseType).Where<Author>(author => author.Id == authorId);
+            var builder = NewBuilder().Where<Author>(author => author.Id == authorId);
             ApplyMediaTypeFilter(builder, mediaType);
             return Query(builder);
         }
@@ -63,7 +80,7 @@ namespace NzbDrone.Core.AuthorStats
             foreach (var batch in bookIds.Distinct().Chunk(SqliteVariableLimit.MaxParameters))
             {
                 var batchIds = batch.ToArray();
-                var builder = Builder(_database.DatabaseType).Where<Book>(book => Enumerable.Contains(batchIds, book.Id));
+                var builder = NewBuilder().Where<Book>(book => Enumerable.Contains(batchIds, book.Id));
                 ApplyMediaTypeFilter(builder, mediaType);
                 result.AddRange(Query(builder));
             }

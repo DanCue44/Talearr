@@ -11,6 +11,7 @@ using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Talearr.AudiobookOnly;
 using NzbDrone.Core.Talearr.GrabPolicy;
 using NzbDrone.Core.Talearr.Recordings;
 
@@ -54,6 +55,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly Logger _logger;
         private readonly object _applyLock = new object();
+        private readonly ITalearrAudiobookOnlyService _audiobookOnly;
 
         public TalearrSeriesMonitorService(ISeriesService seriesService,
                                            ISeriesBookLinkService linkService,
@@ -63,8 +65,10 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
                                            ITalearrSeriesRuleStore store,
                                            ITalearrGrabPolicyService grabPolicyService,
                                            IManageCommandQueue commandQueueManager,
-                                           Logger logger)
+                                           Logger logger,
+                                           ITalearrAudiobookOnlyService audiobookOnly = null)
         {
+            _audiobookOnly = audiobookOnly;
             _seriesService = seriesService;
             _linkService = linkService;
             _bookService = bookService;
@@ -145,7 +149,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
                     continue;
                 }
 
-                var entries = BuildEntries(group.ToList(), rule, includeFiles: true, authorBooks);
+                var entries = VisibleEntries(BuildEntries(group.ToList(), rule, includeFiles: true, authorBooks));
                 result.Add(Summarize(group.Key, group.ToList(), entries, rule));
             }
 
@@ -162,7 +166,7 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
 
             var key = KeyOf(rows.First());
             var rule = _store.Get(key);
-            var entries = BuildEntries(rows, rule, includeFiles: true);
+            var entries = VisibleEntries(BuildEntries(rows, rule, includeFiles: true));
 
             return new TalearrSeriesDetail
             {
@@ -506,6 +510,49 @@ namespace NzbDrone.Core.Talearr.SeriesMonitoring
             }
 
             return result;
+        }
+
+        // Talearr: Audiobook Only (TalearrAudiobookOnly). The series page and the series list leave
+        // out works with no known audiobook edition and show no ebook state; works with files stay.
+        // Only the view: rules still act on every entry, so a work that gains an audiobook edition
+        // is already monitored when it shows again.
+        internal List<TalearrSeriesEntry> VisibleEntries(List<TalearrSeriesEntry> entries)
+        {
+            if (_audiobookOnly == null || entries == null || entries.Count == 0 || !_audiobookOnly.Enabled)
+            {
+                return entries;
+            }
+
+            var ids = entries
+                .SelectMany(e => new[] { e.Audiobook?.BookId, e.Ebook?.BookId })
+                .Where(id => id.HasValue)
+                .Select(id => id.Value);
+            var hidden = _audiobookOnly.HiddenBookIds(ids);
+
+            bool Shown(TalearrSeriesFormatState state) => state?.BookId != null && !hidden.Contains(state.BookId.Value);
+
+            var visible = new List<TalearrSeriesEntry>();
+            foreach (var entry in entries)
+            {
+                if (!Shown(entry.Audiobook) && !Shown(entry.Ebook))
+                {
+                    continue;
+                }
+
+                if (entry.Audiobook?.BookId != null && !Shown(entry.Audiobook))
+                {
+                    entry.Audiobook = new TalearrSeriesFormatState { Format = TalearrSeriesFormats.Audiobook, Handled = entry.Audiobook.Handled };
+                }
+
+                if (entry.Ebook?.BookId != null && !Shown(entry.Ebook))
+                {
+                    entry.Ebook = new TalearrSeriesFormatState { Format = TalearrSeriesFormats.Ebook, Handled = entry.Ebook.Handled };
+                }
+
+                visible.Add(entry);
+            }
+
+            return visible;
         }
 
         internal List<TalearrSeriesEntry> BuildEntries(List<Series> rows, TalearrSeriesRule rule, bool includeFiles, Dictionary<int, List<Book>> authorBooks = null)

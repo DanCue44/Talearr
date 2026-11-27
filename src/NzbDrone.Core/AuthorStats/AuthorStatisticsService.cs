@@ -6,6 +6,7 @@ using NzbDrone.Core.MediaFiles.BookImport;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Talearr.AudiobookOnly;
 
 namespace NzbDrone.Core.AuthorStats
 {
@@ -34,7 +35,8 @@ namespace NzbDrone.Core.AuthorStats
         IHandle<BookFileUpdatedEvent>,
         IHandle<BookFilesAddedEvent>,
         IHandle<ImportStageProgressEvent>,
-        IHandle<CommandExecutedEvent>
+        IHandle<CommandExecutedEvent>,
+        IHandle<TalearrAudiobookOnlyChangedEvent>
     {
         private readonly IAuthorStatisticsRepository _authorStatisticsRepository;
         private readonly ICached<List<BookStatistics>> _cache;
@@ -274,6 +276,13 @@ namespace NzbDrone.Core.AuthorStats
         public void Handle(CommandExecutedEvent message)
         {
             FlushDeferredFileInvalidation();
+        }
+
+        // Talearr: Audiobook Only changes which rows count, so every cached count is stale.
+        [EventHandleOrder(EventHandleOrder.First)]
+        public void Handle(TalearrAudiobookOnlyChangedEvent message)
+        {
+            _cache.Clear();
         }
     }
 }

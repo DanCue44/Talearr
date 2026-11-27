@@ -9,6 +9,7 @@ using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Talearr.AudiobookOnly;
 
 namespace NzbDrone.Core.Books
 {
@@ -57,6 +58,9 @@ namespace NzbDrone.Core.Books
 	        PagedBookResource GetBooksPaged(int offset, int pageSize, string sortKey, string sortDirection, bool includeUnmonitored, string mediaType, bool? downloaded, bool? monitored, bool? missing = null, bool? wanted = null) => GetBooksPaged(offset, pageSize, sortKey, sortDirection, includeUnmonitored, mediaType, downloaded);
 	        List<int> GetBookIds(bool includeUnmonitored = false, string mediaType = null, bool? downloaded = null, bool? monitored = null, bool? missing = null, bool? wanted = null) => throw new NotImplementedException();
 
+	        // Talearr: the given rows Audiobook Only hides (TalearrAudiobookOnly.VisibleSql), whatever the setting.
+	        List<int> GetAudiobookOnlyHiddenIds(IEnumerable<int> bookIds) => new List<int>();
+
 	        // Talearr: every matching row in the book index sort order, for grouping a work's formats
 	        List<Book> GetSortedBooks(string sortKey, string sortDirection, bool includeUnmonitored, string mediaType, bool? downloaded, bool? monitored, bool? missing = null, bool? wanted = null) => throw new NotImplementedException();
 	    }
@@ -64,10 +68,45 @@ namespace NzbDrone.Core.Books
     public class BookRepository : BasicRepository<Book>, IBookRepository
     {
         private List<PropertyInfo> _updatePropertiesWithoutAuthorId;
+        private readonly ITalearrAudiobookOnlySettingsService _audiobookOnly;
 
-        public BookRepository(IMainDatabase database, IEventAggregator eventAggregator)
+        public BookRepository(IMainDatabase database, IEventAggregator eventAggregator, ITalearrAudiobookOnlySettingsService audiobookOnly = null)
             : base(database, eventAggregator)
         {
+            _audiobookOnly = audiobookOnly;
+        }
+
+        // Talearr: Audiobook Only (TalearrAudiobookOnly). Read on every query so the setting
+        // applies at once; off when the setting cannot be read.
+        private bool AudiobookOnly => TalearrAudiobookOnlySettingsService.Resolve(_audiobookOnly);
+
+        public List<int> GetAudiobookOnlyHiddenIds(IEnumerable<int> bookIds)
+        {
+            var hidden = new List<int>();
+            var ids = bookIds?.Where(id => id > 0).Distinct().ToList() ?? new List<int>();
+
+            using var connection = _database.OpenConnection();
+
+            // Integer ids are inlined in chunks, like the where builder does, to stay clear of the
+            // SQLite variable limit.
+            foreach (var chunk in ids.Chunk(2000))
+            {
+                var sql = $@"SELECT ""Books"".""Id"" FROM ""Books""
+                             WHERE ""Books"".""Id"" IN ({string.Join(", ", chunk)})
+                               AND NOT {TalearrAudiobookOnly.VisibleSql(@"""Books""")}";
+
+                hidden.AddRange(connection.Query<int>(sql));
+            }
+
+            return hidden;
+        }
+
+        private void ApplyAudiobookOnlyVisibility(SqlBuilder builder, string bookReference = @"""Books""")
+        {
+            if (AudiobookOnly)
+            {
+                builder.Where(TalearrAudiobookOnly.VisibleSql(bookReference));
+            }
         }
 
         protected override List<PropertyInfo> GetUpdateProperties()
@@ -400,13 +439,25 @@ namespace NzbDrone.Core.Books
 
         //x.Id == null is converted to SQL, so warning incorrect
 #pragma warning disable CS0472
-        private SqlBuilder BooksWithoutFilesBuilder(DateTime currentTime) => Builder()
-            .Join<Book, Author>((l, r) => l.AuthorId == r.Id)
-            .Join<Book, Edition>((b, e) => b.Id == e.BookId)
-            .LeftJoin<Edition, BookFile>((t, f) => t.Id == f.EditionId)
-            .Where<BookFile>(f => f.Id == null)
-            .Where<Edition>(e => e.Monitored == true)
-            .Where<Book>(a => a.ReleaseDate <= currentTime);
+        private SqlBuilder BooksWithoutFilesBuilder(DateTime currentTime)
+        {
+            var builder = Builder()
+                .Join<Book, Author>((l, r) => l.AuthorId == r.Id)
+                .Join<Book, Edition>((b, e) => b.Id == e.BookId)
+                .LeftJoin<Edition, BookFile>((t, f) => t.Id == f.EditionId)
+                .Where<BookFile>(f => f.Id == null)
+                .Where<Edition>(e => e.Monitored == true)
+                .Where<Book>(a => a.ReleaseDate <= currentTime);
+
+            // Talearr: Audiobook Only leaves ebook rows and audiobook rows with no known
+            // audiobook edition out of Wanted Missing and every missing search.
+            if (AudiobookOnly)
+            {
+                builder.Where(TalearrAudiobookOnly.WantedSql(@"""Books"""));
+            }
+
+            return builder;
+        }
 #pragma warning restore CS0472
 
         public PagingSpec<Book> BooksWithoutFiles(PagingSpec<Book> pagingSpec)
@@ -534,6 +585,8 @@ namespace NzbDrone.Core.Books
                     .Where<Book>(AuthorExtensions.GetBookMonitoringFilter(null, monitored: true));
             }
 
+            ApplyAudiobookOnlyVisibility(builder);
+
             return Query(builder);
         }
 
@@ -548,6 +601,8 @@ namespace NzbDrone.Core.Books
                 builder = builder.Join<Book, Author>((l, r) => l.AuthorId == r.Id)
                     .Where<Book>(AuthorExtensions.GetBookMonitoringFilter(null, monitored: true));
             }
+
+            ApplyAudiobookOnlyVisibility(builder);
 
             return Query(builder);
         }
@@ -856,6 +911,11 @@ namespace NzbDrone.Core.Books
                 parameters.Add("wantedCutoff", DateTime.UtcNow);
             }
 
+            if (AudiobookOnly)
+            {
+                whereConditions.Add(TalearrAudiobookOnly.VisibleSql("b"));
+            }
+
             var whereClause = whereConditions.Any()
                 ? $"WHERE {string.Join(" AND ", whereConditions)}"
                 : string.Empty;
@@ -1042,6 +1102,8 @@ namespace NzbDrone.Core.Books
             {
                 builder.Where($@"""{tableName}"".""ReleaseDate"" <= @wantedCutoff", new { wantedCutoff = DateTime.UtcNow });
             }
+
+            ApplyAudiobookOnlyVisibility(builder, $@"""{tableName}""");
 
             return builder;
         }
