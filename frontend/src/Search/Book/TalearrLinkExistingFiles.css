@@ -1,0 +1,62 @@
+.container {
+  margin-top: 15px;
+  padding: 10px;
+  border: 1px solid var(--borderColor);
+  border-radius: 4px;
+}
+
+.heading {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.help {
+  margin-bottom: 8px;
+  color: var(--helpTextColor);
+  font-size: 13px;
+}
+
+.candidate {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 6px;
+  cursor: pointer;
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+}
+
+.checkContainer {
+  composes: container from '~Components/Form/CheckInput.css';
+
+  flex: 0 0 auto;
+  margin-right: 8px;
+}
+
+.check {
+  composes: input from '~Components/Form/CheckInput.css';
+
+  margin-top: 2px;
+}
+
+.details {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 500;
+}
+
+.path {
+  overflow-wrap: anywhere;
+
+  color: var(--helpTextColor);
+  font-size: 12px;
+}
+
+.meta {
+  color: var(--helpTextColor);
+  font-size: 12px;
+}

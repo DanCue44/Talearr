@@ -8,7 +8,39 @@ import { saveUISettings, setUISettingsValue } from 'Store/Actions/settingsAction
 import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
 import createSystemStatusSelector from 'Store/Selectors/createSystemStatusSelector';
 import selectSettings from 'Store/Selectors/selectSettings';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
 import AddNewBookModalContent from './AddNewBookModalContent';
+
+// Talearr: identifiers of the book being added, for Link Existing Files candidates.
+function collectIdentifiers(book) {
+  const asins = new Set();
+  const isbns = new Set();
+  const add = (set, value) => {
+    if (typeof value === 'string' && value.trim()) {
+      set.add(value.trim());
+    }
+  };
+
+  if (book) {
+    add(asins, book.asin);
+    add(asins, book.audibleASIN);
+    add(asins, book.audibleAsin);
+
+    (book.editions || []).forEach((edition) => {
+      add(asins, edition.asin);
+      add(asins, edition.audibleASIN);
+      add(asins, edition.audibleAsin);
+      (edition.asins || []).forEach((asin) => add(asins, asin));
+      add(isbns, edition.isbn13);
+      add(isbns, edition.isbn10);
+    });
+  }
+
+  return {
+    asins: Array.from(asins),
+    isbns: Array.from(isbns)
+  };
+}
 
 function createMapStateToProps() {
   return createSelector(
@@ -71,10 +103,17 @@ class AddNewBookModalContentConnector extends Component {
     super(props, context);
 
     this._pendingDefaultSave = false;
+    this._linkCandidatesRequest = null;
+
+    this.state = {
+      linkCandidates: [],
+      selectedLinkPaths: []
+    };
   }
 
   componentDidMount() {
     this.props.resetAddState();
+    this.fetchLinkCandidates();
   }
 
   componentDidUpdate(prevProps) {
@@ -101,11 +140,75 @@ class AddNewBookModalContentConnector extends Component {
     }
   }
 
+  componentWillUnmount() {
+    if (this._linkCandidatesRequest) {
+      this._linkCandidatesRequest();
+      this._linkCandidatesRequest = null;
+    }
+  }
+
+  //
+  // Control
+
+  // Talearr: existing audiobooks (Audiobookshelf items, untracked folders of the author) that look
+  // like this book. Nothing is shown when there are none or the lookup fails.
+  fetchLinkCandidates = () => {
+    const {
+      bookTitle,
+      authorName,
+      book
+    } = this.props;
+
+    if (!bookTitle) {
+      return;
+    }
+
+    const identifiers = collectIdentifiers(book);
+    const authorId = book && book.author && book.author.id > 0 ? book.author.id : null;
+
+    const { request, abortRequest } = createAjaxRequest({
+      url: '/talearr/linkexisting/candidates',
+      method: 'POST',
+      dataType: 'json',
+      contentType: 'application/json',
+      data: JSON.stringify({
+        title: (book && book.title) || bookTitle,
+        authorName,
+        authorId,
+        asins: identifiers.asins,
+        isbns: identifiers.isbns
+      })
+    });
+
+    this._linkCandidatesRequest = abortRequest;
+
+    request.done((candidates) => {
+      const list = Array.isArray(candidates) ? candidates : [];
+
+      this.setState({
+        linkCandidates: list,
+        selectedLinkPaths: list.filter((candidate) => candidate.strong).map((candidate) => candidate.path)
+      });
+    });
+
+    request.always(() => {
+      this._linkCandidatesRequest = null;
+    });
+  };
+
   //
   // Listeners
 
   onInputChange = ({ name, value }) => {
     this.props.setBookAddDefault({ [name]: value });
+  };
+
+  onLinkPathToggle = (path) => {
+    this.setState((state) => ({
+      selectedLinkPaths: state.selectedLinkPaths.includes(path) ?
+        state.selectedLinkPaths.filter((selected) => selected !== path) :
+        [...state.selectedLinkPaths, path]
+    }));
   };
 
   onSetDefaultMediaType = (mediaType) => {
@@ -211,6 +314,11 @@ class AddNewBookModalContentConnector extends Component {
       payload.book = book;
     }
 
+    // Talearr: Link Existing Files applies to the audiobook only.
+    if (selectedMediaType !== 'ebook' && this.state.selectedLinkPaths.length) {
+      payload.linkPaths = this.state.selectedLinkPaths;
+    }
+
     this.props.addBook(payload);
   };
 
@@ -222,6 +330,9 @@ class AddNewBookModalContentConnector extends Component {
     return (
       <AddNewBookModalContent
         {...this.props}
+        linkCandidates={this.state.linkCandidates}
+        selectedLinkPaths={this.state.selectedLinkPaths}
+        onLinkPathToggle={this.onLinkPathToggle}
         onInputChange={this.onInputChange}
         onAddBookPress={this.onAddBookPress}
         onSetDefaultMediaType={this.onSetDefaultMediaType}
@@ -242,6 +353,8 @@ AddNewBookModalContentConnector.propTypes = {
   foreignBookId: PropTypes.string,
   foreignAuthorId: PropTypes.string.isRequired,
   book: PropTypes.object,
+  bookTitle: PropTypes.string,
+  authorName: PropTypes.string,
   folder: PropTypes.string,
   audiobookRootFolderPath: PropTypes.object,
   ebookRootFolderPath: PropTypes.object,
