@@ -2,6 +2,11 @@
 
 Notable changes to Talearr are listed here, newest first. Talearr's version number is its own and is separate from the Chaptarr version it is based on.
 
+## 0.18.73 - 2026-11-27
+
+### Fixed
+- Audiobook Only now hides books that only have Kindle or print editions. Talearr stores Kindle ASINs in the same field as Audible ones, and those were counted as audiobook editions. (#12)
+
 ## 0.18.72 - 2026-11-27
 
 ### Added
