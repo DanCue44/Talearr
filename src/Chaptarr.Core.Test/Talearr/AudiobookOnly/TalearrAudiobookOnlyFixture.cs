@@ -25,12 +25,16 @@ namespace Chaptarr.Core.Test.Talearr.AudiobookOnly
         // 4: audiobook row of an ebook-only book that has a file (shown, not missing)
         // 5: audiobook row with an Audible ASIN on the book and an edition of unknown format (wanted)
         // 6: audiobook row with an Audible-catalog edition (Format "Audiobook", no reading format) (wanted)
+        // 7: audiobook row whose only edition is a Kindle ebook carrying its ASIN (hidden, #12)
+        // 8: audiobook row with the Kindle ASIN on the book itself (hidden, #12)
         private const int Wanted = 1;
         private const int EbookOnlyAudiobookRow = 2;
         private const int EbookRow = 3;
         private const int WithFile = 4;
         private const int AudibleAsinOnBook = 5;
         private const int AudibleCatalogEdition = 6;
+        private const int KindleAsinEdition = 7;
+        private const int KindleAsinOnBook = 8;
 
         private TalearrMigratedDatabase _db;
         private StubSettings _settings;
@@ -84,7 +88,7 @@ namespace Chaptarr.Core.Test.Talearr.AudiobookOnly
         [Test]
         public void off_by_default_keeps_every_missing_row()
         {
-            Assert.That(MissingIds(), Is.EqualTo(new[] { Wanted, EbookOnlyAudiobookRow, EbookRow, AudibleAsinOnBook, AudibleCatalogEdition }));
+            Assert.That(MissingIds(), Is.EqualTo(new[] { Wanted, EbookOnlyAudiobookRow, EbookRow, AudibleAsinOnBook, AudibleCatalogEdition, KindleAsinEdition, KindleAsinOnBook }));
             Assert.That(Service().HiddenBookIds(Enumerable.Range(1, 6)), Is.Empty);
         }
 
@@ -128,7 +132,7 @@ namespace Chaptarr.Core.Test.Talearr.AudiobookOnly
             var statistics = new AuthorStatisticsRepository(_db.MainDatabase, _settings);
 
             var before = statistics.AuthorStatistics(1);
-            Assert.That(before.Sum(s => s.BookCount), Is.EqualTo(6));
+            Assert.That(before.Sum(s => s.BookCount), Is.EqualTo(8));
 
             _settings.Enabled = true;
 
@@ -161,7 +165,7 @@ namespace Chaptarr.Core.Test.Talearr.AudiobookOnly
             Assert.That(MissingIds(), Has.Count.EqualTo(3));
 
             _settings.Enabled = false;
-            Assert.That(MissingIds(), Has.Count.EqualTo(5));
+            Assert.That(MissingIds(), Has.Count.EqualTo(7));
         }
 
         [Test]
@@ -202,6 +206,12 @@ namespace Chaptarr.Core.Test.Talearr.AudiobookOnly
             Assert.That(TalearrAudiobookOnly.HasAudiobookEdition(new Book { MediaType = BookMediaType.Audiobook }, new[] { timed }), Is.True);
             Assert.That(TalearrAudiobookOnly.HasAudiobookEdition(new Book { MediaType = BookMediaType.Audiobook, AudibleASIN = "B0TEST" }, new Edition[0]), Is.True);
             Assert.That(TalearrAudiobookOnly.HasAudiobookEdition(new Book { MediaType = BookMediaType.Ebook }, new[] { audio }), Is.False);
+
+            // Hardcover stores Kindle ASINs in AudibleASIN too (#12)
+            var kindle = new Edition { ReadingFormatId = 3, IsEbook = true, AudibleASIN = "B0KINDLE", Asin = "B0KINDLE" };
+            Assert.That(TalearrAudiobookOnly.HasAudiobookEdition(new Book { MediaType = BookMediaType.Audiobook }, new[] { kindle }), Is.False);
+            Assert.That(TalearrAudiobookOnly.HasAudiobookEdition(new Book { MediaType = BookMediaType.Audiobook, AudibleASIN = "B0KINDLE" }, new[] { kindle }), Is.False);
+            Assert.That(TalearrAudiobookOnly.HasAudiobookEdition(new Book { MediaType = BookMediaType.Audiobook }, new[] { new Edition { AudibleASIN = "B0AUDIO" } }), Is.True);
         }
 
         private void Seed()
@@ -260,6 +270,12 @@ namespace Chaptarr.Core.Test.Talearr.AudiobookOnly
 
             AddBook(conn, AudibleCatalogEdition, "The Constable 3", 0, null);
             AddEdition(conn, AudibleCatalogEdition, "az:B0CATALOG", monitored: true, readingFormatId: null, format: "Audiobook");
+
+            AddBook(conn, KindleAsinEdition, "The Queen of Darkness", 0, null);
+            AddEdition(conn, KindleAsinEdition, "e7", monitored: true, readingFormatId: 3, audibleAsin: "B0KINDLE7", isEbook: true);
+
+            AddBook(conn, KindleAsinOnBook, "The Darkest Star", 0, "B0KINDLE8");
+            AddEdition(conn, KindleAsinOnBook, "e8", monitored: true, readingFormatId: null, audibleAsin: "B0KINDLE8", isEbook: true);
         }
 
         private void AddBook(IDbConnection conn, int id, string title, int mediaType, string audibleAsin)
@@ -287,7 +303,7 @@ namespace Chaptarr.Core.Test.Talearr.AudiobookOnly
             });
         }
 
-        private int AddEdition(IDbConnection conn, int bookId, string foreignEditionId, bool monitored, int? readingFormatId, string format = null)
+        private int AddEdition(IDbConnection conn, int bookId, string foreignEditionId, bool monitored, int? readingFormatId, string format = null, string audibleAsin = null, bool isEbook = false)
         {
             return _db.Insert(conn, "Editions", new
             {
@@ -297,6 +313,9 @@ namespace Chaptarr.Core.Test.Talearr.AudiobookOnly
                 Monitored = monitored ? 1 : 0,
                 ReadingFormatId = readingFormatId,
                 Format = format,
+                AudibleASIN = audibleAsin,
+                Asin = audibleAsin,
+                IsEbook = isEbook ? 1 : 0,
                 ReleaseDate = new DateTime(2024, 5, 1, 0, 0, 0, DateTimeKind.Utc),
                 Images = "[]",
                 Links = "[]",

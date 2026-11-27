@@ -10,8 +10,9 @@ namespace NzbDrone.Core.Talearr.AudiobookOnly
     // Talearr: Audiobook Only. A view and wanted filter, never a delete or an unmonitor.
     //
     // While it is on, a book row counts only when it is an audiobook row with a known audiobook
-    // edition: an edition with the audio reading format, an Audible ASIN, the "Audiobook" format
-    // or a running time, or an Audible ASIN on the book itself. Ebook rows and audiobook rows of
+    // edition: an edition with the audio reading format, an Audible ASIN on an edition that is not print or
+    // an ebook, the "Audiobook" format or a running time, or an Audible ASIN on the book itself
+    // that no print or ebook edition carries (Hardcover stores Kindle ASINs in the same field). Ebook rows and audiobook rows of
     // books that only exist in print or as ebooks are left out of Wanted Missing, the missing
     // searches, the calendar, the author and series counts and the author and book lists, and
     // automatic grabs skip them. A row with files is always kept: it is in the library already.
@@ -21,16 +22,31 @@ namespace NzbDrone.Core.Talearr.AudiobookOnly
     // with nothing else to do.
     public static class TalearrAudiobookOnly
     {
+        public const int PrintReadingFormatId = 1;
         public const int AudioReadingFormatId = 2;
+        public const int EbookReadingFormatId = 3;
+
+        // Booleans are stored as 1/0 in SQLite and true/false in Postgres; both compare to TRUE.
+        private const string TrueSql = "TRUE";
 
         // Audio evidence for the book row referenced by bookReference (a quoted table name or alias).
         public static string AudioEvidenceSql(string bookReference)
         {
-            return $@"(COALESCE({bookReference}.""AudibleASIN"", '') <> '' OR EXISTS (
+            // Hardcover puts every edition's ASIN in AudibleASIN, Kindle editions included, so an
+            // ASIN only counts on an edition that is not known to be print or an ebook, and a
+            // book-level ASIN only when no print or ebook edition of the book carries it.
+            return $@"((COALESCE({bookReference}.""AudibleASIN"", '') <> '' AND NOT EXISTS (
+                        SELECT 1 FROM ""Editions"" aol_k
+                        WHERE aol_k.""BookId"" = {bookReference}.""Id""
+                          AND (aol_k.""AudibleASIN"" = {bookReference}.""AudibleASIN"" OR aol_k.""Asin"" = {bookReference}.""AudibleASIN"")
+                          AND (aol_k.""ReadingFormatId"" IN ({PrintReadingFormatId}, {EbookReadingFormatId}) OR aol_k.""IsEbook"" = {TrueSql})))
+                    OR EXISTS (
                         SELECT 1 FROM ""Editions"" aol_e
                         WHERE aol_e.""BookId"" = {bookReference}.""Id""
                           AND (aol_e.""ReadingFormatId"" = {AudioReadingFormatId}
-                               OR COALESCE(aol_e.""AudibleASIN"", '') <> ''
+                               OR (COALESCE(aol_e.""AudibleASIN"", '') <> ''
+                                   AND COALESCE(aol_e.""ReadingFormatId"", 0) NOT IN ({PrintReadingFormatId}, {EbookReadingFormatId})
+                                   AND aol_e.""IsEbook"" <> {TrueSql})
                                OR LOWER(COALESCE(aol_e.""Format"", '')) = 'audiobook'
                                OR COALESCE(aol_e.""DurationSeconds"", 0) > 0)))";
         }
@@ -63,7 +79,7 @@ namespace NzbDrone.Core.Talearr.AudiobookOnly
             }
 
             return edition.ReadingFormatId == AudioReadingFormatId ||
-                   edition.AudibleASIN.IsNotNullOrWhiteSpace() ||
+                   (edition.AudibleASIN.IsNotNullOrWhiteSpace() && !IsPrintOrEbook(edition)) ||
                    string.Equals(edition.Format?.Trim(), "audiobook", StringComparison.OrdinalIgnoreCase) ||
                    (edition.DurationSeconds ?? 0) > 0;
         }
@@ -76,8 +92,20 @@ namespace NzbDrone.Core.Talearr.AudiobookOnly
                 return false;
             }
 
-            return book.AudibleASIN.IsNotNullOrWhiteSpace() ||
-                   (editions ?? Enumerable.Empty<Edition>()).Any(IsAudioEdition);
+            var list = (editions ?? Enumerable.Empty<Edition>()).ToList();
+            var bookAsin = book.AudibleASIN.IsNotNullOrWhiteSpace() &&
+                           !list.Any(e => IsPrintOrEbook(e) &&
+                                          (string.Equals(e.AudibleASIN, book.AudibleASIN, StringComparison.Ordinal) ||
+                                           string.Equals(e.Asin, book.AudibleASIN, StringComparison.Ordinal)));
+
+            return bookAsin || list.Any(IsAudioEdition);
+        }
+
+        private static bool IsPrintOrEbook(Edition edition)
+        {
+            return edition.ReadingFormatId == PrintReadingFormatId ||
+                   edition.ReadingFormatId == EbookReadingFormatId ||
+                   edition.IsEbook;
         }
     }
 
