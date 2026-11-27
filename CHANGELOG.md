@@ -2,6 +2,11 @@
 
 Notable changes to Talearr are listed here, newest first. Talearr's version number is its own and is separate from the Chaptarr version it is based on.
 
+## 0.18.74 - 2026-11-27
+
+### Changed
+- Link Existing Files in the Add Book window now also lists audiobook files Talearr already has on another book or as unmapped files (for example a Publisher's Pack attached to book 1), labeled with where they are now. Ticking one moves those files to the new book without touching anything on disk. (#13)
+
 ## 0.18.73 - 2026-11-27
 
 ### Fixed
