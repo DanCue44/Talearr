@@ -2,6 +2,16 @@
 
 Notable changes to Talearr are listed here, newest first. Talearr's version number is its own and is separate from the Chaptarr version it is based on.
 
+## 0.18.72 - 2026-11-27
+
+### Added
+- Audiobook Only (Settings > Metadata, off by default): ebooks, and audiobooks of books that have no audiobook edition yet, are hidden from the author, series and book lists, the calendar and Wanted, are not counted as missing and are not searched or grabbed automatically. Nothing is deleted, and a book shows up again as soon as a metadata refresh finds an audiobook edition. (#12)
+- Link Existing Files in the Add Book window: when Audiobookshelf or the author's folder already has a matching audiobook, you can link it while adding the book instead of searching. It is imported like Manual Import. (#13)
+
+### Fixed
+- Audiobook packs that hold several books (such as Audible's Publisher's Pack) are no longer imported as copies of book 1: they go to the matching pack entry or wait in Manual Import, and an author refresh fixes packs already attached to the wrong book. (#14)
+- The Clean Series From Titles checkbox now saves. (#3)
+
 ## 0.18.71 - 2026-11-24
 
 ### Added
