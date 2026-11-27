@@ -15,7 +15,8 @@ namespace Chaptarr.Api.V1.Talearr
     }
 
     // Talearr: Link Existing Files in the Add Book modal under /api/v1/talearr/linkexisting.
-    // New routes only; the add itself is unchanged and the link is a normal Manual Import.
+    // New routes only; the add itself is unchanged and the link is a normal Manual Import, or, for
+    // files Talearr already tracks on another audiobook, a database move to the new book.
     [V1ApiController("talearr/linkexisting")]
     public class TalearrLinkExistingController : Controller
     {

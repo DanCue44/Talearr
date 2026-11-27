@@ -8,8 +8,10 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.BookImport;
 using NzbDrone.Core.MediaFiles.BookImport.Manual;
+using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Queue;
 using NzbDrone.Core.Talearr.Audiobookshelf;
 
 namespace NzbDrone.Core.Talearr.LinkExisting
@@ -49,12 +51,40 @@ namespace NzbDrone.Core.Talearr.LinkExisting
 
         // asin | isbn | title
         public string MatchedBy { get; set; }
+
+        // Every audio file of the folder is already in Talearr, on another audiobook or unmapped.
+        // Never preselected; linking it moves those files to the new book (database only).
+        public bool TrackedElsewhere { get; set; }
+
+        // Where those files are now, e.g. "In Talearr on: Renegade Star (audiobook)".
+        public string TrackedOnLabel { get; set; }
+        public List<TalearrLinkTrackedOn> TrackedOn { get; set; } = new List<TalearrLinkTrackedOn>();
+    }
+
+    public sealed class TalearrLinkTrackedOn
+    {
+        // 0 for unmapped files.
+        public int BookId { get; set; }
+        public string Title { get; set; }
+
+        // audiobook | ebook | null for unmapped files
+        public string MediaType { get; set; }
+        public int FileCount { get; set; }
     }
 
     public sealed class TalearrLinkResult
     {
         public int BookId { get; set; }
+
+        // Files queued for a Manual Import (untracked files).
         public int FileCount { get; set; }
+
+        // Tracked files moved from another audiobook (or unmapped files) to this book.
+        public int MovedCount { get; set; }
+
+        // Tracked files that were not moved, with the reason.
+        public int RefusedCount { get; set; }
+        public List<string> Refusals { get; set; } = new List<string>();
         public int SkippedCount { get; set; }
         public int? CommandId { get; set; }
     }
@@ -70,6 +100,8 @@ namespace NzbDrone.Core.Talearr.LinkExisting
         // with the default Hardlink/Copy mode: files outside a root folder are hardlinked or copied
         // into the library and the originals are left alone; files already inside a root folder are
         // imported where they are.
+        // A path whose audio files are all tracked already (on another audiobook, or unmapped) has
+        // those files moved to the book instead, in the database only (issue #13).
         TalearrLinkResult Link(int bookId, IEnumerable<string> paths);
     }
 
@@ -87,6 +119,7 @@ namespace NzbDrone.Core.Talearr.LinkExisting
         private readonly IMediaFileService _mediaFileService;
         private readonly IDiskProvider _diskProvider;
         private readonly IManageCommandQueue _commandQueueManager;
+        private readonly IQueueService _queueService;
         private readonly Logger _logger;
 
         public TalearrLinkExistingService(ITalearrAbsStore absStore,
@@ -97,8 +130,10 @@ namespace NzbDrone.Core.Talearr.LinkExisting
                                           IMediaFileService mediaFileService,
                                           IDiskProvider diskProvider,
                                           IManageCommandQueue commandQueueManager,
+                                          IQueueService queueService,
                                           Logger logger)
         {
+            _queueService = queueService;
             _absStore = absStore;
             _absConnections = absConnections;
             _authorService = authorService;
@@ -138,7 +173,10 @@ namespace NzbDrone.Core.Talearr.LinkExisting
             }
 
             // One entry per folder (an Audiobookshelf item inside the author folder shows once, with
-            // its Audiobookshelf details), then drop folders Talearr already tracks.
+            // its Audiobookshelf details). A folder with untracked audio files is offered as before;
+            // a folder whose files Talearr already tracks on another audiobook (or as unmapped files)
+            // is offered with where they are now, never preselected (issue #13: a Publisher's Pack
+            // attached to book 1 of the series).
             var distinct = candidates
                 .GroupBy(c => NormalizePath(c.Path), StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.OrderBy(c => c.Source == TalearrLinkCandidate.SourceAudiobookshelf ? 0 : 1).First())
@@ -153,13 +191,38 @@ namespace NzbDrone.Core.Talearr.LinkExisting
                     continue;
                 }
 
-                var untracked = Untracked(files);
-                if (untracked.Count == 0)
+                var known = Known(files);
+                var untracked = Untracked(files, known);
+                if (untracked.Count > 0)
                 {
-                    continue;
+                    candidate.FileCount = untracked.Count;
+                }
+                else
+                {
+                    var movable = WithHomes(known).Where(h => MoveRefusal(h.File, h.Home, 0) == null).ToList();
+                    if (movable.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    candidate.TrackedElsewhere = true;
+                    candidate.Strong = false;
+                    candidate.FileCount = movable.Count;
+                    candidate.TrackedOn = movable
+                        .GroupBy(h => h.Home?.Id ?? 0)
+                        .OrderBy(g => g.Key == 0 ? 1 : 0)
+                        .ThenBy(g => g.Key)
+                        .Select(g => new TalearrLinkTrackedOn
+                        {
+                            BookId = g.Key,
+                            Title = g.First().Home?.Title,
+                            MediaType = g.First().Home == null ? null : MediaTypeName(g.First().Home.MediaType),
+                            FileCount = g.Count()
+                        })
+                        .ToList();
+                    candidate.TrackedOnLabel = TrackedOnLabel(candidate.TrackedOn);
                 }
 
-                candidate.FileCount = untracked.Count;
                 result.Add(candidate);
 
                 if (result.Count >= MaxCandidates)
@@ -168,7 +231,7 @@ namespace NzbDrone.Core.Talearr.LinkExisting
                 }
             }
 
-            // Only the best strong match is preselected.
+            // Only the best strong untracked match is preselected (tracked files are never strong).
             var preselected = false;
             foreach (var candidate in result)
             {
@@ -199,23 +262,53 @@ namespace NzbDrone.Core.Talearr.LinkExisting
                 throw new ArgumentException($"Book {bookId} has no edition to link files to");
             }
 
-            var files = (paths ?? Enumerable.Empty<string>())
-                .Where(p => p.IsNotNullOrWhiteSpace())
-                .SelectMany(AudioFilesOf)
-                .Distinct(StringComparer.Ordinal)
-                .ToList();
+            // Per path: untracked files are imported (a folder with some tracked files imports only
+            // the new ones, as before); a path whose files are all tracked already has them moved.
+            var untracked = new List<string>();
+            var toMove = new List<(BookFile File, Book Home)>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var skipped = 0;
 
-            var untracked = Untracked(files);
+            foreach (var path in (paths ?? Enumerable.Empty<string>()).Where(p => p.IsNotNullOrWhiteSpace()))
+            {
+                var pathFiles = AudioFilesOf(path).Where(seen.Add).ToList();
+                if (pathFiles.Count == 0)
+                {
+                    continue;
+                }
+
+                var known = Known(pathFiles);
+                var pathUntracked = Untracked(pathFiles, known);
+                if (pathUntracked.Count > 0)
+                {
+                    untracked.AddRange(pathUntracked);
+                    skipped += pathFiles.Count - pathUntracked.Count;
+                }
+                else
+                {
+                    toMove.AddRange(WithHomes(known));
+                }
+            }
+
             var result = new TalearrLinkResult
             {
                 BookId = bookId,
                 FileCount = untracked.Count,
-                SkippedCount = files.Count - untracked.Count
+                SkippedCount = skipped
             };
+
+            if (toMove.Count > 0)
+            {
+                MoveTrackedFiles(book, edition, toMove, result);
+            }
 
             if (untracked.Count == 0)
             {
-                _logger.Info("Talearr: Link Existing Files found no new audio files for [{0}]", book);
+                if (result.MovedCount == 0)
+                {
+                    _logger.Info("Talearr: Link Existing Files found no new audio files for [{0}]", book);
+                }
+
                 return result;
             }
 
@@ -374,19 +467,226 @@ namespace NzbDrone.Core.Talearr.LinkExisting
             return new List<string>();
         }
 
-        private List<string> Untracked(List<string> files)
+        // The BookFile rows Talearr already has for these paths.
+        private List<BookFile> Known(List<string> files)
         {
             if (files.Count == 0)
             {
-                return files;
+                return new List<BookFile>();
             }
 
-            var known = (_mediaFileService.GetFileWithPath(files) ?? new List<BookFile>())
-                .Select(f => f.Path)
-                .Where(p => p.IsNotNullOrWhiteSpace())
-                .ToHashSet(StringComparer.Ordinal);
+            return (_mediaFileService.GetFileWithPath(files) ?? new List<BookFile>())
+                .Where(f => f != null && f.Path.IsNotNullOrWhiteSpace())
+                .ToList();
+        }
 
-            return files.Where(f => !known.Contains(f)).ToList();
+        private static List<string> Untracked(List<string> files, List<BookFile> known)
+        {
+            var paths = known.Select(f => f.Path).ToHashSet(StringComparer.Ordinal);
+            return files.Where(f => !paths.Contains(f)).ToList();
+        }
+
+        // Each tracked file with the book it is on (null for an unmapped file).
+        private List<(BookFile File, Book Home)> WithHomes(List<BookFile> files)
+        {
+            var editionIds = files.Where(f => f.EditionId > 0).Select(f => f.EditionId).Distinct().ToList();
+            var editions = editionIds.Count == 0
+                ? new List<Edition>()
+                : _editionService.GetEditions(editionIds) ?? new List<Edition>();
+            var bookOfEdition = editions.GroupBy(e => e.Id).ToDictionary(g => g.Key, g => g.First().BookId);
+
+            var bookIds = bookOfEdition.Values.Where(id => id > 0).Distinct().ToList();
+            var books = (bookIds.Count == 0 ? new List<Book>() : _bookService.GetBooks(bookIds) ?? new List<Book>())
+                .GroupBy(b => b.Id)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            return files.Select(f =>
+            {
+                Book home = null;
+                if (f.EditionId > 0 && bookOfEdition.TryGetValue(f.EditionId, out var homeId))
+                {
+                    books.TryGetValue(homeId, out home);
+                }
+
+                return (f, home);
+            }).ToList();
+        }
+
+        // Why a tracked file may not move to the audiobook being linked, or null when it may. Only
+        // audiobook files on another audiobook (or unmapped files) move; an ebook keeps its files.
+        private static string MoveRefusal(BookFile file, Book home, int targetBookId)
+        {
+            if (string.Equals(file.MediaType, "ebook", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"'{file.Path}' is an ebook file";
+            }
+
+            if (home != null && home.MediaType != BookMediaType.Audiobook)
+            {
+                return $"'{file.Path}' belongs to the ebook '{home.Title}'";
+            }
+
+            if (home != null && targetBookId > 0 && home.Id == targetBookId)
+            {
+                return $"'{file.Path}' is already on this book";
+            }
+
+            return null;
+        }
+
+        private void MoveTrackedFiles(Book book, Edition edition, List<(BookFile File, Book Home)> files, TalearrLinkResult result)
+        {
+            var busy = new BusyCheck(_queueService, _commandQueueManager, _logger);
+            var moved = new List<(BookFile File, Book Home)>();
+
+            foreach (var (file, home) in files)
+            {
+                if (home != null && home.Id == book.Id)
+                {
+                    result.SkippedCount++;
+                    continue;
+                }
+
+                var refusal = MoveRefusal(file, home, book.Id) ?? busy.Refusal(file, home, book);
+                if (refusal != null)
+                {
+                    result.RefusedCount++;
+                    result.Refusals.Add(refusal);
+                    _logger.Info("Talearr: Link Existing Files did not move a file to [{0}]: {1}", book, refusal);
+                    continue;
+                }
+
+                file.EditionId = edition.Id;
+                file.Edition = edition;
+                moved.Add((file, home));
+            }
+
+            if (moved.Count == 0)
+            {
+                return;
+            }
+
+            _mediaFileService.Update(moved.Select(m => m.File).ToList());
+            result.MovedCount = moved.Count;
+
+            foreach (var (file, home) in moved)
+            {
+                _logger.Info("Talearr: Link Existing Files moved '{0}' from {1} to [{2}] (edition {3}); nothing on disk changed",
+                    file.Path,
+                    home == null ? "the unmapped files" : $"'{home.Title}' (book row {home.Id})",
+                    book,
+                    edition.Id);
+            }
+        }
+
+        private static string MediaTypeName(BookMediaType mediaType)
+        {
+            return mediaType == BookMediaType.Ebook ? "ebook" : "audiobook";
+        }
+
+        private static string TrackedOnLabel(List<TalearrLinkTrackedOn> homes)
+        {
+            var books = homes.Where(h => h.BookId > 0).Select(h => $"{h.Title} ({h.MediaType})").ToList();
+            var unmapped = homes.Any(h => h.BookId == 0);
+
+            if (books.Count == 0)
+            {
+                return "In Talearr as Unmapped Files";
+            }
+
+            if (unmapped)
+            {
+                books.Add("Unmapped Files");
+            }
+
+            return $"In Talearr on: {string.Join(", ", books)}";
+        }
+
+        // A file with a download or an import in progress is never moved: the queue has an item for
+        // its book (or the item's output folder holds it), or a Manual Import / download scan that
+        // includes it is queued or running. An unreadable queue counts as busy.
+        private sealed class BusyCheck
+        {
+            private readonly IQueueService _queueService;
+            private readonly IManageCommandQueue _commands;
+            private readonly Logger _logger;
+            private bool _read;
+            private List<Queue.Queue> _queue;
+            private List<Command> _running;
+
+            public BusyCheck(IQueueService queueService, IManageCommandQueue commands, Logger logger)
+            {
+                _queueService = queueService;
+                _commands = commands;
+                _logger = logger;
+            }
+
+            public string Refusal(BookFile file, Book home, Book target)
+            {
+                Read();
+
+                if (_queue == null)
+                {
+                    return $"'{file.Path}' was not moved: the download queue could not be read";
+                }
+
+                var bookIds = new[] { home?.Id ?? 0, target.Id }.Where(id => id > 0).ToHashSet();
+                var download = _queue.FirstOrDefault(q =>
+                    (q.Book != null && bookIds.Contains(q.Book.Id)) ||
+                    (q.TargetBookIds != null && q.TargetBookIds.Any(bookIds.Contains)) ||
+                    (q.OutputPath.IsNotNullOrWhiteSpace() && (q.OutputPath.PathEquals(file.Path) || q.OutputPath.IsParentPath(file.Path))));
+                if (download != null)
+                {
+                    return $"'{file.Path}' has a download in progress ({download.Title})";
+                }
+
+                if (_running == null)
+                {
+                    return $"'{file.Path}' was not moved: the running imports could not be read";
+                }
+
+                var import = _running.FirstOrDefault(c => c switch
+                {
+                    ManualImportCommand manual => manual.Files?.Any(f => f?.Path != null && f.Path.PathEquals(file.Path)) == true,
+                    DownloadedBooksScanCommand scan => scan.Path.IsNotNullOrWhiteSpace() && (scan.Path.PathEquals(file.Path) || scan.Path.IsParentPath(file.Path)),
+                    _ => false
+                });
+
+                return import == null ? null : $"'{file.Path}' has an import in progress";
+            }
+
+            private void Read()
+            {
+                if (_read)
+                {
+                    return;
+                }
+
+                _read = true;
+
+                try
+                {
+                    _queue = _queueService?.GetQueue()?.Where(q => q != null).ToList() ?? new List<Queue.Queue>();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Talearr: Link Existing Files could not read the queue");
+                    _queue = null;
+                }
+
+                try
+                {
+                    _running = (_commands?.All() ?? new List<CommandModel>())
+                        .Where(c => c?.Body != null && (c.Status == CommandStatus.Queued || c.Status == CommandStatus.Started))
+                        .Select(c => c.Body)
+                        .ToList();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Talearr: Link Existing Files could not read the running commands");
+                    _running = null;
+                }
+            }
         }
 
         private static bool IsAudio(string path)
