@@ -10,7 +10,9 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.BookImport;
 using NzbDrone.Core.MediaFiles.BookImport.Manual;
+using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Queue;
 using NzbDrone.Core.Talearr.Audiobookshelf;
 using NzbDrone.Core.Talearr.LinkExisting;
 
@@ -30,6 +32,13 @@ namespace Chaptarr.Core.Test.Talearr.LinkExisting
         private List<Command> _pushed;
         private Book _book;
         private List<Edition> _editions;
+        private List<Book> _otherBooks;
+        private List<Edition> _otherEditions;
+        private Dictionary<string, BookFile> _tracked;
+        private List<BookFile> _updated;
+        private List<NzbDrone.Core.Queue.Queue> _queue;
+        private bool _queueFails;
+        private List<CommandModel> _commands;
 
         public class ServiceProxy<T> : DispatchProxy
             where T : class
@@ -109,6 +118,32 @@ namespace Chaptarr.Core.Test.Talearr.LinkExisting
                 new Edition { Id = 100, BookId = 42, Monitored = false },
                 new Edition { Id = 101, BookId = 42, Monitored = true }
             };
+
+            // Issue #13: the pack's files were attached to book 1 of the series.
+            _otherBooks = new List<Book>
+            {
+                new Book { Id = 9, AuthorId = 3, Title = "Renegade Star", MediaType = BookMediaType.Audiobook },
+                new Book { Id = 11, AuthorId = 3, Title = "The Constable", MediaType = BookMediaType.Ebook }
+            };
+            _otherEditions = new List<Edition>
+            {
+                new Edition { Id = 200, BookId = 9, Monitored = true },
+                new Edition { Id = 300, BookId = 11, Monitored = true }
+            };
+
+            _tracked = new Dictionary<string, BookFile>();
+            _updated = new List<BookFile>();
+            _queue = new List<NzbDrone.Core.Queue.Queue>();
+            _queueFails = false;
+            _commands = new List<CommandModel>();
+        }
+
+        private void Track(string folder, int editionId, string mediaType = "audiobook")
+        {
+            foreach (var path in Directory.GetFiles(folder, "*.mp3").Concat(Directory.GetFiles(folder, "*.m4b")))
+            {
+                _tracked[path] = new BookFile { Path = path, EditionId = editionId, MediaType = mediaType };
+            }
         }
 
         [TearDown]
@@ -135,13 +170,34 @@ namespace Chaptarr.Core.Test.Talearr.LinkExisting
                 nameof(IAuthorService.FindByName) => string.Equals((string)a[0], author.Name, StringComparison.OrdinalIgnoreCase) ? author : null,
                 _ => throw new NotImplementedException(m.Name)
             });
-            var books = Proxy<IBookService>((m, a) => m.Name == nameof(IBookService.GetBook) ? _book : throw new NotImplementedException(m.Name));
-            var editions = Proxy<IEditionService>((m, a) => m.Name == nameof(IEditionService.GetEditionsByBook) ? _editions : throw new NotImplementedException(m.Name));
+            var allBooks = new[] { _book }.Concat(_otherBooks).ToList();
+            var books = Proxy<IBookService>((m, a) => m.Name switch
+            {
+                nameof(IBookService.GetBook) => _book,
+                nameof(IBookService.GetBooks) => allBooks.Where(b => ((IEnumerable<int>)a[0]).Contains(b.Id)).ToList(),
+                _ => throw new NotImplementedException(m.Name)
+            });
+            var editions = Proxy<IEditionService>((m, a) => m.Name switch
+            {
+                nameof(IEditionService.GetEditionsByBook) => _editions,
+                nameof(IEditionService.GetEditions) => _editions.Concat(_otherEditions).Where(e => ((IEnumerable<int>)a[0]).Contains(e.Id)).ToList(),
+                _ => throw new NotImplementedException(m.Name)
+            });
             var mediaFiles = Proxy<IMediaFileService>((m, a) =>
             {
                 if (m.Name == nameof(IMediaFileService.GetFileWithPath) && a[0] is List<string> paths)
                 {
-                    return paths.Where(p => _knownFiles.Contains(p)).Select(p => new BookFile { Path = p }).ToList();
+                    // Known files sit on the book being linked unless a test tracked them elsewhere.
+                    return paths
+                        .Where(p => _tracked.ContainsKey(p) || _knownFiles.Contains(p))
+                        .Select(p => _tracked.TryGetValue(p, out var file) ? file : new BookFile { Path = p, EditionId = 101 })
+                        .ToList();
+                }
+
+                if (m.Name == nameof(IMediaFileService.Update) && a[0] is List<BookFile> updated)
+                {
+                    _updated.AddRange(updated);
+                    return null;
                 }
 
                 throw new NotImplementedException(m.Name);
@@ -162,10 +218,18 @@ namespace Chaptarr.Core.Test.Talearr.LinkExisting
                     return new CommandModel { Id = 77, Body = command };
                 }
 
+                if (m.Name == nameof(IManageCommandQueue.All))
+                {
+                    return _commands;
+                }
+
                 throw new NotImplementedException(m.Name);
             });
+            var queue = Proxy<IQueueService>((m, a) => m.Name == nameof(IQueueService.GetQueue)
+                ? (_queueFails ? throw new InvalidOperationException("queue down") : _queue)
+                : throw new NotImplementedException(m.Name));
 
-            return new TalearrLinkExistingService(absStore, connections, authors, books, editions, mediaFiles, disk, commands, LogManager.GetCurrentClassLogger());
+            return new TalearrLinkExistingService(absStore, connections, authors, books, editions, mediaFiles, disk, commands, queue, LogManager.GetCurrentClassLogger());
         }
 
         private static TalearrLinkCandidateRequest Request(string title = BookTitle, params string[] asins) => new TalearrLinkCandidateRequest
@@ -254,13 +318,195 @@ namespace Chaptarr.Core.Test.Talearr.LinkExisting
         }
 
         [Test]
-        public void folders_already_in_the_library_are_not_offered()
+        public void folders_whose_files_are_on_an_ebook_are_not_offered()
         {
-            _knownFiles.AddRange(Directory.GetFiles(_absFolder, "*.mp3"));
+            Track(_absFolder, 300, "ebook");
 
             var candidates = Subject().FindCandidates(Request());
 
             Assert.That(candidates.Select(c => c.Path), Does.Not.Contain(_absFolder));
+        }
+
+        [Test]
+        public void files_on_another_audiobook_are_offered_with_where_they_are_and_not_preselected()
+        {
+            Track(_absFolder, 200);
+
+            var candidates = Subject().FindCandidates(Request());
+
+            var tracked = candidates.Single(c => c.Path == _absFolder);
+            Assert.That(tracked.TrackedElsewhere, Is.True);
+            Assert.That(tracked.Strong, Is.False, "tracked files are never preselected");
+            Assert.That(tracked.FileCount, Is.EqualTo(2));
+            Assert.That(tracked.TrackedOnLabel, Is.EqualTo("In Talearr on: Renegade Star (audiobook)"));
+            Assert.That(tracked.TrackedOn.Single().BookId, Is.EqualTo(9));
+            Assert.That(tracked.TrackedOn.Single().MediaType, Is.EqualTo("audiobook"));
+
+            var untracked = candidates.Single(c => c.Path == Path.Combine(_authorFolder, "The Constable Complete Series"));
+            Assert.That(untracked.TrackedElsewhere, Is.False);
+            Assert.That(untracked.TrackedOnLabel, Is.Null);
+        }
+
+        [Test]
+        public void tracked_candidates_do_not_take_the_preselection_from_an_untracked_strong_match()
+        {
+            Track(_absFolder, 200);
+            Directory.Delete(Path.Combine(_authorFolder, "The Constable Complete Series"), true);
+            var strongFolder = Path.Combine(_authorFolder, "The Constable - The Complete Series");
+            Directory.CreateDirectory(strongFolder);
+            File.WriteAllText(Path.Combine(strongFolder, "book.m4b"), "f");
+
+            var candidates = Subject().FindCandidates(Request());
+
+            Assert.That(candidates.Single(c => c.Path == _absFolder).Strong, Is.False);
+            Assert.That(candidates.Single(c => c.Path == strongFolder).Strong, Is.True);
+        }
+
+        [Test]
+        public void unmapped_files_are_offered_as_unmapped()
+        {
+            Track(_absFolder, 0);
+
+            var tracked = Subject().FindCandidates(Request()).Single(c => c.Path == _absFolder);
+
+            Assert.That(tracked.TrackedElsewhere, Is.True);
+            Assert.That(tracked.TrackedOnLabel, Is.EqualTo("In Talearr as Unmapped Files"));
+        }
+
+        [Test]
+        public void a_folder_with_some_untracked_files_is_offered_as_before()
+        {
+            _tracked[Path.Combine(_absFolder, "Part 01.mp3")] = new BookFile { Path = Path.Combine(_absFolder, "Part 01.mp3"), EditionId = 200, MediaType = "audiobook" };
+
+            var candidate = Subject().FindCandidates(Request()).Single(c => c.Path == _absFolder);
+
+            Assert.That(candidate.TrackedElsewhere, Is.False);
+            Assert.That(candidate.FileCount, Is.EqualTo(1));
+            Assert.That(candidate.Strong, Is.True);
+        }
+
+        [Test]
+        public void link_moves_files_from_another_audiobook_to_the_monitored_edition()
+        {
+            Track(_absFolder, 200);
+
+            var result = Subject().Link(42, new[] { _absFolder });
+
+            Assert.That(result.MovedCount, Is.EqualTo(2));
+            Assert.That(result.FileCount, Is.EqualTo(0));
+            Assert.That(result.RefusedCount, Is.EqualTo(0));
+            Assert.That(result.CommandId, Is.Null);
+            Assert.That(_pushed, Is.Empty, "a move is database only, no import");
+            Assert.That(_updated.Select(f => f.Path), Is.EquivalentTo(Directory.GetFiles(_absFolder, "*.mp3")));
+            Assert.That(_updated.Select(f => f.EditionId), Is.All.EqualTo(101));
+        }
+
+        [Test]
+        public void link_moves_unmapped_files()
+        {
+            Track(_absFolder, 0);
+
+            var result = Subject().Link(42, new[] { _absFolder });
+
+            Assert.That(result.MovedCount, Is.EqualTo(2));
+            Assert.That(_updated.Select(f => f.EditionId), Is.All.EqualTo(101));
+        }
+
+        [Test]
+        public void link_never_moves_files_off_an_ebook()
+        {
+            Track(_absFolder, 300);
+
+            var result = Subject().Link(42, new[] { _absFolder });
+
+            Assert.That(result.MovedCount, Is.EqualTo(0));
+            Assert.That(result.RefusedCount, Is.EqualTo(2));
+            Assert.That(_updated, Is.Empty);
+        }
+
+        [Test]
+        public void link_never_moves_ebook_files()
+        {
+            Track(_absFolder, 200, "ebook");
+
+            var result = Subject().Link(42, new[] { _absFolder });
+
+            Assert.That(result.RefusedCount, Is.EqualTo(2));
+            Assert.That(_updated, Is.Empty);
+        }
+
+        [Test]
+        public void link_does_not_move_files_of_a_book_with_a_download_in_the_queue()
+        {
+            Track(_absFolder, 200);
+            _queue.Add(new NzbDrone.Core.Queue.Queue { Title = "Renegade Star", Book = _otherBooks[0] });
+
+            var result = Subject().Link(42, new[] { _absFolder });
+
+            Assert.That(result.MovedCount, Is.EqualTo(0));
+            Assert.That(result.RefusedCount, Is.EqualTo(2));
+            Assert.That(result.Refusals, Has.All.Contains("download in progress"));
+            Assert.That(_updated, Is.Empty);
+        }
+
+        [Test]
+        public void link_does_not_move_files_with_an_import_in_progress()
+        {
+            Track(_absFolder, 200);
+            _commands.Add(new CommandModel
+            {
+                Status = CommandStatus.Started,
+                Body = new ManualImportCommand { Files = new List<ManualImportFile> { new ManualImportFile { Path = Path.Combine(_absFolder, "Part 01.mp3") } } }
+            });
+            _commands.Add(new CommandModel
+            {
+                Status = CommandStatus.Completed,
+                Body = new DownloadedBooksScanCommand { Path = _absFolder }
+            });
+
+            var result = Subject().Link(42, new[] { _absFolder });
+
+            Assert.That(result.MovedCount, Is.EqualTo(1));
+            Assert.That(result.RefusedCount, Is.EqualTo(1));
+            Assert.That(_updated.Single().Path, Is.EqualTo(Path.Combine(_absFolder, "Part 02.mp3")));
+        }
+
+        [Test]
+        public void link_does_not_move_files_inside_a_running_download_scan()
+        {
+            Track(_absFolder, 200);
+            _commands.Add(new CommandModel { Status = CommandStatus.Queued, Body = new DownloadedBooksScanCommand { Path = Path.GetDirectoryName(_absFolder) } });
+
+            var result = Subject().Link(42, new[] { _absFolder });
+
+            Assert.That(result.MovedCount, Is.EqualTo(0));
+            Assert.That(result.Refusals, Has.All.Contains("import in progress"));
+        }
+
+        [Test]
+        public void link_moves_nothing_when_the_queue_cannot_be_read()
+        {
+            Track(_absFolder, 200);
+            _queueFails = true;
+
+            var result = Subject().Link(42, new[] { _absFolder });
+
+            Assert.That(result.MovedCount, Is.EqualTo(0));
+            Assert.That(result.RefusedCount, Is.EqualTo(2));
+            Assert.That(_updated, Is.Empty);
+        }
+
+        [Test]
+        public void link_of_a_partly_tracked_folder_imports_only_the_new_files_and_moves_nothing()
+        {
+            _tracked[Path.Combine(_absFolder, "Part 01.mp3")] = new BookFile { Path = Path.Combine(_absFolder, "Part 01.mp3"), EditionId = 200, MediaType = "audiobook" };
+
+            var result = Subject().Link(42, new[] { _absFolder });
+
+            Assert.That(result.FileCount, Is.EqualTo(1));
+            Assert.That(result.MovedCount, Is.EqualTo(0));
+            Assert.That(_updated, Is.Empty);
+            Assert.That(((ManualImportCommand)_pushed.Single()).Files.Single().Path, Is.EqualTo(Path.Combine(_absFolder, "Part 02.mp3")));
         }
 
         [Test]
@@ -311,8 +557,11 @@ namespace Chaptarr.Core.Test.Talearr.LinkExisting
             var result = Subject().Link(42, new[] { _absFolder });
 
             Assert.That(result.FileCount, Is.EqualTo(0));
+            Assert.That(result.MovedCount, Is.EqualTo(0));
+            Assert.That(result.SkippedCount, Is.EqualTo(2), "already on this book");
             Assert.That(result.CommandId, Is.Null);
             Assert.That(_pushed, Is.Empty);
+            Assert.That(_updated, Is.Empty);
         }
     }
 }
