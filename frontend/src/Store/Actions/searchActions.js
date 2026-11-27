@@ -202,10 +202,13 @@ function getMediaTypePayload(payload, mediaType, searchForNewBook) {
   const normalizedRequestedMonitor = (requestedMonitor ?? '').toString().trim().toLowerCase() === 'all' ?
     'all' : 'specificBook';
 
+  // Talearr: an audiobook added with Link Existing Files is not searched; the files are imported.
+  const linksFiles = isAudiobook && Array.isArray(payload.linkPaths) && payload.linkPaths.length > 0;
+
   return {
     ...payload,
     mediaType,
-    searchForNewBook: !!searchForNewBook,
+    searchForNewBook: !!searchForNewBook && !linksFiles,
     monitor: normalizedRequestedMonitor,
     monitorNewItems: normalizeMonitorNewItemsOption(isAudiobook ?
       (payload.audiobookMonitorNewItems || payload.monitorNewItems) :
@@ -215,17 +218,73 @@ function getMediaTypePayload(payload, mediaType, searchForNewBook) {
   };
 }
 
-function postBookForMediaType(itemToAdd, payload, mediaType, searchForNewBook) {
+// Talearr: Link Existing Files. Once the audiobook exists, the chosen folders are imported to it
+// with a normal Manual Import (/talearr/linkexisting). A queued add has no book yet, so the files
+// are left for Manual Import.
+function linkExistingFiles(request, payload, mediaType, dispatch) {
+  const linkPaths = Array.isArray(payload.linkPaths) ? payload.linkPaths : [];
+
+  if (mediaType !== 'audiobook' || !linkPaths.length || !dispatch) {
+    return;
+  }
+
+  request.done((data, textStatus, xhr) => {
+    if (getPendingBookRequest(data, xhr) || !data || data.id == null) {
+      dispatch(showMessage({
+        id: `book-link-existing-queued-${Date.now()}`,
+        name: 'BookLinkExistingQueued',
+        message: 'The book was queued, so the existing files were not linked. Use Manual Import once the book is added.',
+        type: 'warning',
+        hideAfter: 14
+      }));
+      return;
+    }
+
+    createAjaxRequest({
+      url: '/talearr/linkexisting',
+      method: 'POST',
+      dataType: 'json',
+      contentType: 'application/json',
+      data: JSON.stringify({ bookId: data.id, paths: linkPaths })
+    }).request.done((result) => {
+      const count = (result && result.fileCount) || 0;
+
+      dispatch(showMessage({
+        id: `book-link-existing-${Date.now()}`,
+        name: 'BookLinkExisting',
+        message: count ?
+          `Importing ${count} existing ${count === 1 ? 'file' : 'files'} to the audiobook` :
+          'No new audio files to link: they are already in the library',
+        type: count ? 'success' : 'info',
+        hideAfter: 10
+      }));
+    }).fail((linkXhr) => {
+      dispatch(showMessage({
+        id: `book-link-existing-failed-${Date.now()}`,
+        name: 'BookLinkExistingFailed',
+        message: `The audiobook was added, but linking the existing files failed: ${getAjaxErrorMessage(linkXhr)}`,
+        type: 'error',
+        hideAfter: 14
+      }));
+    });
+  });
+}
+
+function postBookForMediaType(itemToAdd, payload, mediaType, searchForNewBook, dispatch) {
   const mediaPayload = getMediaTypePayload(payload, mediaType, searchForNewBook);
   const newBook = getNewBook(_.cloneDeep(itemToAdd.book), mediaPayload, mediaType);
 
-  return createAjaxRequest({
+  const request = createAjaxRequest({
     url: '/book',
     method: 'POST',
     dataType: 'json',
     contentType: 'application/json',
     data: JSON.stringify(newBook)
   }).request;
+
+  linkExistingFiles(request, payload, mediaType, dispatch);
+
+  return request;
 }
 
 function mergeLocalBook(localBooks, addedBook, mediaType) {
@@ -952,7 +1011,7 @@ export const actionHandlers = handleThunks({
 
     if (requestedMediaType === 'both') {
       const addEbook = (currentItem, audiobookError = null, audiobookPending = null) => {
-        const second = postBookForMediaType(currentItem, payload, 'ebook', payload.searchForNewBook);
+        const second = postBookForMediaType(currentItem, payload, 'ebook', payload.searchForNewBook, dispatch);
 
         second.done((ebookData, textStatus, xhr) => {
           const ebookPending = getPendingBookRequest(ebookData, xhr);
@@ -1059,7 +1118,7 @@ export const actionHandlers = handleThunks({
         });
       };
 
-      const first = postBookForMediaType(itemToAdd, payload, 'audiobook', payload.searchForNewBook);
+      const first = postBookForMediaType(itemToAdd, payload, 'audiobook', payload.searchForNewBook, dispatch);
 
       first.done((audiobookData, textStatus, xhr) => {
         const audiobookPending = getPendingBookRequest(audiobookData, xhr);
@@ -1093,7 +1152,7 @@ export const actionHandlers = handleThunks({
     }
 
     const mediaType = requestedMediaType === 'ebook' ? 'ebook' : 'audiobook';
-    const promise = postBookForMediaType(itemToAdd, payload, mediaType, payload.searchForNewBook);
+    const promise = postBookForMediaType(itemToAdd, payload, mediaType, payload.searchForNewBook, dispatch);
 
     promise.done((data, textStatus, xhr) => {
       const pendingRequest = getPendingBookRequest(data, xhr);

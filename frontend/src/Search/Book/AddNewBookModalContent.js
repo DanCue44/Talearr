@@ -14,6 +14,7 @@ import getErrorMessage from 'Utilities/Object/getErrorMessage';
 import stripHtml from 'Utilities/String/stripHtml';
 import translate from 'Utilities/String/translate';
 import AddAuthorOptionsForm from '../Common/AddAuthorOptionsForm.js';
+import TalearrLinkExistingFiles from './TalearrLinkExistingFiles';
 import styles from './AddNewBookModalContent.css';
 
 const MEDIA_TYPES = ['audiobook', 'ebook'];
@@ -213,8 +214,14 @@ class AddNewBookModalContent extends Component {
       isSavingDefaultMediaType,
       onModalClose,
       audiobookOnly,
+      linkCandidates,
+      selectedLinkPaths,
+      onLinkPathToggle,
       ...otherProps
     } = this.props;
+
+    const canLinkExisting = this.state.selectedMediaType !== 'ebook' &&
+      canAddSelectedMediaType(this.props, this.state.selectedMediaType);
 
     const allowBothMediaType = canSelectBoth({
       initialMediaType,
@@ -294,6 +301,16 @@ class AddNewBookModalContent extends Component {
                 isSavingDefaultMediaType={isSavingDefaultMediaType}
                 {...otherProps}
               />
+
+              {
+                canLinkExisting ?
+                  <TalearrLinkExistingFiles
+                    candidates={linkCandidates}
+                    selectedPaths={selectedLinkPaths}
+                    onToggle={onLinkPathToggle}
+                  /> :
+                  null
+              }
 
               {
                 isQueued && addNotice ?
@@ -380,10 +397,19 @@ AddNewBookModalContent.propTypes = {
   defaultMediaType: PropTypes.string,
   localAudiobookBooks: PropTypes.arrayOf(PropTypes.object),
   localEbookBooks: PropTypes.arrayOf(PropTypes.object),
+  linkCandidates: PropTypes.arrayOf(PropTypes.object),
+  selectedLinkPaths: PropTypes.arrayOf(PropTypes.string),
+  onLinkPathToggle: PropTypes.func,
   onSetDefaultMediaType: PropTypes.func,
   isSavingDefaultMediaType: PropTypes.bool,
   onModalClose: PropTypes.func.isRequired,
   onAddBookPress: PropTypes.func.isRequired
+};
+
+AddNewBookModalContent.defaultProps = {
+  linkCandidates: [],
+  selectedLinkPaths: [],
+  onLinkPathToggle: () => {}
 };
 
 export default AddNewBookModalContent;

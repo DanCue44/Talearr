@@ -17,6 +17,7 @@ using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Talearr.AudiobookOnly;
 using NzbDrone.Core.Talearr.Catalog;
 
 namespace NzbDrone.Core.Books
@@ -125,6 +126,8 @@ namespace NzbDrone.Core.Books
             public Book Stored { get; set; }
         }
 
+        private readonly ITalearrAudiobookOnlyService _audiobookOnly;
+
         public BookService(IBookRepository bookRepository,
                            IEditionService editionService,
                            IEventAggregator eventAggregator,
@@ -136,8 +139,10 @@ namespace NzbDrone.Core.Books
                            Logger logger,
                            IEditionSelector editionSelector = null,
                            IProviderAliasService providerAliasService = null,
-                           ITalearrMergeRedirectStore mergeRedirects = null)
+                           ITalearrMergeRedirectStore mergeRedirects = null,
+                           ITalearrAudiobookOnlyService audiobookOnly = null)
         {
+            _audiobookOnly = audiobookOnly;
             _bookRepository = bookRepository;
             _editionService = editionService;
             _eventAggregator = eventAggregator;
@@ -2288,6 +2293,13 @@ namespace NzbDrone.Core.Books
                     _logger.Debug("[DISPLAY-DEBUG] No root folder configured for {0}, returning empty list", mediaType);
                     return new List<Book>();
                 }
+            }
+
+            // Talearr: Audiobook Only hides ebook rows and audiobook rows with no known audiobook
+            // edition (rows with files stay). Nothing changes while the setting is off.
+            if (_audiobookOnly != null && allBooks.Any())
+            {
+                allBooks = _audiobookOnly.Visible(allBooks);
             }
 
             // Bulk API/index sync path is intentionally lean: one monitored edition per book, no files.
