@@ -52,8 +52,8 @@ export default {
   // Action Handlers
 
   actionHandlers: {
-    [FETCH_TALEARR_TITLES]: createFetchHandler(section, '/config/talearrcalibre'),
-    [SAVE_TALEARR_TITLES]: createSaveHandler(section, '/config/talearrcalibre')
+    [FETCH_TALEARR_TITLES]: createFetchHandler(section, '/config/talearrtitles'),
+    [SAVE_TALEARR_TITLES]: createSaveHandler(section, '/config/talearrtitles')
   },
 
   //
