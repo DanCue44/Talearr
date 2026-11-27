@@ -28,6 +28,7 @@ using NzbDrone.Core.MediaFiles.TagExtraction;
 using NzbDrone.Core.Parser;
 using System.Text.RegularExpressions;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Talearr.Import;
 
 namespace NzbDrone.Core.MediaFiles.BookImport
 {
@@ -2650,6 +2651,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
             {
                 result.MatchedFiles = groupedMatched.ToArray();
                 result.UnmatchedFiles = groupedUnmatched.ToArray();
+                ApplyTalearrPackGuard(result, targetBookIds, hardAllowedBookIds); // Talearr
 
                 totalStopwatch.Stop();
                 _logger.Debug("[PERFORMANCE] File matching complete: {0} matched, {1} unmatched. Total time: {2}ms ({3:F2}s)",
@@ -2885,6 +2887,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport
 
             result.MatchedFiles = matchedList.ToArray();
             result.UnmatchedFiles = unmatchedList.ToArray();
+            ApplyTalearrPackGuard(result, targetBookIds, hardAllowedBookIds); // Talearr
 
             totalStopwatch.Stop();
             _logger.Debug("[PERFORMANCE] File matching complete: {0} matched, {1} unmatched. Total time: {2}ms ({3:F2}s)",
@@ -2904,6 +2907,95 @@ namespace NzbDrone.Core.MediaFiles.BookImport
             }
 
             return Task.FromResult(result);
+        }
+
+        // Talearr (issue #14): a file that holds several books ("Publisher's Pack 3", "Books 5-6")
+        // never stays matched to a single book. It moves to the author's catalog entry for that
+        // pack when there is exactly one, else it is left unmatched for manual import.
+        private void ApplyTalearrPackGuard(FileMatchResult result, ICollection<int> targetBookIds, ICollection<int> hardAllowedBookIds)
+        {
+            if (result?.MatchedFiles == null || result.MatchedFiles.Length == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                var books = new Dictionary<int, Book>();
+                var catalogs = new Dictionary<int, List<Book>>();
+                Book GetBook(int id)
+                {
+                    if (!books.TryGetValue(id, out var book))
+                    {
+                        book = _bookService.GetBook(id);
+                        books[id] = book;
+                    }
+
+                    return book;
+                }
+
+                List<Book> GetCatalog(int authorId)
+                {
+                    if (!catalogs.TryGetValue(authorId, out var catalog))
+                    {
+                        catalog = _bookService.GetBooksByAuthor(authorId) ?? new List<Book>();
+                        catalogs[authorId] = catalog;
+                    }
+
+                    return catalog;
+                }
+
+                var kept = new List<FileMatch>();
+                var unmatched = (result.UnmatchedFiles ?? Array.Empty<UnmatchedFile>()).ToList();
+                foreach (var match in result.MatchedFiles)
+                {
+                    if (match?.File == null || match.BookId <= 0 || TalearrPackFiles.FromFile(match.File) == null)
+                    {
+                        kept.Add(match);
+                        continue;
+                    }
+
+                    Book matched;
+                    try
+                    {
+                        matched = GetBook(match.BookId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Debug(ex, "Talearr: could not load book {0} to check '{1}' for a multi-book pack", match.BookId, match.File.Path);
+                        kept.Add(match);
+                        continue;
+                    }
+
+                    var decision = TalearrPackFiles.Decide(match.File, matched, GetCatalog, id => _editionService.GetEditionsByBook(id), targetBookIds, hardAllowedBookIds);
+                    switch (decision.Verdict)
+                    {
+                        case TalearrPackVerdict.Redirect:
+                            _logger.Info("Talearr: '{0}': {1}", match.File.Path, decision.Reason);
+                            match.BookId = decision.Target.Id;
+                            match.BookTitle = decision.Target.Title;
+                            match.EditionId = decision.Edition.Id;
+                            match.AuthorId = decision.Target.AuthorId > 0 ? decision.Target.AuthorId : match.AuthorId;
+                            match.MatchedVia = string.IsNullOrWhiteSpace(match.MatchedVia) ? "talearr-pack" : match.MatchedVia + "+talearr-pack";
+                            kept.Add(match);
+                            break;
+                        case TalearrPackVerdict.Unmatch:
+                            _logger.Info("Talearr: '{0}': {1}", match.File.Path, decision.Reason);
+                            unmatched.Add(new UnmatchedFile { File = match.File, Reason = decision.Reason });
+                            break;
+                        default:
+                            kept.Add(match);
+                            break;
+                    }
+                }
+
+                result.MatchedFiles = kept.ToArray();
+                result.UnmatchedFiles = unmatched.ToArray();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Talearr: could not check matched files for multi-book packs");
+            }
         }
 
         private V5SuggestionInfo TryV5Suggestion(
@@ -9766,8 +9858,15 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                             continue;
                         }
 
+                        // Talearr (issue #14): "Publisher's Pack 3" is the pack's number, not a series place.
+                        var packNumberSpans = TalearrPackFiles.PackNumberSpans(value);
                         foreach (Match m in Regex.Matches(value, @"\b\d{1,4}(?:\.\d+)?\b"))
                         {
+                            if (packNumberSpans.Any(span => m.Index >= span.Index && m.Index < span.Index + span.Length))
+                            {
+                                continue;
+                            }
+
                             if (!HasSeriesPositionContextForNumber(value, valueTokens, m, hasSeriesContext, fieldHasSeriesContext))
                             {
                                 continue;

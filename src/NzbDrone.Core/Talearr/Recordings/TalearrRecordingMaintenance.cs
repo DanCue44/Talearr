@@ -10,6 +10,7 @@ using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Queue;
 using NzbDrone.Core.Talearr.EditionLocks;
+using NzbDrone.Core.Talearr.Import;
 
 namespace NzbDrone.Core.Talearr.Recordings
 {
@@ -51,6 +52,8 @@ namespace NzbDrone.Core.Talearr.Recordings
     //   - An additional row without files that duplicates another row (the primary, a row with
     //     files, or an older empty row) is removed, its history moved to the row that stays.
     //   - Two rows that both hold files are left alone; Make Primary and Remove sort those out.
+    //   - Files that hold other books (a "Publisher's Pack", "Books 5-6") never move to the primary
+    //     row, whatever edition they sit on (issue #14).
     //   - A row with a download in the queue is never removed.
     //
     // Make Primary swaps recordings, not rows: the primary row (the one metadata refresh,
@@ -192,6 +195,14 @@ namespace NzbDrone.Core.Talearr.Recordings
                         var files = state.Files(copy.Id);
                         if (!files.All(f => TalearrSameRecording.Same(state.EditionOf(f) ?? state.Recording(copy.Id), primaryRecording, state.Facts)))
                         {
+                            continue;
+                        }
+
+                        // Talearr (issue #14): a file that holds other books (a "Publisher's Pack 3",
+                        // "Books 5-6") is not this book's recording, even on the same Audible product.
+                        if (files.Any(f => !TalearrPackFiles.Fits(TalearrPackFiles.FromPath(f.Path), primary)))
+                        {
+                            _logger.Debug("Talearr: '{0}' book row {1} holds a multi-book pack file; not moving it to the primary recording", primary.Title, copy.Id);
                             continue;
                         }
 
