@@ -11,6 +11,7 @@ interface CssExports {
   'meta': string;
   'path': string;
   'title': string;
+  'trackedOn': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

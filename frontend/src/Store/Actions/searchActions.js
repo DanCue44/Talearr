@@ -219,7 +219,8 @@ function getMediaTypePayload(payload, mediaType, searchForNewBook) {
 }
 
 // Talearr: Link Existing Files. Once the audiobook exists, the chosen folders are imported to it
-// with a normal Manual Import (/talearr/linkexisting). A queued add has no book yet, so the files
+// with a normal Manual Import (/talearr/linkexisting); files already tracked on another audiobook
+// are moved to it in the database. A queued add has no book yet, so the files
 // are left for Manual Import.
 function linkExistingFiles(request, payload, mediaType, dispatch) {
   const linkPaths = Array.isArray(payload.linkPaths) ? payload.linkPaths : [];
@@ -248,15 +249,38 @@ function linkExistingFiles(request, payload, mediaType, dispatch) {
       data: JSON.stringify({ bookId: data.id, paths: linkPaths })
     }).request.done((result) => {
       const count = (result && result.fileCount) || 0;
+      const moved = (result && result.movedCount) || 0;
+      const refused = (result && result.refusedCount) || 0;
+      const fileWord = (n) => (n === 1 ? 'file' : 'files');
+      const parts = [];
+
+      if (count) {
+        parts.push(`Importing ${count} existing ${fileWord(count)} to the audiobook`);
+      }
+
+      if (moved) {
+        parts.push(`Moved ${moved} ${fileWord(moved)} already in Talearr to the audiobook`);
+      }
+
+      if (refused) {
+        const reason = result.refusals && result.refusals.length ? `: ${result.refusals[0]}` : '';
+        parts.push(`${refused} ${fileWord(refused)} not moved${reason}`);
+      }
+
+      let messageType = count || moved ? 'success' : 'info';
+
+      if (refused) {
+        messageType = 'warning';
+      }
 
       dispatch(showMessage({
         id: `book-link-existing-${Date.now()}`,
         name: 'BookLinkExisting',
-        message: count ?
-          `Importing ${count} existing ${count === 1 ? 'file' : 'files'} to the audiobook` :
+        message: parts.length ?
+          parts.join('. ') :
           'No new audio files to link: they are already in the library',
-        type: count ? 'success' : 'info',
-        hideAfter: 10
+        type: messageType,
+        hideAfter: refused ? 14 : 10
       }));
     }).fail((linkXhr) => {
       dispatch(showMessage({

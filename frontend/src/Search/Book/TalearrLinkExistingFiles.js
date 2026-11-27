@@ -33,6 +33,8 @@ function describeSource(candidate) {
 // Talearr: Link Existing Files in the Add Book modal. Shown only when an existing audiobook
 // (an Audiobookshelf item or a folder in the author's audiobook folder) looks like this book; the
 // chosen folders are imported to the new audiobook with a normal Manual Import after the add.
+// A folder whose files Talearr already tracks on another audiobook (or as unmapped files) is
+// listed too, never preselected; ticking it moves those files to the new book (database only).
 function TalearrLinkExistingFiles(props) {
   const {
     candidates,
@@ -43,6 +45,8 @@ function TalearrLinkExistingFiles(props) {
   if (!candidates || !candidates.length) {
     return null;
   }
+
+  const hasTracked = candidates.some((candidate) => candidate.trackedElsewhere);
 
   return (
     <div className={styles.container}>
@@ -55,15 +59,29 @@ function TalearrLinkExistingFiles(props) {
       </div>
 
       {
+        hasTracked ?
+          <div className={styles.help}>
+            {'Ticking files that are already in Talearr moves them to the new book. Nothing on disk is moved or renamed.'}
+          </div> :
+          null
+      }
+
+      {
         candidates.map((candidate) => {
           const duration = formatLinkDuration(candidate.durationSeconds);
           const isSelected = selectedPaths.includes(candidate.path);
+          let matchLabel = candidate.strong ? 'Strong match' : 'Possible match';
+
+          if (candidate.trackedElsewhere) {
+            matchLabel = null;
+          }
+
           const meta = [
             describeSource(candidate),
             duration,
             `${candidate.fileCount} ${candidate.fileCount === 1 ? 'file' : 'files'}`,
             candidate.narrators ? `Narrated by ${candidate.narrators}` : null,
-            candidate.strong ? 'Strong match' : 'Possible match'
+            matchLabel
           ].filter(Boolean).join(' · ');
 
           return (
@@ -91,6 +109,14 @@ function TalearrLinkExistingFiles(props) {
                 <div className={styles.meta}>
                   {meta}
                 </div>
+
+                {
+                  candidate.trackedElsewhere && candidate.trackedOnLabel ?
+                    <div className={styles.trackedOn}>
+                      {candidate.trackedOnLabel}
+                    </div> :
+                    null
+                }
               </div>
             </label>
           );

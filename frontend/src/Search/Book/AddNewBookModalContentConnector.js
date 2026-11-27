@@ -187,7 +187,7 @@ class AddNewBookModalContentConnector extends Component {
 
       this.setState({
         linkCandidates: list,
-        selectedLinkPaths: list.filter((candidate) => candidate.strong).map((candidate) => candidate.path)
+        selectedLinkPaths: list.filter((candidate) => candidate.strong && !candidate.trackedElsewhere).map((candidate) => candidate.path)
       });
     });
 

@@ -60,3 +60,8 @@
   color: var(--helpTextColor);
   font-size: 12px;
 }
+
+.trackedOn {
+  color: var(--warningColor);
+  font-size: 12px;
+}
