@@ -122,6 +122,7 @@ namespace Chaptarr.Core.Test.Talearr.Import
         [TestCase("Series Books 4 - 6", 4, 6)]
         [TestCase("Dresden Files Books 1 and 2", 1, 2)]
         [TestCase("Box Set 1-3", 1, 3)]
+        [TestCase("Series Books 7\u20139", 7, 9)]
         public void ranges_are_read(string text, int start, int end)
         {
             var evidence = TalearrPackFiles.Parse(text);
