@@ -109,6 +109,14 @@ namespace Chaptarr.Core.Test.Talearr.Audiobookshelf
         }
 
         [Test]
+        public void should_drop_a_literal_null_subtitle()
+        {
+            var raw = new AbsLibraryItem { Id = "n", MediaType = "book", Media = new AbsBookMedia { NumAudioFiles = 1, Metadata = new AbsBookMetadata { Title = "The Naturals", Subtitle = "null" } } };
+
+            Assert.That(TalearrAbsItemReader.Read(raw, 1, Mappings, Roots, SyncedAt).Subtitle, Is.Null);
+        }
+
+        [Test]
         public void should_skip_podcasts_and_items_without_media()
         {
             Assert.Multiple(() =>

@@ -54,7 +54,8 @@ namespace NzbDrone.Core.Talearr.Audiobookshelf
                 Path = item.Path,
                 LocalPath = ToLocalPath(item, mappings, localRootPaths),
                 Title = metadata.Title.Trim(),
-                Subtitle = metadata.Subtitle.IsNullOrWhiteSpace() ? null : metadata.Subtitle.Trim(),
+                // Audiobookshelf can hold the literal text "null" as a subtitle
+                Subtitle = metadata.Subtitle.IsNullOrWhiteSpace() || metadata.Subtitle.Trim().Equals("null", StringComparison.OrdinalIgnoreCase) ? null : metadata.Subtitle.Trim(),
                 Authors = metadata.AuthorName.IsNullOrWhiteSpace() ? null : metadata.AuthorName.Trim(),
                 Narrators = metadata.NarratorName.IsNullOrWhiteSpace() ? null : metadata.NarratorName.Trim(),
                 Asin = NormalizeAsin(metadata.Asin),
