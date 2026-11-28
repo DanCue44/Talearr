@@ -2,6 +2,16 @@
 
 Notable changes to Talearr are listed here, newest first. Talearr's version number is its own and is separate from the Chaptarr version it is based on.
 
+## 0.18.75 - 2026-11-29
+
+### Fixed
+- A Publisher's Pack added from an Audible search result is now found under its Audible id, so the add finishes, Link Existing Files links the files, and the pack shows in the author's list right away instead of being queued. (#13)
+- Manual Import uses a pack or book already in your library when it has no file yet, instead of offering to add it again and then refusing the file. (#13)
+- Audiobookshelf items whose subtitle is the word "null" no longer show it in titles.
+
+### Changed
+- Manual Import and Link Existing Files problems now say which files were not imported and why, and stay on screen until you click them. (#13)
+
 ## 0.18.74 - 2026-11-27
 
 ### Changed
