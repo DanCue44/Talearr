@@ -287,7 +287,8 @@ namespace Chaptarr.Core.Test.Books
             Author author = null,
             IBookService bookService = null,
             IProvideBookInfo bookInfo = null,
-            ITalearrSourcePayloads talearrSource = null)
+            ITalearrSourcePayloads talearrSource = null,
+            IEditionService editionService = null)
         {
             author ??= new Author { Id = 42, Name = "Existing Author" };
 
@@ -314,7 +315,66 @@ namespace Chaptarr.Core.Test.Books
                 commandQueue,
                 eventAggregator,
                 LogManager.GetCurrentClassLogger(),
-                talearrSource: talearrSource);
+                talearrSource: talearrSource,
+                editionService: editionService);
+        }
+
+        private class EditionServiceProxy : DispatchProxy
+        {
+            public List<Edition> Editions { get; set; } = new();
+
+            protected override object Invoke(MethodInfo targetMethod, object[] args)
+            {
+                switch (targetMethod?.Name)
+                {
+                    case nameof(IEditionService.GetEditionsByAuthor):
+                        return Editions;
+                    case nameof(IEditionService.GetEditionsByBook) when args[0] is int bookId:
+                        return Editions.Where(e => e.BookId == bookId).ToList();
+                    default:
+                        throw new NotImplementedException($"Test proxy does not implement IEditionService.{targetMethod?.Name}");
+                }
+            }
+        }
+
+        // Talearr #13: Renegade Star Publisher's Pack 8 was added from an Audible search result
+        // (az:1774247631). The author's Hardcover catalog lists that pack, so the library row is
+        // the Hardcover book with the ASIN on its audiobook edition. The request looked for an
+        // az: book only and stayed queued for hours, retrying every time.
+        [Test]
+        public void an_audible_pack_request_resolves_to_the_hardcover_pack_that_carries_its_asin()
+        {
+            var pending = Pending(2);
+            pending.ProviderId = "hc:241293";
+            pending.AuthorName = "J.N. Chaney";
+            pending.AudiobookStatus = PendingImportStatus.Pending;
+            pending.EbookStatus = PendingImportStatus.NotRequested;
+            pending.AudiobookMonitored = true;
+            pending.AudiobookBooksToMonitor = @"[""az:1774247631""]";
+
+            var author = new Author { Id = 80, Name = "J.N. Chaney", HardcoverAuthorId = "hc:241293", AudiobookMonitored = true };
+            var single = new Book { Id = 9950, AuthorId = 80, Author = author, Title = "Renegade Star", MediaType = BookMediaType.Audiobook, HardcoverBookId = "hc:481301" };
+            var pack = new Book { Id = 21681, AuthorId = 80, Author = author, Title = "Renegade Star Publisher's Pack: Books 15-16", MediaType = BookMediaType.Audiobook, HardcoverBookId = "hc:2115997" };
+            var books = DispatchProxy.Create<IBookService, BookServiceProxy>();
+            ((BookServiceProxy)books).Books = new List<Book> { single, pack };
+
+            var editions = DispatchProxy.Create<IEditionService, EditionServiceProxy>();
+            ((EditionServiceProxy)editions).Editions = new List<Edition>
+            {
+                new Edition { Id = 1, BookId = single.Id, ForeignEditionId = "hc:edition:1", Asin = "B07BK7J8C4" },
+                new Edition { Id = 2, BookId = pack.Id, ForeignEditionId = "hc:edition:2", Asin = "1774247631" }
+            };
+
+            var pendingImportService = new StubPendingAuthorImportService();
+            pendingImportService.DueResponses.Enqueue(new List<PendingAuthorImport> { pending });
+
+            BuildHandler(pendingImportService, new RecordingCommandQueue(), new RecordingEventAggregator(),
+                author: author, bookService: books, editionService: editions).Execute(new ProcessPendingImportsCommand());
+
+            Assert.That(pending.OverallStatus, Is.EqualTo(PendingImportStatus.Succeeded), pending.LastError);
+            Assert.That(pendingImportService.RetryReasons, Is.Empty);
+            Assert.That(pack.IsMonitoredWithAuthor(), Is.True);
+            Assert.That(single.IsMonitoredWithAuthor(), Is.False);
         }
 
         private class TalearrSourceProxy : DispatchProxy
