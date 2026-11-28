@@ -2,7 +2,7 @@
 
 Notable changes to Talearr are listed here, newest first. Talearr's version number is its own and is separate from the Chaptarr version it is based on.
 
-## 0.18.75 - 2026-11-29
+## 0.18.75 - 2026-11-28
 
 ### Fixed
 - A Publisher's Pack added from an Audible search result is now found under its Audible id, so the add finishes, Link Existing Files links the files, and the pack shows in the author's list right away instead of being queued. (#13)
