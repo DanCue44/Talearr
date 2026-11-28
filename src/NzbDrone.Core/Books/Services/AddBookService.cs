@@ -635,7 +635,7 @@ namespace NzbDrone.Core.Books
             var talearrAudibleAsin = TalearrAudibleBookRequests.Asin(workProviderId);
             if (talearrAudibleAsin != null)
             {
-                return TalearrAudibleBookRequests.FindBook(_bookService.GetBooksByAuthor(authorId), talearrAudibleAsin, mediaType, _editionService.GetEditionsByBook);
+                return TalearrAudibleBookRequests.FindBook(_bookService.GetBooksByAuthor(authorId), talearrAudibleAsin, mediaType, TalearrAudibleBookRequests.EditionsOfAuthor(authorId, _editionService));
             }
 
             var matches = _bookService.FindAllByWorkProviderId(

@@ -8,7 +8,7 @@ import getNewBook from 'Utilities/Book/getNewBook';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 import getSectionState from 'Utilities/State/getSectionState';
 import updateSectionState from 'Utilities/State/updateSectionState';
-import { showMessage } from './appActions';
+import { hideMessage, showMessage } from './appActions';
 import { set, update, updateItem } from './baseActions';
 import createHandleActions from './Creators/createHandleActions';
 
@@ -218,6 +218,20 @@ function getMediaTypePayload(payload, mediaType, searchForNewBook) {
   };
 }
 
+// Talearr: a Link Existing Files result that needs the user's attention stays on screen until
+// it is clicked, so its reason can be read (#13).
+function showStickyMessage(dispatch, { id, name, message, type }) {
+  dispatch(showMessage({
+    id,
+    name,
+    message: `${message} (click to dismiss)`,
+    type,
+    hideAfter: 0,
+    clickable: true,
+    onClick: () => dispatch(hideMessage({ id }))
+  }));
+}
+
 // Talearr: Link Existing Files. Once the audiobook exists, the chosen folders are imported to it
 // with a normal Manual Import (/talearr/linkexisting); files already tracked on another audiobook
 // are moved to it in the database. A queued add has no book yet, so the files
@@ -231,13 +245,12 @@ function linkExistingFiles(request, payload, mediaType, dispatch) {
 
   request.done((data, textStatus, xhr) => {
     if (getPendingBookRequest(data, xhr) || !data || data.id == null) {
-      dispatch(showMessage({
+      showStickyMessage(dispatch, {
         id: `book-link-existing-queued-${Date.now()}`,
         name: 'BookLinkExistingQueued',
-        message: 'The book was queued, so the existing files were not linked. Use Manual Import once the book is added.',
-        type: 'warning',
-        hideAfter: 14
-      }));
+        message: 'The audiobook is waiting for the metadata server, so its files were not linked yet. When it shows under the author, use Manual Import on its files.',
+        type: 'warning'
+      });
       return;
     }
 
@@ -267,29 +280,35 @@ function linkExistingFiles(request, payload, mediaType, dispatch) {
         parts.push(`${refused} ${fileWord(refused)} not moved${reason}`);
       }
 
-      let messageType = count || moved ? 'success' : 'info';
+      const messageId = `book-link-existing-${Date.now()}`;
+      const text = parts.length ?
+        parts.join('. ') :
+        'No new audio files to link: they are already in the library';
 
       if (refused) {
-        messageType = 'warning';
+        showStickyMessage(dispatch, {
+          id: messageId,
+          name: 'BookLinkExisting',
+          message: text,
+          type: 'warning'
+        });
+        return;
       }
 
       dispatch(showMessage({
-        id: `book-link-existing-${Date.now()}`,
+        id: messageId,
         name: 'BookLinkExisting',
-        message: parts.length ?
-          parts.join('. ') :
-          'No new audio files to link: they are already in the library',
-        type: messageType,
-        hideAfter: refused ? 14 : 10
+        message: text,
+        type: count || moved ? 'success' : 'info',
+        hideAfter: 10
       }));
     }).fail((linkXhr) => {
-      dispatch(showMessage({
+      showStickyMessage(dispatch, {
         id: `book-link-existing-failed-${Date.now()}`,
         name: 'BookLinkExistingFailed',
-        message: `The audiobook was added, but linking the existing files failed: ${getAjaxErrorMessage(linkXhr)}`,
-        type: 'error',
-        hideAfter: 14
-      }));
+        message: `The audiobook was added, but its files were not linked: ${getAjaxErrorMessage(linkXhr)}. Use Manual Import on the files.`,
+        type: 'error'
+      });
     });
   });
 }

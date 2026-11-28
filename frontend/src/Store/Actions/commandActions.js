@@ -104,6 +104,30 @@ function showCommandMessage(payload, dispatch) {
     hideAfter = trigger === 'manual' ? 10 : 4;
   }
 
+  // Talearr: a Manual Import that failed or left files out stays on screen with its reason
+  // until it is clicked, under its own id so removing the finished command does not hide it.
+  const notImported = name === 'ManualImport' &&
+    (status === 'failed' || (status === 'completed' && body.talearrNotImportedCount > 0));
+
+  if (notImported) {
+    const resultId = `manual-import-result-${id}`;
+
+    dispatch(batchActions([
+      hideMessage({ id }),
+      showMessage({
+        id: resultId,
+        name,
+        message: `${message} (click to dismiss)`,
+        type: status === 'failed' ? messageTypes.ERROR : messageTypes.WARNING,
+        hideAfter: 0,
+        clickable: true,
+        onClick: () => dispatch(hideMessage({ id: resultId }))
+      })
+    ]));
+
+    return;
+  }
+
   dispatch(showMessage({
     id,
     name,

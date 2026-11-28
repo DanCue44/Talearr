@@ -67,6 +67,96 @@ namespace Chaptarr.Core.Test.Talearr.Metadata.Source
             Assert.That(TalearrAudibleBookRequests.FindBook(new[] { other, lead }, GainingTheEdge, BookMediaType.Ebook, id => editions.GetValueOrDefault(id)), Is.Null);
         }
 
+        // Talearr #13: a Publisher's Pack added from Audible is Hardcover's pack book, which keeps
+        // its hc: ids. The ASIN is on that book's audiobook edition, and the add (and its pending
+        // retry) must find it there, or the add says "queued" for a book it already added.
+        [Test]
+        public void an_added_pack_is_found_on_the_hardcover_book_that_carries_its_asin()
+        {
+            var bookOne = new Book { Id = 9950, MediaType = BookMediaType.Audiobook, Title = "Renegade Star", HardcoverBookId = "hc:481301" };
+            var pack = new Book { Id = 21681, MediaType = BookMediaType.Audiobook, Title = "Renegade Star Publisher's Pack: Books 15-16", HardcoverBookId = "hc:2115997" };
+            var editions = new Dictionary<int, List<Edition>>
+            {
+                [bookOne.Id] = new List<Edition> { new Edition { BookId = bookOne.Id, ForeignEditionId = "hc:edition:1", Asin = "B07BK7J8C4" } },
+                [pack.Id] = new List<Edition> { new Edition { BookId = pack.Id, ForeignEditionId = "az:1774247631-audiobook" } }
+            };
+
+            Assert.That(TalearrAudibleBookRequests.FindBook(new[] { bookOne, pack }, "1774247631", BookMediaType.Audiobook, id => editions.GetValueOrDefault(id)), Is.SameAs(pack));
+            Assert.That(TalearrAudibleBookRequests.FindBook(new[] { bookOne, pack }, "1774247631", BookMediaType.Ebook, id => editions.GetValueOrDefault(id)), Is.Null);
+            Assert.That(TalearrAudibleBookRequests.FindBook(new[] { bookOne, pack }, "B0NOTHERE1", BookMediaType.Audiobook, id => editions.GetValueOrDefault(id)), Is.Null);
+        }
+
+        [Test]
+        public void a_pack_asin_hardcover_also_lists_on_book_one_goes_to_the_pack()
+        {
+            var bookOne = new Book { Id = 9950, MediaType = BookMediaType.Audiobook, Title = "Renegade Star", HardcoverBookId = "hc:481301" };
+            var pack = new Book { Id = 21679, MediaType = BookMediaType.Audiobook, Title = "Renegade Star Publisher's Pack: Books 1-2", HardcoverBookId = "hc:3111382" };
+            var other = new Book { Id = 9951, MediaType = BookMediaType.Audiobook, Title = "Renegade Atlas", HardcoverBookId = "hc:481302", AudibleASIN = "B07BK7J8C4" };
+            var editions = new Dictionary<int, List<Edition>>
+            {
+                [bookOne.Id] = new List<Edition> { new Edition { BookId = bookOne.Id, Asin = "B07BK7J8C4" } },
+                [pack.Id] = new List<Edition> { new Edition { BookId = pack.Id, Asin = "B07BK7J8C4" } }
+            };
+
+            Assert.That(TalearrAudibleBookRequests.FindBook(new[] { bookOne, pack }, "B07BK7J8C4", BookMediaType.Audiobook, id => editions.GetValueOrDefault(id)), Is.SameAs(pack));
+
+            // Two single books with the ASIN: no guess.
+            Assert.That(TalearrAudibleBookRequests.FindBook(new[] { bookOne, other }, "B07BK7J8C4", BookMediaType.Audiobook, id => editions.GetValueOrDefault(id)), Is.Null);
+        }
+
+        [Test]
+        public void an_az_book_still_wins_over_a_hardcover_book_with_the_same_asin()
+        {
+            var hardcover = new Book { Id = 3, MediaType = BookMediaType.Audiobook, HardcoverBookId = "hc:1" };
+            var audible = new Book { Id = 7, MediaType = BookMediaType.Audiobook, ForeignEditionId = "az:" + GainingTheEdge + "-audiobook" };
+            var editions = new Dictionary<int, List<Edition>> { [3] = new List<Edition> { new Edition { BookId = 3, Asin = GainingTheEdge } } };
+
+            Assert.That(TalearrAudibleBookRequests.FindBook(new[] { hardcover, audible }, GainingTheEdge, BookMediaType.Audiobook, id => editions.GetValueOrDefault(id)), Is.SameAs(audible));
+        }
+
+        [Test]
+        public void editions_of_the_author_are_read_once()
+        {
+            var calls = 0;
+            var (service, fake) = Chaptarr.Core.Test.Talearr.Recordings.InterfaceFake<IEditionService>.Create();
+            fake.On(nameof(IEditionService.GetEditionsByAuthor), _ =>
+            {
+                calls++;
+                return new List<Edition> { new Edition { BookId = 1, Asin = "A" }, new Edition { BookId = 2, Asin = "B" } };
+            });
+
+            var editionsOf = TalearrAudibleBookRequests.EditionsOfAuthor(80, service);
+
+            Assert.That(editionsOf(1).Single().Asin, Is.EqualTo("A"));
+            Assert.That(editionsOf(2).Single().Asin, Is.EqualTo("B"));
+            Assert.That(editionsOf(3), Is.Empty);
+            Assert.That(calls, Is.EqualTo(1));
+        }
+
+        // Talearr #13: a kept listing that is Hardcover's book (matched by title) but whose
+        // audiobook edition has another ASIN gets its Audible edition, so the add finds the book.
+        [Test]
+        public void a_kept_listing_matched_to_a_hardcover_book_keeps_its_asin_on_that_book()
+        {
+            var hardcover = Book("hc:2816228", "Gaining the Edge");
+            hardcover.Editions.Add(new V5Edition { Id = "hc:edition:7", ReadingFormatId = TalearrHardcoverMapper.V5Audio, Asin = "B0OTHER001", Asins = new List<string> { "B0OTHER001" } });
+            var response = Payload(hardcover);
+            var items = new List<AudibleCatalogItem> { Item(GainingTheEdge, "Gaining the Edge", "Symbiote Wars, Book 3", "3") };
+
+            var stats = TalearrAudibleMerge.Apply(response, items, audibleLeads: false, "us", new[] { GainingTheEdge });
+
+            Assert.That(response.Books, Has.Count.EqualTo(1), "no second book for the same work");
+            Assert.That(hardcover.Editions.Select(e => e.Id), Is.EquivalentTo(new[] { "hc:edition:7", "az:" + GainingTheEdge }));
+            Assert.That(hardcover.Id, Is.EqualTo("hc:2816228"), "Hardcover's ids are kept");
+            Assert.That(stats.EditionsAdded, Is.EqualTo(1));
+
+            // Not kept: Hardcover's audiobook edition is left alone as before.
+            var plain = Book("hc:2816228", "Gaining the Edge");
+            plain.Editions.Add(new V5Edition { Id = "hc:edition:7", ReadingFormatId = TalearrHardcoverMapper.V5Audio, Asin = "B0OTHER001", Asins = new List<string> { "B0OTHER001" } });
+            TalearrAudibleMerge.Apply(Payload(plain), items, audibleLeads: false, "us");
+            Assert.That(plain.Editions, Has.Count.EqualTo(1));
+        }
+
         [Test]
         public void kept_audiobooks_are_stored_per_author_and_forgotten_when_deleted()
         {

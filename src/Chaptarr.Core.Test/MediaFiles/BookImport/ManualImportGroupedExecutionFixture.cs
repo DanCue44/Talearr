@@ -200,6 +200,7 @@ namespace Chaptarr.Core.Test.MediaFiles.BookImport
                 _edition = edition;
             }
 
+            public bool NoMatch { get; set; }
             public int GroupedCalls { get; private set; }
             public int HolyGrailCalls { get; private set; }
             public int ObservedDurationSeconds { get; private set; }
@@ -225,6 +226,11 @@ namespace Chaptarr.Core.Test.MediaFiles.BookImport
                 GroupedCalls++;
                 Context = context;
                 ObservedDurationSeconds = filesWithMetadata.Sum(file => file.DurationSeconds ?? 0);
+                if (NoMatch)
+                {
+                    return Task.FromResult(new FileMatchResult { MatchedFiles = Array.Empty<FileMatch>() });
+                }
+
                 return Task.FromResult(new FileMatchResult
                 {
                     MatchedFiles = filesWithMetadata.Select(file => new FileMatch
@@ -265,7 +271,10 @@ namespace Chaptarr.Core.Test.MediaFiles.BookImport
                 CancellationToken cancellationToken = default)
             {
                 Decisions = decisions;
-                return new List<ImportResult>();
+                return decisions
+                    .Where(decision => !decision.Approved)
+                    .Select(decision => new ImportResult(decision, "Rejected: " + string.Join(", ", decision.Rejections.Select(r => r.Reason))))
+                    .ToList();
             }
         }
 
@@ -388,6 +397,95 @@ namespace Chaptarr.Core.Test.MediaFiles.BookImport
                     decision.Item.Edition?.Id == edition.Id &&
                     !decision.Rejections.Any()));
             });
+        }
+
+        private static ManualImportService Service(Author author, Book book, Edition edition, FileMatchingServiceStub matcher, ImportApprovedBooksStub importer)
+        {
+            var rootFolders = DispatchProxy.Create<IRootFolderService, RootFolderServiceProxy>();
+            ((RootFolderServiceProxy)(object)rootFolders).Root = new RootFolder { Id = 1, Path = "/library" };
+            var authors = DispatchProxy.Create<IAuthorService, AuthorServiceProxy>();
+            ((AuthorServiceProxy)(object)authors).Author = author;
+            var books = DispatchProxy.Create<IBookService, BookServiceProxy>();
+            ((BookServiceProxy)(object)books).Book = book;
+            var editions = DispatchProxy.Create<IEditionService, EditionServiceProxy>();
+            ((EditionServiceProxy)(object)editions).Edition = edition;
+
+            return new ManualImportService(
+                DispatchProxy.Create<IDiskProvider, DiskProviderProxy>(),
+                null,
+                rootFolders,
+                null,
+                null,
+                authors,
+                books,
+                editions,
+                DispatchProxy.Create<IAuthorLibraryService, AuthorLibraryServiceProxy>(),
+                DispatchProxy.Create<IRootFolderSettingsResolver, RootFolderSettingsProxy>(),
+                null,
+                matcher,
+                null,
+                DispatchProxy.Create<IMetadataTagService, MetadataTagServiceProxy>(),
+                importer,
+                null,
+                DispatchProxy.Create<ITrackedDownloadService, TrackedDownloadServiceProxy>(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                LogManager.GetCurrentClassLogger());
+        }
+
+        // Talearr #13: a suggested book the file's tags do not match is refused with a reason the
+        // user can act on, and the command says how many files were not imported so the UI keeps
+        // the result on screen.
+        [Test]
+        public void a_refused_suggestion_names_the_book_and_counts_as_not_imported()
+        {
+            var author = new Author { Id = 80, Name = "J.N. Chaney", Path = "/library/J.N. Chaney", HardcoverAuthorId = "hc:241293" };
+            var edition = new Edition { Id = 5, BookId = 21681, Title = "Renegade Star Publisher's Pack: Books 15-16" };
+            var book = new Book { Id = 21681, AuthorId = 80, Author = author, Title = "Renegade Star Publisher's Pack: Books 15-16", HardcoverBookId = "hc:2115997", MediaType = BookMediaType.Audiobook };
+            var matcher = new FileMatchingServiceStub(author, book, edition) { NoMatch = true };
+            var importer = new ImportApprovedBooksStub();
+            var command = new ManualImportCommand
+            {
+                Files = new List<ManualImportFile>
+                {
+                    new ManualImportFile
+                    {
+                        Path = "/library/J.N. Chaney/Renegade Star/Pack 8/chapter-1.m4b",
+                        ForeignAuthorId = "hc:241293",
+                        ForeignAuthorName = author.Name,
+                        ForeignBookId = "hc:2115997",
+                        ForeignBookTitle = "Renegade Star: Publisher's Pack 8",
+                        Quality = new QualityModel(Quality.M4B)
+                    }
+                },
+                ImportMode = ImportMode.Copy
+            };
+
+            Service(author, book, edition, matcher, importer).Execute(command);
+
+            var rejection = importer.Decisions.Single().Rejections.Single().Reason;
+            Assert.That(rejection, Is.EqualTo("Its tags do not match 'Renegade Star Publisher's Pack: Books 15-16'. Pick the book in the Book column and import again."));
+            Assert.That(command.TalearrNotImportedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void a_local_selection_that_cannot_be_imported_fails_with_its_reason()
+        {
+            var author = new Author { Id = 80, Name = "J.N. Chaney", Path = "/library/J.N. Chaney" };
+            var service = Service(author, null, null, new FileMatchingServiceStub(author, new Book(), new Edition()), new ImportApprovedBooksStub());
+            var command = new ManualImportCommand
+            {
+                Files = new List<ManualImportFile>
+                {
+                    new ManualImportFile { Path = "/library/J.N. Chaney/chapter-1.m4b", AuthorId = 80, BookId = 404, EditionId = 0, Quality = new QualityModel(Quality.M4B) }
+                }
+            };
+
+            var ex = Assert.Throws<NzbDrone.Core.Messaging.Commands.CommandFailedException>(() => service.Execute(command));
+            Assert.That(ex.Message, Does.Contain("could not be found"));
         }
 
         [Test]

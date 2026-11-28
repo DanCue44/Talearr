@@ -562,6 +562,19 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
 
         public void Execute(ManualImportCommand message)
         {
+            try
+            {
+                ExecuteImport(message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Talearr #13: the reason is the message the user sees, not a bare "Failed".
+                throw new CommandFailedException(ex.Message, ex);
+            }
+        }
+
+        private void ExecuteImport(ManualImportCommand message)
+        {
             // Talearr: the review table's Hardlink / Copy choice applies to every file of this import.
             using var talearrTransfer = TalearrTransferScope.Begin(TalearrTransferScope.Parse(message.TalearrTransfer));
 
@@ -965,7 +978,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
                         DurationSeconds = prepared.Discovered.DurationSeconds,
                         AllowedBookIds = allowedBooks?.Select(book => book.Id).ToHashSet(),
                         RejectionReason = groupRejection ?? (match == null
-                            ? $"Local grouped matching could not match '{Path.GetFileName(prepared.ActualPath)}' inside provider work '{prepared.Request.ForeignBookId}'."
+                            ? TalearrManualImportMessages.SuggestedBookMismatch(prepared.Request.ForeignBookTitle, allowedBooks)
                             : null)
                     };
                 }
@@ -1290,8 +1303,19 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
             }
 
             var importedCount = imported.Count(i => i.Result == ImportResultType.Imported);
-            var failedCount = imported.Count - importedCount;
-            _logger.ProgressTrace("Manually imported {0} files{1}", importedCount, failedCount > 0 ? $" ({failedCount} failed/skipped)" : string.Empty);
+            var notImported = imported
+                .Where(i => i.Result != ImportResultType.Imported && i.Result != ImportResultType.Pending)
+                .ToList();
+            foreach (var result in notImported)
+            {
+                _logger.Warn("Manual import did not import '{0}': {1}",
+                    result.ImportDecision?.Item?.Path,
+                    TalearrManualImportMessages.Reason(result));
+            }
+
+            // Talearr #13: the result names the first file that was not imported and why.
+            message.TalearrNotImportedCount = notImported.Count;
+            _logger.ProgressTrace(TalearrManualImportMessages.Summary(importedCount, imported.Count, notImported));
 
             foreach (var groupedTrackedDownload in importedTrackedDownload.GroupBy(i => i.TrackedDownload.DownloadItem.DownloadId).ToList())
             {

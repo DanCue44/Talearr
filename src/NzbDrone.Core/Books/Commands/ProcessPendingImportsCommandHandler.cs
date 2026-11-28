@@ -33,6 +33,7 @@ namespace NzbDrone.Core.Books.Commands
         private readonly Logger _logger;
         private readonly ITalearrOwnedBooks _ownedBooks;
         private readonly ITalearrSourcePayloads _talearrSource;
+        private readonly IEditionService _editionService;
 
         // Talearr: a request that names its book by another provider's id (Goodreads) and still
         // has no match in the author's Hardcover catalog after this many attempts (about two
@@ -49,8 +50,10 @@ namespace NzbDrone.Core.Books.Commands
             IEventAggregator eventAggregator,
             Logger logger,
             ITalearrOwnedBooks ownedBooks = null,
-            ITalearrSourcePayloads talearrSource = null)
+            ITalearrSourcePayloads talearrSource = null,
+            IEditionService editionService = null)
         {
+            _editionService = editionService;
             _ownedBooks = ownedBooks;
             _talearrSource = talearrSource;
             _pendingImportService = pendingImportService;
@@ -586,6 +589,19 @@ namespace NzbDrone.Core.Books.Commands
                 if (separator <= 0)
                 {
                     throw new InvalidOperationException($"Invalid requested work provider ID '{target.ProviderId}'.");
+                }
+
+                // Talearr #13: an audiobook added from Audible (az:{ASIN}) has no work id; it is
+                // found by its ASIN like the add itself finds it.
+                var talearrAudibleAsin = TalearrAudibleBookRequests.Asin(normalized);
+                if (talearrAudibleAsin != null)
+                {
+                    target.Book = TalearrAudibleBookRequests.FindBook(
+                        _bookService.GetBooksByAuthor(author.Id),
+                        talearrAudibleAsin,
+                        target.MediaType,
+                        TalearrAudibleBookRequests.EditionsOfAuthor(author.Id, _editionService));
+                    continue;
                 }
 
                 var matches = _bookService.FindAllByWorkProviderId(
