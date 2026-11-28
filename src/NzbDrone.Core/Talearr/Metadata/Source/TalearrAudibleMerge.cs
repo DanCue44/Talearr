@@ -159,13 +159,15 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
                 }
             }
 
+            var kept = new HashSet<string>(keptAsins ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+
             foreach (var (work, book) in matches)
             {
                 stats.Matched++;
                 FillBook(response, book, work, audibleLeads, domain, stats, placeMatched.Contains(book));
+                KeepListing(book, work, kept, domain, placeMatched.Contains(book), stats);
             }
 
-            var kept = new HashSet<string>(keptAsins ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
             if (audibleLeads || kept.Count > 0)
             {
                 foreach (var work in unmatched.Concat(works.Where(w => w.IsCollection))
@@ -524,6 +526,40 @@ namespace NzbDrone.Core.Talearr.Metadata.Source
             }
 
             PlaceInSeries(response, book, work, audibleLeads, stats);
+        }
+
+        // Talearr #13: a listing added from an Audible search result (kept) that is Hardcover's
+        // book stays findable by its ASIN: when none of the book's editions has it (Hardcover's
+        // audiobook edition carries another ASIN or none), its Audible edition is added to the
+        // book. Without it the add of a Publisher's Pack waited forever for a book it had already
+        // added.
+        private static void KeepListing(V5Book book, Work work, HashSet<string> kept, string domain, bool byPlace, TalearrAudibleMergeStats stats)
+        {
+            if (kept.Count == 0)
+            {
+                return;
+            }
+
+            book.Editions ??= new List<V5Edition>();
+            foreach (var item in work.Items.Where(i => kept.Contains(i.Asin)))
+            {
+                if (book.Editions.Any(e => EditionAsins(e).Contains(item.Asin, StringComparer.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                var edition = NewEdition(item, work, domain);
+                if (byPlace || !SharesMainTitle(edition.Title, book.Title))
+                {
+                    edition.Title = book.Title;
+                    edition.Subtitle = TalearrTitleNormalizer.NormalizeFull(book.Subtitle) == TalearrTitleNormalizer.NormalizeFull(book.Title) ? null : book.Subtitle;
+                }
+
+                edition.RatingCount = 0;
+                book.Editions.Add(edition);
+                book.HasAudiobook = true;
+                stats.EditionsAdded++;
+            }
         }
 
         private static void PlaceInSeries(V5AuthorResponse response, V5Book book, Work work, bool audibleLeads, TalearrAudibleMergeStats stats)

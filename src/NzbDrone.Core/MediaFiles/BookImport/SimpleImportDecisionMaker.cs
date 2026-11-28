@@ -13,6 +13,7 @@ using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Talearr.Calibre;
+using NzbDrone.Core.Talearr.Import;
 
 namespace NzbDrone.Core.MediaFiles.BookImport
 {
@@ -294,11 +295,59 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                     candidate.LocalBook.SuggestedForeignEditionId = suggestion.EditionHardcoverId;
                     candidate.LocalBook.SuggestedEditionTitle = suggestion.EditionTitle;
 
+                    // Talearr #13: the suggested book is already in the library and still has no
+                    // file (a Publisher's Pack just added), so the row is that book, ready to
+                    // import, instead of "Select to Add" for a book that exists.
+                    ApplyLocalSuggestion(candidate, suggestion.ProviderId, suggestion.BookProviderId, restrictToAuthorId, bookCache);
                 }
             }
             catch (Exception ex)
             {
                 _logger.Debug(ex, "Grouped manual-import preview matching failed; leaving rows for manual selection");
+            }
+        }
+
+        private void ApplyLocalSuggestion(
+            ManualPreviewCandidate candidate,
+            string authorProviderId,
+            string bookProviderId,
+            int? restrictToAuthorId,
+            Dictionary<int, Book> bookCache)
+        {
+            try
+            {
+                var book = TalearrLocalSuggestion.FindBook(
+                    candidate.Discovered,
+                    candidate.MediaType,
+                    authorProviderId,
+                    bookProviderId,
+                    restrictToAuthorId,
+                    _authorService,
+                    _bookService,
+                    _editionService,
+                    _mediaFileService);
+                if (book == null)
+                {
+                    return;
+                }
+
+                var editions = _editionService.GetEditionsByBook(book.Id) ?? new List<Edition>();
+                var edition = editions.FirstOrDefault(e => e.Monitored) ?? editions.OrderBy(e => e.Id).FirstOrDefault();
+                if (edition == null)
+                {
+                    return;
+                }
+
+                bookCache[book.Id] = book;
+                candidate.LocalBook.Book = book;
+                candidate.LocalBook.Author = _authorService.GetAuthor(book.AuthorId);
+                candidate.LocalBook.Edition = edition;
+                _logger.Debug("Manual import preview: '{0}' is the library's book [{1}] {2}, which has no file yet",
+                    candidate.Discovered.Path, book.Id, book.Title);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Could not resolve the suggested book '{0}' for '{1}' in the library", bookProviderId, candidate.Discovered?.Path);
             }
         }
 
